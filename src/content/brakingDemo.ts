@@ -13,6 +13,17 @@ export const tapWarmup = {
   scene: { range: 60, xMax: 5, yMax: 24 },
 };
 
+// One cell of the answer template: a number slot, a fixed sign, a slot for a sign, or a bracket.
+export type Cell = { kind: 'break' } | { kind: 'slot' } | { kind: 'op'; sym: string } | { kind: 'opSlot' } | { kind: 'paren'; sym: '(' | ')' };
+const slot: Cell = { kind: 'slot' };
+const lineBreak: Cell = { kind: 'break' };
+const op = (sym: string): Cell => ({ kind: 'op', sym });
+const opSlot: Cell = { kind: 'opSlot' };
+const paren = (sym: '(' | ')'): Cell => ({ kind: 'paren', sym });
+
+// Squares for the "why squared" screen: one square is 2 s wide and 10 m/s tall, i.e. 20 m.
+export const SQUARE = { dt: 2, dv: 10 };
+
 export type BuildQuestion = {
   id: string;
   title: string;
@@ -20,6 +31,8 @@ export type BuildQuestion = {
   unit: string;
   answer: number;
   tiles: number[]; // number tiles on offer
+  template: Cell[]; // where the tiles go; the signs are ready or chosen by the user
+  structureHint: string; // says what the calculation looks like without giving numbers
   scene: { u: number; reaction: number; range: number; xMax: number; yMax: number };
   correctText: string;
   hint: string;
@@ -37,6 +50,8 @@ export const buildQuestions: BuildQuestion[] = [
     unit: 'm',
     answer: stoppingDistance(u1, A),
     tiles: [u1, A, 2, 20, 10],
+    template: [slot, op('×'), slot, op('÷'), paren('('), slot, op('×'), slot, paren(')')],
+    structureHint: 'u² on top, divided by 2a in brackets.',
     scene: { u: u1, reaction: 0, range: 180, xMax: 9, yMax: 48 },
     correctText: `s = u² ÷ 2a = ${u1} × ${u1} ÷ (2 × ${A}) = ${stoppingDistance(u1, A)} m.`,
     hint: 'Use s = u² ÷ 2a. Watch the brackets around 2a.',
@@ -48,6 +63,8 @@ export const buildQuestions: BuildQuestion[] = [
     unit: 'm',
     answer: totalStoppingDistance(u2, A, reaction),
     tiles: [u2, reaction, 2, A],
+    template: [slot, opSlot, slot, opSlot, lineBreak, slot, opSlot, slot, op('÷'), paren('('), slot, op('×'), slot, paren(')')],
+    structureHint: 'Thinking distance and braking distance add together. One sign is a plus.',
     scene: { u: u2, reaction, range: 60, xMax: 5, yMax: 24 },
     correctText: `Thinking: ${u2} × ${reaction} = ${u2 * reaction} m. Braking: ${u2} × ${u2} ÷ (2 × ${A}) = ${stoppingDistance(u2, A)} m. Total ${totalStoppingDistance(u2, A, reaction)} m.`,
     hint: 'During the reaction time the car keeps its speed: distance = speed × time. Then add the braking distance.',

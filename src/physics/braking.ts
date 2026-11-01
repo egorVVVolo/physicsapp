@@ -34,3 +34,8 @@ export function positionDuringBraking(u: number, a: number, t: number): number {
   const tt = Math.min(t, stoppingTime(u, a));
   return u * tt - 0.5 * a * tt * tt;
 }
+
+// Whole grid squares (dt seconds wide, dv m/s tall) in the rectangle that bounds the braking triangle.
+export function boundingSquares(u: number, a: number, dt: number, dv: number): { w: number; h: number } {
+  return { w: stoppingTime(u, a) / dt, h: u / dv };
+}

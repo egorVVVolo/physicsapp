@@ -5,6 +5,7 @@ import {
   positionWithReaction,
   speedWithReaction,
   totalStoppingDistance,
+  boundingSquares,
   positionDuringBraking,
   speedDuringBraking,
   stoppingDistance,
@@ -31,6 +32,22 @@ describe('braking physics', () => {
     expect(positionDuringBraking(20, 5, 4)).toBeCloseTo(40);
     expect(positionDuringBraking(20, 5, 10)).toBeCloseTo(40);
     expect(speedDuringBraking(20, 5, 10)).toBe(0);
+  });
+});
+
+describe('squares picture', () => {
+  it('doubling u doubles both sides: 2x2 squares become 4x4, triangle = half the rectangle', () => {
+    const cell = 2 * 10; // 2 s x 10 m/s = 20 m per square
+    const small = boundingSquares(20, 5, 2, 10);
+    const big = boundingSquares(40, 5, 2, 10);
+    expect(small.w * small.h).toBe(4);
+    expect(big.w * big.h).toBe(16);
+    expect(0.5 * small.w * small.h * cell).toBeCloseTo(stoppingDistance(20, 5));
+    expect(0.5 * big.w * big.h * cell).toBeCloseTo(stoppingDistance(40, 5));
+  });
+
+  it('s = 1/2 u t with t = u / a gives u^2 / 2a', () => {
+    expect(0.5 * 20 * stoppingTime(20, 5)).toBeCloseTo(stoppingDistance(20, 5));
   });
 });
 

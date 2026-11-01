@@ -1,20 +1,36 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Pressable, ScrollView, Text, View, useWindowDimensions } from 'react-native';
+import Animated, { Easing, FadeInDown, ZoomIn, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import Svg, { Line, Path } from 'react-native-svg';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { A, BuildQuestion, INTRO_SPEEDS, tapWarmup } from '../content/brakingDemo';
+import { A, BuildQuestion, SQUARE, tapWarmup } from '../content/brakingDemo';
 import { evaluate, hasOperator } from '../lib/expression';
+import { useTween } from '../lib/useTween';
 import { stoppingDistance, stoppingTime } from '../physics/braking';
 import { colors } from '../theme/tokens';
 import { fonts } from '../theme/fonts';
 import { BrakingScene } from './BrakingScene';
+import { ExplainGraph } from './ExplainGraph';
 import { HeroScene } from './HeroScene';
-import { BackspaceIcon, CheckIcon, ChunkyButton, CrossIcon, Footer, OptionFrame, resultHaptic, tapHaptic } from './stepParts';
+import { CheckIcon, ChunkyButton, CrossIcon, Footer, OptionFrame, resultHaptic, tapHaptic } from './stepParts';
 
 const tidy = (n: number) => Number(n.toFixed(2));
 
-// Common frame: close + progress, title, content, footer.
+function ProgressBar({ index, total }: { index: number; total: number }) {
+  const w = useSharedValue(index / total);
+  useEffect(() => {
+    w.value = withTiming((index + 1) / total, { duration: 650, easing: Easing.out(Easing.cubic) });
+  }, [index, total, w]);
+  const fill = useAnimatedStyle(() => ({ width: `${w.value * 100}%` }));
+  return (
+    <View style={{ flex: 1, height: 10, borderRadius: 5, backgroundColor: colors.surfaceRaised, overflow: 'hidden', marginRight: 16 }}>
+      <Animated.View style={[{ height: 10, borderRadius: 5, backgroundColor: colors.accent }, fill]} />
+    </View>
+  );
+}
+
+// Common frame: close + progress, then tag, title, body and content that glide in one after another.
 function Shell({
   tag,
   index,
@@ -32,23 +48,30 @@ function Shell({
   children?: React.ReactNode;
   footer: React.ReactNode;
 }) {
+  const enter = (delay: number) => FadeInDown.duration(420).delay(delay);
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', paddingLeft: 4, height: 52, gap: 4 }}>
         <Pressable onPress={() => router.replace('/')} accessibilityRole="button" accessibilityLabel="Restart demo" style={{ width: 48, height: 48, alignItems: 'center', justifyContent: 'center' }}>
           <CrossIcon color={colors.inkMuted} size={22} />
         </Pressable>
-        <View style={{ flex: 1, flexDirection: 'row', gap: 4, marginRight: 16 }}>
-          {Array.from({ length: total }, (_, i) => (
-            <View key={i} style={{ flex: 1, height: 8, borderRadius: 4, backgroundColor: i <= index ? colors.accent : colors.surfaceRaised }} />
-          ))}
-        </View>
+        <ProgressBar index={index} total={total} />
       </View>
       <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 16 }}>
-        <Text style={{ fontFamily: fonts.bodySemi, fontSize: 14, color: colors.accent }}>{tag}</Text>
-        <Text style={{ fontFamily: fonts.display, fontSize: 30, lineHeight: 34, color: colors.ink, letterSpacing: -0.5, marginTop: 2 }}>{title}</Text>
-        {body && <Text style={{ fontFamily: fonts.body, fontSize: 17, lineHeight: 24, color: colors.inkMuted, marginTop: 6 }}>{body}</Text>}
-        <View style={{ marginTop: 14, gap: 12 }}>{children}</View>
+        <Animated.Text entering={enter(0)} style={{ fontFamily: fonts.bodySemi, fontSize: 14, color: colors.accent }}>
+          {tag}
+        </Animated.Text>
+        <Animated.Text entering={enter(70)} style={{ fontFamily: fonts.display, fontSize: 30, lineHeight: 34, color: colors.ink, letterSpacing: -0.5, marginTop: 2 }}>
+          {title}
+        </Animated.Text>
+        {body && (
+          <Animated.Text entering={enter(140)} style={{ fontFamily: fonts.body, fontSize: 17, lineHeight: 24, color: colors.inkMuted, marginTop: 6 }}>
+            {body}
+          </Animated.Text>
+        )}
+        <Animated.View entering={enter(220)} style={{ marginTop: 14, gap: 12 }}>
+          {children}
+        </Animated.View>
       </ScrollView>
       {footer}
     </SafeAreaView>
@@ -66,6 +89,43 @@ function useSceneHeight(share: number) {
 }
 
 type Nav = { index: number; total: number; onNext: () => void };
+
+// A step with several small beats: the main button reveals the next one.
+function useBeats(count: number) {
+  const [k, setK] = useState(0);
+  return { k, last: k >= count - 1, advance: () => setK((n) => Math.min(n + 1, count - 1)) };
+}
+
+// Coloured symbols: u = speed (blue), a = braking (coral), t = time (yellow).
+const LETTER: Record<string, string> = { u: colors.velocity, a: colors.acceleration, t: colors.accent };
+function Eq({ parts, size = 30 }: { parts: (string | [string, string])[]; size?: number }) {
+  return (
+    <Text style={{ fontFamily: fonts.display, fontSize: size, lineHeight: size * 1.3, color: colors.ink, fontVariant: ['tabular-nums'] }}>
+      {parts.map((p, i) =>
+        typeof p === 'string' ? (
+          [...p].map((c, j) => (
+            <Text key={`${i}-${j}`} style={{ color: LETTER[c] ?? colors.ink }}>
+              {c}
+            </Text>
+          ))
+        ) : (
+          <Text key={i} style={{ color: p[1] }}>
+            {p[0]}
+          </Text>
+        ),
+      )}
+    </Text>
+  );
+}
+
+function FormulaRow({ label, children, strong }: { label: string; children: React.ReactNode; strong?: boolean }) {
+  return (
+    <Animated.View entering={FadeInDown.duration(450)} style={{ backgroundColor: colors.surface, borderRadius: 18, padding: 16, borderWidth: strong ? 2 : 0, borderColor: colors.accent }}>
+      <Text style={{ fontFamily: fonts.bodyMedium, fontSize: 13, color: colors.inkMuted, marginBottom: 4 }}>{label}</Text>
+      {children}
+    </Animated.View>
+  );
+}
 
 // 1. Intro: one hero object, two sentences.
 export function Story({ index, total, onNext }: Nav) {
@@ -86,7 +146,7 @@ export function Story({ index, total, onNext }: Nav) {
   );
 }
 
-// 2a. Example: watch one braking run.
+// 2. Watch one braking run.
 export function ExampleBrake({ index, total, onNext }: Nav) {
   const [playKey, setPlayKey] = useState(0);
   const [done, setDone] = useState(false);
@@ -105,7 +165,7 @@ export function ExampleBrake({ index, total, onNext }: Nav) {
         <Footer
           label={done ? 'Next' : running ? 'Braking…' : 'Brake'}
           disabled={running}
-          note={done ? `It stops after ${stoppingTime(u, A)} s and ${stoppingDistance(u, A)} m. The distance is the area under the graph.` : null}
+          note={done ? `It stops after ${stoppingTime(u, A)} s and ${stoppingDistance(u, A)} m.` : null}
           onPress={() => {
             tapHaptic();
             if (done) onNext();
@@ -121,76 +181,137 @@ export function ExampleBrake({ index, total, onNext }: Nav) {
   );
 }
 
-// 2b. Example: try different speeds and see why distance grows with v squared.
-export function ExampleSpeed({ index, total, onNext }: Nav) {
-  const [u, setU] = useState(20);
-  const [playKey, setPlayKey] = useState(0);
-  const [done, setDone] = useState(false);
-  const [history, setHistory] = useState<number[]>([]);
-  const running = playKey > 0 && !done;
-  const enough = history.length >= 2;
-  const h = useSceneHeight(0.5);
-
-  // Compare the last two speeds tried: ratio r in speed gives r in time and in average speed, so r² in distance.
-  const [lo, hi] = history.slice(-2).sort((x, y) => x - y);
-  const r = enough ? tidy(hi / lo) : 1;
-  const label = running ? 'Braking…' : done ? (enough ? 'Next' : 'Pick another speed') : 'Brake';
-  const note = !done
-    ? null
-    : enough
-      ? `${r}× the speed gives ${r}× the stopping time and ${r}× the average speed, so ${tidy(r * r)}× the distance. s = u² ÷ 2a.`
-      : `${u} m/s: ${stoppingTime(u, A)} s and ${stoppingDistance(u, A)} m.`;
+// 3. The distance is the area of a triangle: base, height, area, one beat at a time.
+export function AreaExplain({ index, total, onNext }: Nav) {
+  const { k, last, advance } = useBeats(4);
+  const base = useTween(k >= 1 ? 1 : 0, 800);
+  const heightMark = useTween(k >= 2 ? 1 : 0, 800);
+  const area = useTween(k >= 3 ? 1 : 0, 900);
+  const h = useSceneHeight(0.46);
+  const u = 20;
+  const t0 = stoppingTime(u, A);
+  const notes = [
+    'The speed falls in a straight line. How far did the car go?',
+    `Base: how long it takes to stop, t = ${t0} s.`,
+    `Height: the speed it started at, u = ${u} m/s.`,
+    `Distance = area of the triangle = ½ × ${t0} × ${u} = ${stoppingDistance(u, A)} m.`,
+  ];
+  const labels = ['Show the base', 'Show the height', 'Fill the area', 'Next'];
 
   return (
     <Shell
-      tag="Try it"
+      tag="Idea"
       index={index}
       total={total}
-      title="Faster, much further"
-      body="Pick a speed and brake. Try two."
-      footer={
-        <Footer
-          label={label}
-          disabled={running || (done && !enough)}
-          note={note}
-          onPress={() => {
-            tapHaptic();
-            if (done) onNext();
-            else {
-              setHistory((hs) => (hs.includes(u) ? hs : [...hs, u]));
-              setPlayKey((k) => k + 1);
-            }
-          }}
-        />
-      }
+      title="Distance is an area"
+      footer={<Footer label={labels[k]} note={notes[k]} onPress={() => { tapHaptic(); if (last) onNext(); else advance(); }} />}
     >
       <SceneCard>
-        <BrakingScene height={h} u={u} playKey={playKey} range={180} xMax={9} yMax={48} history={history} onDone={() => setDone(true)} />
+        <ExplainGraph height={h} u={u} xMax={5} yMax={24} base={base} heightMark={heightMark} area={area} areaLabel={`½ × ${t0} × ${u} = ${stoppingDistance(u, A)} m`} />
       </SceneCard>
-      <View style={{ flexDirection: 'row', gap: 8 }}>
-        {INTRO_SPEEDS.map((s) => {
-          const on = s === u;
-          return (
-            <ChunkyButton
-              key={s}
-              disabled={running}
-              accessibilityLabel={`${s} metres per second`}
-              fill={on ? colors.velocity : colors.surfaceRaised}
-              edge={on ? '#2A62C9' : colors.surfaceEdge}
-              style={{ flex: 1, minHeight: 56, opacity: running && !on ? 0.5 : 1 }}
-              onPress={() => {
-                tapHaptic();
-                setU(s);
-                setPlayKey(0);
-                setDone(false);
-              }}
-            >
-              <Text style={{ fontFamily: fonts.display, fontSize: 22, color: on ? colors.onAccent : colors.ink, fontVariant: ['tabular-nums'] }}>{s}</Text>
-              <Text style={{ fontFamily: fonts.bodyMedium, fontSize: 12, color: on ? colors.onAccent : colors.inkMuted }}>m/s</Text>
-            </ChunkyButton>
-          );
-        })}
-      </View>
+    </Shell>
+  );
+}
+
+// 4. Where u² ÷ 2a comes from, built line by line.
+export function RuleExplain({ index, total, onNext }: Nav) {
+  const { k, last, advance } = useBeats(3);
+  const notes = [
+    "The triangle's area is the distance. But how long is t?",
+    'The speed falls by a every second, so reaching zero takes u ÷ a seconds.',
+    'Swap t for u ÷ a. The distance depends on u², not u.',
+  ];
+  const labels = ['Find t', 'Put it together', 'Next'];
+
+  return (
+    <Shell
+      tag="Idea"
+      index={index}
+      total={total}
+      title="Where does u² come from?"
+      footer={<Footer label={labels[k]} note={notes[k]} onPress={() => { tapHaptic(); if (last) onNext(); else advance(); }} />}
+    >
+      <FormulaRow label="Area of the triangle">
+        <Eq parts={['s = ½ × u × t']} />
+      </FormulaRow>
+      {k >= 1 && (
+        <FormulaRow label="Speed drops a every second">
+          <Eq parts={['t = u ÷ a']} />
+        </FormulaRow>
+      )}
+      {k >= 2 && (
+        <FormulaRow label="Put t into s" strong>
+          <Eq parts={['s = ½ × u × (u ÷ a)']} size={24} />
+          <View style={{ height: 6 }} />
+          <Eq parts={['s = u² ÷ 2a']} size={36} />
+        </FormulaRow>
+      )}
+    </Shell>
+  );
+}
+
+// 5. The formula with real numbers.
+export function NumbersExplain({ index, total, onNext }: Nav) {
+  const { k, last, advance } = useBeats(3);
+  const u = 20;
+  const notes = [`Take u = ${u} m/s and a = ${A} m/s².`, 'Square the speed, double the braking.', 'It matches the 40 m we measured on the graph.'];
+  const labels = ['Put the numbers in', 'Calculate', 'Next'];
+
+  return (
+    <Shell
+      tag="Example"
+      index={index}
+      total={total}
+      title="Try it with numbers"
+      footer={<Footer label={labels[k]} note={notes[k]} onPress={() => { tapHaptic(); if (last) onNext(); else advance(); }} />}
+    >
+      <FormulaRow label="The rule">
+        <Eq parts={['s = u² ÷ 2a']} />
+        <View style={{ flexDirection: 'row', gap: 16, marginTop: 6 }}>
+          <Eq parts={[`u = ${u} m/s`]} size={16} />
+          <Eq parts={[`a = ${A} m/s²`]} size={16} />
+        </View>
+      </FormulaRow>
+      {k >= 1 && (
+        <FormulaRow label="Numbers in">
+          <Eq parts={['s = ', [`${u}`, colors.velocity], '² ÷ (2 × ', [`${A}`, colors.acceleration], ')']} />
+        </FormulaRow>
+      )}
+      {k >= 2 && (
+        <FormulaRow label="Calculate" strong>
+          <Eq parts={[`s = ${u * u} ÷ ${2 * A} = `, [`${stoppingDistance(u, A)} m`, colors.correct]]} />
+        </FormulaRow>
+      )}
+    </Shell>
+  );
+}
+
+// 6. Why squared: twice the speed fills four times the squares.
+export function SquaresExplain({ index, total, onNext }: Nav) {
+  const { k, last, advance } = useBeats(2);
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+  const first = useTween(mounted ? 1 : 0, 1600);
+  const second = useTween(k >= 1 ? 1 : 0, 2000);
+  const h = useSceneHeight(0.46);
+  const cells = k >= 1 ? second : first;
+  const u = k >= 1 ? 40 : 20;
+  const notes = [
+    `20 m/s: the box is 2 × 2 = 4 squares. One square is ${SQUARE.dt * SQUARE.dv} m and the triangle is half the box: 40 m.`,
+    '40 m/s: twice as wide and twice as tall, 4 × 4 = 16 squares. Twice the speed, four times the distance.',
+  ];
+
+  return (
+    <Shell
+      tag="Idea"
+      index={index}
+      total={total}
+      title="Double the speed"
+      footer={<Footer label={last ? 'Next' : 'Double the speed'} note={notes[k]} onPress={() => { tapHaptic(); if (last) onNext(); else advance(); }} />}
+    >
+      <SceneCard>
+        <ExplainGraph height={h} u={u} xMax={9} yMax={48} cells={cells} cell={SQUARE} area={1} ghostU={k >= 1 ? 20 : undefined} />
+      </SceneCard>
     </Shell>
   );
 }
@@ -204,7 +325,7 @@ const graphs: { d: string; correct: boolean; name: string }[] = [
   { d: 'M30 20 Q60 92 270 104', correct: false, name: 'a curve dropping fast then levelling' },
 ];
 
-// 3a. Warm-up: pick the graph.
+// 7. Warm-up: pick the graph.
 export function WarmGraph({ index, total, onNext }: Nav) {
   const [selected, setSelected] = useState<number | null>(null);
   const [status, setStatus] = useState<Status>('idle');
@@ -278,7 +399,7 @@ export function WarmGraph({ index, total, onNext }: Nav) {
   );
 }
 
-// 3b. Warm-up: tap the road where the car stops. The run plays only after a correct check.
+// 8. Warm-up: tap the road where the car stops. The run plays only after a correct check.
 export function WarmTap({ index, total, onNext }: Nav) {
   const [marker, setMarker] = useState<number | null>(null);
   const [status, setStatus] = useState<Status>('idle');
@@ -358,27 +479,27 @@ export function WarmTap({ index, total, onNext }: Nav) {
   );
 }
 
-const OPS: { sym: string; label: string }[] = [
-  { sym: '×', label: 'times' },
-  { sym: '÷', label: 'divided by' },
-  { sym: '+', label: 'plus' },
-  { sym: '(', label: 'open bracket' },
-  { sym: ')', label: 'close bracket' },
-];
+const SIGNS = ['×', '÷', '+', '−'];
 
-// 4. Build the calculation from tiles. The app does the arithmetic and compares with the physics.
+// 9-10. Build the calculation: number tiles go into ready slots between the signs.
 export function BuildStep({ q, index, total, onNext }: Nav & { q: BuildQuestion }) {
-  const [tokens, setTokens] = useState<string[]>([]);
+  const [vals, setVals] = useState<(string | null)[]>(() => q.template.map(() => null));
   const [status, setStatus] = useState<'editing' | 'correct' | 'wrong' | 'invalid'>('editing');
   const [result, setResult] = useState<number | null>(null);
   const [playKey, setPlayKey] = useState(0);
-  const h = useSceneHeight(0.34);
+  const full = useSceneHeight(0.4);
   const correct = status === 'correct';
+  const h = correct ? full : 200; // road only until the answer is in
+  const hasOpSlots = q.template.some((c) => c.kind === 'opSlot');
 
-  const add = (tok: string) => {
-    if (correct) return;
-    tapHaptic();
-    setTokens((t) => [...t, tok]);
+  const nextSlot = vals.findIndex((v, i) => q.template[i].kind === 'slot' && v === null);
+  const complete = q.template.every((c, i) => (c.kind !== 'slot' && c.kind !== 'opSlot') || vals[i] !== null);
+  const tokens = q.template.flatMap((c, i) =>
+    c.kind === 'break' ? [] : c.kind === 'slot' ? [vals[i] ?? ''] : c.kind === 'opSlot' ? [vals[i] === '−' ? '-' : vals[i] ?? ''] : [c.sym],
+  );
+
+  const set = (i: number, v: string | null) => {
+    setVals((arr) => arr.map((x, j) => (j === i ? v : x)));
     setStatus('editing');
   };
 
@@ -409,7 +530,7 @@ export function BuildStep({ q, index, total, onNext }: Nav & { q: BuildQuestion 
       : status === 'wrong'
         ? { ok: false, text: `That gives ${tidy(result!)} ${q.unit}. ${q.hint}` }
         : status === 'invalid'
-          ? { ok: false, text: 'That is not a complete calculation. Check the operators and brackets.' }
+          ? { ok: false, text: 'That does not work out. Check the signs.' }
           : null;
 
   return (
@@ -422,56 +543,93 @@ export function BuildStep({ q, index, total, onNext }: Nav & { q: BuildQuestion 
       footer={
         <Footer
           label={correct ? 'Continue' : status === 'wrong' || status === 'invalid' ? 'Edit' : 'Check'}
-          disabled={status === 'editing' && tokens.length === 0}
+          disabled={status === 'editing' && !complete}
           feedback={feedback}
           onPress={onPress}
         />
       }
     >
       <SceneCard>
-        <BrakingScene height={h} u={correct ? q.scene.u : null} playKey={playKey} range={q.scene.range} xMax={q.scene.xMax} yMax={q.scene.yMax} reaction={q.scene.reaction} />
+        <BrakingScene height={h} graph={correct} u={correct ? q.scene.u : null} playKey={playKey} range={q.scene.range} xMax={q.scene.xMax} yMax={q.scene.yMax} reaction={q.scene.reaction} />
       </SceneCard>
 
-      {/* Fixed height so the tiles never move while the expression grows. */}
-      <View accessibilityLabel={`Your calculation: ${tokens.join(' ') || 'empty'}`} style={{ height: 108, backgroundColor: colors.surface, borderRadius: 16, borderWidth: 2, borderColor: border, padding: 16, justifyContent: 'center' }}>
-        {tokens.length === 0 ? (
-          <Text style={{ fontFamily: fonts.body, fontSize: 16, color: colors.inkMuted }}>Tap the tiles to build the calculation. No calculator needed.</Text>
-        ) : (
-          <Text style={{ fontFamily: fonts.display, fontSize: 26, lineHeight: 34, color: colors.ink, fontVariant: ['tabular-nums'] }}>
-            {tokens.join(' ')}
-            {correct && <Text style={{ color: colors.correct }}>{`  = ${tidy(q.answer)} ${q.unit}`}</Text>}
-          </Text>
-        )}
+      {/* The answer template. Fixed height so the tiles never move while it fills up. */}
+      <View style={{ minHeight: hasOpSlots ? 150 : 96, backgroundColor: colors.surface, borderRadius: 16, borderWidth: 2, borderColor: border, paddingVertical: 14, paddingHorizontal: 10, justifyContent: 'center' }}>
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', alignItems: 'center', rowGap: 8 }}>
+          {q.template.map((c, i) => {
+            if (c.kind === 'break') return <View key={i} style={{ width: '100%', height: 0 }} />;
+            if (c.kind === 'op' || c.kind === 'paren') {
+              return (
+                <Text key={i} style={{ width: c.kind === 'op' ? 22 : 14, textAlign: 'center', fontFamily: fonts.display, fontSize: 26, color: c.kind === 'op' ? colors.accent : colors.inkMuted }}>
+                  {c.sym}
+                </Text>
+              );
+            }
+            const filled = vals[i] !== null;
+            const active = c.kind === 'slot' && i === nextSlot && !correct;
+            const isOp = c.kind === 'opSlot';
+            return (
+              <Pressable
+                key={i}
+                accessibilityRole="button"
+                accessibilityLabel={isOp ? `Sign ${filled ? vals[i] : 'empty'}. Tap to change.` : filled ? `Number ${vals[i]}. Tap to remove.` : 'Empty slot'}
+                onPress={() => {
+                  if (correct) return;
+                  tapHaptic();
+                  if (isOp) set(i, SIGNS[(SIGNS.indexOf(vals[i] ?? '') + 1) % SIGNS.length]);
+                  else if (filled) set(i, null);
+                }}
+                style={{
+                  width: isOp ? 40 : 46,
+                  height: 54,
+                  marginHorizontal: 2,
+                  borderRadius: 14,
+                  borderWidth: filled ? 0 : 2,
+                  borderStyle: 'dashed',
+                  borderColor: active || (isOp && !filled) ? colors.accent : colors.axis,
+                  backgroundColor: filled ? colors.surfaceRaised : 'transparent',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                {filled ? (
+                  <Animated.Text key={vals[i]} entering={ZoomIn.duration(220)} style={{ fontFamily: fonts.display, fontSize: isOp ? 24 : 22, color: isOp ? colors.accent : colors.ink, fontVariant: ['tabular-nums'] }}>
+                    {vals[i]}
+                  </Animated.Text>
+                ) : isOp ? (
+                  <Text style={{ fontFamily: fonts.display, fontSize: 22, color: colors.accent }}>?</Text>
+                ) : null}
+              </Pressable>
+            );
+          })}
+        </View>
+        {correct && <Text style={{ textAlign: 'center', fontFamily: fonts.display, fontSize: 26, color: colors.correct, marginTop: 8 }}>{`= ${tidy(q.answer)} ${q.unit}`}</Text>}
       </View>
 
       <View style={{ flexDirection: 'row', gap: 8 }}>
         {q.tiles.map((n) => (
-          <ChunkyButton key={n} onPress={() => add(String(n))} accessibilityLabel={String(n)} fill={colors.surfaceRaised} edge={colors.surfaceEdge} style={{ flex: 1 }}>
+          <ChunkyButton
+            key={n}
+            disabled={correct || nextSlot < 0}
+            onPress={() => {
+              tapHaptic();
+              if (nextSlot >= 0) set(nextSlot, String(n));
+            }}
+            accessibilityLabel={String(n)}
+            fill={colors.surfaceRaised}
+            edge={colors.surfaceEdge}
+            style={{ flex: 1, minHeight: 56 }}
+          >
             <Text style={{ fontFamily: fonts.display, fontSize: 22, color: colors.ink, fontVariant: ['tabular-nums'] }}>{n}</Text>
           </ChunkyButton>
         ))}
       </View>
-      <View style={{ flexDirection: 'row', gap: 8 }}>
-        {OPS.map((o) => (
-          <ChunkyButton key={o.sym} onPress={() => add(o.sym)} accessibilityLabel={o.label} fill={colors.surfaceRaised} edge={colors.surfaceEdge} style={{ flex: 1 }}>
-            <Text style={{ fontFamily: fonts.display, fontSize: 24, color: colors.accent }}>{o.sym}</Text>
-          </ChunkyButton>
-        ))}
-        <ChunkyButton
-          onPress={() => {
-            if (correct) return;
-            tapHaptic();
-            setTokens((t) => t.slice(0, -1));
-            setStatus('editing');
-          }}
-          accessibilityLabel="Delete last"
-          fill={colors.surfaceRaised}
-          edge={colors.surfaceEdge}
-          style={{ flex: 1 }}
-        >
-          <BackspaceIcon color={colors.inkMuted} />
-        </ChunkyButton>
-      </View>
+
+      <Text style={{ fontFamily: fonts.body, fontSize: 15, lineHeight: 21, color: colors.inkMuted }}>
+        <Text style={{ fontFamily: fonts.bodySemi, color: colors.accent }}>Hint </Text>
+        {q.structureHint}
+        {hasOpSlots ? ' Tap a ? to pick a sign.' : ''}
+      </Text>
     </Shell>
   );
 }
