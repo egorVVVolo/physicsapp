@@ -1,29 +1,71 @@
-import { stoppingDistance } from '../physics/braking';
+import { stoppingDistance, stoppingSpeed, stoppingTime } from '../physics/braking';
 
-// Demo "Predict" step for the visual-direction comparison (hook of Lesson 3).
+// Demo mini-lesson for the visual-direction stage: two intro screens and three questions.
 // Every number is computed from the physics model, not typed in.
-const u1 = 20; // m/s
-const u2 = 40; // m/s
-const a = 5; // m/s^2, magnitude of the deceleration
+export const A = 5; // m/s^2, magnitude of the deceleration
+export const INTRO_SPEEDS = [10, 20, 30, 40]; // m/s
 
-const base = stoppingDistance(u1, a); // 40 m
-const answer = stoppingDistance(u2, a); // 160 m
-
-export const brakingDemo = {
-  u1,
-  u2,
-  a,
-  base,
-  answer,
-  title: 'Double the speed',
-  prompt: `Braking at a constant ${a} m/s², this car stops from ${u1} m/s in ${base} m. From ${u2} m/s with the same braking, how far does it travel before it stops?`,
-  // Distractors are the usual wrong ideas: x2 (linear), x3, x8 (cubic).
-  options: [
-    { metres: base * 2, isCorrect: false },
-    { metres: base * 3, isCorrect: false },
-    { metres: answer, isCorrect: true },
-    { metres: base * 8, isCorrect: false },
-  ],
-  correctText: `Right. Stopping distance goes with v², so twice the speed means four times the distance: ${answer} m.`,
-  incorrectText: 'Not quite. Braking is the same, so look at how s depends on u in v² = u² + 2as.',
+export type Question = {
+  id: string;
+  title: string;
+  prompt: string;
+  unit: string;
+  options: { value: number; isCorrect: boolean }[];
+  caseU: number; // speed of the braking run shown after a correct answer
+  scene: { range: number; xMax: number; yMax: number };
+  correctText: string;
+  hint: string;
 };
+
+function options(correct: number, wrong: number[]) {
+  return [...wrong, correct].sort((x, y) => x - y).map((value) => ({ value, isCorrect: value === correct }));
+}
+
+// Q1: time to stop from 25 m/s. Not 30 m/s: its scene would show 90 m, the answer to Q3.
+const q1U = 25;
+const q1Answer = stoppingTime(q1U, A);
+
+// Q2: the hook. 20 m/s needs 40 m, so what does 40 m/s need?
+const base = stoppingDistance(20, A);
+const q2Answer = stoppingDistance(40, A);
+
+// Q3: work backwards from the distance. Wrong ideas: scale linearly, halve, double.
+const q3S = 90;
+const q3Answer = stoppingSpeed(q3S, A);
+const q3Linear = (20 * q3S) / base;
+
+export const questions: Question[] = [
+  {
+    id: 'time',
+    title: 'Time to stop',
+    prompt: `From ${q1U} m/s, how long does it take to stop?`,
+    unit: 's',
+    options: options(q1Answer, [4, 6, 10]),
+    caseU: q1U,
+    scene: { range: 100, xMax: 7, yMax: 36 },
+    correctText: `v = u + at with v = 0 gives t = ${q1U} ÷ ${A} = ${q1Answer} s.`,
+    hint: 'Set v = 0 in v = u + at.',
+  },
+  {
+    id: 'double',
+    title: 'Twice as fast',
+    prompt: `From 40 m/s, how far does it travel before stopping?`,
+    unit: 'm',
+    options: options(q2Answer, [base * 2, base * 3, base * 8]),
+    caseU: 40,
+    scene: { range: 180, xMax: 9, yMax: 48 },
+    correctText: `s = u² ÷ 2a. Double u and s goes ×4: ${q2Answer} m.`,
+    hint: 'Look at how s depends on u in s = u² ÷ 2a.',
+  },
+  {
+    id: 'backwards',
+    title: 'Work backwards',
+    prompt: `It stops in exactly ${q3S} m. How fast was it going?`,
+    unit: 'm/s',
+    options: options(q3Answer, [q3Answer / 2, q3Linear, q3Answer * 2]),
+    caseU: q3Answer,
+    scene: { range: 100, xMax: 7, yMax: 36 },
+    correctText: `u = √(2as) = √(2 × ${A} × ${q3S}) = ${q3Answer} m/s.`,
+    hint: 'Distance grows with u², not u. Rearrange s = u² ÷ 2a.',
+  },
+];

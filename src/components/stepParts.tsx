@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import { Pressable, StyleProp, Text, View, ViewStyle } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import Animated, {
@@ -10,46 +10,13 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 import Svg, { Path } from 'react-native-svg';
-import { brakingDemo } from '../content/brakingDemo';
 import { colors } from '../theme/tokens';
 import { fonts } from '../theme/fonts';
 
-export type Status = 'idle' | 'selected' | 'correct' | 'incorrect';
-export type OptionState = 'idle' | 'selected' | 'correct' | 'wrong';
-
 const safe = (p: Promise<unknown>) => p.catch(() => {});
-
-export function useDemoStep() {
-  const [selected, setSelected] = useState<number | null>(null);
-  const [status, setStatus] = useState<Status>('idle');
-
-  return {
-    selected,
-    status,
-    select(i: number) {
-      if (status === 'correct') return;
-      setSelected(i);
-      setStatus('selected');
-      safe(Haptics.selectionAsync());
-    },
-    check() {
-      if (selected === null) return;
-      const ok = brakingDemo.options[selected].isCorrect;
-      setStatus(ok ? 'correct' : 'incorrect');
-      safe(Haptics.notificationAsync(ok ? Haptics.NotificationFeedbackType.Success : Haptics.NotificationFeedbackType.Error));
-    },
-    retry() {
-      setSelected(null);
-      setStatus('idle');
-    },
-    optionState(i: number): OptionState {
-      if (i !== selected) return 'idle';
-      if (status === 'correct') return 'correct';
-      if (status === 'incorrect') return 'wrong';
-      return 'selected';
-    },
-  };
-}
+export const tapHaptic = () => safe(Haptics.selectionAsync());
+export const resultHaptic = (ok: boolean) =>
+  safe(Haptics.notificationAsync(ok ? Haptics.NotificationFeedbackType.Success : Haptics.NotificationFeedbackType.Error));
 
 export function CheckIcon({ color, size = 20 }: { color: string; size?: number }) {
   return (
@@ -97,7 +64,7 @@ export function OptionFrame({
   }, [wrong, reduce, x]);
   const anim = useAnimatedStyle(() => ({ transform: [{ translateX: x.value }] }));
   return (
-    <Animated.View style={anim}>
+    <Animated.View style={[anim, { flex: 1 }]}>
       <Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel={label} accessibilityState={{ selected }} style={style}>
         {children}
       </Pressable>
@@ -105,52 +72,43 @@ export function OptionFrame({
   );
 }
 
-// Feedback line + the one main button. Check -> Continue / Try again.
-export function StepFooter({
-  step,
-  accent = colors.ink,
-  radius = 14,
+// Bottom bar: optional feedback or note, then the one main button.
+export function Footer({
+  label,
+  onPress,
+  disabled,
+  feedback,
+  note,
 }: {
-  step: ReturnType<typeof useDemoStep>;
-  accent?: string;
-  radius?: number;
+  label: string;
+  onPress: () => void;
+  disabled?: boolean;
+  feedback?: { ok: boolean; text: string } | null;
+  note?: string | null;
 }) {
-  const { status } = step;
-  const answered = status === 'correct' || status === 'incorrect';
-  const ok = status === 'correct';
-  const disabled = status === 'idle';
-  const label = status === 'correct' ? 'Continue' : status === 'incorrect' ? 'Try again' : 'Check';
-  const onPress = status === 'correct' ? () => {} : status === 'incorrect' ? step.retry : step.check;
-
+  const text = { flex: 1, fontFamily: fonts.body, fontSize: 15, lineHeight: 21, color: colors.ink } as const;
   return (
     <View style={{ paddingHorizontal: 16, paddingTop: 10, paddingBottom: 14, backgroundColor: colors.surface, borderTopWidth: 1, borderTopColor: colors.line }}>
-      {answered && (
-        <Animated.View
-          key={status}
-          entering={FadeInDown.duration(220)}
-          style={{ flexDirection: 'row', gap: 10, marginBottom: 10, alignItems: 'flex-start' }}
-        >
-          <View style={{ marginTop: 2 }}>
-            {ok ? <CheckIcon color={colors.correct} /> : <CrossIcon color={colors.incorrect} />}
-          </View>
-          <Text style={{ flex: 1, fontFamily: fonts.body, fontSize: 15, lineHeight: 21, color: colors.ink }}>
-            <Text style={{ fontFamily: fonts.bodySemi, color: ok ? colors.correct : colors.incorrect }}>{ok ? 'Correct. ' : 'Not quite. '}</Text>
-            {(ok ? brakingDemo.correctText : brakingDemo.incorrectText).replace(/^(Right\.|Not quite\.) /, '')}
+      {feedback && (
+        <Animated.View key={feedback.text} entering={FadeInDown.duration(220)} style={{ flexDirection: 'row', gap: 10, marginBottom: 10, alignItems: 'flex-start' }}>
+          <View style={{ marginTop: 2 }}>{feedback.ok ? <CheckIcon color={colors.correct} /> : <CrossIcon color={colors.incorrect} />}</View>
+          <Text style={text}>
+            <Text style={{ fontFamily: fonts.bodySemi, color: feedback.ok ? colors.correct : colors.incorrect }}>{feedback.ok ? 'Correct. ' : 'Not quite. '}</Text>
+            {feedback.text}
           </Text>
+        </Animated.View>
+      )}
+      {!feedback && note && (
+        <Animated.View key={note} entering={FadeInDown.duration(220)} style={{ marginBottom: 10 }}>
+          <Text style={text}>{note}</Text>
         </Animated.View>
       )}
       <Pressable
         onPress={onPress}
         disabled={disabled}
         accessibilityRole="button"
-        accessibilityState={{ disabled }}
-        style={{
-          minHeight: 56,
-          borderRadius: radius,
-          backgroundColor: disabled ? colors.line : accent,
-          alignItems: 'center',
-          justifyContent: 'center',
-        }}
+        accessibilityState={{ disabled: !!disabled }}
+        style={{ minHeight: 56, borderRadius: 4, backgroundColor: disabled ? colors.line : colors.ink, alignItems: 'center', justifyContent: 'center' }}
       >
         <Text style={{ fontFamily: fonts.display, fontSize: 18, color: disabled ? colors.inkMuted : '#FFFFFF' }}>{label}</Text>
       </Pressable>

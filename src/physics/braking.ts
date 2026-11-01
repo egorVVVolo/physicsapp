@@ -8,6 +8,11 @@ export function stoppingTime(u: number, a: number): number {
   return u / a;
 }
 
+// Speed from which braking at a stops the car in exactly s metres.
+export function stoppingSpeed(s: number, a: number): number {
+  return Math.sqrt(2 * a * s);
+}
+
 export function speedDuringBraking(u: number, a: number, t: number): number {
   return Math.max(u - a * t, 0);
 }
