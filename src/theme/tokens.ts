@@ -1,14 +1,23 @@
-// Design tokens. Colours carry meaning and are the same in every lesson.
+// Design tokens. Dark base; colours carry meaning and are the same in every lesson.
 export const colors = {
-  background: '#FAFAF7',
-  surface: '#FFFFFF',
-  ink: '#14181F',
-  inkMuted: '#4A5361',
-  line: '#D9DCE1',
-  velocity: '#1F5BFF', // motion / velocity
-  acceleration: '#D23A24', // acceleration / force
-  correct: '#0E8A5F',
-  incorrect: '#C42B2B',
+  background: '#12141A',
+  surface: '#1B1F29',
+  surfaceRaised: '#262B37',
+  surfaceEdge: '#0C0E13', // bottom edge of raised buttons
+  ink: '#F4F6FA',
+  inkMuted: '#A9B1C1',
+  line: '#2E3441',
+  axis: '#8993A6',
+  velocity: '#4C8DFF', // motion / velocity
+  acceleration: '#FF7A59', // acceleration / force
+  accent: '#FFC53D', // main button and progress
+  accentEdge: '#C9921A',
+  onAccent: '#14181F',
+  correct: '#34D399',
+  correctEdge: '#1E9C70',
+  correctBg: '#0E3A2B',
+  incorrect: '#FF6B6B',
+  incorrectBg: '#3F1A1F',
 } as const;
 
 export const spacing = { xs: 4, sm: 8, md: 16, lg: 24, xl: 40 } as const;

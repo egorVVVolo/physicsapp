@@ -34,6 +34,63 @@ export function CrossIcon({ color, size = 20 }: { color: string; size?: number }
   );
 }
 
+export function BackspaceIcon({ color, size = 24 }: { color: string; size?: number }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24">
+      <Path d="M9 5 H20 V19 H9 L3 12 Z" stroke={color} strokeWidth={2} fill="none" strokeLinejoin="round" />
+      <Path d="M12.5 9.5 L16.5 14.5 M16.5 9.5 L12.5 14.5" stroke={color} strokeWidth={2} strokeLinecap="round" />
+    </Svg>
+  );
+}
+
+// Raised, chunky button: a darker edge at the bottom. Used for the main button and tiles.
+export function ChunkyButton({
+  onPress,
+  label,
+  disabled,
+  fill,
+  edge,
+  textColor,
+  style,
+  children,
+  accessibilityLabel,
+}: {
+  onPress: () => void;
+  label?: string;
+  disabled?: boolean;
+  fill: string;
+  edge: string;
+  textColor?: string;
+  style?: StyleProp<ViewStyle>;
+  children?: React.ReactNode;
+  accessibilityLabel?: string;
+}) {
+  return (
+    <Pressable
+      onPress={onPress}
+      disabled={disabled}
+      accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel ?? label}
+      accessibilityState={{ disabled: !!disabled }}
+      style={({ pressed }) => [
+        {
+          minHeight: 52,
+          borderRadius: 16,
+          backgroundColor: fill,
+          borderBottomWidth: pressed ? 1 : 4,
+          borderBottomColor: edge,
+          marginTop: pressed ? 3 : 0,
+          alignItems: 'center',
+          justifyContent: 'center',
+        },
+        style,
+      ]}
+    >
+      {label ? <Text style={{ fontFamily: fonts.display, fontSize: 18, color: textColor }}>{label}</Text> : children}
+    </Pressable>
+  );
+}
+
 // Pressable that shakes once when `wrong` turns true.
 export function OptionFrame({
   wrong,
@@ -72,7 +129,7 @@ export function OptionFrame({
   );
 }
 
-// Bottom bar: optional feedback or note, then the one main button.
+// Bottom bar: feedback panel (green / red) or a note, then the one main button.
 export function Footer({
   label,
   onPress,
@@ -87,40 +144,36 @@ export function Footer({
   note?: string | null;
 }) {
   const text = { flex: 1, fontFamily: fonts.body, fontSize: 15, lineHeight: 21, color: colors.ink } as const;
+  const ok = feedback?.ok;
+  const bg = feedback ? (ok ? colors.correctBg : colors.incorrectBg) : colors.background;
+  const fill = disabled ? colors.surfaceRaised : ok ? colors.correct : colors.accent;
+  const edge = disabled ? colors.surfaceEdge : ok ? colors.correctEdge : colors.accentEdge;
   return (
-    <View style={{ paddingHorizontal: 16, paddingTop: 10, paddingBottom: 14, backgroundColor: colors.surface, borderTopWidth: 1, borderTopColor: colors.line }}>
+    <View style={{ paddingHorizontal: 16, paddingTop: 14, paddingBottom: 14, backgroundColor: bg, borderTopLeftRadius: 24, borderTopRightRadius: 24 }}>
       {feedback && (
-        <Animated.View key={feedback.text} entering={FadeInDown.duration(220)} style={{ flexDirection: 'row', gap: 10, marginBottom: 10, alignItems: 'flex-start' }}>
-          <View style={{ marginTop: 2 }}>{feedback.ok ? <CheckIcon color={colors.correct} /> : <CrossIcon color={colors.incorrect} />}</View>
+        <Animated.View key={feedback.text} entering={FadeInDown.duration(220)} style={{ flexDirection: 'row', gap: 10, marginBottom: 12, alignItems: 'flex-start' }}>
+          <View style={{ marginTop: 2 }}>{ok ? <CheckIcon color={colors.correct} /> : <CrossIcon color={colors.incorrect} />}</View>
           <Text style={text}>
-            <Text style={{ fontFamily: fonts.bodySemi, color: feedback.ok ? colors.correct : colors.incorrect }}>{feedback.ok ? 'Correct. ' : 'Not quite. '}</Text>
+            <Text style={{ fontFamily: fonts.bodySemi, color: ok ? colors.correct : colors.incorrect }}>{ok ? 'Correct. ' : 'Not quite. '}</Text>
             {feedback.text}
           </Text>
         </Animated.View>
       )}
       {!feedback && note && (
-        <Animated.View key={note} entering={FadeInDown.duration(220)} style={{ marginBottom: 10 }}>
+        <Animated.View key={note} entering={FadeInDown.duration(220)} style={{ marginBottom: 12 }}>
           <Text style={text}>{note}</Text>
         </Animated.View>
       )}
-      <Pressable
-        onPress={onPress}
-        disabled={disabled}
-        accessibilityRole="button"
-        accessibilityState={{ disabled: !!disabled }}
-        style={{ minHeight: 56, borderRadius: 4, backgroundColor: disabled ? colors.line : colors.ink, alignItems: 'center', justifyContent: 'center' }}
-      >
-        <Text style={{ fontFamily: fonts.display, fontSize: 18, color: disabled ? colors.inkMuted : '#FFFFFF' }}>{label}</Text>
-      </Pressable>
+      <ChunkyButton label={label} onPress={onPress} disabled={disabled} fill={fill} edge={edge} textColor={disabled ? colors.inkMuted : colors.onAccent} style={{ minHeight: 56 }} />
     </View>
   );
 }
 
 // Keeps the design phone-sized on a wide web window.
-export function PhoneFrame({ background, children }: { background: string; children: React.ReactNode }) {
+export function PhoneFrame({ children }: { children: React.ReactNode }) {
   return (
-    <View style={{ flex: 1, backgroundColor: '#E4E6EB' }}>
-      <View style={{ flex: 1, width: '100%', maxWidth: 430, alignSelf: 'center', backgroundColor: background }}>{children}</View>
+    <View style={{ flex: 1, backgroundColor: '#07080B' }}>
+      <View style={{ flex: 1, width: '100%', maxWidth: 430, alignSelf: 'center', backgroundColor: colors.background }}>{children}</View>
     </View>
   );
 }

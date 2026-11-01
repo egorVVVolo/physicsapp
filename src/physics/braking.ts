@@ -13,6 +13,19 @@ export function stoppingSpeed(s: number, a: number): number {
   return Math.sqrt(2 * a * s);
 }
 
+// Driver reacts for tr seconds at constant speed u, then brakes.
+export function totalStoppingDistance(u: number, a: number, tr: number): number {
+  return u * tr + stoppingDistance(u, a);
+}
+
+export function speedWithReaction(u: number, a: number, tr: number, t: number): number {
+  return t < tr ? u : speedDuringBraking(u, a, t - tr);
+}
+
+export function positionWithReaction(u: number, a: number, tr: number, t: number): number {
+  return t < tr ? u * t : u * tr + positionDuringBraking(u, a, t - tr);
+}
+
 export function speedDuringBraking(u: number, a: number, t: number): number {
   return Math.max(u - a * t, 0);
 }

@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { A, questions } from '../content/brakingDemo';
+import { A, buildQuestions, tapWarmup } from '../content/brakingDemo';
+import { evaluate } from '../lib/expression';
 import {
+  positionWithReaction,
+  speedWithReaction,
+  totalStoppingDistance,
   positionDuringBraking,
   speedDuringBraking,
   stoppingDistance,
@@ -30,23 +34,33 @@ describe('braking physics', () => {
   });
 });
 
-describe('braking demo questions', () => {
-  const expected: Record<string, number> = {
-    time: stoppingTime(25, A),
-    double: stoppingDistance(40, A),
-    backwards: stoppingSpeed(90, A),
-  };
+describe('reaction time', () => {
+  it('adds u x tr to the braking distance', () => {
+    expect(totalStoppingDistance(20, 5, 0.5)).toBeCloseTo(50);
+    expect(positionWithReaction(20, 5, 0.5, 0.25)).toBeCloseTo(5);
+    expect(positionWithReaction(20, 5, 0.5, 10)).toBeCloseTo(50);
+    expect(speedWithReaction(20, 5, 0.5, 0.4)).toBe(20);
+    expect(speedWithReaction(20, 5, 0.5, 1.5)).toBeCloseTo(15);
+  });
+});
 
-  it.each(questions.map((q) => [q.id, q] as const))('%s marks exactly the physically correct option', (id, q) => {
-    const correct = q.options.filter((o) => o.isCorrect);
-    expect(correct).toHaveLength(1);
-    expect(correct[0].value).toBeCloseTo(expected[id]);
-    expect(new Set(q.options.map((o) => o.value)).size).toBe(q.options.length);
+describe('demo content', () => {
+  it('tap warm-up answer is the stopping distance from 20 m/s', () => {
+    expect(tapWarmup.answer).toBeCloseTo(40);
   });
 
-  it('expected answers are 5 s, 160 m, 30 m/s', () => {
-    expect(expected.time).toBeCloseTo(5);
-    expect(expected.double).toBeCloseTo(160);
-    expect(expected.backwards).toBeCloseTo(30);
+  it('build questions have the expected answers', () => {
+    expect(buildQuestions[0].answer).toBeCloseTo(160);
+    expect(buildQuestions[1].answer).toBeCloseTo(50);
+  });
+
+  it('the intended expressions evaluate to the answers', () => {
+    expect(evaluate('40 × 40 ÷ ( 2 × 5 )'.split(' '))).toBeCloseTo(buildQuestions[0].answer);
+    expect(evaluate('20 × 0.5 + 20 × 20 ÷ ( 2 × 5 )'.split(' '))).toBeCloseTo(buildQuestions[1].answer);
+  });
+
+  it('every number in the intended expressions is offered as a tile', () => {
+    expect(buildQuestions[0].tiles).toEqual(expect.arrayContaining([40, 5, 2]));
+    expect(buildQuestions[1].tiles).toEqual(expect.arrayContaining([20, 0.5, 2, 5]));
   });
 });
