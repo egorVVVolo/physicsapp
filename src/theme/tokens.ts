@@ -6,7 +6,7 @@ export const colors = {
   inkMuted: '#4A5361',
   line: '#D9DCE1',
   velocity: '#1F5BFF', // motion / velocity
-  acceleration: '#E8503A', // acceleration / force
+  acceleration: '#D23A24', // acceleration / force
   correct: '#0E8A5F',
   incorrect: '#C42B2B',
 } as const;
