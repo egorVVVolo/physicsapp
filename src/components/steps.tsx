@@ -650,7 +650,9 @@ export function DoneStep({ index, total, onRestart }: { index: number; total: nu
         <Eq parts={['s = u² ÷ 2a']} size={36} />
       </FormulaRow>
       <FormulaRow label="Twice the speed">
-        <Eq parts={[['4×', colors.accent], ' the distance']} size={26} />
+        <Text style={{ fontFamily: fonts.display, fontSize: 26, color: colors.ink }}>
+          <Text style={{ color: colors.accent }}>4×</Text> the distance
+        </Text>
       </FormulaRow>
       <FormulaRow label="Reaction time before braking">
         <Eq parts={['s = u × t']} size={26} />
