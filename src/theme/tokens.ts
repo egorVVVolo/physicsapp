@@ -10,6 +10,7 @@ export const colors = {
   axis: '#8993A6',
   velocity: '#4C8DFF', // motion / velocity
   acceleration: '#FF7A59', // acceleration / force
+  backward: '#2DD4BF', // area and motion below zero (going backwards)
   accent: '#FFC53D', // main button and progress
   accentEdge: '#C9921A',
   onAccent: '#14181F',

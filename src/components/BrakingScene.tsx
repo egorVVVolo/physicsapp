@@ -99,7 +99,7 @@ export function Pill({ x, y, text, color, anchor = 'start' }: { x: number; y: nu
 }
 
 // Vector arrow: rounded shaft with a soft glow, a solid head, a dot where it is attached to the car.
-function VectorArrow({ x, y, length, dir, color }: { x: number; y: number; length: number; dir: 1 | -1; color: string }) {
+export function VectorArrow({ x, y, length, dir, color }: { x: number; y: number; length: number; dir: 1 | -1; color: string }) {
   if (length < 12) return null;
   const x2 = x + dir * length;
   const hl = 12;
