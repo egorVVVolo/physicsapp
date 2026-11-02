@@ -85,9 +85,9 @@ export function usePlayback(dur: number, playKey: number, onDone?: () => void): 
 const tidy = (n: number) => Number(n.toFixed(1));
 
 // A rounded value label with a dark background.
-export function Pill({ x, y, text, color, anchor = 'start' }: { x: number; y: number; text: string; color: string; anchor?: 'start' | 'end' }) {
+export function Pill({ x, y, text, color, anchor = 'start' }: { x: number; y: number; text: string; color: string; anchor?: 'start' | 'middle' | 'end' }) {
   const w = text.length * 7.6 + 18;
-  const left = anchor === 'start' ? x : x - w;
+  const left = anchor === 'start' ? x : anchor === 'middle' ? x - w / 2 : x - w;
   return (
     <G>
       <Rect x={left} y={y - 17} width={w} height={26} rx={13} fill={colors.background} opacity={0.9} stroke={color} strokeWidth={1} />

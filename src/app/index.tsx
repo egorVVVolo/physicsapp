@@ -1,53 +1,61 @@
-import React, { useState } from 'react';
-import { StyleSheet, View } from 'react-native';
-import Animated, { SlideInRight, SlideOutLeft } from 'react-native-reanimated';
-import { useLocalSearchParams } from 'expo-router';
-import { PhoneFrame } from '../components/stepParts';
-import {
-  BuildStep,
-  DoneStep,
-  RuleExplain,
-  SquaresExplain,
-  Story,
-  WarmGraph,
-  PredictStep,
-  StopStep,
-} from '../components/steps';
-import { buildQuestions } from '../content/brakingDemo';
+import React, { useCallback, useState } from 'react';
+import { Pressable, ScrollView, Text, View } from 'react-native';
+import { router, useFocusEffect } from 'expo-router';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { PhoneFrame, tapHaptic } from '../components/stepParts';
+import { APP_NAME } from '../constants';
+import { lessons } from '../content/lessons';
+import { LessonProgress, loadProgress } from '../engine/progress';
+import { fonts } from '../theme/fonts';
 import { colors } from '../theme/tokens';
 
-// Demo lesson, interaction first: intro, predict (surprise), park-the-car game,
-// then the idea (squares, rule), a graph warm-up, 2 build questions, done.
-const TOTAL = 9;
+// Temporary home until the course map (stage 4): the lessons that exist, plus the older demos.
+function Row({ title, sub, status, onPress }: { title: string; sub: string; status?: string; onPress: () => void }) {
+  return (
+    <Pressable
+      onPress={() => {
+        tapHaptic();
+        onPress();
+      }}
+      accessibilityRole="button"
+      style={({ pressed }) => ({ backgroundColor: pressed ? colors.surfaceRaised : colors.surface, borderRadius: 18, padding: 18, gap: 4 })}
+    >
+      <Text style={{ fontFamily: fonts.display, fontSize: 20, color: colors.ink }}>{title}</Text>
+      <Text style={{ fontFamily: fonts.body, fontSize: 15, color: colors.inkMuted }}>{sub}</Text>
+      {status && <Text style={{ fontFamily: fonts.bodySemi, fontSize: 14, color: colors.accent, marginTop: 4 }}>{status}</Text>}
+    </Pressable>
+  );
+}
 
-export default function Demo() {
-  // ?step=N jumps to a screen, handy while designing.
-  const { step } = useLocalSearchParams<{ step?: string }>();
-  const [i, setI] = useState(Number(step) || 0);
-  const next = () => setI((n) => n + 1);
-  const p = { index: i, total: TOTAL, onNext: next };
+export default function Home() {
+  const [progress, setProgress] = useState<Record<string, LessonProgress | null>>({});
+  useFocusEffect(
+    useCallback(() => {
+      Promise.all(lessons.map(async (l) => [l.id, await loadProgress(l.id)] as const)).then((list) => setProgress(Object.fromEntries(list)));
+    }, []),
+  );
+
+  const statusOf = (id: string, total: number) => {
+    const p = progress[id];
+    if (!p) return undefined;
+    if (p.status === 'done') return p.outcome === 'independent' ? 'Done on your own' : 'Done with some help';
+    return `In progress: step ${Math.min(p.stepIndex + 1, total)} of ${total}`;
+  };
 
   return (
     <PhoneFrame>
-      <View style={{ flex: 1, overflow: 'hidden' }}>
-        {/* Each screen slides in from the right while the old one slides out to the left. */}
-        <Animated.View
-          key={i}
-          entering={SlideInRight.duration(380)}
-          exiting={SlideOutLeft.duration(300)}
-          style={[StyleSheet.absoluteFill, { backgroundColor: colors.background }]}
-        >
-          {i === 0 && <Story {...p} />}
-          {i === 1 && <PredictStep {...p} />}
-          {i === 2 && <StopStep {...p} />}
-          {i === 3 && <SquaresExplain {...p} />}
-          {i === 4 && <RuleExplain {...p} />}
-          {i === 5 && <WarmGraph {...p} />}
-          {i === 6 && <BuildStep {...p} q={buildQuestions[0]} />}
-          {i === 7 && <BuildStep {...p} q={buildQuestions[1]} />}
-          {i >= 8 && <DoneStep index={TOTAL - 1} total={TOTAL} onRestart={() => setI(0)} />}
-        </Animated.View>
-      </View>
+      <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
+        <ScrollView contentContainerStyle={{ padding: 16, gap: 12 }}>
+          <Text style={{ fontFamily: fonts.display, fontSize: 32, color: colors.ink, marginTop: 12 }}>{APP_NAME}</Text>
+          <Text style={{ fontFamily: fonts.body, fontSize: 16, color: colors.inkMuted, marginBottom: 8 }}>Kinematics</Text>
+          {lessons.map((l) => (
+            <Row key={l.id} title={`Lesson ${l.number}: ${l.title}`} sub={`${l.spec} · about ${l.minutes} min`} status={statusOf(l.id, l.steps.length)} onPress={() => router.push(`/lesson/${l.id}`)} />
+          ))}
+          <Text style={{ fontFamily: fonts.bodySemi, fontSize: 14, color: colors.inkMuted, marginTop: 16 }}>Early prototypes</Text>
+          <Row title="Stopping distance" sub="The first demo lesson" onPress={() => router.push('/demo')} />
+          <Row title="Motion Lab" sub="Drag the graph, watch the car" onPress={() => router.push('/lab')} />
+        </ScrollView>
+      </SafeAreaView>
     </PhoneFrame>
   );
 }

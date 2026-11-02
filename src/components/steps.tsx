@@ -32,7 +32,7 @@ function ProgressBar({ index, total }: { index: number; total: number }) {
 }
 
 // Common frame: close + progress, then tag, title, body and content that glide in one after another.
-function Shell({
+export function Shell({
   tag,
   index,
   total,
@@ -40,6 +40,7 @@ function Shell({
   body,
   children,
   footer,
+  onClose,
 }: {
   tag: string;
   index: number;
@@ -48,12 +49,13 @@ function Shell({
   body?: string;
   children?: React.ReactNode;
   footer: React.ReactNode;
+  onClose?: () => void;
 }) {
   const enter = (delay: number) => FadeInDown.duration(420).delay(delay);
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', paddingLeft: 4, height: 52, gap: 4 }}>
-        <Pressable onPress={() => router.replace('/')} accessibilityRole="button" accessibilityLabel="Restart demo" style={{ width: 48, height: 48, alignItems: 'center', justifyContent: 'center' }}>
+        <Pressable onPress={onClose ?? (() => router.replace('/demo'))} accessibilityRole="button" accessibilityLabel="Close lesson" style={{ width: 48, height: 48, alignItems: 'center', justifyContent: 'center' }}>
           <CrossIcon color={colors.inkMuted} size={22} />
         </Pressable>
         <ProgressBar index={index} total={total} />
@@ -79,17 +81,17 @@ function Shell({
   );
 }
 
-function SceneCard({ children }: { children: React.ReactNode }) {
+export function SceneCard({ children }: { children: React.ReactNode }) {
   return <View style={{ backgroundColor: colors.surface, borderRadius: 20, overflow: 'hidden' }}>{children}</View>;
 }
 
 // Share of the screen height the scene takes; screens with more controls give it less.
-function useSceneHeight(share: number) {
+export function useSceneHeight(share: number) {
   const { height } = useWindowDimensions();
   return Math.min(Math.max(height * share, 240), 540);
 }
 
-type Nav = { index: number; total: number; onNext: () => void };
+export type Nav = { index: number; total: number; onNext: () => void };
 
 // A step with several small beats: the main button reveals the next one.
 function useBeats(count: number) {
@@ -99,7 +101,7 @@ function useBeats(count: number) {
 
 // Coloured symbols: u = speed (blue), a = braking (coral), t = time (yellow).
 const LETTER: Record<string, string> = { u: colors.velocity, a: colors.acceleration, t: colors.accent };
-function Eq({ parts, size = 30 }: { parts: (string | [string, string])[]; size?: number }) {
+export function Eq({ parts, size = 30 }: { parts: (string | [string, string])[]; size?: number }) {
   return (
     <Text style={{ fontFamily: fonts.display, fontSize: size, lineHeight: size * 1.3, color: colors.ink, fontVariant: ['tabular-nums'] }}>
       {parts.map((p, i) =>
@@ -119,7 +121,7 @@ function Eq({ parts, size = 30 }: { parts: (string | [string, string])[]; size?:
   );
 }
 
-function FormulaRow({ label, children, strong }: { label: string; children: React.ReactNode; strong?: boolean }) {
+export function FormulaRow({ label, children, strong }: { label: string; children: React.ReactNode; strong?: boolean }) {
   return (
     <Animated.View entering={FadeInDown.duration(450)} style={{ backgroundColor: colors.surface, borderRadius: 18, padding: 16, borderWidth: strong ? 2 : 0, borderColor: colors.accent }}>
       <Text style={{ fontFamily: fonts.bodyMedium, fontSize: 13, color: colors.inkMuted, marginBottom: 4 }}>{label}</Text>
@@ -215,7 +217,7 @@ export function SquaresExplain({ index, total, onNext }: Nav) {
 }
 
 // Chips that list earlier attempts: speed, then distance.
-function AttemptChips({ items }: { items: { u: number; d: number; ok?: boolean }[] }) {
+export function AttemptChips({ items }: { items: { u: number; d: number; ok?: boolean }[] }) {
   if (items.length === 0) return null;
   return (
     <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>

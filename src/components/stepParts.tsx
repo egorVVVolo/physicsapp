@@ -129,19 +129,24 @@ export function OptionFrame({
   );
 }
 
-// Bottom bar: feedback panel (green / red) or a note, then the one main button.
+// Bottom bar: hint, feedback panel (green / red) or a note, then the one main button.
+// An optional secondary button (Hint, Show me) sits beside it, quieter.
 export function Footer({
   label,
   onPress,
   disabled,
   feedback,
   note,
+  hint,
+  secondary,
 }: {
   label: string;
   onPress: () => void;
   disabled?: boolean;
   feedback?: { ok: boolean; text: string } | null;
   note?: string | null;
+  hint?: string | null;
+  secondary?: { label: string; onPress: () => void } | null;
 }) {
   const text = { flex: 1, fontFamily: fonts.body, fontSize: 15, lineHeight: 21, color: colors.ink } as const;
   const ok = feedback?.ok;
@@ -150,6 +155,14 @@ export function Footer({
   const edge = disabled ? colors.surfaceEdge : ok ? colors.correctEdge : colors.accentEdge;
   return (
     <View style={{ paddingHorizontal: 16, paddingTop: 14, paddingBottom: 14, backgroundColor: bg, borderTopLeftRadius: 24, borderTopRightRadius: 24 }}>
+      {hint && (
+        <Animated.View key={hint} entering={FadeInDown.duration(220)} style={{ marginBottom: 12, borderLeftWidth: 3, borderLeftColor: colors.accent, paddingLeft: 12 }}>
+          <Text style={{ fontFamily: fonts.body, fontSize: 15, lineHeight: 21, color: colors.ink }}>
+            <Text style={{ fontFamily: fonts.bodySemi, color: colors.accent }}>Hint </Text>
+            {hint}
+          </Text>
+        </Animated.View>
+      )}
       {feedback && (
         <Animated.View key={feedback.text} entering={FadeInDown.duration(220)} style={{ flexDirection: 'row', gap: 10, marginBottom: 12, alignItems: 'flex-start' }}>
           <View style={{ marginTop: 2 }}>{ok ? <CheckIcon color={colors.correct} /> : <CrossIcon color={colors.incorrect} />}</View>
@@ -164,7 +177,18 @@ export function Footer({
           <Text style={text}>{note}</Text>
         </Animated.View>
       )}
-      <ChunkyButton label={label} onPress={onPress} disabled={disabled} fill={fill} edge={edge} textColor={disabled ? colors.inkMuted : colors.onAccent} style={{ minHeight: 56 }} />
+      <View style={{ flexDirection: 'row', gap: 10 }}>
+        {secondary && (
+          <Pressable
+            onPress={secondary.onPress}
+            accessibilityRole="button"
+            style={({ pressed }) => ({ minHeight: 56, minWidth: 96, paddingHorizontal: 16, borderRadius: 16, alignItems: 'center', justifyContent: 'center', backgroundColor: pressed ? colors.surfaceRaised : colors.surface })}
+          >
+            <Text style={{ fontFamily: fonts.display, fontSize: 17, color: colors.ink }}>{secondary.label}</Text>
+          </Pressable>
+        )}
+        <ChunkyButton label={label} onPress={onPress} disabled={disabled} fill={fill} edge={edge} textColor={disabled ? colors.inkMuted : colors.onAccent} style={{ minHeight: 56, flex: 1 }} />
+      </View>
     </View>
   );
 }

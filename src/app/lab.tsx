@@ -2,19 +2,19 @@ import React, { useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { MotionLab } from '../components/MotionLab';
 import { ChunkyButton, PhoneFrame, tapHaptic } from '../components/stepParts';
-import { Knots } from '../physics/motion';
+import { evenGraph, Graph } from '../physics/motion';
 import { fonts } from '../theme/fonts';
 import { colors } from '../theme/tokens';
 
-// Test screen for Scene A while stage 2 is being built.
-const PRESETS: { name: string; knots: Knots }[] = [
-  { name: 'Turn back', knots: [0, 10, 10, 0, -8] },
-  { name: 'Speed up', knots: [0, 4, 8, 12, 16] },
-  { name: 'Stop and go', knots: [8, 8, 0, 0, 8] },
+// Test screen for Scene A: every point can be dragged.
+const PRESETS: { name: string; graph: Graph }[] = [
+  { name: 'Turn back', graph: evenGraph([0, 10, 10, 0, -8]) },
+  { name: 'Speed up', graph: evenGraph([0, 4, 8, 12, 16]) },
+  { name: 'Stop and go', graph: evenGraph([8, 8, 0, 0, 8]) },
 ];
 
 export default function Lab() {
-  const [knots, setKnots] = useState<Knots>(PRESETS[0].knots);
+  const [graph, setGraph] = useState<Graph>(PRESETS[0].graph);
   const [playing, setPlaying] = useState(false);
 
   return (
@@ -26,7 +26,7 @@ export default function Lab() {
             Drag the dots on the velocity graph. Drag along the lower graph to move in time.
           </Text>
         </View>
-        <MotionLab knots={knots} onChange={setKnots} playing={playing} onPlayingChange={setPlaying} showFps />
+        <MotionLab graph={graph} editable={graph.t.map((_, i) => i)} onChange={(v) => setGraph({ t: graph.t, v })} playing={playing} onPlayingChange={setPlaying} showFps />
         <View style={{ paddingHorizontal: 16, paddingTop: 10, paddingBottom: 16, gap: 12 }}>
           <View style={{ flexDirection: 'row', gap: 8 }}>
             {PRESETS.map((p) => (
@@ -34,7 +34,7 @@ export default function Lab() {
                 key={p.name}
                 onPress={() => {
                   tapHaptic();
-                  setKnots(p.knots);
+                  setGraph(p.graph);
                 }}
                 accessibilityRole="button"
                 style={{ flex: 1, minHeight: 44, borderRadius: 14, backgroundColor: colors.surfaceRaised, alignItems: 'center', justifyContent: 'center' }}
@@ -43,13 +43,7 @@ export default function Lab() {
               </Pressable>
             ))}
           </View>
-          <ChunkyButton
-            label={playing ? 'Pause' : 'Play'}
-            onPress={() => setPlaying((p) => !p)}
-            fill={colors.accent}
-            edge={colors.accentEdge}
-            textColor={colors.onAccent}
-          />
+          <ChunkyButton label={playing ? 'Pause' : 'Play'} onPress={() => setPlaying((p) => !p)} fill={colors.accent} edge={colors.accentEdge} textColor={colors.onAccent} />
         </View>
       </View>
     </PhoneFrame>
