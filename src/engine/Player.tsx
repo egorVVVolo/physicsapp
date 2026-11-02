@@ -4,7 +4,7 @@ import Animated, { SlideInRight, SlideOutLeft } from 'react-native-reanimated';
 import { PhoneFrame } from '../components/stepParts';
 import { colors } from '../theme/tokens';
 import { BeatsFrame, CompleteFrame, GradedFrame, PlayFrame, PredictFrame } from './frames';
-import { completeLesson, LessonProgress, recordStep, saveProgress, StepRecord } from './progress';
+import { completeLesson, LessonProgress, nextStepIndex, recordStep, saveProgress, StepRecord } from './progress';
 import { isGraded, Lesson } from './types';
 
 // Plays any lesson: one step at a time, saving after each, sliding between steps.
@@ -16,7 +16,8 @@ export function Player({ lesson, initial, onExit }: { lesson: Lesson; initial: L
   const scoredIds = lesson.steps.filter(isGraded).map((s) => s.id);
 
   const finish = (record: StepRecord) => {
-    const nextIndex = i + 1;
+    const withRecord = { ...progress.current.records, [step.id]: record };
+    const nextIndex = nextStepIndex(lesson.steps, withRecord, i);
     let p = recordStep(progress.current, step.id, record, nextIndex);
     if (lesson.steps[nextIndex]?.kind === 'complete') p = completeLesson(p, scoredIds);
     progress.current = p;

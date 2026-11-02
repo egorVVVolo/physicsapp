@@ -7,8 +7,8 @@ import { colors } from '../theme/tokens';
 import { fonts } from '../theme/fonts';
 import { Answer, gradeAnswer, stepOutcome, Verdict } from './grade';
 import type { StepRecord } from './progress';
-import { BuildSurface, GoalSurface, NumericSurface, Phase, PickSurface } from './surfaces';
-import { BeatsStep, GradedStep, Lesson, PlayStep, PredictStep } from './types';
+import { BuildSurface, ChoiceSurface, GoalSurface, NumericSurface, Phase, PickSurface } from './surfaces';
+import { BeatsStep, GradedStep, isGraded, Lesson, PlayStep, PredictStep } from './types';
 
 export type FrameProps = { index: number; total: number; onClose: () => void; onFinish: (record: StepRecord) => void };
 
@@ -18,6 +18,7 @@ export function GradedFrame({ step, index, total, onClose, onFinish }: FrameProp
   const [answer, setAnswer] = useState<Answer | null>(null);
   const [verdict, setVerdict] = useState<Verdict | null>(null);
   const [hints, setHints] = useState(0);
+  const [misses, setMisses] = useState(0);
   const finished = phase === 'correct' || phase === 'revealed';
 
   const onAnswer = (a: Answer | null) => {
@@ -28,7 +29,7 @@ export function GradedFrame({ step, index, total, onClose, onFinish }: FrameProp
 
   const primary = () => {
     tapHaptic();
-    if (finished) return onFinish({ outcome: stepOutcome(hints, phase === 'revealed'), hintsUsed: hints, revealed: phase === 'revealed' });
+    if (finished) return onFinish({ outcome: stepOutcome(hints, phase === 'revealed'), hintsUsed: hints, revealed: phase === 'revealed', misses });
     if (phase === 'wrong') {
       setPhase('answering');
       setVerdict(null);
@@ -36,6 +37,7 @@ export function GradedFrame({ step, index, total, onClose, onFinish }: FrameProp
     }
     const v = gradeAnswer(step, answer!);
     resultHaptic(v.ok);
+    if (!v.ok) setMisses((m) => m + 1);
     setVerdict(v);
     setPhase(v.ok ? 'correct' : 'wrong');
   };
@@ -52,7 +54,7 @@ export function GradedFrame({ step, index, total, onClose, onFinish }: FrameProp
 
   return (
     <Shell
-      tag={step.tag}
+      tag={step.marks ? `${step.tag} · ${step.marks.total} marks` : step.tag}
       index={index}
       total={total}
       title={step.kind === 'goal' ? step.goalText : step.title}
@@ -61,6 +63,7 @@ export function GradedFrame({ step, index, total, onClose, onFinish }: FrameProp
       footer={<Footer label={label} disabled={!finished && phase === 'answering' && !answer} feedback={feedback} note={note} hint={!finished && hints > 0 ? step.hints[hints - 1] : null} secondary={secondary} onPress={primary} />}
     >
       {step.kind === 'goal' && <GoalSurface step={step} phase={phase} onAnswer={onAnswer} />}
+      {step.kind === 'choice' && <ChoiceSurface step={step} phase={phase} onAnswer={onAnswer} />}
       {step.kind === 'pick' && <PickSurface step={step} phase={phase} onAnswer={onAnswer} />}
       {step.kind === 'build' && <BuildSurface step={step} phase={phase} onAnswer={onAnswer} />}
       {step.kind === 'numeric' && <NumericSurface step={step} phase={phase} onAnswer={onAnswer} />}
@@ -177,7 +180,7 @@ const SURVEY = ['Too easy', 'Just right', 'Too hard'];
 export function CompleteFrame({ lesson, step, records, index, total, onClose }: Omit<FrameProps, 'onFinish'> & { lesson: Lesson; step: Extract<Lesson['steps'][number], { kind: 'complete' }>; records: Record<string, StepRecord> }) {
   const [vote, setVote] = useState<string | null>(null);
   // Only steps that were played are listed; skipped ones are never shown as done.
-  const graded = lesson.steps.filter((s) => (s.kind === 'goal' || s.kind === 'pick' || s.kind === 'build' || s.kind === 'numeric') && records[s.id]?.outcome);
+  const graded = lesson.steps.filter((s) => isGraded(s) && records[s.id]?.outcome);
   const allIndependent = graded.every((s) => records[s.id]?.outcome === 'independent');
 
   return (
@@ -200,10 +203,11 @@ export function CompleteFrame({ lesson, step, records, index, total, onClose }: 
       <View style={{ backgroundColor: colors.surface, borderRadius: 16, padding: 14, gap: 10 }}>
         {graded.map((s) => {
           const o = records[s.id].outcome!;
+          const retry = o === 'independent' && !!records[s.id].misses;
           return (
             <View key={s.id} style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 12 }}>
               <Text style={{ flex: 1, fontFamily: fonts.body, fontSize: 15, color: colors.ink }}>{s.title}</Text>
-              <Text style={{ fontFamily: fonts.bodySemi, fontSize: 15, color: OUTCOME_COLOR[o] }}>{OUTCOME_TEXT[o]}</Text>
+              <Text style={{ fontFamily: fonts.bodySemi, fontSize: 15, color: retry ? colors.accent : OUTCOME_COLOR[o] }}>{retry ? 'After a retry' : OUTCOME_TEXT[o]}</Text>
             </View>
           );
         })}

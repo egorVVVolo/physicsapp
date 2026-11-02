@@ -41,6 +41,9 @@ type Common = {
   tag: string; // small label above the title, e.g. "Predict"
   title: string;
   body?: string;
+  gate?: boolean; // a quick check: if all gate steps are passed first time, the refresher steps are skipped
+  refresher?: boolean; // only shown to a learner who missed a gate step
+  marks?: { total: number; scheme: string[] }; // exam-style marks, shown with the explanation once the step is right
 };
 
 // Explanation in small portions. The main button reveals the next beat.
@@ -61,7 +64,8 @@ export type PredictStep = Common & {
 // Move points of the graph until a condition holds.
 export type Goal =
   | { kind: 'acceleration'; segment: number; target: number } // m/s², on one straight piece
-  | { kind: 'displacement'; at: number; target: number; tolerance: number }; // m at time `at`
+  | { kind: 'displacement'; at: number; target: number; tolerance: number } // m at time `at`
+  | { kind: 'shape'; target: number[]; tolerance: number }; // every speed within `tolerance` of the described graph
 
 export type GoalStep = Common & {
   kind: 'goal';
@@ -98,6 +102,17 @@ export type BuildStep = Common & {
   explanation: string;
 };
 
+// A multiple-choice question about the scene. Each wrong option names the mistake behind it.
+export type ChoiceStep = Common & {
+  kind: 'choice';
+  lab: LabView;
+  question: string;
+  options: { label: string; why?: string }[];
+  correct: number;
+  hints: Hints;
+  explanation: string;
+};
+
 // Choose the value and the unit.
 export type NumericStep = Common & {
   kind: 'numeric';
@@ -123,8 +138,8 @@ export type CompleteStep = Common & {
   summary: string[];
 };
 
-export type Step = BeatsStep | PlayStep | PredictStep | GoalStep | PickStep | BuildStep | NumericStep | CompleteStep;
-export type GradedStep = GoalStep | PickStep | BuildStep | NumericStep;
+export type Step = BeatsStep | PlayStep | PredictStep | GoalStep | PickStep | BuildStep | NumericStep | ChoiceStep | CompleteStep;
+export type GradedStep = GoalStep | PickStep | BuildStep | NumericStep | ChoiceStep;
 
 export type Lesson = {
   id: string;
@@ -135,4 +150,4 @@ export type Lesson = {
   steps: Step[];
 };
 
-export const isGraded = (s: Step): s is GradedStep => s.kind === 'goal' || s.kind === 'pick' || s.kind === 'build' || s.kind === 'numeric';
+export const isGraded = (s: Step): s is GradedStep => s.kind === 'goal' || s.kind === 'pick' || s.kind === 'build' || s.kind === 'numeric' || s.kind === 'choice';

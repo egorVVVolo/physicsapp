@@ -10,7 +10,7 @@ import { displacementAt, duration, Graph, positionRange } from '../physics/motio
 import { fonts } from '../theme/fonts';
 import { colors } from '../theme/tokens';
 import type { Answer } from './grade';
-import type { BuildStep, GoalStep, NumericStep, PickStep } from './types';
+import type { BuildStep, ChoiceStep, GoalStep, NumericStep, PickStep } from './types';
 
 // The part of a graded step that the learner works on. The frame around it handles
 // Check / Hint / Show me and the feedback panel; a surface only reports its answer.
@@ -24,7 +24,7 @@ const open = (phase: Phase) => phase === 'answering' || phase === 'wrong';
 export function GoalSurface({ step, phase, onAnswer }: Props<GoalStep>) {
   const [speeds, setSpeeds] = useState(step.lab.graph.v);
   const [playing, setPlaying] = useState(false);
-  const h = useSceneHeight(0.68);
+  const h = useSceneHeight(0.6);
   const graph: Graph = { t: step.lab.graph.t, v: speeds };
 
   useEffect(() => {
@@ -121,7 +121,7 @@ export function BuildSurface({ step, phase, onAnswer }: Props<BuildStep>) {
   const [shown, setShown] = useState(false);
   const hasOpSlots = template.some((c) => c.kind === 'opSlot');
   const locked = !open(phase);
-  const labHeight = useSceneHeight(0.3);
+  const labHeight = useSceneHeight(0.2);
 
   // "Show me" fills every slot with the solution.
   useEffect(() => {
@@ -299,6 +299,51 @@ export function NumericSurface({ step, phase, onAnswer }: Props<NumericStep>) {
             >
               <Text style={{ fontFamily: fonts.display, fontSize: 18, color: sel ? colors.onAccent : colors.ink }}>{u}</Text>
             </ChunkyButton>
+          );
+        })}
+      </View>
+    </>
+  );
+}
+
+// A question about the scene with text options. The car only runs once the step is over.
+export function ChoiceSurface({ step, phase, onAnswer }: Props<ChoiceStep>) {
+  const [selected, setSelected] = useState<number | null>(null);
+  const [playing, setPlaying] = useState(false);
+  const done = phase === 'correct' || phase === 'revealed';
+  const h = useSceneHeight(0.3);
+
+  useEffect(() => {
+    if (done) setPlaying(true);
+  }, [done]);
+
+  return (
+    <>
+      <SceneCard>
+        <MotionLab {...step.lab} revealed={done} playing={playing} onPlayingChange={setPlaying} height={h} />
+      </SceneCard>
+      <Text style={{ fontFamily: fonts.bodySemi, fontSize: 17, lineHeight: 24, color: colors.ink }}>{step.question}</Text>
+      <View style={{ gap: 8 }}>
+        {step.options.map((o, i) => {
+          const sel = selected === i;
+          const right = done && i === step.correct;
+          const wrong = phase === 'wrong' && sel;
+          return (
+            <OptionFrame
+              key={o.label}
+              wrong={wrong}
+              selected={sel}
+              label={o.label}
+              onPress={() => {
+                if (!open(phase)) return;
+                tapHaptic();
+                setSelected(i);
+                onAnswer({ kind: 'choice', index: i });
+              }}
+              style={{ minHeight: 52, borderRadius: 14, borderWidth: sel || right ? 3 : 1.5, borderColor: right ? colors.correct : wrong ? colors.incorrect : sel ? colors.accent : colors.line, backgroundColor: colors.surface, paddingVertical: 12, paddingHorizontal: 14, justifyContent: 'center' }}
+            >
+              <Text style={{ fontFamily: fonts.bodySemi, fontSize: 16, lineHeight: 22, color: colors.ink }}>{o.label}</Text>
+            </OptionFrame>
           );
         })}
       </View>
