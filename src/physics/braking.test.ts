@@ -81,3 +81,17 @@ describe('demo content', () => {
     expect(buildQuestions[1].tiles).toEqual(expect.arrayContaining([20, 0.5, 2, 5]));
   });
 });
+
+describe('park-by-the-wall game', () => {
+  it('has a speed that parks, one that is too slow and one that crashes', async () => {
+    const { GAME, A } = await import('../content/brakingDemo');
+    const spotStart = GAME.wall - GAME.spot;
+    expect(stoppingDistance(30, A)).toBe(GAME.wall);
+    expect(stoppingDistance(29, A)).toBeGreaterThanOrEqual(spotStart);
+    expect(stoppingDistance(28, A)).toBeLessThan(spotStart);
+    expect(stoppingDistance(31, A)).toBeGreaterThan(GAME.wall);
+    // The fastest speed offered still fits on the graph axes.
+    expect(stoppingTime(GAME.uMax, A)).toBeLessThanOrEqual(GAME.xMax);
+    expect(GAME.uMax).toBeLessThanOrEqual(GAME.yMax);
+  });
+});

@@ -4,23 +4,21 @@ import Animated, { SlideInRight, SlideOutLeft } from 'react-native-reanimated';
 import { useLocalSearchParams } from 'expo-router';
 import { PhoneFrame } from '../components/stepParts';
 import {
-  AreaExplain,
   BuildStep,
   DoneStep,
-  ExampleBrake,
-  NumbersExplain,
   RuleExplain,
   SquaresExplain,
   Story,
   WarmGraph,
-  WarmTap,
+  PredictStep,
+  StopStep,
 } from '../components/steps';
 import { buildQuestions } from '../content/brakingDemo';
 import { colors } from '../theme/tokens';
 
-// Temporary demo lesson for the visual-direction stage, in small portions:
-// intro, watch, 3 short explain screens, 2 warm-ups, 2 build questions, done.
-const TOTAL = 10;
+// Demo lesson, interaction first: intro, predict (surprise), park-the-car game,
+// then the idea (squares, rule), a graph warm-up, 2 build questions, done.
+const TOTAL = 9;
 
 export default function Demo() {
   // ?step=N jumps to a screen, handy while designing.
@@ -40,16 +38,14 @@ export default function Demo() {
           style={[StyleSheet.absoluteFill, { backgroundColor: colors.background }]}
         >
           {i === 0 && <Story {...p} />}
-          {i === 1 && <ExampleBrake {...p} />}
-          {i === 2 && <AreaExplain {...p} />}
-          {i === 3 && <RuleExplain {...p} />}
-          {i === 4 && <NumbersExplain {...p} />}
-          {i === 5 && <SquaresExplain {...p} />}
-          {i === 6 && <WarmGraph {...p} />}
-          {i === 7 && <WarmTap {...p} />}
-          {i === 8 && <BuildStep {...p} q={buildQuestions[0]} />}
-          {i === 9 && <BuildStep {...p} q={buildQuestions[1]} />}
-          {i >= 10 && <DoneStep index={TOTAL - 1} total={TOTAL} onRestart={() => setI(0)} />}
+          {i === 1 && <PredictStep {...p} />}
+          {i === 2 && <StopStep {...p} />}
+          {i === 3 && <SquaresExplain {...p} />}
+          {i === 4 && <RuleExplain {...p} />}
+          {i === 5 && <WarmGraph {...p} />}
+          {i === 6 && <BuildStep {...p} q={buildQuestions[0]} />}
+          {i === 7 && <BuildStep {...p} q={buildQuestions[1]} />}
+          {i >= 8 && <DoneStep index={TOTAL - 1} total={TOTAL} onRestart={() => setI(0)} />}
         </Animated.View>
       </View>
     </PhoneFrame>

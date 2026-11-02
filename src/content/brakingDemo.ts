@@ -70,3 +70,14 @@ export const buildQuestions: BuildQuestion[] = [
     hint: 'During the reaction time the car keeps its speed: distance = speed × time. Then add the braking distance.',
   },
 ];
+
+// Park-by-the-wall game: stop in the spot just before the wall.
+export const GAME = {
+  wall: 90, // m, where the wall stands
+  spot: 8, // m, length of the parking spot in front of the wall
+  range: 100, // m, road length shown
+  uMin: 5,
+  uMax: 40, // m/s
+  xMax: 9, // s on the graph
+  yMax: 48, // m/s on the graph
+};

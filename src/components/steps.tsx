@@ -4,7 +4,7 @@ import Animated, { Easing, FadeInDown, ZoomIn, useAnimatedStyle, useSharedValue,
 import Svg, { Line, Path } from 'react-native-svg';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { A, BuildQuestion, SQUARE, tapWarmup } from '../content/brakingDemo';
+import { A, BuildQuestion, GAME, SQUARE, tapWarmup } from '../content/brakingDemo';
 import { evaluate, hasOperator } from '../lib/expression';
 import { useTween } from '../lib/useTween';
 import { stoppingDistance, stoppingTime } from '../physics/braking';
@@ -13,6 +13,7 @@ import { fonts } from '../theme/fonts';
 import { BrakingScene } from './BrakingScene';
 import { ExplainGraph } from './ExplainGraph';
 import { HeroScene } from './HeroScene';
+import { StopGame } from './StopGame';
 import { CheckIcon, ChunkyButton, CrossIcon, Footer, OptionFrame, resultHaptic, tapHaptic } from './stepParts';
 
 const tidy = (n: number) => Number(n.toFixed(2));
@@ -127,7 +128,7 @@ function FormulaRow({ label, children, strong }: { label: string; children: Reac
   );
 }
 
-// 1. Intro: one hero object, two sentences.
+// Intro: one hero object, two sentences.
 export function Story({ index, total, onNext }: Nav) {
   const h = useSceneHeight(0.6);
   return (
@@ -146,74 +147,7 @@ export function Story({ index, total, onNext }: Nav) {
   );
 }
 
-// 2. Watch one braking run.
-export function ExampleBrake({ index, total, onNext }: Nav) {
-  const [playKey, setPlayKey] = useState(0);
-  const [done, setDone] = useState(false);
-  const u = 20;
-  const running = playKey > 0 && !done;
-  const h = useSceneHeight(0.56);
-
-  return (
-    <Shell
-      tag="Watch"
-      index={index}
-      total={total}
-      title="Brake from 20 m/s"
-      body={`The car brakes at a steady ${A} m/s².`}
-      footer={
-        <Footer
-          label={done ? 'Next' : running ? 'Braking…' : 'Brake'}
-          disabled={running}
-          note={done ? `It stops after ${stoppingTime(u, A)} s and ${stoppingDistance(u, A)} m.` : null}
-          onPress={() => {
-            tapHaptic();
-            if (done) onNext();
-            else setPlayKey(1);
-          }}
-        />
-      }
-    >
-      <SceneCard>
-        <BrakingScene height={h} u={u} playKey={playKey} range={60} xMax={5} yMax={24} onDone={() => setDone(true)} />
-      </SceneCard>
-    </Shell>
-  );
-}
-
-// 3. The distance is the area of a triangle: base, height, area, one beat at a time.
-export function AreaExplain({ index, total, onNext }: Nav) {
-  const { k, last, advance } = useBeats(4);
-  const base = useTween(k >= 1 ? 1 : 0, 800);
-  const heightMark = useTween(k >= 2 ? 1 : 0, 800);
-  const area = useTween(k >= 3 ? 1 : 0, 900);
-  const h = useSceneHeight(0.46);
-  const u = 20;
-  const t0 = stoppingTime(u, A);
-  const notes = [
-    'The speed falls in a straight line. How far did the car go?',
-    `Base: how long it takes to stop, t = ${t0} s.`,
-    `Height: the speed it started at, u = ${u} m/s.`,
-    `Distance = area of the triangle = ½ × ${t0} × ${u} = ${stoppingDistance(u, A)} m.`,
-  ];
-  const labels = ['Show the base', 'Show the height', 'Fill the area', 'Next'];
-
-  return (
-    <Shell
-      tag="Idea"
-      index={index}
-      total={total}
-      title="Distance is an area"
-      footer={<Footer label={labels[k]} note={notes[k]} onPress={() => { tapHaptic(); if (last) onNext(); else advance(); }} />}
-    >
-      <SceneCard>
-        <ExplainGraph height={h} u={u} xMax={5} yMax={24} base={base} heightMark={heightMark} area={area} areaLabel={`½ × ${t0} × ${u} = ${stoppingDistance(u, A)} m`} />
-      </SceneCard>
-    </Shell>
-  );
-}
-
-// 4. Where u² ÷ 2a comes from, built line by line.
+// Where u² ÷ 2a comes from, built line by line.
 export function RuleExplain({ index, total, onNext }: Nav) {
   const { k, last, advance } = useBeats(3);
   const notes = [
@@ -250,50 +184,14 @@ export function RuleExplain({ index, total, onNext }: Nav) {
   );
 }
 
-// 5. The formula with real numbers.
-export function NumbersExplain({ index, total, onNext }: Nav) {
-  const { k, last, advance } = useBeats(3);
-  const u = 20;
-  const notes = [`Take u = ${u} m/s and a = ${A} m/s².`, 'Square the speed, double the braking.', 'It matches the 40 m we measured on the graph.'];
-  const labels = ['Put the numbers in', 'Calculate', 'Next'];
-
-  return (
-    <Shell
-      tag="Example"
-      index={index}
-      total={total}
-      title="Try it with numbers"
-      footer={<Footer label={labels[k]} note={notes[k]} onPress={() => { tapHaptic(); if (last) onNext(); else advance(); }} />}
-    >
-      <FormulaRow label="The rule">
-        <Eq parts={['s = u² ÷ 2a']} />
-        <View style={{ flexDirection: 'row', gap: 16, marginTop: 6 }}>
-          <Eq parts={[`u = ${u} m/s`]} size={16} />
-          <Eq parts={[`a = ${A} m/s²`]} size={16} />
-        </View>
-      </FormulaRow>
-      {k >= 1 && (
-        <FormulaRow label="Numbers in">
-          <Eq parts={['s = ', [`${u}`, colors.velocity], '² ÷ (2 × ', [`${A}`, colors.acceleration], ')']} />
-        </FormulaRow>
-      )}
-      {k >= 2 && (
-        <FormulaRow label="Calculate" strong>
-          <Eq parts={[`s = ${u * u} ÷ ${2 * A} = `, [`${stoppingDistance(u, A)} m`, colors.correct]]} />
-        </FormulaRow>
-      )}
-    </Shell>
-  );
-}
-
-// 6. Why squared: twice the speed fills four times the squares.
+// Why squared: twice the speed fills four times the squares.
 export function SquaresExplain({ index, total, onNext }: Nav) {
   const { k, last, advance } = useBeats(2);
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
   const first = useTween(mounted ? 1 : 0, 1600);
   const second = useTween(k >= 1 ? 1 : 0, 2000);
-  const h = useSceneHeight(0.46);
+  const h = useSceneHeight(0.58);
   const cells = k >= 1 ? second : first;
   const u = k >= 1 ? 40 : 20;
   const notes = [
@@ -316,6 +214,190 @@ export function SquaresExplain({ index, total, onNext }: Nav) {
   );
 }
 
+// Chips that list earlier attempts: speed, then distance.
+function AttemptChips({ items }: { items: { u: number; d: number; ok?: boolean }[] }) {
+  if (items.length === 0) return null;
+  return (
+    <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+      {items.map((a, i) => (
+        <Animated.View
+          key={i}
+          entering={ZoomIn.duration(260)}
+          style={{ flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: colors.surface, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 8, borderWidth: 1.5, borderColor: a.ok ? colors.correct : colors.line }}
+        >
+          <Text style={{ fontFamily: fonts.bodySemi, fontSize: 14, color: colors.velocity }}>{a.u} m/s</Text>
+          <Text style={{ fontFamily: fonts.body, fontSize: 14, color: colors.inkMuted }}>stops in</Text>
+          <Text style={{ fontFamily: fonts.bodySemi, fontSize: 14, color: colors.ink }}>{tidy(a.d)} m</Text>
+        </Animated.View>
+      ))}
+    </View>
+  );
+}
+
+// Predict: watch 20 m/s, then guess where a car at twice the speed stops. The surprise is the lesson.
+export function PredictStep({ index, total, onNext }: Nav) {
+  const first = 20;
+  const second = 40;
+  const [beat, setBeat] = useState(0);
+  const [done1, setDone1] = useState(false);
+  const [run1, setRun1] = useState(0);
+  const [marker, setMarker] = useState<number | null>(null);
+  const [run2, setRun2] = useState(0);
+  const [done2, setDone2] = useState(false);
+  const h = useSceneHeight(0.62);
+  const d1 = stoppingDistance(first, A);
+  const d2 = stoppingDistance(second, A);
+  const range = 180;
+  const scene = { range, xMax: 9, yMax: 48 };
+
+  let label = 'Brake';
+  let disabled = false;
+  let note: string | null = null;
+  if (beat === 0) {
+    if (run1 > 0 && !done1) {
+      label = 'Braking…';
+      disabled = true;
+    }
+    if (done1) {
+      label = 'Next';
+      note = `It stops after ${d1} m.`;
+    }
+  } else {
+    if (run2 === 0) {
+      disabled = marker === null;
+    } else if (!done2) {
+      label = 'Braking…';
+      disabled = true;
+    } else {
+      label = 'Continue';
+      note =
+        Math.abs(marker! - d2) <= 20
+          ? `${d2} m. Good guess. Twice the speed, four times the distance.`
+          : `${d2} m, not ${d1 * 2} m. Twice the speed, four times the distance.`;
+    }
+  }
+
+  const onPress = () => {
+    tapHaptic();
+    if (beat === 0) {
+      if (done1) setBeat(1);
+      else setRun1(1);
+      return;
+    }
+    if (done2) return onNext();
+    setRun2(1);
+  };
+
+  return (
+    <Shell
+      tag="Predict"
+      index={index}
+      total={total}
+      title={beat === 0 ? `Brake from ${first} m/s` : 'Now twice as fast'}
+      body={beat === 0 ? `The brakes slow the car at a steady ${A} m/s².` : `${second} m/s. Tap the road where you think it stops.`}
+      footer={<Footer label={label} disabled={disabled} note={note} onPress={onPress} />}
+    >
+      <SceneCard>
+        {beat === 0 ? (
+          <BrakingScene key="a" height={h} u={first} playKey={run1} {...scene} onDone={() => setDone1(true)} />
+        ) : (
+          <BrakingScene
+            key="b"
+            height={run2 > 0 ? h : Math.min(h, 340)}
+            graph={run2 > 0}
+            u={second}
+            playKey={run2}
+            {...scene}
+            marker={marker}
+            history={[first]}
+            onDone={() => setDone2(true)}
+            onRoadTap={
+              run2 > 0
+                ? undefined
+                : (m) => {
+                    tapHaptic();
+                    setMarker(m);
+                  }
+            }
+          />
+        )}
+      </SceneCard>
+      {beat === 1 && run2 === 0 && <AttemptChips items={[{ u: first, d: d1 }]} />}
+    </Shell>
+  );
+}
+
+// Game: set the starting speed on the graph so the car stops in the parking spot before the wall.
+export function StopStep({ index, total, onNext }: Nav) {
+  const [u, setU] = useState(15);
+  const [playKey, setPlayKey] = useState(0);
+  const [touched, setTouched] = useState(false);
+  const [attempts, setAttempts] = useState<{ u: number; d: number; ok?: boolean }[]>([]);
+  const [result, setResult] = useState<{ u: number; distance: number; crashed: boolean } | null>(null);
+  const h = useSceneHeight(0.6);
+  const running = playKey > 0 && !result;
+  const inSpot = result && !result.crashed && result.distance >= GAME.wall - GAME.spot;
+
+  let feedback: { ok: boolean; text: string } | null = null;
+  if (result) {
+    const d = tidy(result.distance);
+    feedback = inSpot
+      ? { ok: true, text: `${result.u} m/s stops in ${d} m. Parked.` }
+      : result.crashed
+        ? { ok: false, text: `${result.u} m/s needs ${d} m. The wall is at ${GAME.wall} m. Go slower.` }
+        : { ok: false, text: `${result.u} m/s stops in ${d} m, ${tidy(GAME.wall - GAME.spot - result.distance)} m before the spot. Go faster.` };
+  }
+
+  const onPress = () => {
+    tapHaptic();
+    if (inSpot) return onNext();
+    if (result) {
+      setResult(null);
+      setPlayKey(0);
+      return;
+    }
+    setPlayKey((k) => k + 1);
+  };
+
+  return (
+    <Shell
+      tag="Try it"
+      index={index}
+      total={total}
+      title="Park by the wall"
+      body="Drag the dot to set the speed. The car should stop in the green spot."
+      footer={
+        <Footer
+          label={inSpot ? 'Continue' : result ? 'Try again' : running ? 'Braking…' : 'Brake'}
+          disabled={running}
+          feedback={feedback}
+          onPress={onPress}
+        />
+      }
+    >
+      <SceneCard>
+        <StopGame
+          height={h}
+          u={u}
+          onChangeU={(next) => {
+            setTouched(true);
+            setU(next);
+          }}
+          playKey={playKey}
+          locked={playKey > 0}
+          touched={touched}
+          onDone={(r) => {
+            setResult(r);
+            setAttempts((a) => [...a, { u: r.u, d: r.distance, ok: !r.crashed && r.distance >= GAME.wall - GAME.spot }]);
+            resultHaptic(!r.crashed && r.distance >= GAME.wall - GAME.spot);
+          }}
+        />
+      </SceneCard>
+      <AttemptChips items={attempts.slice(-4)} />
+    </Shell>
+  );
+}
+
 type Status = 'idle' | 'selected' | 'correct' | 'incorrect';
 
 // Small v-t graph cards for the "which graph" warm-up.
@@ -325,7 +407,7 @@ const graphs: { d: string; correct: boolean; name: string }[] = [
   { d: 'M30 20 Q60 92 270 104', correct: false, name: 'a curve dropping fast then levelling' },
 ];
 
-// 7. Warm-up: pick the graph.
+// Warm-up: pick the graph.
 export function WarmGraph({ index, total, onNext }: Nav) {
   const [selected, setSelected] = useState<number | null>(null);
   const [status, setStatus] = useState<Status>('idle');
@@ -399,89 +481,9 @@ export function WarmGraph({ index, total, onNext }: Nav) {
   );
 }
 
-// 8. Warm-up: tap the road where the car stops. The run plays only after a correct check.
-export function WarmTap({ index, total, onNext }: Nav) {
-  const [marker, setMarker] = useState<number | null>(null);
-  const [status, setStatus] = useState<Status>('idle');
-  const [playKey, setPlayKey] = useState(0);
-  const correct = status === 'correct';
-  const h = useSceneHeight(0.5);
-  const { u, answer, tolerance, scene } = tapWarmup;
-  const sceneH = correct ? h : 270; // road only until the answer is in
-
-  const onPress = () => {
-    if (correct) return onNext();
-    if (status === 'incorrect') {
-      setStatus('selected');
-      return;
-    }
-    const ok = Math.abs(marker! - answer) <= tolerance;
-    resultHaptic(ok);
-    setStatus(ok ? 'correct' : 'incorrect');
-    if (ok) setPlayKey(1);
-  };
-
-  return (
-    <Shell
-      tag="Warm-up"
-      index={index}
-      total={total}
-      title="Where does it stop?"
-      body={`Braking from ${u} m/s. Tap the road to plant a flag.`}
-      footer={
-        <Footer
-          label={correct ? 'Continue' : status === 'incorrect' ? 'Move the flag' : 'Check'}
-          disabled={status === 'idle'}
-          feedback={
-            correct
-              ? { ok: true, text: `${u}² ÷ (2 × ${A}) = ${answer} m. The flag is within ${tolerance} m.` }
-              : status === 'incorrect'
-                ? { ok: false, text: `${marker! > answer ? 'The car stops sooner than that.' : 'The car goes further than that.'} Distance is the area under the graph.` }
-                : null
-          }
-          onPress={onPress}
-        />
-      }
-    >
-      <SceneCard>
-        <BrakingScene
-          height={sceneH}
-          graph={correct}
-          u={u}
-          playKey={playKey}
-          {...scene}
-          marker={marker}
-          onRoadTap={
-            correct
-              ? undefined
-              : (m) => {
-                  tapHaptic();
-                  setMarker(m);
-                  setStatus('selected');
-                }
-          }
-        />
-      </SceneCard>
-      {!correct && (
-        <View style={{ flexDirection: 'row', gap: 8 }}>
-          {[
-            { k: 'Start speed', v: `${u} m/s`, c: colors.velocity },
-            { k: 'Braking', v: `${A} m/s²`, c: colors.acceleration },
-          ].map((f) => (
-            <View key={f.k} style={{ flex: 1, backgroundColor: colors.surface, borderRadius: 16, padding: 14 }}>
-              <Text style={{ fontFamily: fonts.bodyMedium, fontSize: 13, color: colors.inkMuted }}>{f.k}</Text>
-              <Text style={{ fontFamily: fonts.display, fontSize: 24, color: f.c, fontVariant: ['tabular-nums'] }}>{f.v}</Text>
-            </View>
-          ))}
-        </View>
-      )}
-    </Shell>
-  );
-}
-
 const SIGNS = ['×', '÷', '+', '−'];
 
-// 9-10. Build the calculation: number tiles go into ready slots between the signs.
+// Build the calculation: number tiles go into ready slots between the signs.
 export function BuildStep({ q, index, total, onNext }: Nav & { q: BuildQuestion }) {
   const [vals, setVals] = useState<(string | null)[]>(() => q.template.map(() => null));
   const [status, setStatus] = useState<'editing' | 'correct' | 'wrong' | 'invalid'>('editing');
@@ -637,12 +639,22 @@ export function BuildStep({ q, index, total, onNext }: Nav & { q: BuildQuestion 
 export function DoneStep({ index, total, onRestart }: { index: number; total: number; onRestart: () => void }) {
   return (
     <Shell
-      tag="Done"
+      tag="Lesson complete"
       index={index}
       total={total}
-      title="That is the idea"
-      body="Stopping distance grows with the square of the speed: s = u² ÷ 2a. A reaction time adds u × t on top."
+      title="Stopping distance depends on u²"
+      body="You saw it, parked with it and built it."
       footer={<Footer label="Restart demo" onPress={onRestart} />}
-    />
+    >
+      <FormulaRow label="Braking at a steady a" strong>
+        <Eq parts={['s = u² ÷ 2a']} size={36} />
+      </FormulaRow>
+      <FormulaRow label="Twice the speed">
+        <Eq parts={[['4×', colors.accent], ' the distance']} size={26} />
+      </FormulaRow>
+      <FormulaRow label="Reaction time before braking">
+        <Eq parts={['s = u × t']} size={26} />
+      </FormulaRow>
+    </Shell>
   );
 }
