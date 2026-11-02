@@ -38,7 +38,7 @@ export function gradeAnswer(step: GradedStep, answer: Answer): Verdict {
   }
   if (step.kind === 'pick' && answer.kind === 'pick') {
     const ok = answer.index === step.correct;
-    return { ok, message: ok ? step.explanation : 'That graph gives a different position curve. Compare how the curve bends.' };
+    return { ok, message: ok ? step.explanation : (step.why[answer.index] || 'That graph gives a different position curve. Compare how the curve bends.') };
   }
   if (step.kind === 'build' && answer.kind === 'build') {
     const ok = Math.abs(answer.value - step.answer) < EPS;

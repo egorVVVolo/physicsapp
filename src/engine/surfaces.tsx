@@ -77,9 +77,9 @@ export function PickSurface({ step, phase, onAnswer }: Props<PickStep>) {
   return (
     <>
       <SceneCard>
-        <View style={{ padding: 12 }}>
-          <Text style={{ fontFamily: fonts.bodySemi, fontSize: 14, color: colors.inkMuted, marginBottom: 4 }}>Position–time graph</Text>
-          <MiniGraph graph={step.shown} kind="st" height={150} range={stRange} />
+        <View style={{ padding: 10 }}>
+          <Text style={{ fontFamily: fonts.bodySemi, fontSize: 14, color: colors.inkMuted, marginBottom: 2 }}>Position–time graph</Text>
+          <MiniGraph graph={step.shown} kind="st" height={110} range={stRange} />
         </View>
       </SceneCard>
       <Text style={{ fontFamily: fonts.bodySemi, fontSize: 15, color: colors.inkMuted }}>Which velocity–time graph goes with it?</Text>
@@ -102,7 +102,7 @@ export function PickSurface({ step, phase, onAnswer }: Props<PickStep>) {
               }}
               style={{ borderRadius: 18, borderWidth: st === 'idle' ? 1.5 : 3, borderColor: border, backgroundColor: colors.surface, padding: 10 }}
             >
-              <MiniGraph graph={g} kind="vt" height={110} range={vRange} />
+              <MiniGraph graph={g} kind="vt" height={88} range={vRange} />
               <Text style={{ position: 'absolute', top: 10, left: 14, fontFamily: fonts.display, fontSize: 20, color: colors.ink }}>{'ABC'[i]}</Text>
               {st === 'correct' && (
                 <View style={{ position: 'absolute', top: 10, right: 12 }}>
@@ -131,7 +131,7 @@ export function BuildSurface({ step, phase, onAnswer }: Props<BuildStep>) {
   const [shown, setShown] = useState(false);
   const hasOpSlots = template.some((c) => c.kind === 'opSlot');
   const locked = !open(phase);
-  const labHeight = useSceneHeight(0.34);
+  const labHeight = useSceneHeight(0.3);
 
   // "Show me" fills every slot with the solution.
   useEffect(() => {
@@ -221,6 +221,8 @@ export function BuildSurface({ step, phase, onAnswer }: Props<BuildStep>) {
           <Text style={{ textAlign: 'center', fontFamily: fonts.display, fontSize: 24, color: colors.incorrect, marginTop: 8 }}>{`= ${tidy(value)} ${step.unit}`}</Text>
         )}
       </View>
+      {open(phase) && (
+        <>
       <View style={{ flexDirection: 'row', gap: 8 }}>
         {step.tiles.map((n, i) => (
           <ChunkyButton
@@ -244,6 +246,8 @@ export function BuildSurface({ step, phase, onAnswer }: Props<BuildStep>) {
         {step.structureHint}
         {hasOpSlots ? ' Tap a ? to pick a sign.' : ''}
       </Text>
+        </>
+      )}
     </>
   );
 }
@@ -265,7 +269,7 @@ export function NumericSurface({ step, phase, onAnswer }: Props<NumericStep>) {
         {step.options.map((o) => {
           const sel = value === o.value;
           const shownRight = (phase === 'correct' || phase === 'revealed') && o.value === step.answer;
-          const wrong = phase === 'wrong' && sel;
+          const wrong = phase === 'wrong' && sel && o.value !== step.answer;
           return (
             <OptionFrame
               key={o.value}
@@ -288,6 +292,7 @@ export function NumericSurface({ step, phase, onAnswer }: Props<NumericStep>) {
       <View style={{ flexDirection: 'row', gap: 8 }}>
         {step.units.map((u) => {
           const sel = unit === u;
+          const unitWrong = phase === 'wrong' && sel && u !== step.unit;
           return (
             <ChunkyButton
               key={u}
@@ -298,8 +303,8 @@ export function NumericSurface({ step, phase, onAnswer }: Props<NumericStep>) {
                 report(value, u);
               }}
               accessibilityLabel={`unit ${u}`}
-              fill={sel ? colors.accent : colors.surfaceRaised}
-              edge={sel ? colors.accentEdge : colors.surfaceEdge}
+              fill={unitWrong ? colors.incorrect : sel ? colors.accent : colors.surfaceRaised}
+              edge={unitWrong ? '#B04A4A' : sel ? colors.accentEdge : colors.surfaceEdge}
               style={{ flex: 1, minHeight: 52 }}
             >
               <Text style={{ fontFamily: fonts.display, fontSize: 18, color: sel ? colors.onAccent : colors.ink }}>{u}</Text>

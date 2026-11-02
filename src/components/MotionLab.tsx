@@ -36,6 +36,8 @@ export function MotionLab({
   graph,
   editable,
   showSt = true,
+  showVt = true,
+  track = true,
   hideRun,
   areaNumbers,
   target,
@@ -64,8 +66,8 @@ export function MotionLab({
 
   const { w: W } = size;
   const H = height ?? size.h;
-  const trackH = Math.round(H * (target ? 0.36 : showSt ? 0.3 : 0.32));
-  const vH = showSt ? Math.round(H * 0.38) : H - trackH;
+  const trackH = track ? Math.round(H * (target ? 0.36 : showSt ? 0.3 : 0.32)) : 0;
+  const vH = !showVt ? 0 : showSt ? Math.round(H * (track ? 0.38 : 0.5)) : H - trackH;
   const sH = showSt ? H - trackH - vH : 0;
   const vTop = trackH;
   const sTop = trackH + vH;
@@ -269,6 +271,8 @@ export function MotionLab({
             </Defs>
             <CarDefs />
 
+            {track && (
+              <G>
             {/* Track */}
             <Rect x={0} y={roadY} width={W} height={26} fill="url(#labRoad)" />
             <Line x1={0} y1={roadY} x2={W} y2={roadY} stroke={colors.axis} strokeWidth={1.5} />
@@ -318,6 +322,11 @@ export function MotionLab({
             {!hidden && readout(`v = ${tidy(v)} m/s`, colors.velocity)}
             {!hidden && readout(`s = ${tidy(s)} m`, colors.ink)}
 
+              </G>
+            )}
+
+            {showVt && (
+              <G>
             {/* v-t graph */}
             <Rect x={0} y={vTop} width={W} height={vH} fill={colors.surface} opacity={0.5} />
             {vTicks.map((y) => (
@@ -351,9 +360,16 @@ export function MotionLab({
               pieces.map((p, i) => {
                 const wide = px(p.t1) - px(p.t0);
                 const area = pieceArea(p);
-                if (wide < 46 || t < p.t1 - 1e-9) return null;
+                if (wide < 46 || t < p.t1 - 1e-9 || Math.abs(area) < 0.05) return null;
+                // Inside the shape when it is tall enough; otherwise just past the axis, clear of the lines.
+                const tall = Math.max(Math.abs(p.v0), Math.abs(p.v1)) * ((vGBot - vGTop) / (V_MAX - V_MIN)) >= 40;
+                // Centre of the shape (centroid of a trapezoid), so the label sits clear of the sloping line.
+                const sum = p.v0 + p.v1;
+                const cx = sum === 0 ? (p.t0 + p.t1) / 2 : p.t0 + ((p.t1 - p.t0) * (p.v0 + 2 * p.v1)) / (3 * sum);
+                const cy = sum === 0 ? 0 : (p.v0 * p.v0 + p.v0 * p.v1 + p.v1 * p.v1) / (3 * sum);
+                const y = tall ? yv(cy) + 5 : area > 0 ? yv(0) + 19 : yv(0) - 9;
                 return (
-                  <SvgText key={`an${i}`} x={(px(p.t0) + px(p.t1)) / 2} y={yv((p.v0 + p.v1) / 4) + 5} fontFamily={fonts.display} fontSize={15} fill={colors.ink} textAnchor="middle">
+                  <SvgText key={`an${i}`} x={tall ? px(cx) : (px(p.t0) + px(p.t1)) / 2} y={y} fontFamily={fonts.display} fontSize={15} fill={colors.ink} textAnchor="middle">
                     {`${area < 0 ? '−' : ''}${tidy(Math.abs(area))} m`}
                   </SvgText>
                 );
@@ -363,7 +379,7 @@ export function MotionLab({
             {focus != null && graph.t[focus + 1] !== undefined && (
               <Line x1={px(graph.t[focus])} y1={yv(graph.v[focus])} x2={px(graph.t[focus + 1])} y2={yv(graph.v[focus + 1])} stroke={colors.acceleration} strokeWidth={7} strokeLinecap="round" />
             )}
-            {!hidden && (
+            {!hidden && track && (
               <>
                 <Line x1={px(t)} y1={vGTop} x2={px(t)} y2={vGBot} stroke={colors.accent} strokeWidth={1.5} strokeDasharray="4 3" />
                 <Circle cx={px(t)} cy={yv(v)} r={5} fill={colors.accent} stroke={colors.background} strokeWidth={2} />
@@ -383,7 +399,7 @@ export function MotionLab({
               </G>
             ))}
             {active != null && <Pill x={clamp(px(graph.t[active]), 70, W - 70)} anchor="middle" y={yv(graph.v[active]) - 20} text={`${graph.v[active]} m/s`} color={colors.ink} />}
-            {active == null && !slopes && <Pill x={W - PR - 4} y={vGTop + 22} anchor="end" text={`a = ${tidy(a)} m/s²`} color={colors.acceleration} />}
+            {active == null && !slopes && track && <Pill x={W - PR - 4} y={vGTop + 22} anchor="end" text={`a = ${tidy(a)} m/s²`} color={colors.acceleration} />}
             {slopes &&
               (() => {
                 // Non-zero labels first; a zero label is only drawn if it does not collide with one already placed.
@@ -410,6 +426,9 @@ export function MotionLab({
             <SvgText x={W - PR} y={vGBot + 31} {...font} fontFamily={fonts.bodySemi} fill={colors.ink} textAnchor="end">
               t / s
             </SvgText>
+
+              </G>
+            )}
 
             {/* s-t graph */}
             {showSt && (
@@ -488,7 +507,7 @@ export function MotionLab({
               style={{ position: 'absolute', left: 0, right: 0, top: 0, height: trackH }}
             />
           )}
-          {!!editable?.length && <View {...vPan.panHandlers} style={{ position: 'absolute', left: 0, right: 0, top: vTop, height: vH }} />}
+          {showVt && !!editable?.length && <View {...vPan.panHandlers} style={{ position: 'absolute', left: 0, right: 0, top: vTop, height: vH }} />}
           {showSt && !hidden && <View {...sPan.panHandlers} style={{ position: 'absolute', left: 0, right: 0, top: sTop, height: sH }} />}
         </>
       )}

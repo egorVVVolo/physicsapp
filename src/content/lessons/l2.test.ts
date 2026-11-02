@@ -49,6 +49,8 @@ describe('lesson 2 content', () => {
     for (const s of numerics) {
       if (s.kind !== 'numeric') continue;
       expect(s.options.filter((o) => o.value === s.answer)).toHaveLength(1);
+      // The right answer is not always the first one on offer.
+      expect(s.options[0].value).not.toBe(s.answer);
       expect(new Set(s.options.map((o) => o.value)).size).toBe(s.options.length);
       expect(s.units).toContain(s.unit);
       for (const o of s.options) if (o.value !== s.answer) expect(o.why).toBeTruthy();
@@ -69,6 +71,9 @@ describe('lesson 2 content', () => {
     const p = lesson2.steps.find((s) => s.kind === 'pick');
     if (p?.kind !== 'pick') throw new Error('no pick step');
     expect(p.options[p.correct]).toEqual(p.shown);
+    p.options.forEach((_, i) => {
+      if (i !== p.correct) expect(p.why[i].length).toBeGreaterThan(10);
+    });
     const sig = (g: typeof p.shown) => [2, 4, 6, 8].map((t) => displacementAt(g, t)).join(',');
     expect(new Set(p.options.map(sig)).size).toBe(p.options.length);
   });

@@ -12,6 +12,8 @@ export type LabView = {
   graph: Graph;
   editable?: number[]; // indexes of the points the learner may drag
   showSt?: boolean; // show the position-time graph (default true)
+  showVt?: boolean; // show the velocity-time graph (default true)
+  track?: boolean; // show the track, the car and the readouts (default true). Off for questions where they would give the answer away
   hideRun?: boolean; // keep the car at the start and hide readings until the answer is in
   areaNumbers?: boolean; // label the area under the graph with its value
   target?: { s: number }; // a goal position, drawn on the track and the s-t graph
@@ -75,6 +77,7 @@ export type PickStep = Common & {
   shown: Graph; // the graph the position-time picture is drawn from
   options: Graph[];
   correct: number;
+  why: string[]; // for each wrong option: why it does not match (the correct entry is ignored)
   hints: Hints;
   explanation: string;
 };
