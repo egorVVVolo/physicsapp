@@ -230,9 +230,21 @@ export function MotionLab({
   // Car on the track.
   const roadY = trackH - 34;
   const carW = CAR_W * CAR_SCALE;
-  const carCx = clamp(tx(s), 36 + carW / 2, W - 36 - carW / 2);
+  // Follow mode: the car keeps its place on the screen and the road slides under it, so speed is felt.
+  // Overview mode (a target or a tap on the track is involved): the whole track is fixed and the car moves along it.
+  const follow = track && !target && !onTrackTap;
+  const trackW = W - 72;
+  const ppm = trackW / 30; // follow mode shows a 30 m window
+  const carFx = 36 + trackW * 0.4;
+  const txr = (m: number) => (follow ? carFx + (m - s) * ppm : tx(m));
+  const carCx = follow ? carFx : clamp(tx(s), 36 + carW / 2, W - 36 - carW / 2);
+  const roadTicks: number[] = [];
+  if (follow) for (let m = Math.ceil((s - 0.45 * 30) / 10) * 10; m <= s + 0.65 * 30; m += 10) roadTicks.push(m);
+  else roadTicks.push(...sTicks);
+  const dashes: number[] = [];
+  if (follow) for (let m = Math.floor((s - 0.45 * 30) / 4) * 4; m <= s + 0.65 * 30; m += 4) dashes.push(m);
   const carTop = roadY - CAR_H * CAR_SCALE + 4;
-  const wheel = ((s * (W - 72)) / (hi - lo) / (7.2 * CAR_SCALE)) * (180 / Math.PI);
+  const wheel = ((s * (follow ? ppm : trackW / (hi - lo))) / (7.2 * CAR_SCALE)) * (180 / Math.PI);
   const pitch = clamp(-a * dir * 0.7, -4, 4);
 
   // Value pills at the top of the track, left to right.
@@ -276,16 +288,21 @@ export function MotionLab({
             {/* Track */}
             <Rect x={0} y={roadY} width={W} height={26} fill="url(#labRoad)" />
             <Line x1={0} y1={roadY} x2={W} y2={roadY} stroke={colors.axis} strokeWidth={1.5} />
-            {sTicks.map((m) => (
+            {dashes.map((m) => (
+              <Line key={`ld${m}`} x1={txr(m)} y1={roadY + 15} x2={txr(m + 2)} y2={roadY + 15} stroke="#4A5368" strokeWidth={2.5} strokeLinecap="round" />
+            ))}
+            {roadTicks
+              .filter((m) => txr(m) > 6 && txr(m) < W - 26)
+              .map((m) => (
               <G key={`tt${m}`}>
-                <Line x1={tx(m)} y1={roadY} x2={tx(m)} y2={roadY + 8} stroke={colors.axis} strokeWidth={1.5} />
-                <SvgText x={tx(m)} y={roadY + 21} {...font} fill={colors.inkMuted} textAnchor="middle">
+                <Line x1={txr(m)} y1={roadY} x2={txr(m)} y2={roadY + 8} stroke={colors.axis} strokeWidth={1.5} />
+                <SvgText x={txr(m)} y={roadY + 21} {...font} fill={colors.inkMuted} textAnchor="middle">
                   {m}
                 </SvgText>
               </G>
             ))}
-            <Line x1={tx(0)} y1={roadY - 22} x2={tx(0)} y2={roadY} stroke={colors.accent} strokeWidth={2} strokeDasharray="3 3" />
-            <SvgText x={tx(0) + 4} y={roadY - 12} {...font} fill={colors.accent}>
+            <Line x1={txr(0)} y1={roadY - 22} x2={txr(0)} y2={roadY} stroke={colors.accent} strokeWidth={2} strokeDasharray="3 3" />
+            <SvgText x={txr(0) + 4} y={roadY - 12} {...font} fill={colors.accent}>
               start
             </SvgText>
             <SvgText x={W - 6} y={roadY + 21} {...font} fontFamily={fonts.bodySemi} fill={colors.ink} textAnchor="end">
