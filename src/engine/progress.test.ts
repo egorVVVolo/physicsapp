@@ -28,3 +28,13 @@ describe('lesson progress', () => {
     expect(done.completedAt).toBe('2026-11-02T10:00:00.000Z');
   });
 });
+
+describe('skipped steps', () => {
+  it('are not counted as done on your own', () => {
+    let p = newProgress('l2');
+    p = recordStep(p, 'a', { outcome: 'assisted', hintsUsed: 1, revealed: false }, 1);
+    // step b was never played
+    expect(completeLesson(p, ['a', 'b']).outcome).toBe('assisted');
+    expect(completeLesson(newProgress('l2'), ['a', 'b']).outcome).toBe('independent');
+  });
+});

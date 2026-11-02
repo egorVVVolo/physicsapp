@@ -153,8 +153,9 @@ const SURVEY = ['Too easy', 'Just right', 'Too hard'];
 // Lesson complete: what you can do now, how each step went, and a one-tap survey.
 export function CompleteFrame({ lesson, step, records, index, total, onClose }: Omit<FrameProps, 'onFinish'> & { lesson: Lesson; step: Extract<Lesson['steps'][number], { kind: 'complete' }>; records: Record<string, StepRecord> }) {
   const [vote, setVote] = useState<string | null>(null);
-  const graded = lesson.steps.filter((s) => s.kind === 'goal' || s.kind === 'pick' || s.kind === 'build' || s.kind === 'numeric');
-  const allIndependent = graded.every((s) => (records[s.id]?.outcome ?? 'independent') === 'independent');
+  // Only steps that were played are listed; skipped ones are never shown as done.
+  const graded = lesson.steps.filter((s) => (s.kind === 'goal' || s.kind === 'pick' || s.kind === 'build' || s.kind === 'numeric') && records[s.id]?.outcome);
+  const allIndependent = graded.every((s) => records[s.id]?.outcome === 'independent');
 
   return (
     <Shell
@@ -175,7 +176,7 @@ export function CompleteFrame({ lesson, step, records, index, total, onClose }: 
       </View>
       <View style={{ backgroundColor: colors.surface, borderRadius: 16, padding: 14, gap: 10 }}>
         {graded.map((s) => {
-          const o = records[s.id]?.outcome ?? 'independent';
+          const o = records[s.id].outcome!;
           return (
             <View key={s.id} style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 12 }}>
               <Text style={{ flex: 1, fontFamily: fonts.body, fontSize: 15, color: colors.ink }}>{s.title}</Text>

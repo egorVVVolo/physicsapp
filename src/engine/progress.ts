@@ -23,7 +23,8 @@ export function recordStep(p: LessonProgress, stepId: string, record: StepRecord
 
 // Marks the lesson done; the overall outcome comes from the scored steps only.
 export function completeLesson(p: LessonProgress, scoredStepIds: string[], now = new Date()): LessonProgress {
-  const outcomes = scoredStepIds.map((id) => p.records[id]?.outcome ?? 'independent');
+  // Only steps that were actually played count; a step that was skipped is never reported as done on your own.
+  const outcomes = scoredStepIds.flatMap((id) => (p.records[id]?.outcome ? [p.records[id].outcome as Outcome] : []));
   return { ...p, status: 'done', outcome: lessonOutcome(outcomes), completedAt: now.toISOString() };
 }
 
