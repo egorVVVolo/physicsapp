@@ -76,11 +76,11 @@ export function StopGame({ height, u, onChangeU, playKey, locked, touched, onDon
   const carY = groundY - carH;
   const gTop = roadH + 22;
   const gBottom = height - 26;
-  const pl = 44;
+  const pl = 52;
   const pr = 14;
   const px = (sec: number) => pl + (sec * (width - pl - pr)) / GAME.xMax;
   const py = (vel: number) => gBottom - (vel * (gBottom - gTop)) / GAME.yMax;
-  const font = { fontFamily: fonts.bodyMedium, fontSize: 11 };
+  const font = { fontFamily: fonts.bodyMedium, fontSize: 13 };
 
   // What the graph draws: the chosen speed while setting up, the run itself while braking.
   const shownU = running ? ru : u;
@@ -151,14 +151,14 @@ export function StopGame({ height, u, onChangeU, playKey, locked, touched, onDon
             {/* road, parking spot, wall */}
             <Rect x={0} y={groundY} width={width} height={9} fill="#232835" />
             <Line x1={0} y1={groundY} x2={width} y2={groundY} stroke={colors.axis} strokeWidth={2} />
-            <Rect x={spotL} y={groundY - 62} width={wallX - spotL} height={62} fill="url(#gSpot)" />
-            <Line x1={spotL} y1={groundY - 62} x2={spotL} y2={groundY} stroke={colors.correct} strokeWidth={2} strokeDasharray="4 3" />
-            <SvgText x={(spotL + wallX) / 2} y={groundY - 68} fontFamily={fonts.bodySemi} fontSize={11.5} fill={colors.correct} textAnchor="middle">
+            <Rect x={spotL} y={groundY - 50} width={wallX - spotL} height={50} fill="url(#gSpot)" />
+            <Line x1={spotL} y1={groundY - 50} x2={spotL} y2={groundY} stroke={colors.correct} strokeWidth={2} strokeDasharray="4 3" />
+            <SvgText x={spotL} y={groundY - 58} fontFamily={fonts.bodySemi} fontSize={13} fill={colors.correct} textAnchor="middle">
               park here
             </SvgText>
-            <Rect x={wallX} y={groundY - 70} width={14} height={70} rx={3} fill={hit ? colors.incorrect : '#8993A6'} />
-            {[0, 1, 2, 3, 4, 5].map((k) => (
-              <Line key={k} x1={wallX} y1={groundY - 70 + k * 14 + 8} x2={wallX + 14} y2={groundY - 70 + k * 14} stroke="#12141A" strokeWidth={2} opacity={0.5} />
+            <Rect x={wallX} y={groundY - 56} width={14} height={56} rx={3} fill={hit ? colors.incorrect : '#8993A6'} />
+            {[0, 1, 2, 3].map((k) => (
+              <Line key={k} x1={wallX} y1={groundY - 56 + k * 14 + 8} x2={wallX + 14} y2={groundY - 56 + k * 14} stroke="#12141A" strokeWidth={2} opacity={0.5} />
             ))}
             {ticks.map((m) => (
               <G key={m}>
@@ -178,7 +178,7 @@ export function StopGame({ height, u, onChangeU, playKey, locked, touched, onDon
             {v > 1 && <Line x1={carX - carW / 2} y1={carY - 14} x2={carX - carW / 2 + arrow} y2={carY - 14} stroke={colors.velocity} strokeWidth={5} strokeLinecap="round" />}
             {v > 1 && <Pill x={Math.min(carX - carW / 2 + arrow + 8, width - 96)} y={carY - 9} text={`v = ${Math.round(v)} m/s`} color={colors.velocity} />}
 
-            {hit && <Pill x={wallX - 80} y={groundY - 100} text="Crash!" color={colors.incorrect} />}
+            {hit && <Pill x={wallX - 80} y={groundY - 78} text="Crash!" color={colors.incorrect} />}
             {done && !hit && (
               <G>
                 <Line x1={sx(0)} y1={groundY + 38} x2={sx(total)} y2={groundY + 38} stroke={colors.velocity} strokeWidth={2} />
@@ -205,7 +205,7 @@ export function StopGame({ height, u, onChangeU, playKey, locked, touched, onDon
             <Line x1={pl} y1={gTop - 6} x2={pl} y2={gBottom} stroke={colors.axis} strokeWidth={1.5} />
             <Line x1={pl} y1={gBottom} x2={width - pr} y2={gBottom} stroke={colors.axis} strokeWidth={1.5} />
             {yTicks.map((y) => (
-              <SvgText key={`ly${y}`} x={pl - 6} y={py(y) + 4} {...font} fill={colors.inkMuted} textAnchor="end">
+              <SvgText key={`ly${y}`} x={pl - 16} y={py(y) + 5} {...font} fill={colors.inkMuted} textAnchor="end">
                 {y}
               </SvgText>
             ))}

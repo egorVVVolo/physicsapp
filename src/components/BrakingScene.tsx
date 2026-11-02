@@ -86,12 +86,12 @@ const tidy = (n: number) => Number(n.toFixed(1));
 
 // A rounded value label with a dark background.
 export function Pill({ x, y, text, color, anchor = 'start' }: { x: number; y: number; text: string; color: string; anchor?: 'start' | 'end' }) {
-  const w = text.length * 6.8 + 14;
+  const w = text.length * 7.6 + 18;
   const left = anchor === 'start' ? x : x - w;
   return (
     <G>
-      <Rect x={left} y={y - 14} width={w} height={20} rx={10} fill={colors.background} opacity={0.9} stroke={color} strokeWidth={1} />
-      <SvgText x={left + w / 2} y={y} fontFamily={fonts.bodySemi} fontSize={11.5} fill={color} textAnchor="middle">
+      <Rect x={left} y={y - 17} width={w} height={26} rx={13} fill={colors.background} opacity={0.9} stroke={color} strokeWidth={1} />
+      <SvgText x={left + w / 2} y={y} fontFamily={fonts.bodySemi} fontSize={13} fill={color} textAnchor="middle">
         {text}
       </SvgText>
     </G>
@@ -153,7 +153,7 @@ export function BrakingScene({ height, u, playKey, range, xMax, yMax, reaction =
   // v-t graph (bottom, the larger part)
   const gTop = roadH + 20;
   const gBottom = height - 28;
-  const pl = 44;
+  const pl = 52;
   const pr = 14;
   const px = (sec: number) => pl + (sec * (width - pl - pr)) / xMax;
   const py = (vel: number) => gBottom - (vel * (gBottom - gTop)) / yMax;
@@ -162,7 +162,7 @@ export function BrakingScene({ height, u, playKey, range, xMax, yMax, reaction =
   const xTicks = Array.from({ length: Math.floor(xMax / xStep) + 1 }, (_, i) => i * xStep);
   const yTicks = Array.from({ length: Math.floor(yMax / yStep) + 1 }, (_, i) => i * yStep);
 
-  const font = { fontFamily: fonts.bodyMedium, fontSize: 11 };
+  const font = { fontFamily: fonts.bodyMedium, fontSize: 13 };
   const past = history.filter((h) => h !== u);
   const cx = sx(s) - carW / 2;
   const trEnd = Math.min(tt, reaction);
@@ -286,7 +286,7 @@ export function BrakingScene({ height, u, playKey, range, xMax, yMax, reaction =
               <Line x1={pl} y1={gTop - 6} x2={pl} y2={gBottom} stroke={colors.axis} strokeWidth={1.5} />
               <Line x1={pl} y1={gBottom} x2={width - pr} y2={gBottom} stroke={colors.axis} strokeWidth={1.5} />
               {yTicks.map((y) => (
-                <SvgText key={`ly${y}`} x={pl - 6} y={py(y) + 4} {...font} fill={colors.inkMuted} textAnchor="end">
+                <SvgText key={`ly${y}`} x={pl - 16} y={py(y) + 5} {...font} fill={colors.inkMuted} textAnchor="end">
                   {y}
                 </SvgText>
               ))}
@@ -307,9 +307,7 @@ export function BrakingScene({ height, u, playKey, range, xMax, yMax, reaction =
                 </SvgText>
               )}
               {run && braking && (
-                <SvgText x={px(Math.max(dur * 0.08, 0.12)) + 4} y={py(u * 0.14)} fontFamily={fonts.display} fontSize={14} fill={colors.ink}>
-                  {`area = ${tidy(s)} m`}
-                </SvgText>
+                <Pill x={width - pr - 4} y={gTop + 24} anchor="end" text={`area = ${tidy(s)} m`} color={colors.velocity} />
               )}
               {run && braking && !done && (
                 <G>

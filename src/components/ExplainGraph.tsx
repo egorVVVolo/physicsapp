@@ -28,7 +28,7 @@ const clamp01 = (n: number) => Math.min(Math.max(n, 0), 1);
 export function ExplainGraph({ height, u, xMax, yMax, base = 0, heightMark = 0, area = 0, cells = 0, cell, ghostU, areaLabel }: Props) {
   const [width, setWidth] = useState(0);
   const t0 = stoppingTime(u, A);
-  const pl = 44;
+  const pl = 52;
   const pr = 16;
   const gTop = 26;
   const gBottom = height - 30;
@@ -38,7 +38,7 @@ export function ExplainGraph({ height, u, xMax, yMax, base = 0, heightMark = 0, 
   const yStep = yMax > 40 ? 20 : 10;
   const xTicks = Array.from({ length: Math.floor(xMax / xStep) + 1 }, (_, i) => i * xStep);
   const yTicks = Array.from({ length: Math.floor(yMax / yStep) + 1 }, (_, i) => i * yStep);
-  const font = { fontFamily: fonts.bodyMedium, fontSize: 11 };
+  const font = { fontFamily: fonts.bodyMedium, fontSize: 13 };
 
   // Squares bounding the triangle, revealed one after another.
   const cols = cell ? Math.round(t0 / cell.dt) : 0;
@@ -91,7 +91,7 @@ export function ExplainGraph({ height, u, xMax, yMax, base = 0, heightMark = 0, 
           <Line x1={pl} y1={gTop - 6} x2={pl} y2={gBottom} stroke={colors.axis} strokeWidth={1.5} />
           <Line x1={pl} y1={gBottom} x2={width - pr} y2={gBottom} stroke={colors.axis} strokeWidth={1.5} />
           {yTicks.map((y) => (
-            <SvgText key={`ly${y}`} x={pl - 6} y={py(y) + 4} {...font} fill={colors.inkMuted} textAnchor="end">
+            <SvgText key={`ly${y}`} x={pl - 16} y={py(y) + 5} {...font} fill={colors.inkMuted} textAnchor="end">
               {y}
             </SvgText>
           ))}
@@ -119,7 +119,7 @@ export function ExplainGraph({ height, u, xMax, yMax, base = 0, heightMark = 0, 
               {heightMark > 0.95 && <Pill x={pl + 12} y={py(u / 2) + 4} text={`u = ${u} m/s`} color={colors.velocity} />}
             </G>
           )}
-          {area > 0.9 && areaLabel && <Pill x={px(t0 * 0.2)} y={py(u * 0.16)} text={areaLabel} color={colors.ink} />}
+          {area > 0.9 && areaLabel && <Pill x={px(t0 / 3) - (areaLabel.length * 7.6 + 18) / 2} y={py(u * 0.22)} text={areaLabel} color={colors.ink} />}
           {cell && cells > 0.95 && <Pill x={px(0) + 14} y={py(u) - 6} text={`${cols} × ${rows} = ${total} squares`} color={colors.accent} />}
         </Svg>
       )}

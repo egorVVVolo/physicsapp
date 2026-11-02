@@ -25,7 +25,7 @@ export const V_MIN = -12;
 export const V_MAX = 16;
 const PLAY_SECONDS = 6; // real time for the 8 s run
 const CAR_SCALE = 1.3;
-const PL = 44;
+const PL = 52;
 const PR = 16;
 
 type Props = {
@@ -66,7 +66,7 @@ export function MotionLab({ knots, onChange, playing, onPlayingChange, showFps }
   const px = (t: number) => PL + (t * (W - PL - PR)) / DURATION;
   const yv = (v: number) => vGBot - ((v - V_MIN) * (vGBot - vGTop)) / (V_MAX - V_MIN);
   const ys = (s: number) => sGBot - ((s - lo) * (sGBot - sGTop)) / (hi - lo);
-  const tx = (s: number) => 28 + ((s - lo) * (W - 56)) / (hi - lo);
+  const tx = (s: number) => 36 + ((s - lo) * (W - 72)) / (hi - lo);
 
   // Latest values for the gesture handlers, which are created once.
   const live = useRef({ knots, onChange, W, vGTop, vGBot, vTop, sTop, onPlayingChange });
@@ -180,7 +180,7 @@ export function MotionLab({ knots, onChange, playing, onPlayingChange, showFps }
   const sTicks: number[] = [];
   for (let m = Math.ceil(lo / sTick) * sTick; m <= hi; m += sTick) sTicks.push(m);
   const vTicks = [-12, -8, -4, 0, 4, 8, 12, 16];
-  const font = { fontFamily: fonts.bodyMedium, fontSize: 11 };
+  const font = { fontFamily: fonts.bodyMedium, fontSize: 13 };
 
   // s-t curve, drawn as many short straight pieces.
   const curve = (upTo: number) => {
@@ -196,18 +196,15 @@ export function MotionLab({ knots, onChange, playing, onPlayingChange, showFps }
   // Car on the track.
   const roadY = trackH - 34;
   const carW = CAR_W * CAR_SCALE;
-  const carCx = clamp(tx(s), 28 + carW / 2, W - 28 - carW / 2);
+  const carCx = clamp(tx(s), 36 + carW / 2, W - 36 - carW / 2);
   const carTop = roadY - CAR_H * CAR_SCALE + 4;
-  const wheel = ((s * (W - 56)) / (hi - lo) / (7.2 * CAR_SCALE)) * (180 / Math.PI);
+  const wheel = ((s * (W - 72)) / (hi - lo) / (7.2 * CAR_SCALE)) * (180 / Math.PI);
   const pitch = clamp(-a * dir * 0.7, -4, 4);
-  const segMid = Math.min(Math.floor(Math.min(t, DURATION - 0.001) / 2), KNOT_TIMES.length - 2);
-  const segX = px(segMid * 2 + 1);
-  const segY = yv((knots[segMid] + knots[segMid + 1]) / 2);
 
   let pillX = 12;
   const readout = (text: string, color: string) => {
-    const el = <Pill key={text} x={pillX} y={20} text={text} color={color} />;
-    pillX += text.length * 6.8 + 14 + 6;
+    const el = <Pill key={text} x={pillX} y={22} text={text} color={color} />;
+    pillX += text.length * 7.6 + 18 + 6;
     return el;
   };
 
@@ -252,7 +249,7 @@ export function MotionLab({ knots, onChange, playing, onPlayingChange, showFps }
             <SvgText x={tx(0) + 4} y={roadY - 12} {...font} fill={colors.accent}>
               start
             </SvgText>
-            <SvgText x={4} y={roadY + 21} {...font} fontFamily={fonts.bodySemi} fill={colors.ink}>
+            <SvgText x={W - 6} y={roadY + 21} {...font} fontFamily={fonts.bodySemi} fill={colors.ink} textAnchor="end">
               m
             </SvgText>
 
@@ -267,7 +264,6 @@ export function MotionLab({ knots, onChange, playing, onPlayingChange, showFps }
 
             {readout(`t = ${tidy(t)} s`, colors.accent)}
             {readout(`v = ${tidy(v)} m/s`, colors.velocity)}
-            {readout(`a = ${tidy(a)} m/s²`, colors.acceleration)}
             {readout(`s = ${tidy(s)} m`, colors.ink)}
 
             {/* v-t graph */}
@@ -275,7 +271,7 @@ export function MotionLab({ knots, onChange, playing, onPlayingChange, showFps }
             {vTicks.map((y) => (
               <G key={`vy${y}`}>
                 <Line x1={PL} y1={yv(y)} x2={W - PR} y2={yv(y)} stroke={y === 0 ? colors.axis : colors.line} strokeWidth={y === 0 ? 1.5 : 1} />
-                <SvgText x={PL - 6} y={yv(y) + 4} {...font} fill={colors.inkMuted} textAnchor="end">
+                <SvgText x={PL - 16} y={yv(y) + 5} {...font} fill={colors.inkMuted} textAnchor="end">
                   {y}
                 </SvgText>
               </G>
@@ -324,7 +320,7 @@ export function MotionLab({ knots, onChange, playing, onPlayingChange, showFps }
               </G>
             ))}
             {active != null && <Pill x={clamp(px(KNOT_TIMES[active]), 70, W - 70) - 38} y={yv(knots[active]) - 20} text={`${knots[active]} m/s`} color={colors.ink} />}
-            {active == null && <Pill x={clamp(segX, 60, W - 60) - 46} y={segY - 30} text={`a = ${tidy(accelerationAt(knots, Math.min(t, DURATION - 0.001)))} m/s²`} color={colors.acceleration} />}
+            {active == null && <Pill x={W - PR - 4} y={vGTop + 22} anchor="end" text={`a = ${tidy(accelerationAt(knots, Math.min(t, DURATION - 0.001)))} m/s²`} color={colors.acceleration} />}
             <Line x1={PL} y1={vGTop - 6} x2={PL} y2={vGBot} stroke={colors.axis} strokeWidth={1.5} />
             <SvgText x={4} y={vTop + 14} {...font} fontFamily={fonts.bodySemi} fill={colors.ink}>
               v / m s⁻¹
@@ -337,7 +333,7 @@ export function MotionLab({ knots, onChange, playing, onPlayingChange, showFps }
             {sTicks.map((m) => (
               <G key={`sy${m}`}>
                 <Line x1={PL} y1={ys(m)} x2={W - PR} y2={ys(m)} stroke={m === 0 ? colors.axis : colors.line} strokeWidth={m === 0 ? 1.5 : 1} />
-                <SvgText x={PL - 6} y={ys(m) + 4} {...font} fill={colors.inkMuted} textAnchor="end">
+                <SvgText x={PL - 16} y={ys(m) + 5} {...font} fill={colors.inkMuted} textAnchor="end">
                   {m}
                 </SvgText>
               </G>
