@@ -3,7 +3,7 @@ import { StyleSheet, View } from 'react-native';
 import Animated, { SlideInRight, SlideOutLeft } from 'react-native-reanimated';
 import { PhoneFrame } from '../components/stepParts';
 import { colors } from '../theme/tokens';
-import { BeatsFrame, CompleteFrame, GradedFrame, PredictFrame } from './frames';
+import { BeatsFrame, CompleteFrame, GradedFrame, PlayFrame, PredictFrame } from './frames';
 import { completeLesson, LessonProgress, recordStep, saveProgress, StepRecord } from './progress';
 import { isGraded, Lesson } from './types';
 
@@ -30,6 +30,7 @@ export function Player({ lesson, initial, onExit }: { lesson: Lesson; initial: L
       <View style={{ flex: 1, overflow: 'hidden' }}>
         <Animated.View key={i} entering={SlideInRight.duration(380)} exiting={SlideOutLeft.duration(300)} style={[StyleSheet.absoluteFill, { backgroundColor: colors.background }]}>
           {step.kind === 'beats' && <BeatsFrame {...frame} step={step} />}
+          {step.kind === 'play' && <PlayFrame {...frame} step={step} />}
           {step.kind === 'predict' && <PredictFrame {...frame} step={step} />}
           {isGraded(step) && <GradedFrame {...frame} step={step} />}
           {step.kind === 'complete' && <CompleteFrame lesson={lesson} step={step} records={progress.current.records} index={i} total={total} onClose={onExit} />}

@@ -26,7 +26,7 @@ export default function Lab() {
             Drag the dots on the velocity graph. Drag along the lower graph to move in time.
           </Text>
         </View>
-        <MotionLab graph={graph} editable={graph.t.map((_, i) => i)} onChange={(v) => setGraph({ t: graph.t, v })} playing={playing} onPlayingChange={setPlaying} showFps />
+        <MotionLab readouts arrows="va" graph={graph} editable={graph.t.map((_, i) => i)} onChange={(v) => setGraph({ t: graph.t, v })} playing={playing} onPlayingChange={setPlaying} showFps />
         <View style={{ paddingHorizontal: 16, paddingTop: 10, paddingBottom: 16, gap: 12 }}>
           <View style={{ flexDirection: 'row', gap: 8 }}>
             {PRESETS.map((p) => (

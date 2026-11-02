@@ -15,6 +15,13 @@ describe('lesson 2 content', () => {
     expect(lesson2.steps[lesson2.steps.length - 1].kind).toBe('complete');
   });
 
+  it('the free-play step lets the learner move dots and has a note to show', () => {
+    const p = lesson2.steps.find((s) => s.kind === 'play');
+    if (p?.kind !== 'play') throw new Error('no play step');
+    expect(p.lab.editable?.length).toBeGreaterThan(0);
+    expect(p.note.length).toBeGreaterThan(10);
+  });
+
   it('every graded step has two hints and an explanation', () => {
     for (const s of lesson2.steps.filter(isGraded)) {
       expect(s.hints).toHaveLength(2);

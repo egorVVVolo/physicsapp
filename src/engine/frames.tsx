@@ -8,7 +8,7 @@ import { fonts } from '../theme/fonts';
 import { Answer, gradeAnswer, stepOutcome, Verdict } from './grade';
 import type { StepRecord } from './progress';
 import { BuildSurface, GoalSurface, NumericSurface, Phase, PickSurface } from './surfaces';
-import { BeatsStep, GradedStep, Lesson, PredictStep } from './types';
+import { BeatsStep, GradedStep, Lesson, PlayStep, PredictStep } from './types';
 
 export type FrameProps = { index: number; total: number; onClose: () => void; onFinish: (record: StepRecord) => void };
 
@@ -55,7 +55,7 @@ export function GradedFrame({ step, index, total, onClose, onFinish }: FrameProp
       tag={step.tag}
       index={index}
       total={total}
-      title={step.title}
+      title={step.kind === 'goal' ? step.goalText : step.title}
       body={step.body}
       onClose={onClose}
       footer={<Footer label={label} disabled={!finished && phase === 'answering' && !answer} feedback={feedback} note={note} hint={!finished && hints > 0 ? step.hints[hints - 1] : null} secondary={secondary} onPress={primary} />}
@@ -100,7 +100,7 @@ export function PredictFrame({ step, index, total, onClose, onFinish }: FramePro
       footer={<Footer label={label} disabled={(!done && marker === null) || (revealed && !done)} note={done ? step.revealNote(marker!, step.answer) : null} onPress={press} />}
     >
       <SceneCard>
-        <MotionLab {...step.lab} hideRun revealed={revealed} playing={playing} onPlayingChange={setPlaying} marker={marker} onTrackTap={revealed ? undefined : (m) => { tapHaptic(); setMarker(m); }} height={h} />
+        <MotionLab {...step.lab} hideRun revealed={revealed} playing={playing} onPlayingChange={setPlaying} marker={marker} onTrackTap={(m) => { tapHaptic(); setMarker(m); }} height={h} />
       </SceneCard>
     </Shell>
   );
@@ -141,6 +141,29 @@ export function BeatsFrame({ step, index, total, onClose, onFinish }: FrameProps
     >
       <SceneCard>
         <MotionLab key={k} {...beat.lab} playing={playing} onPlayingChange={setPlaying} height={h} />
+      </SceneCard>
+    </Shell>
+  );
+}
+
+// Free play: move the dots and watch the car; no checking.
+export function PlayFrame({ step, index, total, onClose, onFinish }: FrameProps & { step: PlayStep }) {
+  const [speeds, setSpeeds] = useState(step.lab.graph.v);
+  const [moved, setMoved] = useState(false);
+  const [playing, setPlaying] = useState(false);
+  const h = useSceneHeight(0.7);
+  return (
+    <Shell
+      tag={step.tag}
+      index={index}
+      total={total}
+      title={step.title}
+      body={step.body}
+      onClose={onClose}
+      footer={<Footer label="Next" disabled={!moved} note={moved ? step.note : null} onPress={() => { tapHaptic(); onFinish({ outcome: null, hintsUsed: 0, revealed: false }); }} />}
+    >
+      <SceneCard>
+        <MotionLab {...step.lab} graph={{ t: step.lab.graph.t, v: speeds }} onChange={(v) => { setSpeeds(v); setMoved(true); }} playing={playing} onPlayingChange={setPlaying} height={h} />
       </SceneCard>
     </Shell>
   );

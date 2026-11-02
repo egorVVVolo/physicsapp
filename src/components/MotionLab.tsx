@@ -2,7 +2,8 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { AccessibilityInfo, PanResponder, Pressable, View } from 'react-native';
 import Svg, { Circle, Defs, G, Line, LinearGradient, Path, Polygon, Rect, Stop, Text as SvgText } from 'react-native-svg';
 import type { LabView } from '../engine/types';
-import { useTween } from '../lib/useTween';
+import { cameraX, FOLLOW_WINDOW, isVisible, overviewX, pixelsPerMetre, followX } from '../lib/camera';
+import { useTween, useTweenArray } from '../lib/useTween';
 import { accelerationAt, displacementAt, duration, pieceArea, piecesUpTo, positionRange, velocityAt } from '../physics/motion';
 import { fonts } from '../theme/fonts';
 import { colors } from '../theme/tokens';
@@ -33,7 +34,7 @@ const tidy = (n: number) => String(Number(n.toFixed(1)));
 const clamp = (n: number, lo: number, hi: number) => Math.min(Math.max(n, lo), hi);
 
 export function MotionLab({
-  graph,
+  graph: graphIn,
   editable,
   showSt = true,
   showVt = true,
@@ -43,6 +44,8 @@ export function MotionLab({
   target,
   tangent,
   slopes,
+  readouts,
+  arrows = 'v',
   trackRange,
   focus,
   vRange = [-12, 16],
@@ -57,7 +60,10 @@ export function MotionLab({
   onTrackTap,
 }: Props) {
   const [size, setSize] = useState({ w: 0, h: 0 });
-  const D = duration(graph);
+  const D = duration(graphIn);
+  // The graph the car follows glides to the learner's graph, so dragging a dot never makes anything jump.
+  const speeds = useTweenArray(graphIn.v, 160);
+  const graph = useMemo(() => ({ t: graphIn.t, v: speeds }), [graphIn.t, speeds]);
   const [tc, setTc] = useState(cursor ?? D); // time cursor, s
   const [active, setActive] = useState<number | null>(null);
   const [fps, setFps] = useState(0);
@@ -66,7 +72,7 @@ export function MotionLab({
 
   const { w: W } = size;
   const H = height ?? size.h;
-  const trackH = track ? Math.round(H * (target ? 0.36 : showSt ? 0.3 : 0.32)) : 0;
+  const trackH = track ? Math.round(H * (target || onTrackTap ? 0.36 : showSt ? 0.3 : 0.32)) : 0;
   const vH = !showVt ? 0 : showSt ? Math.round(H * (track ? 0.38 : 0.5)) : H - trackH;
   const sH = showSt ? H - trackH - vH : 0;
   const vTop = trackH;
@@ -85,14 +91,17 @@ export function MotionLab({
   const lo = useTween(loTarget, 450);
   const hi = useTween(hiTarget, 450);
 
+  // One camera: it follows the car, or shows the whole track while the learner picks a place. Moving between the two is a blend.
+  const wantOverview = !!onTrackTap && (!revealed || (!playing && tc >= D - 1e-9));
+  const mix = useTween(wantOverview ? 0 : 1, 700);
+
   const px = (t: number) => PL + (t * (W - PL - PR)) / D;
   const yv = (v: number) => vGBot - ((v - V_MIN) * (vGBot - vGTop)) / (V_MAX - V_MIN);
   const ys = (s: number) => sGBot - ((s - lo) * (sGBot - sGTop)) / (hi - lo);
-  const tx = (s: number) => 36 + ((s - lo) * (W - 72)) / (hi - lo);
 
   // Latest values for the gesture handlers, which are created once.
-  const live = useRef({ graph, onChange, W, D, vGTop, vGBot, vTop, onPlayingChange, editable, V_MIN, V_MAX });
-  live.current = { graph, onChange, W, D, vGTop, vGBot, vTop, onPlayingChange, editable, V_MIN, V_MAX };
+  const live = useRef({ graph: graphIn, onChange, W, D, vGTop, vGBot, vTop, onPlayingChange, editable, V_MIN, V_MAX });
+  live.current = { graph: graphIn, onChange, W, D, vGTop, vGBot, vTop, onPlayingChange, editable, V_MIN, V_MAX };
 
   // When a hidden run is revealed, start from the beginning.
   useEffect(() => {
@@ -225,26 +234,29 @@ export function MotionLab({
     }
     return d;
   };
-  const vtPath = graph.t.map((x, i) => `${i === 0 ? 'M' : 'L'} ${px(x)} ${yv(graph.v[i])}`).join(' ');
+  // The line follows the finger exactly; area, position, car and road glide after it.
+  const vtPath = graphIn.t.map((x, i) => `${i === 0 ? 'M' : 'L'} ${px(x)} ${yv(graphIn.v[i])}`).join(' ');
 
   // Car on the track.
   const roadY = trackH - 34;
   const carW = CAR_W * CAR_SCALE;
-  // Follow mode: the car keeps its place on the screen and the road slides under it, so speed is felt.
-  // Overview mode (a target or a tap on the track is involved): the whole track is fixed and the car moves along it.
-  const follow = track && !target && !onTrackTap;
-  const trackW = W - 72;
-  const ppm = trackW / 30; // follow mode shows a 30 m window
-  const carFx = 36 + trackW * 0.4;
-  const txr = (m: number) => (follow ? carFx + (m - s) * ppm : tx(m));
-  const carCx = follow ? carFx : clamp(tx(s), 36 + carW / 2, W - 36 - carW / 2);
+  // The car keeps its place on the screen and the road slides under it. While a place is being picked,
+  // the camera pulls back to show the whole track, then glides in again.
+  const box = { left: 36, width: W - 72 };
+  const cx = (m: number) => cameraX(m, s, mix, lo, hi, box);
+  const carOverview = clamp(overviewX(s, lo, hi, box), 36 + carW / 2, W - 36 - carW / 2);
+  const carCx = carOverview * (1 - mix) + followX(s, s, box) * mix;
+  const ppm = pixelsPerMetre(mix, lo, hi, box);
+  const followMode = mix >= 0.5;
+  const tickFade = clamp(Math.abs(mix - 0.5) * 2, 0, 1);
   const roadTicks: number[] = [];
-  if (follow) for (let m = Math.ceil((s - 0.45 * 30) / 10) * 10; m <= s + 0.65 * 30; m += 10) roadTicks.push(m);
-  else roadTicks.push(...sTicks);
   const dashes: number[] = [];
-  if (follow) for (let m = Math.floor((s - 0.45 * 30) / 4) * 4; m <= s + 0.65 * 30; m += 4) dashes.push(m);
+  if (followMode) {
+    for (let m = Math.ceil((s - 0.45 * FOLLOW_WINDOW) / 10) * 10; m <= s + 0.65 * FOLLOW_WINDOW; m += 10) roadTicks.push(m);
+    for (let m = Math.floor((s - 0.45 * FOLLOW_WINDOW) / 4) * 4; m <= s + 0.65 * FOLLOW_WINDOW; m += 4) dashes.push(m);
+  } else roadTicks.push(...sTicks);
   const carTop = roadY - CAR_H * CAR_SCALE + 4;
-  const wheel = ((s * (follow ? ppm : trackW / (hi - lo))) / (7.2 * CAR_SCALE)) * (180 / Math.PI);
+  const wheel = ((s * ppm) / (7.2 * CAR_SCALE)) * (180 / Math.PI);
   const pitch = clamp(-a * dir * 0.7, -4, 4);
 
   // Value pills at the top of the track, left to right.
@@ -288,41 +300,49 @@ export function MotionLab({
             {/* Track */}
             <Rect x={0} y={roadY} width={W} height={26} fill="url(#labRoad)" />
             <Line x1={0} y1={roadY} x2={W} y2={roadY} stroke={colors.axis} strokeWidth={1.5} />
+            <G opacity={tickFade}>
             {dashes.map((m) => (
-              <Line key={`ld${m}`} x1={txr(m)} y1={roadY + 15} x2={txr(m + 2)} y2={roadY + 15} stroke="#4A5368" strokeWidth={2.5} strokeLinecap="round" />
+              <Line key={`ld${m}`} x1={cx(m)} y1={roadY + 24} x2={cx(m + 2)} y2={roadY + 24} stroke="#4A5368" strokeWidth={2.5} strokeLinecap="round" />
             ))}
             {roadTicks
-              .filter((m) => txr(m) > 6 && txr(m) < W - 26)
+              .filter((m) => cx(m) > 6 && cx(m) < W - 40)
               .map((m) => (
               <G key={`tt${m}`}>
-                <Line x1={txr(m)} y1={roadY} x2={txr(m)} y2={roadY + 8} stroke={colors.axis} strokeWidth={1.5} />
-                <SvgText x={txr(m)} y={roadY + 21} {...font} fill={colors.inkMuted} textAnchor="middle">
+                <Line x1={cx(m)} y1={roadY} x2={cx(m)} y2={roadY + 8} stroke={colors.axis} strokeWidth={1.5} />
+                <SvgText x={cx(m)} y={roadY + 21} {...font} fill={colors.inkMuted} textAnchor="middle">
                   {m}
                 </SvgText>
               </G>
             ))}
-            <Line x1={txr(0)} y1={roadY - 22} x2={txr(0)} y2={roadY} stroke={colors.accent} strokeWidth={2} strokeDasharray="3 3" />
-            <SvgText x={txr(0) + 4} y={roadY - 12} {...font} fill={colors.accent}>
+            </G>
+            <Line x1={cx(0)} y1={roadY - 22} x2={cx(0)} y2={roadY} stroke={colors.accent} strokeWidth={2} strokeDasharray="3 3" />
+            <SvgText x={cx(0) + 4} y={roadY - 12} {...font} fill={colors.accent}>
               start
             </SvgText>
             <SvgText x={W - 6} y={roadY + 21} {...font} fontFamily={fonts.bodySemi} fill={colors.ink} textAnchor="end">
               m
             </SvgText>
-            {target && (
-              <G>
-                <Line x1={tx(target.s)} y1={roadY - 92} x2={tx(target.s)} y2={roadY} stroke={colors.correct} strokeWidth={2.5} strokeDasharray="4 3" />
-                <Pill x={tx(target.s)} y={roadY - 98} anchor="middle" text={`target ${target.s} m`} color={colors.correct} />
-              </G>
-            )}
-            {marker != null && (
-              <G>
-                <Line x1={tx(marker)} y1={roadY - 44} x2={tx(marker)} y2={roadY} stroke={colors.accent} strokeWidth={2.5} />
-                <Polygon points={`${tx(marker)},${roadY - 44} ${tx(marker) + 16},${roadY - 38} ${tx(marker)},${roadY - 32}`} fill={colors.accent} />
-                <SvgText x={tx(marker)} y={roadY - 50} fontFamily={fonts.display} fontSize={14} fill={colors.accent} textAnchor="middle">
-                  {`${Math.round(marker)} m`}
-                </SvgText>
-              </G>
-            )}
+            {target &&
+              (isVisible(cx(target.s), W) ? (
+                <G>
+                  <Line x1={cx(target.s)} y1={roadY - 92} x2={cx(target.s)} y2={roadY} stroke={colors.correct} strokeWidth={2.5} strokeDasharray="4 3" />
+                  <Pill x={cx(target.s)} y={roadY - 98} anchor="middle" text={`target ${target.s} m`} color={colors.correct} />
+                </G>
+              ) : (
+                <Pill x={cx(target.s) > W / 2 ? W - 8 : 8} anchor={cx(target.s) > W / 2 ? 'end' : 'start'} y={roadY - 98} text={`target ${target.s} m: ${Math.round(Math.abs(target.s - s))} m ${target.s > s ? 'ahead' : 'behind'}`} color={colors.correct} />
+              ))}
+            {marker != null &&
+              (isVisible(cx(marker), W) ? (
+                <G>
+                  <Line x1={cx(marker)} y1={roadY - 44} x2={cx(marker)} y2={roadY} stroke={colors.accent} strokeWidth={2.5} />
+                  <Polygon points={`${cx(marker)},${roadY - 44} ${cx(marker) + 16},${roadY - 38} ${cx(marker)},${roadY - 32}`} fill={colors.accent} />
+                  <SvgText x={cx(marker)} y={roadY - 50} fontFamily={fonts.display} fontSize={14} fill={colors.accent} textAnchor="middle">
+                    {`${Math.round(marker)} m`}
+                  </SvgText>
+                </G>
+              ) : (
+                <Pill x={cx(marker) > W / 2 ? W - 8 : 8} anchor={cx(marker) > W / 2 ? 'end' : 'start'} y={roadY - 98} text={`your guess ${Math.round(marker)} m: ${Math.round(Math.abs(marker - s))} m ${marker > s ? 'ahead' : 'behind'}`} color={colors.accent} />
+              ))}
 
             {onTrackTap && marker == null && !revealed && <Pill x={W / 2} anchor="middle" y={roadY - 62} text="Tap the track" color={colors.inkMuted} />}
 
@@ -331,13 +351,13 @@ export function MotionLab({
               <Car x={carCx + carW / 2} y={carTop} braking={braking} scale={CAR_SCALE} pitch={pitch} wheel={wheel * dir} />
             </G>
             {!hidden && <VectorArrow x={carCx} y={carTop - 12} length={Math.min(Math.abs(v) * 6, 130)} dir={dir} color={colors.velocity} />}
-            {!hidden && t < D - 1e-9 && Math.abs(a) > 0.01 && (
+            {!hidden && arrows === 'va' && t < D - 1e-9 && Math.abs(a) > 0.01 && (
               <VectorArrow x={carCx} y={carTop - 32} length={Math.min(Math.abs(a) * 14, 90)} dir={a >= 0 ? 1 : -1} color={colors.acceleration} />
             )}
 
-            {readout(`t = ${tidy(t)} s`, colors.accent)}
-            {!hidden && readout(`v = ${tidy(v)} m/s`, colors.velocity)}
-            {!hidden && readout(`s = ${tidy(s)} m`, colors.ink)}
+            {readouts && readout(`t = ${tidy(t)} s`, colors.accent)}
+            {readouts && !hidden && readout(`v = ${tidy(v)} m/s`, colors.velocity)}
+            {readouts && !hidden && readout(`s = ${tidy(s)} m`, colors.ink)}
 
               </G>
             )}
@@ -393,8 +413,8 @@ export function MotionLab({
               })}
             <Path d={vtPath} stroke={colors.velocity} strokeWidth={10} strokeLinecap="round" strokeLinejoin="round" fill="none" opacity={0.18} />
             <Path d={vtPath} stroke={colors.velocity} strokeWidth={3.5} strokeLinecap="round" strokeLinejoin="round" fill="none" />
-            {focus != null && graph.t[focus + 1] !== undefined && (
-              <Line x1={px(graph.t[focus])} y1={yv(graph.v[focus])} x2={px(graph.t[focus + 1])} y2={yv(graph.v[focus + 1])} stroke={colors.acceleration} strokeWidth={7} strokeLinecap="round" />
+            {focus != null && graphIn.t[focus + 1] !== undefined && (
+              <Line x1={px(graphIn.t[focus])} y1={yv(graphIn.v[focus])} x2={px(graphIn.t[focus + 1])} y2={yv(graphIn.v[focus + 1])} stroke={colors.acceleration} strokeWidth={7} strokeLinecap="round" />
             )}
             {!hidden && track && (
               <>
@@ -404,10 +424,10 @@ export function MotionLab({
             )}
             {graph.t.map((x, i) => (
               <G key={`k${x}`}>
-                {active === i && <Circle cx={px(x)} cy={yv(graph.v[i])} r={20} fill={colors.velocity} opacity={0.25} />}
+                {active === i && <Circle cx={px(x)} cy={yv(graphIn.v[i])} r={20} fill={colors.velocity} opacity={0.25} />}
                 <Circle
                   cx={px(x)}
-                  cy={yv(graph.v[i])}
+                  cy={yv(graphIn.v[i])}
                   r={isEditable(i) ? (active === i ? 11 : 9) : 5}
                   fill={isEditable(i) ? colors.ink : colors.velocity}
                   stroke={colors.velocity}
@@ -415,18 +435,18 @@ export function MotionLab({
                 />
               </G>
             ))}
-            {active != null && <Pill x={clamp(px(graph.t[active]), 70, W - 70)} anchor="middle" y={yv(graph.v[active]) - 20} text={`${graph.v[active]} m/s`} color={colors.ink} />}
-            {active == null && !slopes && track && <Pill x={W - PR - 4} y={vGTop + 22} anchor="end" text={`a = ${tidy(a)} m/s²`} color={colors.acceleration} />}
+            {active != null && <Pill x={clamp(px(graph.t[active]), 70, W - 70)} anchor="middle" y={yv(graphIn.v[active]) - 20} text={`${graphIn.v[active]} m/s`} color={colors.ink} />}
+            {active == null && !slopes && track && arrows === 'va' && <Pill x={W - PR - 4} y={vGTop + 22} anchor="end" text={`a = ${tidy(a)} m/s²`} color={colors.acceleration} />}
             {slopes &&
               (() => {
                 // Non-zero labels first; a zero label is only drawn if it does not collide with one already placed.
-                const items = graph.t.slice(0, -1).map((t0, i) => {
-                  const t1 = graph.t[i + 1];
-                  const acc = (graph.v[i + 1] - graph.v[i]) / (t1 - t0);
+                const items = graphIn.t.slice(0, -1).map((t0, i) => {
+                  const t1 = graphIn.t[i + 1];
+                  const acc = (graphIn.v[i + 1] - graphIn.v[i]) / (t1 - t0);
                   const text = `a = ${acc < 0 ? '−' : ''}${tidy(Math.abs(acc))}`;
                   const w = text.length * 7.6 + 18;
                   const x0 = acc === 0 ? (px(t0) + px(t1)) / 2 : acc > 0 ? px(t1) : px(t0);
-                  return { i, acc, text, w, x: clamp(x0, w / 2 + 4, W - w / 2 - 4), y: yv(Math.max(graph.v[i], graph.v[i + 1])) - 24 };
+                  return { i, acc, text, w, x: clamp(x0, w / 2 + 4, W - w / 2 - 4), y: yv(Math.max(graphIn.v[i], graphIn.v[i + 1])) - 24 };
                 });
                 const placed: typeof items = [];
                 const order = [...items.filter((x) => x.i === focus), ...items.filter((x) => x.i !== focus && x.acc !== 0), ...items.filter((x) => x.i !== focus && x.acc === 0)];
@@ -518,7 +538,7 @@ export function MotionLab({
               onPress={(e) => {
                 const ev = e.nativeEvent as { locationX?: number; offsetX?: number };
                 const x = ev.locationX ?? ev.offsetX;
-                if (x === undefined || Number.isNaN(x)) return;
+                if (revealed || x === undefined || Number.isNaN(x)) return;
                 onTrackTap(Math.round(lo + ((x - 36) / (W - 72)) * (hi - lo)));
               }}
               style={{ position: 'absolute', left: 0, right: 0, top: 0, height: trackH }}

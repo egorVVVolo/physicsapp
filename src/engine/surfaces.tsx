@@ -20,15 +20,6 @@ type Props<S> = { step: S; phase: Phase; onAnswer: (a: Answer | null) => void };
 const tidy = (n: number) => Number(n.toFixed(2));
 const open = (phase: Phase) => phase === 'answering' || phase === 'wrong';
 
-function Chip({ text, done }: { text: string; done?: boolean }) {
-  return (
-    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, borderRadius: 14, borderWidth: 2, borderColor: done ? colors.correct : colors.accent, backgroundColor: colors.surface, paddingHorizontal: 14, paddingVertical: 12 }}>
-      {done && <CheckIcon color={colors.correct} size={20} />}
-      <Text style={{ flex: 1, fontFamily: fonts.bodySemi, fontSize: 16, lineHeight: 22, color: colors.ink }}>{text}</Text>
-    </View>
-  );
-}
-
 // Move points of the v-t graph until the goal holds.
 export function GoalSurface({ step, phase, onAnswer }: Props<GoalStep>) {
   const [speeds, setSpeeds] = useState(step.lab.graph.v);
@@ -43,7 +34,6 @@ export function GoalSurface({ step, phase, onAnswer }: Props<GoalStep>) {
 
   return (
     <>
-      <Chip text={step.goalText} done={phase === 'correct'} />
       <SceneCard>
         <MotionLab
           {...step.lab}

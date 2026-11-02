@@ -18,6 +18,8 @@ export type LabView = {
   areaNumbers?: boolean; // label the area under the graph with its value
   target?: { s: number }; // a goal position, drawn on the track and the s-t graph
   tangent?: boolean; // draw the tangent on the s-t graph at the cursor
+  readouts?: boolean; // pills with t, v and s at the top of the track (default off)
+  arrows?: 'v' | 'va'; // velocity arrow only (default) or velocity and acceleration
   slopes?: boolean; // label the acceleration (gradient) of every straight piece
   vRange?: [number, number]; // speed axis, m/s
   cursor?: number; // where the time cursor starts, s (default: end)
@@ -109,12 +111,19 @@ export type NumericStep = Common & {
   explanation: string;
 };
 
+// Free play: move the graph and watch the car. No check; the button unlocks after the first move.
+export type PlayStep = Common & {
+  kind: 'play';
+  lab: LabView;
+  note: string; // shown once the learner has moved a dot
+};
+
 export type CompleteStep = Common & {
   kind: 'complete';
   summary: string[];
 };
 
-export type Step = BeatsStep | PredictStep | GoalStep | PickStep | BuildStep | NumericStep | CompleteStep;
+export type Step = BeatsStep | PlayStep | PredictStep | GoalStep | PickStep | BuildStep | NumericStep | CompleteStep;
 export type GradedStep = GoalStep | PickStep | BuildStep | NumericStep;
 
 export type Lesson = {
