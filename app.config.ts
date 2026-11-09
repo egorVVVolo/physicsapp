@@ -1,0 +1,30 @@
+import type { ExpoConfig } from 'expo/config';
+import { APP_NAME, APP_SLUG } from './src/config.ts';
+
+const config: ExpoConfig = {
+  name: APP_NAME,
+  slug: APP_SLUG,
+  version: '0.1.0',
+  orientation: 'portrait',
+  icon: './assets/images/icon.png',
+  scheme: APP_SLUG,
+  userInterfaceStyle: 'light',
+  ios: { icon: './assets/expo.icon' },
+  android: {
+    adaptiveIcon: {
+      backgroundColor: '#E6F4FE',
+      foregroundImage: './assets/images/android-icon-foreground.png',
+      backgroundImage: './assets/images/android-icon-background.png',
+      monochromeImage: './assets/images/android-icon-monochrome.png',
+    },
+    predictiveBackGestureEnabled: false,
+  },
+  web: { output: 'static', favicon: './assets/images/favicon.png' },
+  plugins: [
+    'expo-router',
+    ['expo-splash-screen', { backgroundColor: '#FFFFFF', image: './assets/images/splash-icon.png', imageWidth: 76 }],
+  ],
+  experiments: { typedRoutes: true, reactCompiler: true },
+};
+
+export default config;

@@ -33,3 +33,9 @@ test-results/
 .vscode/*
 !.vscode/extensions.json
 *.log
+
+# Metro / native extras
+.kotlin/
+*.orig.*
+.metro-health-check*
+npm-debug.*
