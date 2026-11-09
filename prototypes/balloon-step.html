@@ -1,0 +1,564 @@
+<title>Sandbag Drop Prototype</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: one phone column — progress, title, scene (the hero, ≥55% height), prompt, options, one primary button.
+   Light-only by decision: the lesson app has a light base. */
+:root {
+  --paper: #F3F5F7;   /* cool lab-paper white */
+  --surface: #FFFFFF;
+  --ink: #15202B;     /* structure, text, primary button */
+  --muted: #56616D;
+  --rule: #D9DFE6;
+  --vel: #0B5FCC;     /* velocity */
+  --acc: #B45309;     /* acceleration */
+  --event: #00796B;   /* time cursor, gaps, events */
+  --ghost: #6B7480;   /* learner's answer */
+  --ok: #1E7A3C;
+  --bad: #B42318;
+  --font: "Instrument Sans", "Helvetica Neue", Arial, sans-serif;
+  color-scheme: light;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { height: 100%; }
+body {
+  background: var(--paper); color: var(--ink); font-family: var(--font);
+  font-size: 16px; line-height: 1.4; font-variant-numeric: tabular-nums;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 10px 16px;
+}
+.app { max-width: 440px; margin: 0 auto; display: flex; flex-direction: column; gap: 10px; min-height: 100%; }
+.top { display: flex; align-items: center; gap: 12px; }
+.close { width: 44px; height: 44px; border: 0; background: none; color: var(--muted); font: inherit; font-size: 22px; cursor: default; }
+.progress { flex: 1; display: flex; gap: 4px; }
+.progress span { flex: 1; height: 6px; border-radius: 3px; background: var(--rule); }
+.progress span.on { background: var(--ink); }
+.variant { display: flex; border: 1.5px solid var(--ink); border-radius: 999px; overflow: hidden; }
+.variant button { min-width: 44px; height: 32px; border: 0; background: var(--surface); color: var(--ink); font: 600 14px var(--font); cursor: pointer; }
+.variant button[aria-pressed="true"] { background: var(--ink); color: var(--surface); }
+.variant-note { font-size: 13px; color: var(--muted); margin-top: -4px; }
+h1 { font-size: 22px; line-height: 1.2; margin: 2px 0 0; font-weight: 700; letter-spacing: -0.01em; text-wrap: balance; }
+.scene { background: var(--surface); border: 1.5px solid var(--rule); border-radius: 14px; overflow: hidden; touch-action: none; }
+.scene svg { display: block; width: 100%; height: auto; }
+.controls { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-top: 1.5px solid var(--rule); }
+.controls[hidden] { display: none !important; }
+.ctl { min-width: 44px; height: 40px; border: 1.5px solid var(--rule); background: var(--surface); border-radius: 10px; font: 600 14px var(--font); color: var(--ink); cursor: pointer; padding: 0 10px; }
+.ctl[aria-pressed="true"] { border-color: var(--ink); }
+.controls input[type=range] { flex: 1; accent-color: var(--event); height: 40px; }
+.tread { font-size: 13px; color: var(--muted); min-width: 52px; text-align: right; }
+.prompt { font-size: 17px; margin: 0; }
+.prompt b { font-weight: 700; }
+.options { display: grid; gap: 8px; }
+.opt { min-height: 48px; text-align: left; padding: 10px 14px; border: 1.5px solid var(--rule); border-radius: 12px; background: var(--surface); font: 500 17px var(--font); color: var(--ink); cursor: pointer; display: flex; align-items: center; gap: 10px; }
+.opt::before { content: ""; width: 18px; height: 18px; border-radius: 50%; border: 2px solid var(--rule); flex: none; }
+.opt[aria-checked="true"] { border-color: var(--ink); }
+.opt[aria-checked="true"]::before { border: 6px solid var(--ink); }
+.opt.right { border-color: var(--ok); }
+.opt.wrong { border-color: var(--bad); }
+.opt:disabled { cursor: default; }
+.opt:focus-visible, .primary:focus-visible, .ctl:focus-visible, .variant button:focus-visible { outline: 3px solid var(--event); outline-offset: 2px; }
+.feedback { border-radius: 12px; padding: 12px 14px; background: var(--surface); border: 1.5px solid var(--rule); display: grid; gap: 4px; }
+.feedback .head { display: flex; align-items: center; gap: 8px; font-weight: 700; }
+.feedback.ok .head { color: var(--ok); }
+.feedback.bad .head { color: var(--bad); }
+.feedback.note .head { color: var(--event); }
+.feedback p { margin: 0; }
+.spacer { flex: 1; }
+.primary { min-height: 52px; border: 0; border-radius: 14px; background: var(--ink); color: var(--surface); font: 700 17px var(--font); cursor: pointer; }
+.primary:disabled { background: var(--rule); color: var(--muted); cursor: default; }
+.summary { display: grid; gap: 8px; }
+.summary .row { display: flex; justify-content: space-between; gap: 12px; padding: 12px 14px; background: var(--surface); border: 1.5px solid var(--rule); border-radius: 12px; }
+.chip { font-size: 14px; font-weight: 600; padding: 2px 10px; border-radius: 999px; border: 1.5px solid currentColor; white-space: nowrap; }
+.chip.independent { color: var(--ok); }
+.chip.assisted { color: var(--acc); }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+</style>
+
+<div class="app">
+  <div class="top">
+    <button class="close" aria-label="Close lesson" tabindex="-1">✕</button>
+    <div class="progress" id="progress" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
+    <div class="variant" role="group" aria-label="Layout variant">
+      <button id="vA" aria-pressed="true">A</button>
+      <button id="vB" aria-pressed="false">B</button>
+    </div>
+  </div>
+  <div class="variant-note" id="variantNote">A: scene first, v–t graph below</div>
+  <h1 id="title">Cut loose from a balloon</h1>
+  <div class="scene" id="sceneBox">
+    <svg id="scene" viewBox="0 0 360 380" role="img" aria-labelledby="sceneDesc"></svg>
+    <svg id="strip" viewBox="0 0 360 132" aria-hidden="true"></svg>
+    <p class="sr" id="sceneDesc">A balloon rises at 4.0 metres per second. A sandbag hangs below it, 30 metres above the ground.</p>
+    <div class="controls" id="controls" hidden>
+      <button class="ctl" id="replay">Replay</button>
+      <button class="ctl" id="slow" aria-pressed="false">0.25×</button>
+      <input type="range" id="scrub" min="0" max="1000" value="0" aria-label="Time">
+      <span class="tread" id="tread">0.00 s</span>
+    </div>
+  </div>
+  <p class="prompt" id="prompt"></p>
+  <div class="options" id="options" role="radiogroup"></div>
+  <div class="feedback" id="feedback" hidden></div>
+  <div class="feedback note" id="note" hidden></div>
+  <div class="summary" id="summary" hidden></div>
+  <div class="spacer"></div>
+  <button class="primary" id="primary" disabled>Check</button>
+</div>
+
+<script>
+// ---------- physics model (in the app this lives in src/physics/) ----------
+const G = 9.81, H0 = 30, VB = 4;               // up is positive
+const y = (t, u) => H0 + u * t - 0.5 * G * t * t;
+const v = (t, u) => u - G * t;
+const tLand = u => (u + Math.sqrt(u * u + 2 * G * H0)) / G;
+const tApex = u => u / G;
+const yBalloon = t => H0 + VB * t;
+const f1 = x => x.toFixed(1), f2 = x => x.toFixed(2);
+const T_REAL = tLand(VB);                        // 2.91 s
+const T_MAX = 3.2;
+
+// ---------- state ----------
+const S = {
+  variant: 'A', step: 'q1', choice: null, checked: false,
+  ghostU: null,              // learner's u (q1), null = no ghost
+  freezeAt: null,            // learner's t (q2)
+  t: 0, playing: false, speed: 1, events: [], pause: null,
+  revealed: false, outcomes: {},
+};
+
+const Q1 = [
+  { id: 'zero', text: '0 m s⁻¹', u: 0,
+    fb: 'You started it from rest. It was rising with the balloon, so it leaves with the balloon’s 4.0 m s⁻¹ upwards.' },
+  { id: 'up', text: '4.0 m s⁻¹ upwards', u: VB, correct: true,
+    fb: 'It shares the balloon’s velocity, so it keeps rising for a moment before it falls.' },
+  { id: 'down', text: '4.0 m s⁻¹ downwards', u: -VB,
+    fb: 'Cutting the rope doesn’t flip the velocity. Gravity changes it gradually, starting from +4.0 m s⁻¹.' },
+];
+const WHY = [
+  { id: 'a', text: 'It keeps the velocity it had in the balloon', correct: true, fb: 'Yes. Releasing changes the forces, not the velocity at that instant.' },
+  { id: 'b', text: 'Cutting the rope gives it a push upwards', fb: 'Nothing pushes it. It already had 4.0 m s⁻¹ upwards before the cut.' },
+  { id: 'c', text: 'The air carries it up for a while', fb: 'We ignore air resistance here. The rise comes from the velocity it already had.' },
+];
+// answers computed from the model, never typed
+const Q2 = [
+  { id: 'd', t: tLand(-VB), fb: 'That time assumes it starts moving down at 4.0 m s⁻¹. It starts moving up.' },
+  { id: 'z', t: tLand(0), fb: 'That time assumes it starts from rest. The rise first adds time.' },
+  { id: 'r', t: T_REAL, correct: true, fb: 'With u = +4.0 m s⁻¹, a = −9.81 m s⁻², s = −30 m, solve s = ut + ½at².' },
+].map(o => ({ ...o, text: f2(o.t) + ' s' }));
+
+// ---------- drawing ----------
+const $ = id => document.getElementById(id);
+const svg = $('scene'), strip = $('strip');
+const NS = 'http://www.w3.org/2000/svg';
+const GROUND = 344, PXM = 6.0;                  // 0 m at y=344, 50 m at y=44
+const Y = m => GROUND - m * PXM;
+const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+function el(tag, attrs, text) {
+  const e = document.createElementNS(NS, tag);
+  for (const k in attrs) e.setAttribute(k, attrs[k]);
+  if (text != null) e.textContent = text;
+  return e;
+}
+function defs(root) {
+  const d = el('defs', {});
+  // velocity: open chevron; acceleration: double chevron
+  const mk = (id, color, dbl) => {
+    const m = el('marker', { id, viewBox: '0 0 12 12', refX: 10, refY: 6, markerWidth: 9, markerHeight: 9, orient: 'auto-start-reverse', markerUnits: 'userSpaceOnUse' });
+    m.appendChild(el('path', { d: 'M2,1 L10,6 L2,11', fill: 'none', stroke: color, 'stroke-width': 2, 'stroke-linejoin': 'round' }));
+    if (dbl) m.appendChild(el('path', { d: 'M-3,1 L5,6 L-3,11', fill: 'none', stroke: color, 'stroke-width': 2, 'stroke-linejoin': 'round' }));
+    return m;
+  };
+  d.appendChild(mk('mv', '#0B5FCC'));
+  d.appendChild(mk('ma', '#B45309', true));
+  d.appendChild(mk('mg', '#6B7480'));
+  const p = el('pattern', { id: 'hatch', width: 8, height: 8, patternUnits: 'userSpaceOnUse', patternTransform: 'rotate(45)' });
+  p.appendChild(el('line', { x1: 0, y1: 0, x2: 0, y2: 8, stroke: '#15202B', 'stroke-width': 1.2 }));
+  d.appendChild(p);
+  root.appendChild(d);
+}
+
+function vArrow(g, x, yy, vel, color, marker, labelSide, label) {
+  const len = vel * 3.2;                         // 3.2 px per m s⁻¹
+  if (Math.abs(len) < 6) {
+    g.appendChild(el('text', { x: labelSide < 0 ? x - 8 : x + 8, y: yy + 4, 'font-size': 12, 'font-weight': 600, fill: color, 'text-anchor': labelSide < 0 ? 'end' : 'start' }, label));
+    return;
+  }
+  g.appendChild(el('line', { x1: x, y1: yy, x2: x, y2: yy - len, stroke: color, 'stroke-width': 2.4, 'marker-end': `url(#${marker})` }));
+  g.appendChild(el('text', { x: labelSide < 0 ? x - 8 : x + 8, y: yy - len / 2 + 4, 'font-size': 12, 'font-weight': 600, fill: color, 'text-anchor': labelSide < 0 ? 'end' : 'start' }, label));
+}
+
+function ruler(g, x, label) {
+  g.appendChild(el('rect', { x: 0, y: GROUND, width: 360, height: 40, fill: 'url(#hatch)', opacity: 0.35 }));
+  g.appendChild(el('line', { x1: 0, y1: GROUND, x2: 360, y2: GROUND, stroke: '#15202B', 'stroke-width': 2 }));
+  g.appendChild(el('line', { x1: x, y1: GROUND, x2: x, y2: Y(50), stroke: '#15202B', 'stroke-width': 1.5 }));
+  for (let m = 0; m <= 50; m++) {
+    const major = m % 10 === 0, mid = m % 5 === 0;
+    g.appendChild(el('line', { x1: x, y1: Y(m), x2: x - (major ? 9 : mid ? 6 : 3), y2: Y(m), stroke: '#15202B', 'stroke-width': major ? 1.5 : 1 }));
+    if (major && m) g.appendChild(el('text', { x: x - 12, y: Y(m) + 4, 'font-size': 12, fill: '#56616D', 'text-anchor': 'end' }, m));
+  }
+  g.appendChild(el('text', { x: 6, y: Y(50) - 12, 'font-size': 12, fill: '#56616D' }, label));
+  // positive direction
+  g.appendChild(el('line', { x1: x + 10, y1: Y(45), x2: x + 10, y2: Y(50), stroke: '#15202B', 'stroke-width': 1.5, 'marker-end': 'url(#mg)' }));
+  g.appendChild(el('text', { x: x + 16, y: Y(47.5) + 4, 'font-size': 12, fill: '#15202B' }, '+'));
+}
+
+function balloon(g, x, t, scale = 1) {
+  const yb = Y(yBalloon(t));
+  const bw = 16 * scale;
+  // basket, ropes, envelope — flat schematic
+  g.appendChild(el('rect', { x: x - bw / 2, y: yb - 12 * scale, width: bw, height: 10 * scale, rx: 2, fill: '#FFFFFF', stroke: '#15202B', 'stroke-width': 1.8 }));
+  g.appendChild(el('path', { d: `M${x - bw / 2},${yb - 12 * scale} L${x - 14 * scale},${yb - 34 * scale} M${x + bw / 2},${yb - 12 * scale} L${x + 14 * scale},${yb - 34 * scale}`, stroke: '#15202B', 'stroke-width': 1.2 }));
+  g.appendChild(el('circle', { cx: x, cy: yb - 52 * scale, r: 22 * scale, fill: '#FFFFFF', stroke: '#15202B', 'stroke-width': 1.8 }));
+  return yb;
+}
+
+function bag(g, x, yy, ghost) {
+  if (ghost) {
+    g.appendChild(el('rect', { x: x - 7, y: yy - 7, width: 14, height: 14, rx: 3, fill: 'none', stroke: '#6B7480', 'stroke-width': 1.8, 'stroke-dasharray': '3 2.5' }));
+  } else {
+    g.appendChild(el('rect', { x: x - 7, y: yy - 7, width: 14, height: 14, rx: 3, fill: '#15202B' }));
+  }
+}
+
+function strobe(g, x, u, tEnd, ghost) {
+  for (let ts = 0.25; ts < tEnd - 0.05; ts += 0.25) {
+    const yy = Y(Math.max(0, y(ts, u)));
+    g.appendChild(ghost
+      ? el('circle', { cx: x, cy: yy, r: 2.6, fill: 'none', stroke: '#6B7480', 'stroke-width': 1.2 })
+      : el('circle', { cx: x, cy: yy, r: 2.8, fill: '#0B5FCC', opacity: 0.45 }));
+  }
+}
+
+function gapBracket(g, x, y1, y2, text) {
+  const a = Math.min(y1, y2), b = Math.max(y1, y2);
+  g.appendChild(el('path', { d: `M${x - 5},${a} H${x + 5} M${x},${a} V${b} M${x - 5},${b} H${x + 5}`, stroke: '#00796B', 'stroke-width': 2, fill: 'none' }));
+  const ty = (a + b) / 2;
+  const w = text.length * 7 + 14;
+  g.appendChild(el('rect', { x: x + 9, y: ty - 12, width: w, height: 24, rx: 12, fill: '#00796B' }));
+  g.appendChild(el('text', { x: x + 9 + w / 2, y: ty + 4.5, 'font-size': 13, 'font-weight': 700, fill: '#FFFFFF', 'text-anchor': 'middle' }, text));
+}
+
+const realStop = () => S.freezeAt != null ? Math.min(S.freezeAt, T_REAL) : T_REAL;
+const ghostEnd = () => S.ghostU == null ? 0 : tLand(S.ghostU);
+
+function drawSceneA() {
+  svg.setAttribute('viewBox', '0 0 360 380');
+  svg.replaceChildren(); defs(svg);
+  const g = el('g', {}); svg.appendChild(g);
+  ruler(g, 46, 'height / m');
+  const t = S.t, XR = 168, XG = 262;
+  const yb = balloon(g, XR, S.revealed ? t : 0);
+  vArrow(g, XR + 34, yb - 52, VB, '#0B5FCC', 'mv', 1, '4.0 m s⁻¹');
+  if (!S.revealed) {
+    // setup only: bag hangs under the basket, nothing moves
+    g.appendChild(el('line', { x1: XR, y1: yb - 2, x2: XR, y2: Y(H0) - 7, stroke: '#15202B', 'stroke-width': 1.2 }));
+    bag(g, XR, Y(H0), false);
+    g.appendChild(el('text', { x: XR + 14, y: Y(H0) + 4, 'font-size': 12, fill: '#56616D' }, 'sandbag, 30 m'));
+    return;
+  }
+  // real sandbag
+  const tr = Math.min(t, realStop());
+  strobe(g, XR, VB, tr, false);
+  const yr = Math.max(0, y(tr, VB));
+  bag(g, XR, Y(yr), false);
+  const vr = tr >= T_REAL ? 0 : v(tr, VB);
+  const quiet = S.pause && (S.pause.kind === 'ghostLand' || S.pause.kind === 'freeze');
+  if (tr < T_REAL) {
+    vArrow(g, XR - 14, Y(yr), vr, '#0B5FCC', 'mv', -1, `v = ${vr >= 0 ? '+' : '−'}${f1(Math.abs(vr))}`);
+    // acceleration: constant, beside the body (hidden while a gap is shown: one new layer at a time)
+    if (!quiet) g.appendChild(el('line', { x1: XR + 14, y1: Y(yr) - 2, x2: XR + 14, y2: Y(yr) + 30, stroke: '#B45309', 'stroke-width': 2.4, 'marker-end': 'url(#ma)' }));
+    if (!quiet) g.appendChild(el('text', { x: XR + 22, y: Y(yr) + 22, 'font-size': 12, 'font-weight': 600, fill: '#B45309' }, 'a = 9.81 ↓'));
+  }
+  // ghost (learner's answer)
+  if (S.ghostU != null) {
+    const tg = Math.min(t, ghostEnd());
+    strobe(g, XG, S.ghostU, tg, true);
+    const yg = Math.max(0, y(tg, S.ghostU));
+    bag(g, XG, Y(yg), true);
+    g.appendChild(el('text', { x: XG, y: GROUND + 20, 'font-size': 12, 'font-weight': 600, fill: '#56616D', 'text-anchor': 'middle' }, 'your answer'));
+    g.appendChild(el('text', { x: XR, y: GROUND + 20, 'font-size': 12, 'font-weight': 600, fill: '#15202B', 'text-anchor': 'middle' }, 'real'));
+    if (S.pause && S.pause.kind === 'ghostLand') gapBracket(g, (XR + XG) / 2 - 6, Y(yr), Y(yg), f1(yr - yg) + ' m');
+  }
+  if (S.freezeAt != null && t >= realStop() && S.freezeAt < T_REAL) {
+    gapBracket(g, XR + 40, Y(yr), Y(0), f1(yr) + ' m');
+  }
+}
+
+function drawStripA() {
+  strip.replaceChildren(); defs(strip);
+  const L = 46, R = 344, top = 14, bot = 116;
+  const vmax = 8, vmin = -28;
+  const X = tt => L + (tt / T_MAX) * (R - L);
+  const V = vv => top + (vmax - vv) / (vmax - vmin) * (bot - top);
+  const g = el('g', {}); strip.appendChild(g);
+  g.appendChild(el('line', { x1: L, y1: top, x2: L, y2: bot, stroke: '#15202B', 'stroke-width': 1.5 }));
+  g.appendChild(el('line', { x1: L, y1: V(0), x2: R, y2: V(0), stroke: '#15202B', 'stroke-width': 1.5 }));
+  [-20, -10, 0].forEach(vv => g.appendChild(el('text', { x: L - 6, y: V(vv) + 4, 'font-size': 11, fill: '#56616D', 'text-anchor': 'end' }, vv)));
+  [1, 2, 3].forEach(tt => {
+    g.appendChild(el('line', { x1: X(tt), y1: V(0) - 3, x2: X(tt), y2: V(0) + 3, stroke: '#15202B' }));
+    g.appendChild(el('text', { x: X(tt), y: V(0) - 6, 'font-size': 11, fill: '#56616D', 'text-anchor': 'middle' }, tt));
+  });
+  g.appendChild(el('text', { x: L + 6, y: top + 4, 'font-size': 12, fill: '#56616D' }, 'v / m s⁻¹'));
+  g.appendChild(el('text', { x: R, y: V(0) + 16, 'font-size': 12, fill: '#56616D', 'text-anchor': 'end' }, 't / s'));
+  if (!S.revealed) return;
+  const tr = Math.min(S.t, realStop());
+  g.appendChild(el('line', { x1: X(0), y1: V(VB), x2: X(tr), y2: V(v(tr, VB)), stroke: '#0B5FCC', 'stroke-width': 2.6 }));
+  if (S.ghostU != null) {
+    const tg = Math.min(S.t, ghostEnd());
+    g.appendChild(el('line', { x1: X(0), y1: V(S.ghostU), x2: X(tg), y2: V(v(tg, S.ghostU)), stroke: '#6B7480', 'stroke-width': 2, 'stroke-dasharray': '5 4' }));
+  }
+  g.appendChild(el('line', { x1: X(S.t), y1: top, x2: X(S.t), y2: bot, stroke: '#00796B', 'stroke-width': 1.5 }));
+  if (S.t < 1.2 && S.t > 0.3) g.appendChild(el('text', { x: X(tApex(VB)) + 4, y: V(0) + 16, 'font-size': 11, 'font-weight': 600, fill: '#0B5FCC' }, 'v = 0'));
+}
+
+function drawSceneB() {
+  // graph first: big height–time graph; narrow scene column shares the height axis
+  svg.setAttribute('viewBox', '0 0 360 380');
+  svg.replaceChildren(); defs(svg);
+  const g = el('g', {}); svg.appendChild(g);
+  const L = 112, R = 346;
+  const X = tt => L + (tt / T_MAX) * (R - L);
+  g.appendChild(el('rect', { x: 0, y: GROUND, width: 360, height: 40, fill: 'url(#hatch)', opacity: 0.35 }));
+  g.appendChild(el('line', { x1: 0, y1: GROUND, x2: 360, y2: GROUND, stroke: '#15202B', 'stroke-width': 2 }));
+  g.appendChild(el('line', { x1: L, y1: GROUND, x2: L, y2: Y(50), stroke: '#15202B', 'stroke-width': 1.5 }));
+  for (let m = 0; m <= 50; m += 10) {
+    g.appendChild(el('line', { x1: L, y1: Y(m), x2: L - 6, y2: Y(m), stroke: '#15202B', 'stroke-width': 1.5 }));
+    if (m) g.appendChild(el('line', { x1: L, y1: Y(m), x2: R, y2: Y(m), stroke: '#D9DFE6', 'stroke-width': 1 }));
+    g.appendChild(el('text', { x: L - 9, y: Y(m) + 4, 'font-size': 12, fill: '#56616D', 'text-anchor': 'end' }, m));
+  }
+  [1, 2, 3].forEach(tt => {
+    g.appendChild(el('line', { x1: X(tt), y1: GROUND, x2: X(tt), y2: GROUND + 5, stroke: '#15202B' }));
+    g.appendChild(el('text', { x: X(tt), y: GROUND + 18, 'font-size': 12, fill: '#15202B', 'text-anchor': 'middle', 'font-weight': 600 }, tt));
+  });
+  g.appendChild(el('text', { x: L + 6, y: Y(50) - 10, 'font-size': 12, fill: '#56616D' }, 'height / m'));
+  g.appendChild(el('text', { x: R, y: GROUND + 32, 'font-size': 12, fill: '#56616D', 'text-anchor': 'end' }, 't / s'));
+  // scene column
+  const XC = 44;
+  const t = S.revealed ? S.t : 0;
+  const yb = balloon(g, XC, t, 0.72);
+  if (!S.revealed) {
+    g.appendChild(el('line', { x1: XC, y1: yb - 2, x2: XC, y2: Y(H0) - 7, stroke: '#15202B', 'stroke-width': 1.2 }));
+    bag(g, XC, Y(H0), false);
+    g.appendChild(el('circle', { cx: X(0), cy: Y(H0), r: 4, fill: '#15202B' }));
+    vArrow(g, XC + 24, yb - 37, VB, '#0B5FCC', 'mv', 1, '4.0');
+    return;
+  }
+  // balloon trace
+  g.appendChild(el('line', { x1: X(0), y1: Y(H0), x2: X(t), y2: Y(yBalloon(t)), stroke: '#15202B', 'stroke-width': 1.2, 'stroke-dasharray': '1 3' }));
+  if (t > 0.6) g.appendChild(el('text', { x: X(Math.min(t, 2.4)) - 2, y: Y(yBalloon(Math.min(t, 2.4))) - 8, 'font-size': 11, fill: '#56616D', 'text-anchor': 'end' }, 'balloon'));
+  const path = (u, tEnd) => {
+    let d = '';
+    for (let i = 0; i <= 60; i++) { const tt = tEnd * i / 60; d += (i ? 'L' : 'M') + X(tt).toFixed(1) + ',' + Y(Math.max(0, y(tt, u))).toFixed(1); }
+    return d;
+  };
+  const tr = Math.min(t, realStop());
+  const yr = Math.max(0, y(tr, VB));
+  if (S.ghostU != null) {
+    const tg = Math.min(t, ghostEnd());
+    const yg = Math.max(0, y(tg, S.ghostU));
+    g.appendChild(el('path', { d: path(S.ghostU, tg), fill: 'none', stroke: '#6B7480', 'stroke-width': 2, 'stroke-dasharray': '5 4' }));
+    g.appendChild(el('circle', { cx: X(tg), cy: Y(yg), r: 4, fill: '#FFFFFF', stroke: '#6B7480', 'stroke-width': 1.8 }));
+    bag(g, XC + 22, Y(yg), true);
+    if (S.pause && S.pause.kind === 'ghostLand') gapBracket(g, X(tg) - 10, Y(yr), Y(yg), f1(yr - yg) + ' m');
+  }
+  g.appendChild(el('path', { d: path(VB, tr), fill: 'none', stroke: '#0B5FCC', 'stroke-width': 2.8 }));
+  // link body ↔ trace head
+  g.appendChild(el('line', { x1: XC + 10, y1: Y(yr), x2: X(tr), y2: Y(yr), stroke: '#00796B', 'stroke-width': 1, 'stroke-dasharray': '2 3' }));
+  g.appendChild(el('circle', { cx: X(tr), cy: Y(yr), r: 4.5, fill: '#0B5FCC' }));
+  bag(g, XC, Y(yr), false);
+  if (tr < T_REAL) {
+    const vr = v(tr, VB);
+    g.appendChild(el('text', { x: X(tr) + 8, y: Y(yr) - 8, 'font-size': 12, 'font-weight': 600, fill: '#0B5FCC' }, `v = ${vr >= 0 ? '+' : '−'}${f1(Math.abs(vr))}`));
+  }
+  if (Math.abs(tr - tApex(VB)) < 0.02 && S.pause && S.pause.kind === 'apex') {
+    // tangent at the top: flat → v = 0
+    g.appendChild(el('line', { x1: X(tApex(VB)) - 30, y1: Y(y(tApex(VB), VB)), x2: X(tApex(VB)) + 30, y2: Y(y(tApex(VB), VB)), stroke: '#00796B', 'stroke-width': 2 }));
+  }
+  if (S.freezeAt != null && t >= realStop() && S.freezeAt < T_REAL) gapBracket(g, X(tr) + 10, Y(yr), Y(0), f1(yr) + ' m');
+}
+
+function draw() {
+  if (S.variant === 'A') { drawSceneA(); strip.removeAttribute('hidden'); drawStripA(); }
+  else { drawSceneB(); strip.setAttribute('hidden', ''); }
+  $('tread').textContent = f2(S.t) + ' s';
+  $('scrub').value = Math.round(S.t / T_MAX * 1000);
+}
+
+// ---------- playback with auto-pause at events ----------
+let last = 0, raf = 0;
+function buildEvents() {
+  const ev = [{ t: tApex(VB), kind: 'apex', text: 'Top of the rise: v = 0, but a is still 9.81 m s⁻² downwards.' }];
+  if (S.ghostU != null) {
+    const tg = tLand(S.ghostU);
+    ev.push({ t: tg, kind: 'ghostLand', text: `Your sandbag lands at ${f2(tg)} s. The real one is still ${f1(y(tg, VB))} m up.` });
+  }
+  if (S.freezeAt != null && S.freezeAt < T_REAL) {
+    ev.push({ t: S.freezeAt, kind: 'freeze', end: true, text: `At ${f2(S.freezeAt)} s the sandbag is still ${f1(y(S.freezeAt, VB))} m above the ground.` });
+  } else {
+    ev.push({ t: T_REAL, kind: 'land', end: true, text: `It lands at ${f2(T_REAL)} s, moving at ${f1(-v(T_REAL, VB))} m s⁻¹.` });
+  }
+  return ev.sort((a, b) => a.t - b.t);
+}
+function play(fromStart) {
+  if (fromStart) { S.t = 0; S.events = buildEvents(); }
+  S.pause = null; S.playing = true;
+  if (reduced) { stepToNextEvent(); return; }
+  last = performance.now();
+  cancelAnimationFrame(raf); raf = requestAnimationFrame(tick);
+}
+function stepToNextEvent() {
+  const next = S.events.find(e => e.t > S.t + 1e-6);
+  if (next) { S.t = next.t; hitEvent(next); }
+  draw();
+}
+function tick(now) {
+  const dt = Math.max(0, Math.min(0.05, (now - last) / 1000)) * S.speed; last = now;
+  const next = S.events.find(e => e.t > S.t + 1e-6);
+  let nt = S.t + dt;
+  if (next && nt >= next.t) { S.t = next.t; draw(); hitEvent(next); return; }
+  S.t = nt; draw();
+  raf = requestAnimationFrame(tick);
+}
+function hitEvent(e) {
+  S.playing = false; S.pause = e;
+  draw();
+  showNote(e.text);
+  if (navigator.vibrate) try { navigator.vibrate(10); } catch (_) {}
+  setPrimary(e.end ? afterPlaybackLabel() : 'Continue', false);
+}
+
+// ---------- UI ----------
+function showNote(text) {
+  const fb = $('note');
+  fb.hidden = false;
+  fb.innerHTML = `<div class="head">${iconDot()} Watch</div><p></p>`;
+  fb.querySelector('p').textContent = text;
+}
+const iconOk = () => '<svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><circle cx="9" cy="9" r="8" fill="none" stroke="currentColor" stroke-width="2"/><path d="M5 9.5l2.6 2.5L13 6.5" fill="none" stroke="currentColor" stroke-width="2"/></svg>';
+const iconBad = () => '<svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><circle cx="9" cy="9" r="8" fill="none" stroke="currentColor" stroke-width="2"/><path d="M6 6l6 6M12 6l-6 6" stroke="currentColor" stroke-width="2"/></svg>';
+const iconDot = () => '<svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><circle cx="9" cy="9" r="4" fill="currentColor"/></svg>';
+
+function setPrimary(label, disabled) { const b = $('primary'); b.textContent = label; b.disabled = !!disabled; }
+function setProgress(n) { [...$('progress').children].forEach((s, i) => s.classList.toggle('on', i < n)); }
+function afterPlaybackLabel() { return S.step === 'q1' ? 'Next' : S.step === 'q2' ? 'See summary' : 'Next'; }
+
+function renderOptions(list) {
+  const box = $('options'); box.replaceChildren();
+  list.forEach(o => {
+    const b = document.createElement('button');
+    b.className = 'opt'; b.type = 'button'; b.id = 'opt-' + S.step + '-' + o.id;
+    b.setAttribute('role', 'radio'); b.setAttribute('aria-checked', 'false');
+    b.textContent = o.text;
+    b.onclick = () => {
+      if (S.checked) return;
+      S.choice = o;
+      [...box.children].forEach(c => c.setAttribute('aria-checked', String(c === b)));
+      setPrimary('Check', false);
+    };
+    box.appendChild(b);
+  });
+}
+function markOptions(list) {
+  [...$('options').children].forEach((c, i) => {
+    c.disabled = true;
+    if (list[i].correct) c.classList.add('right');
+    else if (list[i] === S.choice) c.classList.add('wrong');
+  });
+}
+function feedback(ok, text) {
+  const fb = $('feedback');
+  fb.className = 'feedback ' + (ok ? 'ok' : 'bad'); fb.hidden = false;
+  fb.innerHTML = `<div class="head">${ok ? iconOk() : iconBad()} ${ok ? 'Correct' : 'Not quite'}</div><p></p>`;
+  fb.querySelector('p').textContent = text;
+}
+
+function enterStep(step) {
+  S.step = step; S.choice = null; S.checked = false; S.pause = null;
+  $('feedback').hidden = true; $('note').hidden = true; $('summary').hidden = true; $('options').hidden = false;
+  if (step === 'q1') {
+    setProgress(1);
+    S.revealed = false; S.ghostU = null; S.freezeAt = null; S.t = 0;
+    $('controls').hidden = true;
+    $('prompt').innerHTML = 'A hot-air balloon rises at a steady 4.0 m s⁻¹. At 30 m above the ground a sandbag is cut loose. <b>What is the sandbag’s velocity</b> the instant it is released?';
+    renderOptions(Q1); setPrimary('Check', true);
+  } else if (step === 'why') {
+    setProgress(2);
+    $('prompt').innerHTML = '<b>Why</b> does the sandbag rise before it falls?';
+    renderOptions(WHY); setPrimary('Check', true);
+  } else if (step === 'q2') {
+    setProgress(3);
+    S.revealed = false; S.ghostU = null; S.freezeAt = null; S.t = 0;
+    $('controls').hidden = true;
+    $('prompt').innerHTML = '<b>How long</b> after release does the sandbag hit the ground? Take g = 9.81 m s⁻².';
+    renderOptions(Q2); setPrimary('Check', true);
+  } else if (step === 'summary') {
+    setProgress(4);
+    $('options').hidden = true;
+    $('prompt').innerHTML = '<b>Done.</b> Here is how each answer went.';
+    const rows = [['Velocity at release', S.outcomes.q1], ['Why it rises first', S.outcomes.why], ['Time to land', S.outcomes.q2]];
+    const sm = $('summary'); sm.hidden = false;
+    sm.innerHTML = rows.map(([k, o]) => `<div class="row"><span>${k}</span><span class="chip ${o}">${o === 'independent' ? 'First try' : 'After feedback'}</span></div>`).join('');
+    setPrimary('Start again', false);
+  }
+  draw();
+}
+
+function onPrimary() {
+  const b = $('primary');
+  if (S.step === 'summary') { S.outcomes = {}; enterStep('q1'); return; }
+  if (!S.checked) {                       // Check
+    S.checked = true;
+    const ok = !!S.choice.correct;
+    S.outcomes[S.step] = S.outcomes[S.step] || (ok ? 'independent' : 'assisted');
+    markOptions(S.step === 'q1' ? Q1 : S.step === 'why' ? WHY : Q2);
+    feedback(ok, S.choice.fb);
+    if (S.step === 'q1') {
+      S.revealed = true; S.ghostU = ok ? null : S.choice.u;
+      $('controls').hidden = false;
+      setPrimary('Play', false);
+    } else if (S.step === 'q2') {
+      S.revealed = true; S.freezeAt = ok ? null : S.choice.t;
+      $('controls').hidden = false;
+      setPrimary('Play', false);
+    } else {
+      setPrimary('Next', false);
+    }
+    draw();
+    return;
+  }
+  if (b.textContent === 'Play') { play(true); setPrimary('Playing…', true); return; }
+  if (b.textContent === 'Continue') { play(false); setPrimary('Playing…', true); return; }
+  if (S.step === 'q1') enterStep('why');
+  else if (S.step === 'why') enterStep('q2');
+  else if (S.step === 'q2') enterStep('summary');
+}
+
+$('primary').onclick = onPrimary;
+$('replay').onclick = () => { if (!S.revealed) return; play(true); setPrimary('Playing…', true); };
+$('slow').onclick = () => { S.speed = S.speed === 1 ? 0.25 : 1; $('slow').setAttribute('aria-pressed', String(S.speed !== 1)); };
+$('scrub').oninput = e => {
+  if (!S.revealed) return;
+  cancelAnimationFrame(raf); S.playing = false;
+  S.t = Math.min(+e.target.value / 1000 * T_MAX, Math.max(realStop(), ghostEnd()));
+  S.pause = S.events.find(ev => Math.abs(ev.t - S.t) < 0.03) || null;
+  draw();
+};
+function setVariant(v) {
+  S.variant = v;
+  $('vA').setAttribute('aria-pressed', String(v === 'A'));
+  $('vB').setAttribute('aria-pressed', String(v === 'B'));
+  $('variantNote').textContent = v === 'A' ? 'A: scene first, v–t graph below' : 'B: height–time graph first, scene column on the same height axis';
+  try { localStorage.setItem('variant', v); } catch (_) {}
+  draw();
+}
+$('vA').onclick = () => setVariant('A');
+$('vB').onclick = () => setVariant('B');
+let saved = 'A';
+try { saved = localStorage.getItem('variant') || 'A'; } catch (_) {}
+enterStep('q1');
+setVariant(saved);
+</script>
