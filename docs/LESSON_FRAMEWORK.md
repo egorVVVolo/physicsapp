@@ -11,6 +11,31 @@ Every lesson is built from this framework: one idea per lesson, about 12–15 mi
 - **Language:** lesson content in English; this framework is the source of truth for structure, step types, visuals and exam alignment.
 - **Scope:** written for Kinematics (Edexcel IAL Unit 1, WPH11), designed to reuse for every later module.
 
+## 1a. Decisions of 9 Nov 2026 (override older text below where they conflict)
+
+Agreed with Egor after the visuals research (`docs/research/visuals-2026-11-09.md`) and the balloon prototype (`prototypes/balloon-step.html`, kept as a reference only).
+
+**Sessions**
+- A core session is about **10 minutes**: present → practise → close. Deeper follow-up sessions come later: *Tricky cases* (harder cases, no worked examples) and *Exam workout* (mixed topics, exam format, marks shown). The three chapters in section 4 are spread over these sessions; a chapter end is where a session can close.
+
+**Screen and visuals**
+- **Big scene, one object in focus.** The moving object fills the scene; at any moment only one thing asks for attention. On a small phone a combined scene + graph is unreadable (owner's verdict on prototype B).
+- **Scene and graph are separate views,** never squeezed side by side. The graph gets its own full-width view (its own step, or a switch on the same step); both still run on the same model and clock `t`.
+- **One screen, no scrolling.** Condition, scene, question, answers and one primary button fit on a phone screen.
+- **The problem statement is always complete and visible** while the learner answers.
+- **Playback auto-continues.** It pauses briefly at key events (top, return, impact) with a short caption on the scene, then carries on by itself. Tap the scene to pause. No "Continue" buttons.
+- **Minimal controls:** one small replay button; after playback, drag on the scene or graph to scrub. No speed buttons or sliders by default.
+- **Wrong answer plays out on the scene** (ghost of the learner's answer next to the real motion, frozen where they diverge, gap labelled).
+- **Flat schematic bodies, fixed world frame** (no follow camera), arrows start at the point of application and carry symbol, value and unit.
+- **Colour:** the prototype looked too grey. Keep a light base, but use clearer, more saturated accents and less grey; final values are set in the M1 design tokens and checked for contrast.
+
+**Calculation on a phone**
+- The learner never does arithmetic in their head. They choose the relation and the values (with signs); the app solves.
+- Multiple-choice options are used only where the options can be told apart without calculating (sign, direction, ratio, which method).
+- Numeric exam steps get a built-in calculator.
+
+**Stack:** react-native-svg + Reanimated + Gesture Handler, analytic models in `src/physics/`, no physics engine. Check which SDK the store Expo Go runs before creating the project.
+
 ## 2. Learner model
 
 We design for three learners; the **novice is the default reader** — every lesson must work for them without extra help.
