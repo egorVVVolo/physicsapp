@@ -115,7 +115,7 @@ Six step types cover the first build; a session should use at least three of the
 | `numeric` | Enters a value and picks a unit, with a built-in calculator | Exam-format steps only | Value within tolerance + unit | Calculator view; layout decided on the first build |
 | `exam-card` | Answers a full exam-style question (command word bold, marks shown) | Exam workout | Per part | A wrapper: each part (a), (b) is one of the types above |
 
-`build-solution` is not built yet. Its exact stages, data shape and wrong-setup playback are fixed here **after** the first one has been played on a phone at 375×667.
+`build-solution` is built (type name `build` in `src/content/types.ts`, state machine in `src/session/build.ts`, view in `src/steps/BuildStepView.tsx`). Stages: pick the equation → fill the signed values into the equation itself (tap a box, then a chip) → choose the root or read the sign. The app solves. A wrong value is marked in its box and plays as a ghost (the motion the wrong numbers describe); all signs flipped is a note, not an error. Exam format (`exam` field): one attempt per part, a miss loses the mark and the part is corrected for the learner. Checked in the web version at 375×667; **not yet played on a phone**.
 
 **Added later, when a lesson needs them:** free scene exploration, drag-to-target, graph sketching, tapping knowns in the text, ordering a reasoning chain. They were in the original list of twelve; several do not fit one phone screen as first specified.
 
@@ -254,6 +254,8 @@ Every lesson targets at least one id below; every distractor and wrong-answer fe
 | K-PROJ-TIME | Horizontal speed changes fall time | “The launched ball lands later” | Dropped vs launched ball, same instant |
 | K-PROJ-TOP-V | Velocity is zero at the top of a projectile | v = 0 at max height | Velocity arrow stays horizontal at the top |
 | K-SCALAR-VEC | Treats vectors like scalars when adding | 3 + 4 = 7 for perpendicular displacements | Tip-to-tail drag with live resultant |
+| K-RELEASE-REST | A released object starts from rest | Takes u = 0 for a package let go from a moving drone | Ghost dropped from rest next to the real flight |
+| K-ROOT-PICK | Takes the wrong root of a quadratic | Keeps t < 0, or does not say why one root is rejected | The equation offered two times; the negative one is before the release |
 
 Sources: [Beichner (1994), kinematics graphs](https://moodle2.units.it/pluginfile.php/732257/mod_resource/content/1/Testing%20student%20understanding%20kinematics%20graphs.pdf); [Planinic et al. (2012)](https://www.bib.irb.hr/452519).
 

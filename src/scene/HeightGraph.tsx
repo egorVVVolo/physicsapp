@@ -1,8 +1,8 @@
 // Graph view: height against time, full width, in real screen points. Same model and clock as the scene.
 import Animated, { useAnimatedProps, type SharedValue } from 'react-native-reanimated';
 import Svg, { Circle, Line, Path, Rect, Text } from 'react-native-svg';
-import { position } from '@/physics/kinematics';
-import { bodyWith, realBody, tLandReal, tLandWith } from '@/content/drop';
+import { trackPosition, type Track } from '@/physics/kinematics';
+import type { Companion } from '@/content/types';
 import { svgFont } from '@/theme/svgFont';
 import type { Palette } from '@/theme/tokens';
 
@@ -18,20 +18,18 @@ type Props = {
   palette: Palette;
   width: number;
   height: number;
-  ghostU: number | null;
-  ghostLabel: string;
+  real: Track;
+  companion: Companion | null;
   tMax: number;
   hMax: number;
 };
 
-export function HeightGraph({ t, palette: p, width, height, ghostU, ghostLabel, tMax, hMax }: Props) {
+export function HeightGraph({ t, palette: p, width, height, real, companion, tMax, hMax }: Props) {
   const L = GRAPH_LEFT;
   const R = width - GRAPH_RIGHT_PAD;
   const TOP = 34;
   const BOTTOM = height - 88; // leaves room for the time labels and the overlay buttons
-  const ghost = ghostU === null ? null : bodyWith(ghostU);
-  const ghostEnd = ghostU === null ? 0 : tLandWith(ghostU);
-  const real = realBody;
+  const comp = companion?.track ?? null;
 
   const X = (time: number) => {
     'worklet';
@@ -41,22 +39,25 @@ export function HeightGraph({ t, palette: p, width, height, ghostU, ghostLabel, 
     'worklet';
     return BOTTOM - (Math.max(0, h) / hMax) * (BOTTOM - TOP);
   };
-  const trace = (s0: number, u: number, a: number, tEnd: number) => {
+  /** The curve of a track from its start up to the clock time. */
+  const trace = (tr: Track, now: number) => {
     'worklet';
+    const tEnd = Math.min(now, tr.end);
+    if (tEnd <= tr.from) return 'M0,0';
     let d = '';
     const n = 40;
     for (let i = 0; i <= n; i++) {
-      const tt = (tEnd * i) / n;
-      d += (i ? 'L' : 'M') + X(tt).toFixed(1) + ',' + Y(s0 + u * tt + 0.5 * a * tt * tt).toFixed(1);
+      const tt = tr.from + ((tEnd - tr.from) * i) / n;
+      d += (i ? 'L' : 'M') + X(tt).toFixed(1) + ',' + Y(trackPosition(tt, tr)).toFixed(1);
     }
     return d;
   };
 
-  const realProps = useAnimatedProps(() => ({ d: trace(real.s0, real.u, real.a, Math.min(t.value, tLandReal)) }));
-  const ghostProps = useAnimatedProps(() => ({ d: ghost ? trace(ghost.s0, ghost.u, ghost.a, Math.min(t.value, ghostEnd)) : 'M0,0' }));
+  const realProps = useAnimatedProps(() => ({ d: trace(real, t.value) }));
+  const ghostProps = useAnimatedProps(() => ({ d: comp ? trace(comp, t.value) : 'M0,0' }));
   const head = useAnimatedProps(() => {
-    const tt = Math.min(t.value, tLandReal);
-    return { cx: X(tt), cy: Y(position(tt, real)) };
+    const tt = Math.min(t.value, real.end);
+    return { cx: X(tt), cy: Y(trackPosition(tt, real)) };
   });
   const cursor = useAnimatedProps(() => ({ x1: X(t.value), x2: X(t.value) }));
 
@@ -83,13 +84,13 @@ export function HeightGraph({ t, palette: p, width, height, ghostU, ghostLabel, 
         <Text key={'tl' + s} x={X(s)} y={BOTTOM + 20} fontSize={13} fontWeight="600" fill={p.ink} textAnchor="middle">{Number.isInteger(s) ? s : s.toFixed(1)}</Text>
       ))}
       <Text x={L + 8} y={TOP - 14} fontSize={13} fill={p.muted}>height / m</Text>
-      <Text x={R} y={BOTTOM + 38} fontSize={13} fill={p.muted} textAnchor="end">time / s</Text>
+      <Text x={(L + R) / 2} y={BOTTOM + 38} fontSize={13} fill={p.muted} textAnchor="middle">time / s</Text>
 
       <ALine animatedProps={cursor} y1={TOP} y2={BOTTOM} stroke={p.event} strokeWidth={1.5} />
-      {ghost && <APath animatedProps={ghostProps} fill="none" stroke={p.ghost} strokeWidth={2.5} strokeDasharray="6 5" />}
+      {comp && <APath animatedProps={ghostProps} fill="none" stroke={p.ghost} strokeWidth={2.5} strokeDasharray="6 5" />}
       <APath animatedProps={realProps} fill="none" stroke={p.vel} strokeWidth={4} strokeLinecap="round" strokeLinejoin="round" />
       <ACircle animatedProps={head} r={7} fill={p.vel} stroke={p.surface} strokeWidth={2.5} />
-      {ghost && <Text x={R} y={TOP - 14} fontSize={13} fontWeight="700" fill={p.muted} textAnchor="end">dashed: {ghostLabel}</Text>}
+      {companion && <Text x={R} y={TOP - 14} fontSize={13} fontWeight="700" fill={p.muted} textAnchor="end">dashed: {companion.label}</Text>}
     </Svg>
   );
 }

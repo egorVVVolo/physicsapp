@@ -39,3 +39,56 @@ test('wrong answers: from rest lands at 2.47 s, real bag still 9.9 m up', () => 
 test('wrong signs give no solution', () => {
   assert.deepEqual(timesForDisplacement(30, 4, -G), []);
 });
+
+import { initialVelocityFor, motionStop, relationFits, trackPosition, trackVelocity } from './kinematics.ts';
+
+const close = (a: number, b: number, tol = 0.005) => assert.ok(Math.abs(a - b) <= tol, `expected ${b}, got ${a}`);
+
+test('whole flight in one equation: s = −20, u = +8, a = −g gives 2.99 s and −1.36 s', () => {
+  const roots = timesForDisplacement(-20, 8, -G);
+  close(roots[0], 2.993);
+  close(roots[1], -1.362);
+  assert.deepEqual(timesForDisplacement(20, 8, -G), [], 's = +20 has no real solution');
+  assert.deepEqual(timesForDisplacement(-20, 8, G), [], 'a = +g has no real solution');
+});
+
+test('initialVelocityFor inverts s = ut + ½at²', () => {
+  const u = initialVelocityFor(-24, -G, 3);
+  close(u, 6.715);
+  close(-24, u * 3 + 0.5 * -G * 9, 1e-9);
+});
+
+test('relationFits: only s = ut + ½at² works for known s, u, a and unknown t', () => {
+  assert.equal(relationFits('sut', ['s', 'u', 'a'], 't'), true);
+  assert.equal(relationFits('vuat', ['s', 'u', 'a'], 't'), false);
+  assert.equal(relationFits('v2as', ['s', 'u', 'a'], 't'), false);
+  assert.equal(relationFits('suvt', ['s', 'u', 'a'], 't'), false);
+  assert.equal(relationFits('sut', ['s', 'a', 't'], 'u'), true);
+});
+
+test('track clamps before its start and after its end', () => {
+  const tr = { motion: { s0: 20, u: 8, a: -G }, from: 1, end: 2 };
+  assert.equal(trackPosition(0, tr), 20);
+  assert.equal(trackVelocity(0.5, tr), 8);
+  close(trackPosition(1.5, tr), 20 + 4 - 0.5 * G * 0.25, 1e-9);
+  assert.equal(trackPosition(9, tr), trackPosition(2, tr));
+});
+
+test('motionStop: where a wrong setup stops, never at the real landing time', () => {
+  const top = 30;
+  const rest = motionStop({ s0: 20, u: 0, a: -G }, 0, top);
+  assert.equal(rest.why, 'target');
+  close(rest.t, 2.019);
+  close(motionStop({ s0: 20, u: -8, a: -G }, 0, top).t, 1.362);
+  const short = motionStop({ s0: 20, u: 8, a: -G }, 40, top); // aims at 40 m, turns at 23.3 m
+  assert.equal(short.why, 'apex');
+  close(short.t, 0.815);
+  assert.equal(motionStop({ s0: 20, u: 0, a: -G }, 40, top).why, 'ground'); // falls away from the target
+  const up = motionStop({ s0: 20, u: 8, a: G }, 0, top); // accelerates upwards
+  assert.equal(up.why, 'offTop');
+  close(up.t, 0.826);
+  const dip = motionStop({ s0: 20, u: -8, a: G }, 0, top); // dips to 16.7 m, then climbs away
+  assert.equal(dip.why, 'apex');
+  close(dip.t, 0.815);
+  assert.equal(motionStop({ s0: 20, u: 8, a: G }, 40, top).why, 'offTop'); // passes the ruler top first
+});

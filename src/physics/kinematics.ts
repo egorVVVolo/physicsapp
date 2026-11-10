@@ -44,3 +44,60 @@ export function timeToReach(target: number, m: Motion): number | null {
   const positive = timesForDisplacement(target - m.s0, m.u, m.a).filter((t) => t > 1e-9);
   return positive.length ? Math.min(...positive) : null;
 }
+
+/** Solve s = ut + ½at² for u (t ≠ 0). */
+export function initialVelocityFor(s: number, a: number, t: number): number {
+  return (s - 0.5 * a * t * t) / t;
+}
+
+/**
+ * A motion shown on a scene between two clock times. Before `from` the body sits at its start,
+ * after `end` it stays where it stopped (for example on the ground).
+ */
+export type Track = { motion: Motion; from: number; end: number };
+
+export function trackPosition(t: number, tr: Track): number {
+  'worklet';
+  const tt = Math.min(Math.max(t, tr.from), tr.end) - tr.from;
+  return tr.motion.s0 + tr.motion.u * tt + 0.5 * tr.motion.a * tt * tt;
+}
+
+export function trackVelocity(t: number, tr: Track): number {
+  'worklet';
+  const tt = Math.min(Math.max(t, tr.from), tr.end) - tr.from;
+  return tr.motion.u + tr.motion.a * tt;
+}
+
+// The four equations of uniformly accelerated motion and the quantities each one contains.
+export type Quantity = 's' | 'u' | 'v' | 'a' | 't';
+export type RelationId = 'vuat' | 'sut' | 'v2as' | 'suvt';
+export const RELATIONS: Record<RelationId, { text: string; has: Quantity[] }> = {
+  vuat: { text: 'v = u + at', has: ['v', 'u', 'a', 't'] },
+  sut: { text: 's = ut + ½at²', has: ['s', 'u', 'a', 't'] },
+  v2as: { text: 'v² = u² + 2as', has: ['v', 'u', 'a', 's'] },
+  suvt: { text: 's = ½(u + v)t', has: ['s', 'u', 'v', 't'] },
+};
+
+/** True if the equation contains the unknown and every other quantity in it is known. */
+export function relationFits(id: RelationId, known: Quantity[], unknown: Quantity): boolean {
+  const has = RELATIONS[id].has;
+  return has.includes(unknown) && has.every((q) => q === unknown || known.includes(q));
+}
+
+export type Stop = { t: number; why: 'target' | 'ground' | 'offTop' | 'apex' };
+
+/**
+ * Where to stop the playback of a (possibly wrong) motion aimed at height `target`.
+ * If it gets there: at the target (or when it leaves the ruler, if that comes first).
+ * If it never gets there: at its turning point, else when it leaves the ruler, else on the ground.
+ */
+export function motionStop(m: Motion, target: number, worldTop: number): Stop {
+  const tTarget = timeToReach(target, m);
+  const tOff = timeToReach(worldTop, m);
+  if (tTarget !== null) return tOff !== null && tOff < tTarget ? { t: tOff, why: 'offTop' } : { t: tTarget, why: 'target' };
+  const tTurn = timeAtRest(m);
+  if (tTurn !== null && tTurn > 1e-9) return { t: tTurn, why: 'apex' };
+  if (tOff !== null) return { t: tOff, why: 'offTop' };
+  const tGround = timeToReach(0, m);
+  return tGround !== null ? { t: tGround, why: 'ground' } : { t: 1.5, why: 'apex' };
+}
