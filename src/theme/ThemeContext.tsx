@@ -1,21 +1,10 @@
-import { createContext, useContext, useState, type ReactNode } from 'react';
-import { palettes, type Palette, type PaletteId } from './tokens';
+import { palette, type Palette } from './tokens';
 
-type ThemeValue = { palette: Palette; paletteId: PaletteId; setPaletteId: (id: PaletteId) => void };
-
-const ThemeContext = createContext<ThemeValue | null>(null);
-
-export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [paletteId, setPaletteId] = useState<PaletteId>('A');
-  return (
-    <ThemeContext.Provider value={{ palette: palettes[paletteId], paletteId, setPaletteId }}>
-      {children}
-    </ThemeContext.Provider>
-  );
+/** One theme for the whole app. Kept as a hook so screens do not import tokens directly. */
+export function useTheme(): { palette: Palette } {
+  return { palette };
 }
 
-export function useTheme() {
-  const value = useContext(ThemeContext);
-  if (!value) throw new Error('useTheme must be used inside ThemeProvider');
-  return value;
+export function ThemeProvider({ children }: { children: React.ReactNode }) {
+  return <>{children}</>;
 }

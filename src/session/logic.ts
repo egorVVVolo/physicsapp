@@ -24,10 +24,15 @@ export function currentStep(s: SessionState, session: Session): Step | null {
   return s.retry && step.type === 'build' && step.retry ? step.retry : step;
 }
 
-/** Record a step's outcome. The retry step is practice: it never improves a "revealed". */
+/** Idea steps only teach: they have no answer, no outcome and are not counted. */
+export const isQuestion = (step: Step): boolean => step.type !== 'idea';
+
+export const questionCount = (session: Session): number => session.steps.filter(isQuestion).length;
+
+/** Record a step's outcome. The retry step is practice: it never improves a "revealed". Idea steps are ignored. */
 export function recordOutcome(s: SessionState, session: Session, outcome: Outcome): SessionState {
   const step = session.steps[s.index];
-  if (!step || s.retry) return s;
+  if (!step || s.retry || !isQuestion(step)) return s;
   return { ...s, outcomes: { ...s.outcomes, [step.id]: outcome } };
 }
 
@@ -39,6 +44,7 @@ export function nextStep(s: SessionState, session: Session): SessionState {
   return { ...s, index, retry: false, finished: index >= session.steps.length };
 }
 
+/** Counts the saved outcomes. Only question steps ever get one (see recordOutcome). */
 export function countOutcomes(s: SessionState): Record<Outcome, number> {
   const n = { independent: 0, assisted: 0, revealed: 0 };
   for (const o of Object.values(s.outcomes)) n[o] += 1;
@@ -62,7 +68,7 @@ export function parseProgress(json: string | null, lessonId: string, session: Se
   try {
     const p = JSON.parse(json) as SavedProgress;
     const st = p.state;
-    const ids = new Set(session.steps.map((x) => x.id));
+    const ids = new Set(session.steps.filter(isQuestion).map((x) => x.id)); // an idea step never has an outcome
     const outcomesOk = st && typeof st.outcomes === 'object' && Object.entries(st.outcomes).every(([id, o]) => ids.has(id) && ['independent', 'assisted', 'revealed'].includes(o));
     if (p.v !== 1 || p.lessonId !== lessonId || p.sessionId !== session.id || !outcomesOk) return null;
     if (!Number.isInteger(st.index) || st.index < 0 || st.index > session.steps.length) return null;

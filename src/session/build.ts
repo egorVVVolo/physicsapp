@@ -1,92 +1,104 @@
 // The "build the solution" step as a small state machine: pick the equation, fill it with
-// signed values, then read the result. Pure functions, no React.
-import { RELATIONS, relationFits, type Quantity, type RelationId } from '../physics/kinematics.ts';
-import type { BuildStep, Playback, Values } from '../content/types.ts';
+// signed values one at a time, then read the result. Every tap commits at once (no Check button),
+// and each stage is its own screen. Pure functions, no React.
+import { RELATIONS, relationFits, type RelationId } from '../physics/kinematics.ts';
+import type { BuildStep, Highlight, Playback, Values } from '../content/types.ts';
 import { laddered, type Outcome } from './logic.ts';
 
+export type BuildStage = 'relation' | 'slot' | 'final' | 'done';
+
 export type BuildState = {
-  stage: 'relation' | 'slots' | 'final' | 'done';
+  stage: BuildStage;
+  slotIndex: number; // which of step.slots is being filled (while stage is 'slot')
   relation: RelationId | null;
-  values: Values;
-  active: Quantity | null; // the slot being filled
-  finalId: string | null;
-  wrong: number; // wrong checks so far (help levels)
+  values: Values; // the slots filled so far
+  wrong: number; // wrong taps so far (help levels; the third one reveals)
   lost: number; // exam format: marks lost
-  marked: Quantity | null; // the slot pointed out as wrong
+  marked: boolean; // the last tap on this screen was wrong; the next tap clears it
   revealed: boolean;
 };
 
-export const initialBuild: BuildState = { stage: 'relation', relation: null, values: {}, active: null, finalId: null, wrong: 0, lost: 0, marked: null, revealed: false };
+export const initialBuild: BuildState = { stage: 'relation', slotIndex: 0, relation: null, values: {}, wrong: 0, lost: 0, marked: false, revealed: false };
 
 /** ok: true = right, false = wrong, null = a neutral note. */
 export type Verdict = { ok: boolean | null; text: string };
-export type CheckResult = { state: BuildState; verdict: Verdict | null; playback: Playback | null };
-
-export const pickRelation = (s: BuildState, relation: RelationId): BuildState => (s.stage === 'relation' ? { ...s, relation } : s);
-export const pickSlot = (s: BuildState, active: Quantity): BuildState => (s.stage === 'slots' ? { ...s, active } : s);
-export const pickFinal = (s: BuildState, finalId: string): BuildState => (s.stage === 'final' ? { ...s, finalId } : s);
-
-/** Put a value into the active slot and move on to the next empty one. */
-export function pickChip(step: BuildStep, s: BuildState, value: number): BuildState {
-  if (s.stage !== 'slots' || !s.active) return s;
-  const values = { ...s.values, [s.active]: value };
-  const nextEmpty = step.slots.find((sl) => values[sl.quantity] === undefined);
-  return { ...s, values, active: nextEmpty ? nextEmpty.quantity : s.active, marked: s.marked === s.active ? null : s.marked };
-}
-
-export function canCheck(step: BuildStep, s: BuildState): boolean {
-  if (s.stage === 'relation') return s.relation !== null;
-  if (s.stage === 'slots') return step.slots.every((sl) => s.values[sl.quantity] !== undefined);
-  return s.stage === 'final' && s.finalId !== null;
-}
+/** The result of one tap. `correct` is false for a wrong tap (and for a tap that does nothing). */
+export type Answered = { state: BuildState; verdict: Verdict | null; playback: Playback | null; correct: boolean };
 
 const correctRelation = (step: BuildStep) => step.relations.find((r) => relationFits(r.id, step.known, step.unknown))!.id;
 const correctValues = (step: BuildStep): Values => Object.fromEntries(step.slots.map((sl) => [sl.quantity, sl.correct]));
-const correctFinal = (step: BuildStep) => step.final.choices.find((c) => c.correct)!.id;
 
-export function check(step: BuildStep, s: BuildState): CheckResult {
-  if (!canCheck(step, s)) return { state: s, verdict: null, playback: null };
+const ignored = (s: BuildState): Answered => ({ state: s, verdict: null, playback: null, correct: false });
+const right = (state: BuildState, verdict: Verdict | null = null, playback: Playback | null = null): Answered => ({ state, verdict, playback, correct: true });
 
-  if (s.stage === 'relation') {
-    if (relationFits(s.relation!, step.known, step.unknown)) return { state: toSlots(step, s), verdict: null, playback: null };
-    return fail(step, s, step.relations.find((r) => r.id === s.relation)!.feedback, null);
-  }
-
-  if (s.stage === 'slots') {
-    const wrongSlots = step.slots.filter((sl) => s.values[sl.quantity] !== sl.correct);
-    if (wrongSlots.length === 0) return { state: { ...s, stage: 'final', active: null, marked: null }, verdict: null, playback: null };
-    const flipped = step.slots.every((sl) => s.values[sl.quantity] === -sl.correct);
-    if (flipped && step.flippedFeedback && !step.exam) return { state: s, verdict: { ok: null, text: step.flippedFeedback }, playback: null };
-    const first = wrongSlots[0];
-    const chip = first.chips.find((c) => c.value === s.values[first.quantity]);
-    const text = !step.exam && s.wrong === 1 && step.methodHint ? step.methodHint : chip?.feedback ?? '';
-    return fail(step, { ...s, marked: first.quantity, active: first.quantity }, text, step.exam ? null : step.wrongPlayback(s.values));
-  }
-
-  const choice = step.final.choices.find((c) => c.id === s.finalId)!;
-  if (choice.correct) return { state: { ...s, stage: 'done' }, verdict: { ok: true, text: choice.feedback }, playback: step.donePlayback() };
-  return fail(step, s, choice.feedback, null);
+/** The stage that follows slot number `index` (or the relation, with index -1). */
+function afterSlot(step: BuildStep, s: BuildState, index: number): BuildState {
+  const next = index + 1;
+  return next < step.slots.length ? { ...s, stage: 'slot', slotIndex: next } : { ...s, stage: 'final' };
 }
 
-function toSlots(step: BuildStep, s: BuildState): BuildState {
-  return { ...s, stage: 'slots', active: step.slots[0].quantity };
-}
-
-function fail(step: BuildStep, s: BuildState, text: string, playback: Playback | null): CheckResult {
-  const verdict: Verdict = { ok: false, text };
-  if (step.exam) {
-    // One attempt per part: the mark is lost, the part is corrected and the question moves on.
-    const lost = s.lost + 1;
-    if (s.stage === 'relation') return { state: toSlots(step, { ...s, lost, relation: correctRelation(step) }), verdict, playback: null };
-    if (s.stage === 'slots') return { state: { ...s, lost, stage: 'final', values: correctValues(step), active: null }, verdict, playback: null };
-    return { state: { ...s, lost, stage: 'done' }, verdict, playback: step.donePlayback() };
-  }
+/**
+ * A wrong tap. Exam format: one attempt per part, so a mark is lost, the right value is filled in
+ * and the question moves on. Otherwise: the first miss gets the specific feedback, the second the
+ * method hint, the third shows the full solution.
+ */
+function wrongTap(step: BuildStep, s: BuildState, feedback: string, playback: Playback | null, advance: BuildState, finalPlayback: Playback | null = null): Answered {
+  const verdict: Verdict = { ok: false, text: feedback };
+  if (step.exam) return { state: { ...advance, lost: s.lost + 1, marked: false }, verdict, playback: finalPlayback, correct: false };
   const wrong = s.wrong + 1;
   if (wrong >= 3) {
-    const state: BuildState = { ...s, wrong, stage: 'done', revealed: true, relation: correctRelation(step), values: correctValues(step), finalId: correctFinal(step), active: null, marked: null };
-    return { state, verdict: { ok: false, text: step.retry ? 'Here is the full solution. Next: the same problem with new numbers.' : 'Here is the full solution.' }, playback: step.donePlayback() };
+    const state: BuildState = { ...s, wrong, stage: 'done', revealed: true, marked: false, relation: correctRelation(step), values: correctValues(step) };
+    return { state, verdict: { ok: false, text: 'Here is the full solution.' }, playback: step.donePlayback(), correct: false };
   }
-  return { state: { ...s, wrong }, verdict, playback };
+  return { state: { ...s, wrong, marked: true }, verdict, playback, correct: false };
+}
+
+/** Second miss on a slot or an equation gets the method hint instead of the specific feedback. */
+const hintOr = (step: BuildStep, s: BuildState, text: string) => (s.wrong === 1 && step.methodHint ? step.methodHint : text);
+
+export function chooseRelation(step: BuildStep, s0: BuildState, id: RelationId): Answered {
+  if (s0.stage !== 'relation') return ignored(s0);
+  const s: BuildState = { ...s0, marked: false };
+  if (relationFits(id, step.known, step.unknown)) return right(afterSlot(step, { ...s, relation: id }, -1));
+  const feedback = step.relations.find((r) => r.id === id)?.feedback ?? '';
+  const advance = afterSlot(step, { ...s, relation: correctRelation(step) }, -1); // used in exam format only
+  return wrongTap(step, s, hintOr(step, s, feedback), null, advance);
+}
+
+/** A tap on a chip of the slot being filled (step.slots[s.slotIndex]). */
+export function chooseChip(step: BuildStep, s0: BuildState, value: number): Answered {
+  if (s0.stage !== 'slot') return ignored(s0);
+  const s: BuildState = { ...s0, marked: false };
+  const slot = step.slots[s.slotIndex];
+  if (value === slot.correct) return right(afterSlot(step, { ...s, values: { ...s.values, [slot.quantity]: value } }, s.slotIndex));
+  const chip = slot.chips.find((c) => c.value === value);
+  const advance = afterSlot(step, { ...s, values: { ...s.values, [slot.quantity]: slot.correct } }, s.slotIndex); // exam format only
+  // The wrong numbers play as a ghost: the motion they describe, next to the real one.
+  const playback = step.exam ? null : step.wrongPlayback({ ...s.values, [slot.quantity]: value });
+  return wrongTap(step, s, hintOr(step, s, chip?.feedback ?? ''), playback, advance);
+}
+
+export function chooseFinal(step: BuildStep, s0: BuildState, choiceId: string): Answered {
+  if (s0.stage !== 'final') return ignored(s0);
+  const s: BuildState = { ...s0, marked: false };
+  const choice = step.final.choices.find((c) => c.id === choiceId);
+  if (!choice) return ignored(s0);
+  if (choice.correct) return right({ ...s, stage: 'done' }, { ok: true, text: choice.feedback }, step.donePlayback());
+  // In exam format the question ends here, so the real motion plays; otherwise the learner tries again.
+  return wrongTap(step, s, choice.feedback, null, { ...s, stage: 'done' }, step.donePlayback());
+}
+
+/** The question for the screen the learner is on. */
+export function currentPrompt(step: BuildStep, s: BuildState): string {
+  if (s.stage === 'relation') return step.relationPrompt;
+  if (s.stage === 'slot') return step.slots[s.slotIndex].prompt;
+  if (s.stage === 'final') return step.final.prompt;
+  return step.exam ? `${step.exam.command} ${step.question}` : step.question; // 'done': the task itself stays on the stage
+}
+
+/** The quantity the scene points out while a slot is being filled. */
+export function currentHighlight(step: BuildStep, s: BuildState): Highlight {
+  return s.stage === 'slot' ? step.slots[s.slotIndex].highlight : null;
 }
 
 export function buildOutcome(step: BuildStep, s: BuildState): Outcome {

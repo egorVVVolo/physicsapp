@@ -1,24 +1,22 @@
-// Predict: pick an outcome, then watch it play. One attempt.
-import { useState } from 'react';
+// Predict: pick an answer card (the scene shows it as an arrow on the held sandbag), press "Let go", watch. One attempt.
+import { useState, type ReactNode } from 'react';
 import { View } from 'react-native';
 import type { Playback, PredictStep } from '@/content/types';
-import { SceneFrame, type FrameView } from '@/scene/SceneFrame';
+import { StageScreen } from '@/scene/StageScreen';
 import { useClock } from '@/scene/useClock';
-import type { Outcome } from '@/session/logic';
-import { Choice, ChoiceRow, Condition, PrimaryButton, PromptSlot } from '@/ui/parts';
-import { stepStyles } from './stepStyles';
+import { ArrowGlyph, Choice, ChoiceRow, FeedbackRow } from '@/ui/parts';
+import { nextLabel, stepStyles, type StepViewProps } from './stepStyles';
 
-export type StepViewProps<S> = { step: S; isLast: boolean; onDone: (outcome: Outcome) => void; onNext: () => void };
+export type { StepViewProps };
 
-export function PredictStepView({ step, isLast, onDone, onNext }: StepViewProps<PredictStep>) {
+export function PredictStepView({ step, isLast, progress, onDone, onNext }: StepViewProps<PredictStep>) {
   const clock = useClock();
   const [choiceId, setChoiceId] = useState<string | null>(null);
   const [playback, setPlayback] = useState<Playback | null>(null);
-  const [view, setView] = useState<FrameView>('scene');
-  const checked = playback !== null;
+  const released = playback !== null;
   const choice = step.options.find((o) => o.id === choiceId) ?? null;
 
-  function check() {
+  function letGo() {
     if (!choice) return;
     const next = step.playbackFor(choice.id);
     setPlayback(next);
@@ -26,31 +24,50 @@ export function PredictStepView({ step, isLast, onDone, onNext }: StepViewProps<
     onDone(choice.correct ? 'independent' : 'revealed');
   }
 
-  const long = step.options.some((o) => o.label.length > 14);
+  /** The glyph on a card follows the sign of the velocity the answer stands for. */
+  function glyphFor(id: string): ((color: string) => ReactNode) | undefined {
+    const v = step.preview(id);
+    if (v === null) return undefined;
+    const kind = v > 0 ? 'up' : v < 0 ? 'down' : 'dot';
+    return (color) => <ArrowGlyph kind={kind} color={color} />;
+  }
+
+  const primary = !released
+    ? { label: 'Let go', disabled: !choice, onPress: letGo }
+    : clock.status === 'ended'
+      ? { label: nextLabel(isLast), onPress: onNext }
+      : { label: 'Watch', disabled: true, onPress: () => {} };
+
   return (
-    <View style={stepStyles.step}>
-      <Condition text={step.condition} />
-      <SceneFrame scene={step.scene} playback={playback} clock={clock} view={view} onView={setView} hideVelocity />
-      <PromptSlot question={step.question} verdict={checked && choice ? { ok: choice.correct === true, text: choice.feedback } : null} />
-      <ChoiceRow>
-        {step.options.map((o) => (
-          <Choice
-            key={o.id}
-            label={o.label}
-            compact={long}
-            disabled={checked}
-            onPress={() => setChoiceId(o.id)}
-            state={checked ? (o.correct ? 'right' : o.id === choiceId ? 'wrong' : 'dim') : o.id === choiceId ? 'selected' : 'idle'}
-          />
-        ))}
-      </ChoiceRow>
-      {!checked ? (
-        <PrimaryButton label="Check" disabled={!choice} onPress={check} />
-      ) : clock.status === 'ended' ? (
-        <PrimaryButton label={isLast ? 'Finish' : 'Next'} onPress={onNext} />
-      ) : (
-        <PrimaryButton label="Watch" disabled onPress={() => {}} />
-      )}
-    </View>
+    <StageScreen
+      scene={step.scene}
+      playback={playback}
+      clock={clock}
+      title={step.question}
+      tag={step.sign}
+      facts={step.facts}
+      previewValue={!released && choice ? step.preview(choice.id) : null}
+      progress={progress}
+      primary={primary}
+    >
+      <View style={stepStyles.sheet}>
+        {!released ? (
+          <ChoiceRow>
+            {step.options.map((o) => (
+              <Choice
+                key={o.id}
+                label={o.label}
+                minHeight={78}
+                glyph={glyphFor(o.id)}
+                state={o.id === choiceId ? 'selected' : 'idle'}
+                onPress={() => setChoiceId(o.id)}
+              />
+            ))}
+          </ChoiceRow>
+        ) : (
+          choice && <FeedbackRow verdict={{ ok: choice.correct === true, text: choice.feedback }} reserve />
+        )}
+      </View>
+    </StageScreen>
   );
 }

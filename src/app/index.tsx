@@ -1,23 +1,22 @@
 // Start screen for the first lesson. The real Home (three lessons) comes with the next stage.
+// Same two-tone look as the lesson: a dark stage with the lesson in one picture, a light sheet with the button.
 import { useCallback, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import Svg, { Circle, Line, Path } from 'react-native-svg';
+import Svg, { ClipPath, Defs, Ellipse, G, Line, Path, Rect } from 'react-native-svg';
 import { APP_NAME } from '@/config';
-import { l4, W } from '@/content/l4';
-import { position } from '@/physics/kinematics';
-import { countOutcomes, type SavedProgress } from '@/session/logic';
+import { l4 } from '@/content/l4';
+import { countOutcomes, questionCount, type SavedProgress } from '@/session/logic';
 import { clearProgress, loadProgress } from '@/session/storage';
 import { useTheme } from '@/theme/ThemeContext';
-import { palettes, radius, touch, type Palette, type PaletteId } from '@/theme/tokens';
-import { PrimaryButton } from '@/ui/parts';
+import { touch, type Palette } from '@/theme/tokens';
+import { PrimaryButton, StageSheetLayout } from '@/ui/parts';
 
 const lesson = l4;
 const session = lesson.sessions[0];
 
 export default function Start() {
-  const { palette: p, paletteId, setPaletteId } = useTheme();
+  const { palette: p } = useTheme();
   const router = useRouter();
   const [saved, setSaved] = useState<SavedProgress | null>(null);
 
@@ -34,35 +33,36 @@ export default function Start() {
   const finished = saved?.state.finished === true;
   const started = saved !== null && !finished && (saved.state.index > 0 || Object.keys(saved.state.outcomes).length > 0);
   const n = saved ? countOutcomes(saved.state) : null;
-  const status = finished && n ? `Done: ${n.independent} of ${session.steps.length} steps on your own` : started ? `Step ${saved!.state.index + 1} of ${session.steps.length}` : `${session.steps.length} steps, about ${session.minutes} minutes`;
+  const status =
+    finished && n
+      ? `Done: ${n.independent} of ${questionCount(session)} questions on your own`
+      : started
+        ? `Step ${saved!.state.index + 1} of ${session.steps.length}`
+        : `${session.steps.length} steps, about ${session.minutes} minutes`;
 
   async function startAgain() {
     await clearProgress(lesson.id, session.id);
     router.push('/session');
   }
 
+  const stage = (
+    <View style={styles.stage}>
+      <Text style={[styles.app, { color: p.stageMuted }]}>{APP_NAME}</Text>
+      <View style={styles.picture} accessible accessibilityLabel="A sandbag leaves a rising balloon, climbs a little, then falls to the ground.">
+        <Flight palette={p} />
+      </View>
+      <View style={styles.words}>
+        <Text style={[styles.kicker, { color: p.vel }]}>Kinematics, lesson 4</Text>
+        <Text style={[styles.title, { color: p.stageText }]} accessibilityRole="header">
+          {lesson.title}
+        </Text>
+        <Text style={[styles.idea, { color: p.stageMuted }]}>A sandbag drops from a rising balloon. What happens next?</Text>
+      </View>
+    </View>
+  );
+
   return (
-    <SafeAreaView style={[styles.screen, { backgroundColor: p.bg }]} edges={['top', 'bottom']}>
-      <View style={styles.top}>
-        <Text style={[styles.app, { color: p.muted }]}>{APP_NAME}</Text>
-        <View style={[styles.segment, { borderColor: p.line }]}>
-          {(Object.keys(palettes) as PaletteId[]).map((id) => (
-            <Pressable key={id} accessibilityRole="button" accessibilityLabel={`Palette ${palettes[id].name}`} accessibilityState={{ selected: paletteId === id }} onPress={() => setPaletteId(id)} style={[styles.segBtn, paletteId === id && { backgroundColor: p.ink }]}>
-              <Text style={[styles.segText, { color: paletteId === id ? p.surface : p.ink }]}>{palettes[id].name}</Text>
-            </Pressable>
-          ))}
-        </View>
-      </View>
-
-      <View style={styles.body}>
-        <Text style={[styles.kicker, { color: p.velText }]}>Kinematics, lesson 4</Text>
-        <Text style={[styles.title, { color: p.ink }]} accessibilityRole="header">{lesson.title}</Text>
-        <Text style={[styles.idea, { color: p.ink }]}>A drone lets go of a package while it is still climbing. Where is the package a second later?</Text>
-        <View style={[styles.figure, { backgroundColor: p.sky, borderColor: p.line }]}>
-          <Flight palette={p} />
-        </View>
-      </View>
-
+    <StageSheetLayout stage={stage} grow="stage">
       <Text style={[styles.status, { color: p.muted }]}>{status}</Text>
       <PrimaryButton label={finished ? 'Play again' : started ? 'Continue' : 'Start'} onPress={finished ? startAgain : () => router.push('/session')} />
       {started && (
@@ -70,42 +70,61 @@ export default function Start() {
           <Text style={[styles.secondaryText, { color: p.ink }]}>Start from the beginning</Text>
         </Pressable>
       )}
-    </SafeAreaView>
+    </StageSheetLayout>
   );
 }
 
-/** The lesson in one picture: equal-time positions of the package, from the model. It rises before it falls. */
+/**
+ * The lesson in one flat picture: the balloon, and the dashed path of the sandbag.
+ * The path is drawn from the real motion (release at 20 m, 12 m/s up), spread sideways so up and down can be told apart.
+ */
 function Flight({ palette: p }: { palette: Palette }) {
-  const W_PX = 300;
-  const H_PX = 190;
-  const times = Array.from({ length: 13 }, (_, i) => (i * W.tLand) / 12);
-  const x = (t: number) => 24 + (t / W.tLand) * (W_PX - 48);
-  const y = (h: number) => H_PX - 22 - (h / 26) * (H_PX - 40);
-  const d = times.map((t, i) => `${i ? 'L' : 'M'}${x(t).toFixed(1)},${y(position(t, W.real)).toFixed(1)}`).join(' ');
+  const W_PX = 320;
+  const H_PX = 230;
+  const ground = 214;
+  const release = 134; // y of the release point
+  const k = 3.9; // pixels per metre
+  const tEnd = (12 + Math.sqrt(144 + 4 * 4.905 * 20)) / 9.81; // lands after about 3.6 s
+  const points = Array.from({ length: 25 }, (_, i) => {
+    const t = (i / 24) * tEnd;
+    const h = 12 * t - 4.905 * t * t; // height above the release point
+    return `${i ? 'L' : 'M'}${(112 + (t / tEnd) * 150).toFixed(1)},${(release - h * k).toFixed(1)}`;
+  }).join(' ');
   return (
     <Svg width="100%" height="100%" viewBox={`0 0 ${W_PX} ${H_PX}`}>
-      <Line x1={12} y1={y(0)} x2={W_PX - 12} y2={y(0)} stroke={p.ink} strokeWidth={2.5} />
-      <Line x1={12} y1={y(W.h0)} x2={W_PX - 12} y2={y(W.h0)} stroke={p.muted} strokeWidth={1} strokeDasharray="3 5" />
-      <Path d={d} fill="none" stroke={p.vel} strokeWidth={2} opacity={0.45} />
-      {times.map((t, i) => (
-        <Circle key={i} cx={x(t)} cy={y(position(t, W.real))} r={i === 0 ? 7 : 4.5} fill={i === 0 ? p.ink : p.vel} />
-      ))}
+      <Defs>
+        <ClipPath id="envelope">
+          <Path d="M0,-238 C56,-238 64,-186 56,-154 C50,-130 24,-118 12,-110 L-12,-110 C-24,-118 -50,-130 -56,-154 C-64,-186 -56,-238 0,-238Z" />
+        </ClipPath>
+      </Defs>
+      <Line x1={0} y1={ground} x2={W_PX} y2={ground} stroke={p.stageGroundLine} strokeWidth={2} />
+      <Path d={points} stroke={p.vel} strokeWidth={2.5} strokeDasharray="2 7" strokeLinecap="round" fill="none" />
+      <Rect x={256} y={ground - 12} width={14} height={12} rx={4} fill={p.sack} />
+      {/* the balloon: origin at the bottom of the basket */}
+      <G transform={`translate(96 ${release + 22}) scale(0.5)`}>
+        <Path d="M-13,-30 L-11,-110 M13,-30 L11,-110" stroke={p.rope} strokeWidth={2.5} strokeLinecap="round" />
+        <Path d="M0,-238 C56,-238 64,-186 56,-154 C50,-130 24,-118 12,-110 L-12,-110 C-24,-118 -50,-130 -56,-154 C-64,-186 -56,-238 0,-238Z" fill={p.balloon} />
+        <G clipPath="url(#envelope)">
+          <Ellipse cx={50} cy={-172} rx={30} ry={82} fill={p.balloonShade} opacity={0.75} />
+          <Path d="M0,-238 C-14,-206 -16,-170 -9,-146 Q0,-140 9,-146 C16,-170 14,-206 0,-238Z" fill={p.acc} />
+        </G>
+        <Rect x={-18} y={-30} width={36} height={28} rx={5} fill={p.kraft} />
+        <Rect x={-18} y={-30} width={36} height={8} rx={4} fill={p.kraftDark} />
+      </G>
+      {/* the sandbag at the moment of release */}
+      <Rect x={105} y={release - 6} width={14} height={12} rx={4} fill={p.sack} />
     </Svg>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, paddingHorizontal: 20, paddingBottom: 12, gap: 10 },
-  top: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', minHeight: touch },
+  stage: { flex: 1, paddingHorizontal: 20, paddingTop: 12, gap: 8 },
   app: { fontSize: 15, fontWeight: '700' },
-  segment: { flexDirection: 'row', borderWidth: 1.5, borderRadius: 999, overflow: 'hidden' },
-  segBtn: { minHeight: touch, minWidth: 52, paddingHorizontal: 12, alignItems: 'center', justifyContent: 'center' },
-  segText: { fontSize: 14, fontWeight: '700' },
-  body: { flex: 1, justifyContent: 'center', gap: 8 },
+  picture: { flex: 1, minHeight: 160 },
+  words: { gap: 6 },
   kicker: { fontSize: 15, fontWeight: '700' },
-  title: { fontSize: 44, lineHeight: 46, fontWeight: '800', letterSpacing: -1.2 },
-  idea: { fontSize: 17, lineHeight: 24, marginTop: 4 },
-  figure: { height: 200, borderWidth: 1.5, borderRadius: radius.l, marginTop: 12, padding: 4 },
+  title: { fontSize: 40, lineHeight: 44, fontWeight: '800', letterSpacing: -1 },
+  idea: { fontSize: 17, lineHeight: 24 },
   status: { fontSize: 14, textAlign: 'center' },
   secondary: { minHeight: touch, alignItems: 'center', justifyContent: 'center' },
   secondaryText: { fontSize: 15, fontWeight: '700' },

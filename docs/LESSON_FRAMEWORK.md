@@ -43,6 +43,13 @@ Agreed with Egor after the visuals research (`docs/research/visuals-2026-11-09.m
 - **The "wow" checkpoint** is one full Core session played on a phone.
 - The sections below were rewritten on 10 Nov to match. Section 14 (reference lesson L2) is **not yet rewritten** and must not be copied.
 
+**Decisions of 10 Nov, evening (design pass after the first L4 build, owner verdict "ugly, overloaded, childish")**
+- **Lesson flow is idea → question, repeated** (one idea on one screen, shown on the scene with one sentence, then a question that checks it), then spot-error and an exam-format step. This replaces "problem first, example only after an error" for the pilot. Idea steps have no outcome and are not counted in the honest tally.
+- **Look:** a dark stage (scene + progress + centred question) over a light sheet (answers, feedback, one primary button). Colours carry meaning only: velocity cyan, acceleration coral, right green, wrong rose. No paragraph conditions (givens live on the scene or as small pills), no trail dots, no readout row, no graph switch in a step. Feedback ≤ 45 characters, captions ≤ 38, idea line ≤ 70, question ≤ 48.
+- **Interaction:** a chosen answer shows live on the scene before it is committed (an arrow on the held object); the button is named by the action ("Let go"); in the build step every stage is its own screen and a tap on a choice commits at once.
+- **Carrier is a hot-air balloon** (sandbag released from a rising balloon). Illustrations are simple, flat, soft shapes; anything more detailed needs an asset from the owner.
+- The sections below that describe the older layout (graph switch, readout, conditions) are superseded by this block where they conflict.
+
 ## 2. Learner model
 
 The **default reader is the Intermediate learner**: a strong A-level student who knows the formulas and makes the classic mistakes. The pilot runs in a strong school, where the main risk is "too easy".
