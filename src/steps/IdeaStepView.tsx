@@ -1,5 +1,6 @@
 // Idea: one short thought, shown on the scene. The scene plays by itself and repeats. No answer, no outcome.
 import { useEffect } from 'react';
+import { useReducedMotion } from 'react-native-reanimated';
 import type { IdeaStep } from '@/content/types';
 import { StageScreen } from '@/scene/StageScreen';
 import { useClock } from '@/scene/useClock';
@@ -10,6 +11,7 @@ const REPEAT_AFTER_MS = 1600;
 export function IdeaStepView({ step, isLast, progress, onNext }: StepViewProps<IdeaStep>) {
   const clock = useClock();
   const { play, status } = clock;
+  const reduced = useReducedMotion();
 
   // play once when the screen opens
   useEffect(() => {
@@ -18,10 +20,10 @@ export function IdeaStepView({ step, isLast, progress, onNext }: StepViewProps<I
 
   // when it ends, wait a moment and play again
   useEffect(() => {
-    if (status !== 'ended') return;
+    if (status !== 'ended' || reduced) return; // with reduced motion it plays once; the replay button is still there
     const id = setTimeout(() => play(step.playback.events), REPEAT_AFTER_MS);
     return () => clearTimeout(id);
-  }, [status, play, step]);
+  }, [status, play, step, reduced]);
 
   return (
     <StageScreen

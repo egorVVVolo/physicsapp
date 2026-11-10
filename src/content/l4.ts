@@ -68,7 +68,7 @@ export const ideaRelease: IdeaStep = {
     events: [{ t: W.tTop, id: 'top' }, { t: W.tTop + 0.6, id: 'after', end: true }],
     captions: {
       top: `It rose ${fixed(W.hTop - W.h0, 1)} m after the release`,
-      after: 'Only then does it turn back down',
+      after: 'Then it falls back down',
     },
     endT: W.tTop + 0.6,
     ...real(W, W.tTop + 0.6),
@@ -89,7 +89,7 @@ export const hook: PredictStep = {
   options: [
     { id: 'zero', label: `0 ${MS}`, misconception: 'K-RELEASE-REST', feedback: 'Not from rest: it rises with the balloon.' },
     { id: 'up', label: `${W.speed} up`, correct: true, feedback: `Same as the balloon: ${W.speed} up.` },
-    { id: 'down', label: `${W.speed} down`, misconception: 'K-ACC-DIR', feedback: 'Letting go changes forces, not velocity.' },
+    { id: 'down', label: `${W.speed} down`, misconception: 'K-RELEASE-REST', feedback: 'Letting go changes forces, not velocity.' },
   ],
   // The chosen velocity shows as an arrow on the sandbag before it is let go.
   preview: (optionId) => hookU[optionId] ?? null,
@@ -108,7 +108,7 @@ export const hook: PredictStep = {
       endT,
       captions: {
         top: `It rose ${fixed(W.hTop - W.h0, 1)} m first`,
-        ghostLand: `${correct ? 'From rest it lands' : 'Yours lands'}. Real: ${stillUp} m up`,
+        ghostLand: `${correct ? 'From rest it lands' : 'Yours lands'}. Real: ${stillUp} m high`,
       },
       ...real(W, endT),
       companion: { track: { motion: ghost, from: 0, end: endT }, label: correct ? 'from rest' : 'your answer', kind: 'ghost' },
@@ -290,13 +290,13 @@ function buildTime(w: World, id: string): BuildStep {
       const at = fixed(stop.t, 2);
       let caption: string;
       if (stop.why === 'target') {
-        caption = target === 0 ? `Yours lands at ${at} s. Real: ${realH} m up` : `Yours gets to ${m(sValue)} at ${at} s`;
+        caption = target === 0 ? `Lands at ${at} s. Real: ${realH} m high` : `Yours gets to ${m(sValue)} at ${at} s`;
       } else if (stop.why === 'offTop') {
         caption = 'Yours leaves the frame. No landing.';
       } else if (stop.why === 'apex') {
         if (ghost.u === 0 && ghost.a === 0) caption = 'Yours never moves: u = 0 and a = 0';
         else if (target > h0) caption = `Peaks at ${signed(hStop - h0, 1)} m: never reaches ${m(sValue)}`;
-        else caption = `Yours turns at ${fixed(hStop, 1)} m. Never lands.`;
+        else caption = `Yours turns at ${fixed(hStop, 1)} m high.`;
       } else {
         caption = `Yours falls. It never gets to ${m(sValue)}`;
       }
@@ -345,7 +345,7 @@ export const spotError: SpotErrorStep = {
     { id: '1', text: `u = ${signed(W.vb, 1)},  a = ${signed(-G, 2)},  s = ${signed(-W.h0, 0)}`, feedback: 'Fine: the ground is below, so s < 0.' },
     { id: '2', text: `v² = ${fixed(W.vb, 1)}² + 2(${fixed(-G, 2)})(${fixed(-W.h0, 0)}) = ${fixed(v2, 0)}`, feedback: 'Fine: a and s are both negative.' },
     { id: '3', text: `v = √${fixed(v2, 0)} = ${signed(vUp, 1)} ${MS}`, wrong: true, feedback: `√ gives ±${fixed(vUp, 1)}. Moving down: v = ${signed(W.vLand, 1)}` },
-    { id: '4', text: `t = (${fixed(vUp, 1)} − ${fixed(W.vb, 1)}) / (${fixed(-G, 2)}) = ${fixed(studentT, 2)} s`, feedback: 'Fine: the wrong v came from line 3.' },
+    { id: '4', text: `t = (${fixed(vUp, 1)} − ${fixed(W.vb, 1)}) / (${fixed(-G, 2)}) = ${fixed(studentT, 2)} s`, feedback: 'Sums fine. Negative t comes from line 3.' },
   ],
   methodHint: 'Which way does it move at the ground?',
   worked: [
@@ -387,7 +387,7 @@ export const exam: BuildStep = {
     secretCarrierSpeed: true, // the balloon's velocity arrow would give the answer away
   },
   sign: true,
-  facts: [`lands after ${fixed(EXAM_T, 1)} s`],
+  facts: [`sandbag lands after ${fixed(EXAM_T, 1)} s`],
   unknown: 'u',
   known: ['s', 'a', 't'],
   relationPrompt: 'Known s, a, t. Which gives u?',
@@ -440,7 +440,7 @@ export const exam: BuildStep = {
       events: [{ t: examTop, id: 'top' }, { t: EXAM_T, id: 'land', end: true }],
       endT: EXAM_T,
       captions: {
-        top: `Top: ${fixed(position(examTop, examBody), 1)} m. It rose first`,
+        top: `Top: ${fixed(position(examTop, examBody), 1)} m high. It rose first`,
         land: `Lands at ${fixed(EXAM_T, 1)} s: u = ${signed(examU, 1)} ${MS}`,
       },
       real: { motion: examBody, from: 0, end: EXAM_T },

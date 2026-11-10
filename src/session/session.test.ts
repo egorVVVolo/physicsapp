@@ -203,3 +203,11 @@ test('saved progress: round trip, and anything unexpected starts from the beginn
   assert.equal(parseProgress(json.replace('hook', 'idea-sign'), l4.id, core), null, 'an idea step never has an outcome');
   assert.equal(parseProgress(json, 'other-lesson', core), null);
 });
+
+test('recordOutcome keeps the first outcome of a step (a replay after resume cannot rewrite it)', () => {
+  let s: SessionState = startState;
+  s = nextStep(s, core); // idea-release done: the hook question is current
+  s = recordOutcome(s, core, 'revealed');
+  s = recordOutcome(s, core, 'independent');
+  assert.equal(s.outcomes.hook, 'revealed');
+});

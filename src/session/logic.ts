@@ -33,6 +33,7 @@ export const questionCount = (session: Session): number => session.steps.filter(
 export function recordOutcome(s: SessionState, session: Session, outcome: Outcome): SessionState {
   const step = session.steps[s.index];
   if (!step || s.retry || !isQuestion(step)) return s;
+  if (s.outcomes[step.id] !== undefined) return s; // the first honest outcome stays, even if the step is replayed after a resume
   return { ...s, outcomes: { ...s.outcomes, [step.id]: outcome } };
 }
 

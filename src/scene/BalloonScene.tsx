@@ -5,6 +5,7 @@
 // Units: the picture is in screen points. "Origin" of the balloon = the bottom of the hanging sandbag,
 // so the sandbag's height in metres is also the balloon's origin height.
 import { useState } from 'react';
+import { Platform } from 'react-native';
 import Animated, {
   useAnimatedProps,
   useAnimatedReaction,
@@ -25,7 +26,12 @@ import { svgFont } from '@/theme/svgFont';
 /** Outline of the balloon envelope, in balloon units (origin: bottom of the sandbag, up is negative). */
 const ENVELOPE = 'M0,-238 C56,-238 64,-186 56,-154 C50,-130 24,-118 12,-110 L-12,-110 C-24,-118 -50,-130 -56,-154 C-64,-186 -56,-238 0,-238Z';
 
-const AG = Animated.createAnimatedComponent(G);
+// Animated props write the native `matrix` prop of <G> directly (a JS `transform` array is only converted in G.setNativeProps,
+// which Reanimated bypasses on native). The G typings do not list `matrix`, so the component is typed loosely.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const AG = Animated.createAnimatedComponent(G) as unknown as React.ComponentType<any>;
+/** Which prop carries the animated transform: web renders `transform` (a `matrix` prop is ignored there), phones need `matrix`. */
+const MK = Platform.OS === 'web' ? 'transform' : 'matrix';
 const APath = Animated.createAnimatedComponent(Path);
 const AText = Animated.createAnimatedComponent(Text);
 
@@ -98,9 +104,10 @@ export function BalloonScene({ t, width, height, topInset, bottomInset, compact,
   const peak = body.a < 0 && body.u > 0 ? h0 + (body.u * body.u) / (-2 * body.a) : h0; // highest point of the sandbag
   // metre scale: at the release height the balloon's top is just below the title area, and the top of the throw stays visible
   const raw = (ground - topInset - balloonH - 4) / h0;
-  const pxm = Math.min(clamp(raw, compact ? 1.5 : 2.4, 7), (ground - topInset - 34) / peak);
+  // the floor is low on purpose: on a short phone or with large fonts the scale must shrink so the balloon never rises into the title
+  const pxm = Math.max(0.8, Math.min(clamp(raw, 0.8, 7), (ground - topInset - 34) / peak));
   const px = Math.round(width * 0.48); // x of the balloon and the sandbag
-  const gx = Math.round(width * 0.8); // x of the second (ghost) lane
+  const gx = Math.min(Math.round(width * 0.8), width - 104); // ghost lane: keeps its label clear of the replay button
   const yOf = (m: number) => {
     'worklet';
     return ground - m * pxm;
@@ -117,15 +124,15 @@ export function BalloonScene({ t, width, height, topInset, bottomInset, compact,
   const balloonProps = useAnimatedProps(() => {
     const time = playback ? t.value : 0;
     const yb = yOf(position(time, carrier));
-    return { transform: [1, 0, 0, 1, px, yb] as Matrix, opacity: clamp((yb - balloonH - (fadeFrom - 36)) / 36, 0, 1) };
+    return { [MK]: [1, 0, 0, 1, px, yb] as Matrix, opacity: clamp((yb - balloonH - (fadeFrom - 36)) / 36, 0, 1) };
   });
   const envelopeSway = useAnimatedProps(() => ({
-    transform: rot(1.5 * Math.sin(sw.value * 1.9) + 0.6 * Math.sin(sw.value * 3.1 + 1), 0, -81 * bs),
+    [MK]: rot(1.5 * Math.sin(sw.value * 1.9) + 0.6 * Math.sin(sw.value * 3.1 + 1), 0, -81 * bs),
   }));
-  const basketSway = useAnimatedProps(() => ({ transform: rot(2.6 * Math.sin(sw.value * 2.4 + 0.8), 0, -103 * bs) }));
+  const basketSway = useAnimatedProps(() => ({ [MK]: rot(2.6 * Math.sin(sw.value * 2.4 + 0.8), 0, -103 * bs) }));
   const flameProps = useAnimatedProps(() => {
     const flicker = 1 + 0.22 * Math.sin(sw.value * 23) + 0.16 * Math.sin(sw.value * 37 + 2);
-    return { transform: [1 - 0.05 * Math.sin(sw.value * 29), 0, 0, flicker, 0, -110] as Matrix };
+    return { [MK]: [1 - 0.05 * Math.sin(sw.value * 29), 0, 0, flicker, 0, -110] as Matrix };
   });
 
   const dimLabel = `${fixed(h0, 0)} m`;
@@ -310,7 +317,7 @@ function FallingBag({ t, real, yOf, px, ground, bagK, bagMid, showAcc, reduced, 
     const y = yOf(Math.max(0, trackPosition(time, real)));
     const landing = clamp((real.end - time) / 0.15, 0, 1); // the tumble stops as it lands
     const deg = reduced ? 0 : 9 * Math.sin(time * 3.2) * Math.min(1, time * 2) * landing;
-    return { transform: rot(deg, 0, -bagMid, px, y) };
+    return { [MK]: rot(deg, 0, -bagMid, px, y) };
   });
   const midY = (time: number) => {
     'worklet';
@@ -366,7 +373,7 @@ type CompanionProps = {
 function Companion({ t, track, kind, x, yOf, bagK, p }: CompanionProps) {
   const props = useAnimatedProps(() => {
     const y = yOf(Math.max(0, trackPosition(t.value, track)));
-    return { transform: [1, 0, 0, 1, x, y] as Matrix, opacity: t.value >= track.from ? 1 : 0 };
+    return { [MK]: [1, 0, 0, 1, x, y] as Matrix, opacity: t.value >= track.from ? 1 : 0 };
   });
   return (
     <AG animatedProps={props}>

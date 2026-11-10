@@ -1,7 +1,7 @@
 // Small pieces the step screens, the start screen and the wrap-up share:
 // answer cards, the feedback line, arrow glyphs, status marks, the one main button, the dark/light page layout.
 import { Children, useEffect, useRef, type ReactNode } from 'react';
-import { Animated, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { AccessibilityInfo, Animated, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Circle, Path } from 'react-native-svg';
 import { useTheme } from '@/theme/ThemeContext';
@@ -76,7 +76,14 @@ export function Choice({ label, state, disabled, onPress, glyph, minHeight = 56 
   useEffect(() => {
     if (state !== 'wrong') return;
     const step = (to: number) => Animated.timing(shake, { toValue: to, duration: 55, useNativeDriver: Platform.OS !== 'web' });
-    Animated.sequence([step(-6), step(6), step(-4), step(3), step(0)]).start();
+    let cancelled = false;
+    // a wrong card shakes once, unless the system asks for reduced motion
+    AccessibilityInfo.isReduceMotionEnabled().then((reduced) => {
+      if (!cancelled && !reduced) Animated.sequence([step(-6), step(6), step(-4), step(3), step(0)]).start();
+    });
+    return () => {
+      cancelled = true;
+    };
   }, [state, shake]);
 
   const border = state === 'right' ? p.ok : state === 'wrong' ? p.bad : state === 'selected' ? p.ink : p.line;
@@ -135,6 +142,10 @@ export function ChoiceRow({ children, columns }: { children: ReactNode; columns?
 /** One line of feedback: a round icon, then the sentence. `reserve` keeps the space when there is nothing to say, so nothing jumps. */
 export function FeedbackRow({ verdict, reserve }: { verdict: FeedbackVerdict | null; reserve?: boolean }) {
   const { palette: p } = useTheme();
+  // iOS ignores accessibilityLiveRegion, so the verdict is also announced explicitly
+  useEffect(() => {
+    if (verdict) AccessibilityInfo.announceForAccessibility((verdict.ok === true ? 'Correct. ' : verdict.ok === false ? 'Incorrect. ' : '') + verdict.text);
+  }, [verdict?.text, verdict?.ok]);
   if (!verdict) return reserve ? <View style={styles.feedback} accessibilityLiveRegion="polite" /> : null;
   const ok = verdict.ok;
   return (

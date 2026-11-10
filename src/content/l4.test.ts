@@ -179,7 +179,7 @@ test('exam step: u from the model lands the sandbag at the given time, and it is
   assert.ok(exam.solved.includes(fixed(examU, 1)));
   assert.equal(exam.scene.secretCarrierSpeed, true, 'the balloon’s velocity arrow would give the answer away');
   assert.deepEqual(exam.exam, { command: 'Determine', marks: 3 });
-  assert.deepEqual(exam.facts, [`lands after ${fixed(EXAM_T, 1)} s`]);
+  assert.deepEqual(exam.facts, [`sandbag lands after ${fixed(EXAM_T, 1)} s`]);
   assert.equal(exam.scene.body.s0, EXAM_H);
   assert.equal(exam.given!.value, EXAM_T);
 });

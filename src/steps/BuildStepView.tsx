@@ -187,7 +187,7 @@ function Equation({ step, s, activeQuantity }: { step: BuildStep; s: BuildState;
     );
   });
   return (
-    <Text style={[styles.equation, { color: p.ink }]} maxFontSizeMultiplier={1.2} accessibilityLabel="Equation">
+    <Text style={[styles.equation, { color: p.ink }]} maxFontSizeMultiplier={1.2}>
       {parts}
     </Text>
   );

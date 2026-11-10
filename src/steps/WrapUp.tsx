@@ -28,7 +28,7 @@ export function WrapUp({ session, state, survey, onSurvey, onClose }: Props) {
       <Pressable accessibilityRole="button" accessibilityLabel="Close" onPress={onClose} style={styles.close} hitSlop={6}>
         <CloseIcon color={p.stageText} />
       </Pressable>
-      <Text style={[styles.title, { color: p.stageText }]} accessibilityRole="header">
+      <Text style={[styles.title, { color: p.stageText }]} accessibilityRole="header" maxFontSizeMultiplier={1.2}>
         You can now
       </Text>
       {session.youCanNow.map((line) => (

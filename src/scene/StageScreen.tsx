@@ -88,19 +88,19 @@ export function StageScreen(props: StageScreenProps) {
             </View>
           </View>
 
-          <Text style={[styles.title, { color: p.stageText }]} accessibilityRole="header">{title}</Text>
-          {line ? <Text style={[styles.line, { color: p.stageMuted }]}>{line}</Text> : null}
+          <Text style={[styles.title, { color: p.stageText }]} accessibilityRole="header" maxFontSizeMultiplier={1.2}>{title}</Text>
+          {line ? <Text style={[styles.line, { color: p.stageMuted }]} maxFontSizeMultiplier={1.2}>{line}</Text> : null}
 
           {/* one info row: the given facts, or the event caption while one is showing (never both) */}
           <View style={styles.infoRow} pointerEvents="none">
             {caption ? (
               <View style={[styles.pill, { backgroundColor: 'rgba(255,255,255,0.12)', borderColor: 'transparent' }]}>
-                <Text style={[styles.pillText, { color: p.stageText }]}>{caption}</Text>
+                <Text style={[styles.pillText, { color: p.stageText }]} maxFontSizeMultiplier={1.2}>{caption}</Text>
               </View>
             ) : (
               pills.map((f) => (
                 <View key={f} style={styles.pill}>
-                  <Text style={[styles.pillText, { color: p.stageMuted }]}>{f}</Text>
+                  <Text style={[styles.pillText, { color: p.stageMuted }]} maxFontSizeMultiplier={1.2}>{f}</Text>
                 </View>
               ))
             )}

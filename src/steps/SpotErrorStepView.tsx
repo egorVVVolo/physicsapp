@@ -66,6 +66,8 @@ export function SpotErrorStepView({ step, isLast, progress, onDone, onNext }: St
       primary={primary}
     >
       <View style={stepStyles.sheet}>
+        {/* the verdict goes first: on a short phone the last line is the part that may scroll, never the feedback */}
+        <FeedbackRow reserve verdict={verdict} />
         {revealed ? (
           <View style={styles.worked}>
             {step.worked.map((line, i) => (
@@ -94,7 +96,7 @@ export function SpotErrorStepView({ step, isLast, progress, onDone, onNext }: St
                   }}
                   style={[
                     styles.line,
-                    { backgroundColor: isError ? p.badBg : p.card, borderColor: border, borderWidth: isError || isSelected ? 2.5 : 1.5, opacity: isCleared ? 0.65 : 1 },
+                    { backgroundColor: isError ? p.badBg : p.card, borderColor: border, borderWidth: isError || isSelected ? 2.5 : 1.5 },
                   ]}
                 >
                   <View style={styles.mark}>
@@ -114,7 +116,6 @@ export function SpotErrorStepView({ step, isLast, progress, onDone, onNext }: St
             })}
           </View>
         )}
-        <FeedbackRow reserve verdict={verdict} />
       </View>
     </StageScreen>
   );
