@@ -1,73 +1,71 @@
 // Prototype lesson step built on the agreed rules: big scene, one object in focus,
 // graph as a separate view, one screen, auto-continuing playback, ghost of a wrong answer.
-import { useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useMemo, useState } from 'react';
+import { Pressable, StyleSheet, Text, View, type LayoutChangeEvent } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
-import { useAnimatedReaction } from 'react-native-reanimated';
+import { useAnimatedReaction, type SharedValue } from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { condition, options, playbackFor, question, realBag, tLandReal, type Option } from '@/content/balloon';
+import { condition, H0, options, playbackFor, question, realBody, sceneDescription, tLandReal, type Option, type Playback } from '@/content/drop';
+import { fixed, signed } from '@/physics/format';
 import { position, velocity } from '@/physics/kinematics';
-import { BalloonScene } from '@/scene/BalloonScene';
-import { HeightGraph } from '@/scene/HeightGraph';
-import { useClock } from '@/scene/useClock';
+import { DropScene } from '@/scene/DropScene';
+import { GRAPH_LEFT, GRAPH_RIGHT_PAD, HeightGraph } from '@/scene/HeightGraph';
+import { useClock, type ClockStatus } from '@/scene/useClock';
 import { useTheme } from '@/theme/ThemeContext';
-import { palettes, radius, touch, type PaletteId } from '@/theme/tokens';
+import { palettes, radius, touch, type Palette, type PaletteId } from '@/theme/tokens';
 
 export default function LessonStep() {
   const { palette: p, paletteId, setPaletteId } = useTheme();
   const clock = useClock();
   const [choice, setChoice] = useState<Option | null>(null);
-  const [checked, setChecked] = useState(false);
+  const [plan, setPlan] = useState<Playback | null>(null);
   const [view, setView] = useState<'scene' | 'graph'>('scene');
-  const [endT, setEndT] = useState(0);
-  const [captions, setCaptions] = useState<Record<string, string>>({});
-  const [shownT, setShownT] = useState(0);
+  const [size, setSize] = useState({ width: 0, height: 0 });
 
-  useAnimatedReaction(
-    () => Math.round(clock.t.value * 100) / 100,
-    (now, prev) => {
-      if (now !== prev) scheduleOnRN(setShownT, now);
-    },
-  );
-
-  const ghostU = checked && choice && !choice.correct ? choice.u : null;
+  const checked = plan !== null;
   const ended = clock.status === 'ended';
+  const paused = clock.status === 'paused';
+  const caption = plan && clock.eventId ? plan.captions[clock.eventId] ?? null : null;
 
   function check() {
     if (!choice) return;
-    const plan = playbackFor(choice);
-    setCaptions(plan.captions);
-    setEndT(plan.endT);
-    setChecked(true);
-    clock.play(plan.events);
+    const next = playbackFor(choice);
+    setPlan(next);
+    clock.play(next.events);
   }
   function restart() {
     clock.reset();
-    setChecked(false);
+    setPlan(null);
     setChoice(null);
     setView('scene');
   }
+  function onLayout(e: LayoutChangeEvent) {
+    const { width, height } = e.nativeEvent.layout;
+    if (Math.abs(width - size.width) > 0.5 || Math.abs(height - size.height) > 0.5) setSize({ width, height });
+  }
 
+  // Tap the scene: pause / resume. After the end: drag sideways to move through time.
   const t = clock.t;
-  const tap = Gesture.Tap().onEnd(() => {
-    scheduleOnRN(clock.togglePause);
-  });
-  const scrub = Gesture.Pan()
-    .enabled(ended)
-    .minDistance(4)
-    .onChange((e) => {
-      t.value = Math.max(0, Math.min(endT, t.value + (e.changeX / 280) * endT));
-    })
-    .onBegin(() => {
-      scheduleOnRN(clock.setEventId, null);
+  const endT = plan?.endT ?? 0;
+  const pxPerSecond =
+    view === 'graph' && plan ? (size.width - GRAPH_LEFT - GRAPH_RIGHT_PAD) / plan.graph.tMax : endT > 0 ? size.width / endT : 1;
+  const { togglePause, setEventId } = clock;
+  const gestures = useMemo(() => {
+    const tap = Gesture.Tap().onEnd(() => {
+      scheduleOnRN(togglePause);
     });
-  const gestures = Gesture.Race(scrub, tap);
-
-  const tt = Math.min(shownT, tLandReal);
-  const h = position(tt, realBag);
-  const v = velocity(tt, realBag);
-  const caption = clock.eventId ? captions[clock.eventId] ?? null : null;
+    const scrub = Gesture.Pan()
+      .enabled(ended)
+      .minDistance(6)
+      .onStart(() => {
+        scheduleOnRN(setEventId, null);
+      })
+      .onChange((e) => {
+        t.value = Math.max(0, Math.min(endT, t.value + e.changeX / pxPerSecond));
+      });
+    return Gesture.Race(scrub, tap);
+  }, [ended, endT, pxPerSecond, t, togglePause, setEventId]);
 
   const primary = !checked
     ? { label: 'Check', disabled: !choice, onPress: check }
@@ -78,16 +76,13 @@ export default function LessonStep() {
   return (
     <SafeAreaView style={[styles.screen, { backgroundColor: p.bg }]} edges={['top', 'bottom']}>
       <View style={styles.top}>
-        <View style={styles.progress}>
-          {[0, 1, 2, 3, 4].map((i) => (
-            <View key={i} style={[styles.bar, { backgroundColor: i < 1 ? p.ink : p.line }]} />
-          ))}
-        </View>
+        <Readout t={clock.t} status={clock.status} active={checked} palette={p} />
         <View style={[styles.segment, { borderColor: p.line }]}>
           {(Object.keys(palettes) as PaletteId[]).map((id) => (
             <Pressable
               key={id}
               accessibilityRole="button"
+              accessibilityLabel={`Palette ${palettes[id].name}`}
               accessibilityState={{ selected: paletteId === id }}
               onPress={() => setPaletteId(id)}
               style={[styles.segBtn, paletteId === id && { backgroundColor: p.ink }]}
@@ -98,87 +93,111 @@ export default function LessonStep() {
         </View>
       </View>
 
-      <Text style={[styles.condition, { color: p.ink }]}>{condition}</Text>
+      <Text style={[styles.condition, { color: p.ink }]} maxFontSizeMultiplier={1.3}>{condition}</Text>
 
-      <View style={styles.sceneHeader}>
-        <Text style={[styles.readout, { color: p.muted }]}>
-          t <Text style={[styles.readoutValue, { color: p.ink }]}>{checked ? shownT.toFixed(2) : '0.00'} s</Text>
-          {'   '}h <Text style={[styles.readoutValue, { color: p.ink }]}>{checked ? Math.max(0, h).toFixed(1) : '30.0'} m</Text>
-          {'   '}v <Text style={[styles.readoutValue, { color: p.velText }]}>{checked ? `${v < 0 ? '−' : '+'}${Math.abs(v).toFixed(1)}` : '?'} m s⁻¹</Text>
-        </Text>
+      <View style={[styles.scene, { borderColor: p.line, backgroundColor: view === 'scene' ? p.sky : p.surface }]} onLayout={onLayout}>
+        <GestureDetector gesture={gestures}>
+          <View
+            style={StyleSheet.absoluteFill}
+            accessible
+            accessibilityRole="image"
+            accessibilityLabel={caption ?? sceneDescription}
+            accessibilityHint={checked && !ended ? 'Double tap to pause or resume' : undefined}
+            accessibilityActions={[{ name: 'activate' }]}
+            onAccessibilityAction={() => clock.togglePause()}
+          >
+            {size.width > 0 &&
+              (view === 'scene' ? (
+                <DropScene t={clock.t} palette={p} width={size.width} height={size.height} revealed={checked} ghostU={plan?.ghostU ?? null} ghostLabel={plan?.ghostLabel ?? ''} />
+              ) : (
+                <HeightGraph
+                  t={clock.t}
+                  palette={p}
+                  width={size.width}
+                  height={size.height}
+                  ghostU={plan?.ghostU ?? null}
+                  ghostLabel={plan?.ghostLabel ?? ''}
+                  tMax={plan?.graph.tMax ?? 3}
+                  hMax={plan?.graph.hMax ?? 30}
+                />
+              ))}
+          </View>
+        </GestureDetector>
+
+        {(caption || paused) && (
+          <View pointerEvents="none" style={[styles.caption, { backgroundColor: p.eventText }]} accessibilityLiveRegion="polite">
+            <Text style={styles.captionText} maxFontSizeMultiplier={1.3}>{paused ? 'Paused. Tap the scene to carry on.' : caption}</Text>
+          </View>
+        )}
+
+        {checked && (
+          <View style={[styles.segment, styles.viewSwitch, { borderColor: p.line, backgroundColor: p.surface }]}>
+            {(['scene', 'graph'] as const).map((k) => (
+              <Pressable
+                key={k}
+                accessibilityRole="button"
+                accessibilityState={{ selected: view === k }}
+                onPress={() => setView(k)}
+                style={[styles.segBtn, view === k && { backgroundColor: p.ink }]}
+              >
+                <Text style={[styles.segText, { color: view === k ? p.surface : p.ink }]}>{k === 'scene' ? 'Scene' : 'Graph'}</Text>
+              </Pressable>
+            ))}
+          </View>
+        )}
+        {ended && plan && (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Replay"
+            onPress={() => clock.play(plan.events)}
+            style={[styles.replay, { backgroundColor: p.surface, borderColor: p.line }]}
+          >
+            <Text style={[styles.replayText, { color: p.ink }]}>↻</Text>
+          </Pressable>
+        )}
       </View>
 
-      <GestureDetector gesture={gestures}>
-        <View
-          style={[styles.scene, { borderColor: p.line, backgroundColor: p.sky }]}
-          accessible
-          accessibilityLabel="A balloon rises at 4.0 metres per second; a sandbag hangs below it, 30 metres above the ground."
-        >
-          {view === 'scene' ? (
-            <BalloonScene t={clock.t} palette={p} revealed={checked} ghostU={ghostU} caption={caption} />
-          ) : (
-            <HeightGraph t={clock.t} palette={p} ghostU={ghostU} />
-          )}
-        {checked && (
-            <View style={[styles.segment, styles.viewSwitch, { borderColor: p.line, backgroundColor: p.surface }]}>
-              {(['scene', 'graph'] as const).map((k) => (
-                <Pressable
-                  key={k}
-                  accessibilityRole="button"
-                  accessibilityState={{ selected: view === k }}
-                  onPress={() => setView(k)}
-                  style={[styles.segBtn, view === k && { backgroundColor: p.ink }]}
-                >
-                  <Text style={[styles.segText, { color: view === k ? p.surface : p.ink }]}>{k === 'scene' ? 'Scene' : 'Graph'}</Text>
-                </Pressable>
-              ))}
-            </View>
-          )}
-          {ended && (
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Replay"
-              onPress={() => clock.play(playbackFor(choice!).events)}
-              style={[styles.replay, { backgroundColor: p.surface, borderColor: p.line }]}
-            >
-              <Text style={[styles.replayText, { color: p.ink }]}>↻</Text>
-            </Pressable>
-          )}
-        </View>
-      </GestureDetector>
+      {/* One fixed-height slot: the question before Check, the feedback after it. No layout jump. */}
+      <View style={styles.prompt} accessibilityLiveRegion="polite">
+        {checked && choice ? (
+          <Text style={[styles.feedback, { color: p.ink }]} maxFontSizeMultiplier={1.3}>
+            <Text style={{ color: choice.correct ? p.ok : p.bad, fontWeight: '700' }}>{choice.correct ? '✓ Correct. ' : '✕ Not quite. '}</Text>
+            {choice.feedback}
+          </Text>
+        ) : (
+          <Text style={[styles.question, { color: p.ink }]} maxFontSizeMultiplier={1.3}>{question}</Text>
+        )}
+      </View>
 
-      <Text style={[styles.question, { color: p.ink }]}>{question}</Text>
       <View style={styles.options} accessibilityRole="radiogroup">
         {options.map((o) => {
           const selected = choice?.id === o.id;
           const state = checked ? (o.correct ? 'right' : selected ? 'wrong' : 'dim') : selected ? 'selected' : 'idle';
           const border = state === 'right' ? p.ok : state === 'wrong' ? p.bad : state === 'selected' ? p.ink : p.line;
+          const mark = state === 'right' ? '✓ ' : state === 'wrong' ? '✕ ' : '';
+          const result = state === 'right' ? ', correct answer' : state === 'wrong' ? ', your answer, incorrect' : '';
           return (
             <Pressable
               key={o.id}
               accessibilityRole="radio"
+              accessibilityLabel={o.label + result}
               accessibilityState={{ checked: selected, disabled: checked }}
               disabled={checked}
               onPress={() => setChoice(o)}
               style={[styles.option, { borderColor: border, borderWidth: state === 'idle' || state === 'dim' ? 1.5 : 3, backgroundColor: p.surface }]}
             >
-              <Text style={[styles.optionText, { color: state === 'dim' ? p.muted : p.ink }]}>{o.label}</Text>
+              <Text style={[styles.optionText, { color: state === 'dim' ? p.muted : state === 'right' ? p.ok : state === 'wrong' ? p.bad : p.ink }]} maxFontSizeMultiplier={1.2}>
+                {mark}
+                {o.label}
+              </Text>
             </Pressable>
           );
         })}
       </View>
 
-      <View style={styles.feedbackSlot}>
-        {checked && choice && (
-          <Text style={[styles.feedback, { color: p.ink }]}>
-            <Text style={{ color: choice.correct ? p.ok : p.bad, fontWeight: '700' }}>{choice.correct ? '✓ Correct. ' : '✕ Not quite. '}</Text>
-            {choice.feedback}
-          </Text>
-        )}
-      </View>
-
       <Pressable
         accessibilityRole="button"
+        accessibilityState={{ disabled: primary.disabled }}
         disabled={primary.disabled}
         onPress={primary.onPress}
         style={[styles.primary, { backgroundColor: primary.disabled ? p.line : p.primary }]}
@@ -189,28 +208,54 @@ export default function LessonStep() {
   );
 }
 
+/** Live t / h / v. Owns its own state so the rest of the screen does not re-render while playing. */
+function Readout({ t, status, active, palette: p }: { t: SharedValue<number>; status: ClockStatus; active: boolean; palette: Palette }) {
+  const [now, setNow] = useState(0);
+  // about 10 updates a second while moving...
+  useAnimatedReaction(
+    () => Math.round(t.value * 10),
+    (key, prev) => {
+      if (key !== prev) scheduleOnRN(setNow, t.value);
+    },
+  );
+  // ...and the exact value whenever the clock stops at an event, pauses or ends
+  useEffect(() => {
+    setNow(t.value);
+  }, [status, t]);
+
+  const tt = Math.min(now, tLandReal);
+  const h = Math.max(0, position(tt, realBody));
+  const v = velocity(tt, realBody);
+  return (
+    <Text style={[styles.readout, { color: p.muted }]} maxFontSizeMultiplier={1.2} accessibilityLabel={active ? `Time ${fixed(now, 2)} seconds, height ${fixed(h, 1)} metres, velocity ${signed(v, 1)} metres per second` : 'Readouts start after you answer'}>
+      t <Text style={[styles.readoutValue, { color: p.ink }]}>{fixed(active ? now : 0, 2)} s</Text>
+      {'  '}h <Text style={[styles.readoutValue, { color: p.ink }]}>{fixed(active ? h : H0, 1)} m</Text>
+      {'  '}v <Text style={[styles.readoutValue, { color: p.velText }]}>{active ? signed(v, 1) : '?'} m s⁻¹</Text>
+    </Text>
+  );
+}
+
 const styles = StyleSheet.create({
   screen: { flex: 1, paddingHorizontal: 16, paddingBottom: 8, gap: 8 },
-  top: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: touch },
-  progress: { flex: 1, flexDirection: 'row', gap: 4 },
-  bar: { flex: 1, height: 6, borderRadius: 3 },
+  top: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8, minHeight: touch },
   segment: { flexDirection: 'row', borderWidth: 1.5, borderRadius: 999, overflow: 'hidden' },
-  segBtn: { minHeight: 36, minWidth: 56, paddingHorizontal: 12, alignItems: 'center', justifyContent: 'center' },
+  segBtn: { minHeight: touch, minWidth: 52, paddingHorizontal: 12, alignItems: 'center', justifyContent: 'center' },
   segText: { fontSize: 14, fontWeight: '700' },
+  readout: { flexShrink: 1, fontSize: 13, fontVariant: ['tabular-nums'] },
+  readoutValue: { fontSize: 15, fontWeight: '700' },
   condition: { fontSize: 15, lineHeight: 20 },
-  sceneHeader: { flexDirection: 'row', alignItems: 'center', minHeight: 24 },
-  readout: { fontSize: 14, fontVariant: ['tabular-nums'] },
+  scene: { flex: 1, minHeight: 220, borderWidth: 1.5, borderRadius: radius.l, overflow: 'hidden' },
+  caption: { position: 'absolute', top: 8, left: 8, right: 8, borderRadius: radius.s, paddingVertical: 8, paddingHorizontal: 12 },
+  captionText: { color: '#FFFFFF', fontSize: 15, lineHeight: 20, fontWeight: '700', textAlign: 'center' },
   viewSwitch: { position: 'absolute', left: 8, bottom: 8 },
-  readoutValue: { fontSize: 16, fontWeight: '700' },
-  scene: { flex: 1, minHeight: 260, borderWidth: 1.5, borderRadius: radius.l, overflow: 'hidden' },
   replay: { position: 'absolute', right: 8, bottom: 8, width: touch, height: touch, borderRadius: touch / 2, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center' },
   replayText: { fontSize: 22, fontWeight: '700' },
+  prompt: { height: 64, justifyContent: 'center' },
   question: { fontSize: 17, fontWeight: '700', lineHeight: 22 },
+  feedback: { fontSize: 15, lineHeight: 20 },
   options: { flexDirection: 'row', gap: 8 },
   option: { flex: 1, minHeight: 50, borderRadius: radius.m, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 6 },
-  optionText: { fontSize: 15.5, fontWeight: '700', textAlign: 'center' },
-  feedbackSlot: { minHeight: 40, justifyContent: 'center' },
-  feedback: { fontSize: 15, lineHeight: 20 },
+  optionText: { fontSize: 15, fontWeight: '700', textAlign: 'center' },
   primary: { minHeight: 52, borderRadius: radius.m, alignItems: 'center', justifyContent: 'center' },
   primaryText: { fontSize: 17, fontWeight: '700' },
 });

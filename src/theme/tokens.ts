@@ -82,6 +82,3 @@ export const space = { xs: 4, s: 8, m: 12, l: 16, xl: 24 } as const;
 export const radius = { s: 10, m: 14, l: 18 } as const;
 export const touch = 44; // minimum touch target, pt
 
-// System UI font for both RN text and SVG labels (web would fall back to a serif otherwise).
-export const fontFamily = 'System';
-export const svgFont = 'Helvetica Neue, Helvetica, Arial, sans-serif';
