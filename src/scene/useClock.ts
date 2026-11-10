@@ -15,6 +15,7 @@ export function useClock(holdSeconds = 1.7) {
   const ends = useSharedValue<boolean[]>([]);
   const index = useSharedValue(0);
   const hold = useSharedValue(0);
+  const lastTs = useSharedValue(-1); // timestamp of the previous frame; -1 = no previous frame
   const reduced = useReducedMotion();
   const ids = useRef<string[]>([]);
   const [status, setStatus] = useState<ClockStatus>('idle');
@@ -36,7 +37,10 @@ export function useClock(holdSeconds = 1.7) {
 
   const frame = useFrameCallback((info) => {
     'worklet';
-    const dt = Math.min(0.05, (info.timeSincePreviousFrame ?? 16) / 1000);
+    // Real elapsed time from timestamps, so playback speed is the same at 60, 90 and 120 Hz.
+    const elapsed = lastTs.value < 0 ? 0 : info.timestamp - lastTs.value;
+    lastTs.value = info.timestamp;
+    const dt = Math.min(0.05, Math.max(0, elapsed) / 1000);
     if (hold.value > 0) {
       if (hold.value >= FROZEN) return;
       hold.value -= dt;
@@ -65,6 +69,7 @@ export function useClock(holdSeconds = 1.7) {
     index.value = 0;
     hold.value = 0;
     t.value = 0;
+    lastTs.value = -1;
     setEventId(null);
     setStatus('playing');
     frame.setActive(true);
@@ -75,6 +80,7 @@ export function useClock(holdSeconds = 1.7) {
       frame.setActive(false);
       setStatus('paused');
     } else if (status === 'paused') {
+      lastTs.value = -1;
       frame.setActive(true);
       setStatus(hold.value > 0 ? 'holding' : 'playing');
     }
