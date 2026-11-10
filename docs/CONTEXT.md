@@ -45,6 +45,7 @@
 ## Решения после 1 ноября (lessons, animations)
 
 ### Lessons (decided 4 Nov)
+> Changed on 9–10 Nov: sessions of ~10 minutes instead of one 15-minute lesson; the default reader is Intermediate; one path with a worked example only after an error; six step types. Current rules: `docs/LESSON_FRAMEWORK.md` and `docs/PLAN.md` v1.2. The lines below are kept as history.
 - Lesson ≈ 15 minutes, one idea, three chapters: See it → Build it → Exam it.
 - Target novice: comfortable with algebra, weak on physics formulas, little physics knowledge.
 - Two paths inside each lesson: novice = worked example → faded → solo; intermediate = problem first,
