@@ -11,6 +11,7 @@ import {
   IBMPlexSans_600SemiBold_Italic,
   IBMPlexSans_700Bold,
 } from '@expo-google-fonts/ibm-plex-sans';
+import { IBMPlexMono_500Medium, IBMPlexMono_600SemiBold } from '@expo-google-fonts/ibm-plex-mono';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { ThemeProvider } from '@/theme/ThemeContext';
@@ -28,6 +29,8 @@ export default function RootLayout() {
     IBMPlexSans_600SemiBold,
     IBMPlexSans_600SemiBold_Italic,
     IBMPlexSans_700Bold,
+    IBMPlexMono_500Medium,
+    IBMPlexMono_600SemiBold,
   });
   const ready = loaded || error !== null; // if a font fails, show the app in the system font rather than nothing
 

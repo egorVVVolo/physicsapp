@@ -1,90 +1,89 @@
-// Pure session logic: which step is on screen, what each step's honest outcome is. No React.
-import type { AccDir, MisconceptionId, Session, Step, StrobeStep } from '../content/types.ts';
+// Pure lesson logic: which screen is on, the honest outcome of each question, what is saved. No React.
+import { isQuestion, type Lesson, type Screen } from '../content/types.ts';
 
-/** independent: first try, no help · assisted: needed help or a second try · revealed: the answer was shown. */
+/** independent: right first time · assisted: right after a hint · revealed: the answer was shown. */
 export type Outcome = 'independent' | 'assisted' | 'revealed';
 
-/** Outcome of a step with help levels, from the number of wrong attempts (the third one reveals). */
-export function laddered(wrong: number): Outcome {
-  return wrong === 0 ? 'independent' : wrong >= 3 ? 'revealed' : 'assisted';
+/** Story questions allow one more try after a hint; the second miss shows the answer. */
+export const STORY_TRIES = 2;
+
+export function outcomeOf(wrong: number, phase: Phase): Outcome {
+  if (wrong === 0) return 'independent';
+  if (phase === 'check' || wrong >= STORY_TRIES) return 'revealed';
+  return 'assisted';
 }
 
-export type SessionState = {
-  index: number; // position in session.steps
-  retry: boolean; // showing the "same problem, new values" step after a reveal
-  outcomes: Record<string, Outcome>;
+export type Phase = 'story' | 'check';
+
+/** What the player shows, in order: the story, the "Skill check" splash, the Skill check questions. */
+export type Item = { kind: 'screen'; screen: Screen; phase: Phase } | { kind: 'checkIntro' };
+
+export function itemsOf(lesson: Lesson): Item[] {
+  return [
+    ...lesson.story.map((screen) => ({ kind: 'screen' as const, screen, phase: 'story' as const })),
+    { kind: 'checkIntro' },
+    ...lesson.skillCheck.map((screen) => ({ kind: 'screen' as const, screen, phase: 'check' as const })),
+  ];
+}
+
+export type LessonState = {
+  index: number; // position in itemsOf(lesson)
+  outcomes: Record<string, Outcome>; // question id → first honest outcome
+  picks: Record<string, string>; // predict screen id → the option the learner picked
   finished: boolean;
 };
 
-export const startState: SessionState = { index: 0, retry: false, outcomes: {}, finished: false };
+export const startState: LessonState = { index: 0, outcomes: {}, picks: {}, finished: false };
 
-export function currentStep(s: SessionState, session: Session): Step | null {
-  const step = session.steps[s.index];
-  if (!step || s.finished) return null;
-  return s.retry && step.type === 'build' && step.retry ? step.retry : step;
+/** The first outcome of a question stays, even if it is replayed after a resume. */
+export function recordOutcome(s: LessonState, id: string, outcome: Outcome): LessonState {
+  if (s.outcomes[id] !== undefined) return s;
+  return { ...s, outcomes: { ...s.outcomes, [id]: outcome } };
 }
 
-/** Idea steps only teach: they have no answer, no outcome and are not counted. */
-export const isQuestion = (step: Step): boolean => step.type !== 'idea';
-
-export const questionCount = (session: Session): number => session.steps.filter(isQuestion).length;
-
-/** Record a step's outcome. The retry step is practice: it never improves a "revealed". Idea steps are ignored. */
-export function recordOutcome(s: SessionState, session: Session, outcome: Outcome): SessionState {
-  const step = session.steps[s.index];
-  if (!step || s.retry || !isQuestion(step)) return s;
-  if (s.outcomes[step.id] !== undefined) return s; // the first honest outcome stays, even if the step is replayed after a resume
-  return { ...s, outcomes: { ...s.outcomes, [step.id]: outcome } };
+export function recordPick(s: LessonState, predictId: string, optionId: string): LessonState {
+  return { ...s, picks: { ...s.picks, [predictId]: optionId } };
 }
 
-export function nextStep(s: SessionState, session: Session): SessionState {
-  const step = session.steps[s.index];
-  if (!step) return { ...s, finished: true };
-  if (!s.retry && step.type === 'build' && step.retry && s.outcomes[step.id] === 'revealed') return { ...s, retry: true };
+export function next(s: LessonState, lesson: Lesson): LessonState {
   const index = s.index + 1;
-  return { ...s, index, retry: false, finished: index >= session.steps.length };
+  return { ...s, index, finished: index >= itemsOf(lesson).length };
 }
 
-/** Counts the saved outcomes. Only question steps ever get one (see recordOutcome). */
-export function countOutcomes(s: SessionState): Record<Outcome, number> {
+export function countOutcomes(s: LessonState): Record<Outcome, number> {
   const n = { independent: 0, assisted: 0, revealed: 0 };
   for (const o of Object.values(s.outcomes)) n[o] += 1;
   return n;
 }
 
-/** "Done on your own" only if every exam-format step was answered first time. */
-export function onYourOwn(s: SessionState, session: Session): boolean {
-  const exams = session.steps.filter((st) => st.type === 'build' && st.exam);
-  return exams.length > 0 && exams.every((st) => s.outcomes[st.id] === 'independent');
+/** Progress bar: share of the story done, and how many Skill check questions are answered. */
+export function progressOf(s: LessonState, lesson: Lesson): { story: number; checkDone: number; checkTotal: number } {
+  const n = lesson.story.length;
+  const story = Math.min(1, s.index / n);
+  const checkDone = lesson.skillCheck.filter((q) => s.outcomes[q.id] !== undefined).length;
+  return { story, checkDone, checkTotal: lesson.skillCheck.length };
 }
 
 // ── What is saved on the device ──────────────────────────────────────────────────────────
 
-export type Survey = { difficulty?: string; wouldUse?: string };
-export type SavedProgress = { v: 1; lessonId: string; sessionId: string; state: SessionState; survey: Survey; updatedAt: number };
+export type SavedProgress = { v: 2; lessonId: string; state: LessonState; updatedAt: number };
 
-/** Read saved progress; anything unexpected (old version, other content) means "start from the beginning". */
-export function parseProgress(json: string | null, lessonId: string, session: Session): SavedProgress | null {
+/** Read saved progress; anything unexpected (old version, changed content) means "start from the beginning". */
+export function parseProgress(json: string | null, lesson: Lesson): SavedProgress | null {
   if (!json) return null;
   try {
     const p = JSON.parse(json) as SavedProgress;
     const st = p.state;
-    const ids = new Set(session.steps.filter(isQuestion).map((x) => x.id)); // an idea step never has an outcome
-    const outcomesOk = st && typeof st.outcomes === 'object' && Object.entries(st.outcomes).every(([id, o]) => ids.has(id) && ['independent', 'assisted', 'revealed'].includes(o));
-    if (p.v !== 1 || p.lessonId !== lessonId || p.sessionId !== session.id || !outcomesOk) return null;
-    if (!Number.isInteger(st.index) || st.index < 0 || st.index > session.steps.length) return null;
-    return { ...p, state: { index: st.index, retry: st.retry === true, outcomes: st.outcomes, finished: st.finished === true }, survey: p.survey ?? {} };
+    const all = [...lesson.story, ...lesson.skillCheck];
+    const questions = new Set(all.filter(isQuestion).map((q) => q.id));
+    const predicts = new Set(all.filter((x) => x.kind === 'predict').map((x) => x.id));
+    if (p.v !== 2 || p.lessonId !== lesson.id || !st || typeof st.outcomes !== 'object' || typeof st.picks !== 'object') return null;
+    const outcomesOk = Object.entries(st.outcomes).every(([id, o]) => questions.has(id) && ['independent', 'assisted', 'revealed'].includes(o));
+    const picksOk = Object.keys(st.picks).every((id) => predicts.has(id));
+    const total = itemsOf(lesson).length;
+    if (!outcomesOk || !picksOk || !Number.isInteger(st.index) || st.index < 0 || st.index > total) return null;
+    return { ...p, state: { index: st.index, outcomes: st.outcomes, picks: st.picks, finished: st.finished === true } };
   } catch {
     return null;
   }
-}
-
-// ── Strobe step: one acceleration arrow per frozen frame ─────────────────────────────────
-
-/** Right only if every frame has a pointing down. Otherwise name the most telling mistake. */
-export function judgeStrobe(step: StrobeStep, answers: Record<string, AccDir>): { ok: boolean; text: string; misconception?: MisconceptionId } {
-  if (step.frames.every((f) => answers[f.id] === 'down')) return { ok: true, text: step.feedback.right };
-  if (answers.top === 'zero') return { ok: false, text: step.feedback.zeroTop, misconception: step.misconceptions.zeroTop };
-  if (answers.rise === 'up') return { ok: false, text: step.feedback.followsMotion, misconception: step.misconceptions.followsMotion };
-  return { ok: false, text: step.feedback.other };
 }

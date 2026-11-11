@@ -1,30 +1,25 @@
-// Small shared pieces: glyphs, the main button, answer cards, the time line and the number tiles.
-// Blueprint look: flat shapes with clear borders; pressed = a little darker.
-import { useEffect, useRef, type ReactNode } from 'react';
+// Shared pieces: icons, the main button (dark pill with a bottom lip), answer cards, the verdict sheet.
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { AccessibilityInfo, Animated, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
-import Svg, { Circle, Line, Path, Text as SvgText } from 'react-native-svg';
+import Svg, { Path, Rect } from 'react-native-svg';
 import { useTheme } from '@/theme/ThemeContext';
-import { font, radius, touch } from '@/theme/tokens';
-import { svgFont } from '@/theme/svgFont';
+import { font, LIP, radius, touch } from '@/theme/tokens';
 
-// ── Glyphs ───────────────────────────────────────────────────────────────────────────────
+const nativeDriver = Platform.OS !== 'web';
 
-/** A vertical arrow (up or down) or a dot (zero). Drawn, so it looks the same everywhere. */
-export function ArrowGlyph({ kind, color, size = 28 }: { kind: 'up' | 'down' | 'dot'; color: string; size?: number }) {
-  return (
-    <Svg width={size} height={size} viewBox="0 0 28 28">
-      {kind === 'dot' ? (
-        <Circle cx={14} cy={14} r={5} fill={color} />
-      ) : (
-        <Path d={kind === 'up' ? 'M14 25V4M5.5 13L14 4l8.5 9' : 'M14 3v21M5.5 15L14 24l8.5-9'} stroke={color} strokeWidth={3.4} fill="none" strokeLinecap="round" strokeLinejoin="round" />
-      )}
-    </Svg>
-  );
+/** True when the device asks for reduced motion (checked once). */
+export function useReducedMotionPref(): boolean {
+  const [reduced, setReduced] = useState(false);
+  useEffect(() => {
+    AccessibilityInfo.isReduceMotionEnabled().then(setReduced).catch(() => {});
+  }, []);
+  return reduced;
 }
 
-/** A small mark: check or cross. Always paired with words for screen readers. */
+// ── Icons ────────────────────────────────────────────────────────────────────────────────
+
 export function Mark({ kind, color, size = 16 }: { kind: 'ok' | 'bad'; color: string; size?: number }) {
-  const d = kind === 'ok' ? 'M3 8.5l3.2 3.2L13 4.6' : 'M3.5 3.5l9 9M12.5 3.5l-9 9';
+  const d = kind === 'ok' ? 'M3 8.5l3.2 3.2L13 4.6' : 'M4 4l8 8M12 4l-8 8';
   return (
     <Svg width={size} height={size} viewBox="0 0 16 16">
       <Path d={d} stroke={color} strokeWidth={2.4} fill="none" strokeLinecap="round" strokeLinejoin="round" />
@@ -32,33 +27,53 @@ export function Mark({ kind, color, size = 16 }: { kind: 'ok' | 'bad'; color: st
   );
 }
 
-export function CloseIcon({ color, size = 16 }: { color: string; size?: number }) {
+export function CloseIcon({ color, size = 18 }: { color: string; size?: number }) {
   return (
     <Svg width={size} height={size} viewBox="0 0 16 16">
-      <Path d="M3 3l10 10M13 3L3 13" stroke={color} strokeWidth={2.2} strokeLinecap="round" />
+      <Path d="M3 3l10 10M13 3L3 13" stroke={color} strokeWidth={2} strokeLinecap="round" />
     </Svg>
+  );
+}
+
+/** The small square badge in the corner of a right or wrong card. */
+function CornerBadge({ kind, color }: { kind: 'ok' | 'bad'; color: string }) {
+  return (
+    <View style={styles.badge} pointerEvents="none">
+      <Svg width={24} height={24} viewBox="0 0 24 24">
+        <Rect x={0} y={0} width={24} height={24} rx={6} fill={color} />
+        <Path d={kind === 'ok' ? 'M6.5 12.5l3.5 3.5 7.5-8' : 'M7.5 7.5l9 9M16.5 7.5l-9 9'} stroke="#FFFFFF" strokeWidth={2.6} fill="none" strokeLinecap="round" strokeLinejoin="round" />
+      </Svg>
+    </View>
   );
 }
 
 // ── The main button ──────────────────────────────────────────────────────────────────────
 
-export type Tone = 'primary' | 'ok' | 'bad';
+export type Tone = 'primary' | 'ok' | 'level';
 
-/** The one main button: full width, 52 pt, flat. */
-export function MainButton({ label, onPress, disabled, tone = 'primary' }: { label: string; onPress?: () => void; disabled?: boolean; tone?: Tone }) {
+/** The one main button per screen: a pill with a darker lip underneath that it presses into. */
+export function MainButton({ label, onPress, disabled, tone = 'primary', color }: { label: string; onPress?: () => void; disabled?: boolean; tone?: Tone; color?: { main: string; lip: string } }) {
   const { palette: p } = useTheme();
-  const bg = disabled ? p.disabled : tone === 'ok' ? p.ok : tone === 'bad' ? p.bad : p.primary;
+  const main = disabled ? p.disabled : tone === 'ok' ? p.ok : tone === 'level' && color ? color.main : p.primary;
+  const lip = disabled ? p.disabled : tone === 'ok' ? p.okLip : tone === 'level' && color ? color.lip : p.primaryLip;
   return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityState={{ disabled: !!disabled }}
-      disabled={disabled || !onPress}
-      onPress={onPress}
-      style={({ pressed }) => [styles.button, { backgroundColor: bg, opacity: pressed ? 0.85 : 1 }]}
-    >
-      <Text style={[styles.buttonText, { color: disabled ? p.onDisabled : p.onPrimary }]} maxFontSizeMultiplier={1.3}>
-        {label}
-      </Text>
+    <Pressable accessibilityRole="button" accessibilityState={{ disabled: !!disabled }} disabled={disabled || !onPress} onPress={onPress} style={[styles.buttonWrap, { backgroundColor: lip }]}>
+      {({ pressed }) => (
+        <View style={[styles.button, { backgroundColor: main, transform: [{ translateY: pressed ? LIP : 0 }] }]}>
+          <Text style={[styles.buttonText, { color: disabled ? p.onDisabled : p.onPrimary }]} maxFontSizeMultiplier={1.3}>
+            {label}
+          </Text>
+        </View>
+      )}
+    </Pressable>
+  );
+}
+
+/** A small secondary pill ("Why?", "Try again" on a sheet). */
+export function PillButton({ label, onPress, color, bg }: { label: string; onPress: () => void; color: string; bg: string }) {
+  return (
+    <Pressable accessibilityRole="button" onPress={onPress} hitSlop={6} style={({ pressed }) => [styles.pill, { backgroundColor: bg, opacity: pressed ? 0.75 : 1 }]}>
+      <Text style={[styles.pillText, { color }]}>{label}</Text>
     </Pressable>
   );
 }
@@ -67,28 +82,23 @@ export function MainButton({ label, onPress, disabled, tone = 'primary' }: { lab
 
 export type CardState = 'idle' | 'selected' | 'right' | 'wrong' | 'dim';
 
-/** One answer card. Right and wrong get an icon and words for screen readers, never colour alone. A wrong card shakes once. */
-export function Card({ label, state, onPress, disabled, minHeight = 56, italic }: { label: string; state: CardState; onPress: () => void; disabled?: boolean; minHeight?: number; italic?: boolean }) {
+/** One answer card. Right and wrong get a corner badge and words for screen readers, never colour alone. */
+export function OptionCard({ label, state, onPress, disabled, compact }: { label: string; state: CardState; onPress: () => void; disabled?: boolean; compact?: boolean }) {
   const { palette: p } = useTheme();
+  const reduced = useReducedMotionPref();
   const shake = useRef(new Animated.Value(0)).current;
   useEffect(() => {
-    if (state !== 'wrong') return;
-    let cancelled = false;
-    const step = (to: number) => Animated.timing(shake, { toValue: to, duration: 55, useNativeDriver: Platform.OS !== 'web' });
-    AccessibilityInfo.isReduceMotionEnabled().then((reduced) => {
-      if (!cancelled && !reduced) Animated.sequence([step(-6), step(6), step(-4), step(3), step(0)]).start();
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [state, shake]);
+    if (state !== 'wrong' || reduced) return;
+    const step = (to: number) => Animated.timing(shake, { toValue: to, duration: 55, useNativeDriver: nativeDriver });
+    Animated.sequence([step(-6), step(6), step(-4), step(3), step(0)]).start();
+  }, [state, shake, reduced]);
 
   const border = state === 'selected' ? p.select : state === 'right' ? p.ok : state === 'wrong' ? p.bad : p.line;
-  const bg = state === 'selected' ? p.selectBg : state === 'right' ? p.okBg : state === 'wrong' ? p.badBg : '#FFFFFF';
+  const bg = state === 'right' ? p.okBg : state === 'wrong' ? p.badBg : state === 'selected' ? p.selectBg : p.page;
   const color = state === 'right' ? p.okText : state === 'wrong' ? p.badText : state === 'dim' ? p.faint : p.ink;
   const said = state === 'right' ? ', correct' : state === 'wrong' ? ', incorrect' : '';
   return (
-    <Animated.View style={{ flex: 1, transform: [{ translateX: shake }] }}>
+    <Animated.View style={[{ transform: [{ translateX: shake }] }, compact && { flex: 1 }]}>
       <Pressable
         accessibilityRole="radio"
         accessibilityState={{ checked: state === 'selected', disabled }}
@@ -97,134 +107,89 @@ export function Card({ label, state, onPress, disabled, minHeight = 56, italic }
         onPress={onPress}
         style={({ pressed }) => [
           styles.card,
-          { minHeight, borderColor: border, backgroundColor: pressed && state === 'idle' ? p.selectBg : bg },
+          compact && styles.cardCompact,
+          { borderColor: border, backgroundColor: pressed && state === 'idle' ? p.selectBg : bg, borderBottomWidth: state === 'selected' ? 2 + LIP : 2 },
         ]}
       >
-        {(state === 'right' || state === 'wrong') && <Mark kind={state === 'right' ? 'ok' : 'bad'} color={state === 'right' ? p.ok : p.bad} size={14} />}
-        <Text style={[styles.cardText, { color }, italic && { fontFamily: font.italic }]} maxFontSizeMultiplier={1.25}>
+        <Text style={[styles.cardText, compact && { textAlign: 'center' }, { color }]} maxFontSizeMultiplier={1.3}>
           {label}
         </Text>
       </Pressable>
+      {(state === 'right' || state === 'wrong') && <CornerBadge kind={state === 'right' ? 'ok' : 'bad'} color={state === 'right' ? p.ok : p.bad} />}
     </Animated.View>
   );
 }
 
-export function CardRow({ children }: { children: ReactNode }) {
+export function OptionList({ children, grid }: { children: ReactNode; grid?: boolean }) {
   return (
-    <View style={styles.row} accessibilityRole="radiogroup">
+    <View style={grid ? styles.grid : styles.list} accessibilityRole="radiogroup">
       {children}
     </View>
   );
 }
 
-// ── Time line: tap the moment ────────────────────────────────────────────────────────────
+// ── Verdict sheet ────────────────────────────────────────────────────────────────────────
 
-type TimelineProps = {
-  choices: { id: string; label: string; value: number }[];
-  selected: string | null;
-  marks?: Record<string, 'right' | 'wrong'>;
-  disabled?: boolean;
-  onSelect: (id: string) => void;
-  width: number;
-};
+export type Verdict = { tone: 'ok' | 'bad'; title: string; text?: string; why?: string };
 
-/** A time axis with t = 0 marked as the release and one tappable dot per answer. */
-export function Timeline({ choices, selected, marks, disabled, onSelect, width }: TimelineProps) {
+/**
+ * Slides up from the bottom after Check. Green: "Correct!" with Why? and Continue.
+ * Red: "Not quite" with a hint and Try again, or the shown answer with Why? and Continue.
+ */
+export function VerdictSheet({ verdict, button }: { verdict: Verdict; button: { label: string; onPress: () => void } }) {
   const { palette: p } = useTheme();
-  const lo = Math.floor(Math.min(0, ...choices.map((c) => c.value)) - 0.5);
-  const hi = Math.ceil(Math.max(0, ...choices.map((c) => c.value)) + 0.5);
-  const L = 22;
-  const R = width - 22;
-  const X = (t: number) => L + ((t - lo) / (hi - lo)) * (R - L);
-  const axisY = 44;
-  const ticks: number[] = [];
-  for (let i = lo; i <= hi; i++) ticks.push(i);
-  return (
-    <View style={{ width, height: 86 }}>
-      <Svg width={width} height={86} fontFamily={svgFont}>
-        <Line x1={L} y1={axisY} x2={R} y2={axisY} stroke={p.lineStrong} strokeWidth={3} strokeLinecap="round" />
-        {ticks.map((i) => (
-          <SvgText key={i} x={X(i)} y={axisY + 24} fontSize={12} fill={p.faint} textAnchor="middle">{i === 0 ? '' : i}</SvgText>
-        ))}
-        {ticks.map((i) => (
-          <Line key={'k' + i} x1={X(i)} y1={axisY - 4} x2={X(i)} y2={axisY + 4} stroke={p.lineStrong} strokeWidth={1.5} />
-        ))}
-        <Line x1={X(0)} y1={axisY - 12} x2={X(0)} y2={axisY + 12} stroke={p.ink} strokeWidth={2} />
-        <SvgText x={X(0)} y={axisY + 26} fontSize={11} fill={p.ink} textAnchor="middle">release</SvgText>
-        <SvgText x={R} y={axisY + 40} fontSize={11} fill={p.faint} textAnchor="end">t / s</SvgText>
-        {choices.map((c) => {
-          const m = marks?.[c.id];
-          const on = selected === c.id;
-          const stroke = m === 'right' ? p.ok : m === 'wrong' ? p.bad : p.select;
-          return (
-            <SvgText key={'l' + c.id} x={X(c.value)} y={axisY - 22} fontSize={14} fill={m === 'wrong' ? p.badText : p.ink} textAnchor="middle">
-              {c.label}
-            </SvgText>
-          );
-        })}
-        {choices.map((c) => {
-          const m = marks?.[c.id];
-          const on = selected === c.id;
-          const stroke = m === 'right' ? p.ok : m === 'wrong' ? p.bad : p.select;
-          return <Circle key={'d' + c.id} cx={X(c.value)} cy={axisY} r={11} fill={on || m ? stroke : p.page} stroke={stroke} strokeWidth={3} />;
-        })}
-      </Svg>
-      {choices.map((c) => (
-        <Pressable
-          key={c.id}
-          accessibilityRole="radio"
-          accessibilityLabel={`t = ${c.label}`}
-          accessibilityState={{ checked: selected === c.id, disabled }}
-          disabled={disabled}
-          onPress={() => onSelect(c.id)}
-          style={{ position: 'absolute', left: X(c.value) - 26, top: axisY - 40, width: 52, height: 64 }}
-        />
-      ))}
-    </View>
-  );
-}
+  const reduced = useReducedMotionPref();
+  const [whyOpen, setWhyOpen] = useState(false);
+  const y = useRef(new Animated.Value(60)).current;
+  // a new verdict (not a re-render of the same one) slides in again and closes "Why?"
+  const said = `${verdict.tone}|${verdict.title}|${verdict.text ?? ''}`;
+  useEffect(() => {
+    setWhyOpen(false);
+    AccessibilityInfo.announceForAccessibility(`${verdict.title}. ${verdict.text ?? ''}`);
+    if (reduced) return y.setValue(0);
+    y.setValue(60);
+    Animated.timing(y, { toValue: 0, duration: 220, useNativeDriver: nativeDriver }).start();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [said, reduced, y]);
 
-// ── Number tiles: tap a tile to place it in the equation ─────────────────────────────────
-
-export function TileBank({ tiles, selected, used, disabled, onSelect }: { tiles: { value: number; label: string }[]; selected: number | null; used?: number[]; disabled?: boolean; onSelect: (v: number) => void }) {
-  const { palette: p } = useTheme();
+  const ok = verdict.tone === 'ok';
+  const bg = ok ? p.okBg : p.badBg;
+  const text = ok ? p.okText : p.badText;
   return (
-    <View style={styles.tiles} accessibilityRole="radiogroup">
-      {tiles.map((t) => {
-        const on = selected === t.value;
-        const gone = used?.includes(t.value) && !on;
-        return (
-          <Pressable
-            key={t.value}
-            accessibilityRole="radio"
-            accessibilityLabel={t.label}
-            accessibilityState={{ checked: on, disabled: disabled || gone }}
-            disabled={disabled || gone}
-            onPress={() => onSelect(t.value)}
-            style={({ pressed }) => [
-              styles.tile,
-              {
-                borderColor: on ? p.select : p.lineStrong,
-                backgroundColor: on || pressed ? p.selectBg : gone ? p.disabled : '#FFFFFF',
-                opacity: gone ? 0.5 : 1,
-              },
-            ]}
-          >
-            <Text style={[styles.tileText, { color: p.ink }]} maxFontSizeMultiplier={1.25}>{t.label}</Text>
-          </Pressable>
-        );
-      })}
-    </View>
+    <Animated.View style={[styles.sheet, { backgroundColor: bg, transform: [{ translateY: y }] }]}>
+      <View style={styles.sheetHead}>
+        <View style={styles.sheetTitleRow}>
+          <Mark kind={ok ? 'ok' : 'bad'} color={ok ? p.ok : p.bad} size={20} />
+          <Text style={[styles.sheetTitle, { color: p.ink }]} accessibilityRole="header">
+            {verdict.title}
+          </Text>
+        </View>
+        {verdict.why && !whyOpen && <PillButton label="Why?" onPress={() => setWhyOpen(true)} color={p.ink} bg="rgba(0,0,0,0.07)" />}
+      </View>
+      {verdict.text ? <Text style={[styles.sheetText, { color: text }]}>{verdict.text}</Text> : null}
+      {whyOpen && verdict.why ? <Text style={[styles.sheetText, { color: text }]}>{verdict.why}</Text> : null}
+      <View style={{ marginTop: 14 }}>
+        <MainButton label={button.label} onPress={button.onPress} tone={ok ? 'ok' : 'primary'} />
+      </View>
+    </Animated.View>
   );
 }
 
 const styles = StyleSheet.create({
-  button: { minHeight: 52, borderRadius: radius.m, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 16 },
-  buttonText: { fontSize: 17, fontFamily: font.displaySemi, letterSpacing: 0.2 },
-  row: { flexDirection: 'row', gap: 8, alignSelf: 'stretch' },
-  card: { borderWidth: 2, borderRadius: radius.m, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 8, paddingVertical: 6, flexDirection: 'row', gap: 6 },
-  cardText: { fontSize: 15, fontFamily: font.bodySemi, textAlign: 'center' },
-  tiles: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 8 },
-  tile: { minHeight: touch, minWidth: 76, paddingHorizontal: 12, borderWidth: 2, borderRadius: radius.s, alignItems: 'center', justifyContent: 'center' },
-  tileText: { fontSize: 16, fontFamily: font.bodySemi, fontVariant: ['tabular-nums'] },
+  buttonWrap: { borderRadius: radius.pill, paddingBottom: LIP, alignSelf: 'stretch' },
+  button: { minHeight: 54, borderRadius: radius.pill, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 20 },
+  buttonText: { fontSize: 18, fontFamily: font.displaySemi, letterSpacing: 0.2 },
+  pill: { minHeight: touch, paddingHorizontal: 18, borderRadius: radius.pill, alignItems: 'center', justifyContent: 'center' },
+  pillText: { fontSize: 16, fontFamily: font.displaySemi },
+  list: { gap: 10, alignSelf: 'stretch' },
+  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, alignSelf: 'stretch' },
+  card: { borderWidth: 2, borderRadius: radius.m, minHeight: 58, paddingHorizontal: 18, paddingVertical: 14, justifyContent: 'center' },
+  cardCompact: { paddingHorizontal: 10, alignItems: 'center' },
+  cardText: { fontSize: 17, lineHeight: 23, fontFamily: font.bodyMedium },
+  badge: { position: 'absolute', top: -8, right: -8 },
+  sheet: { position: 'absolute', left: 0, right: 0, bottom: 0, paddingHorizontal: 20, paddingTop: 18, paddingBottom: 22, borderTopLeftRadius: 24, borderTopRightRadius: 24 },
+  sheetHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, minHeight: touch },
+  sheetTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 8, flexShrink: 1 },
+  sheetTitle: { fontSize: 24, fontFamily: font.display },
+  sheetText: { fontSize: 16, lineHeight: 23, fontFamily: font.bodyMedium, marginTop: 8 },
 });

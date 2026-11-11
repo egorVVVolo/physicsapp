@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { palette as p, stage as s } from './tokens.ts';
+import { levelColors, palette as p } from './tokens.ts';
 
 function luminance(hex: string) {
   const c = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255);
@@ -14,33 +14,35 @@ const contrast = (a: string, b: string) => {
 const check = (fg: string, bg: string, min: number, what: string) =>
   assert.ok(contrast(fg, bg) >= min, `${what}: ${fg} on ${bg} is ${contrast(fg, bg).toFixed(2)}, needs ${min}`);
 
-const TEXT = ['ink', 'muted', 'faint', 'velText', 'accText', 'okText', 'badText'] as const;
-
-test('text on the page is at least 4.5:1', () => {
-  for (const k of TEXT) check(p[k], p.page, 4.5, `${k} on the page`);
+test('text on the page and on a selected card is at least 4.5:1', () => {
+  for (const k of ['ink', 'muted', 'faint', 'okText', 'badText', 'forceText'] as const) check(p[k], p.page, 4.5, k);
   check(p.ink, p.selectBg, 4.5, 'text on a selected card');
-  check(p.select, p.page, 4.5, 'selected card ring and active slot');
 });
 
-test('text on the dark stage is at least 4.5:1, on the sky and on pills drawn over it', () => {
-  for (const bg of [s.sky, s.page]) {
-    for (const k of TEXT) check(s[k], bg, 4.5, `stage ${k} on ${bg}`);
+test('text on the drawing paper is at least 4.5:1', () => {
+  for (const k of ['draw', 'label', 'forceText', 'ink'] as const) check(p[k], p.paper, 4.5, `${k} on paper`);
+});
+
+test('buttons and verdict sheets are at least 4.5:1', () => {
+  check(p.onPrimary, p.primary, 4.5, 'button');
+  check(p.onDisabled, p.disabled, 4.5, 'disabled button');
+  check(p.onPrimary, p.ok, 4.5, 'green button');
+  check(p.okText, p.okBg, 4.5, 'correct sheet');
+  check(p.badText, p.badBg, 4.5, 'wrong sheet');
+  check(p.ink, p.okBg, 4.5, 'title on the correct sheet');
+  check(p.ink, p.badBg, 4.5, 'title on the wrong sheet');
+});
+
+test('strokes are at least 3:1: forces and line art on paper, card borders that carry meaning', () => {
+  check(p.force, p.paper, 3, 'force arrows');
+  check(p.draw, p.paper, 3, 'line art');
+  check(p.ok, p.page, 3, 'right card border');
+  check(p.bad, p.page, 3, 'wrong card border');
+});
+
+test('level colours: white text on the Start button, the colour visible on white', () => {
+  for (const [id, c] of Object.entries(levelColors)) {
+    check('#FFFFFF', c.main, 4.5, `${id} button`);
+    check(c.main, c.soft, 3, `${id} on its soft tint`);
   }
-  check(s.muted, s.ground, 4.5, 'labels under the ground line');
-  check(p.ink, '#FFFFFF', 4.5, 'caption text on its white pill');
-});
-
-test('buttons and verdict banners are at least 4.5:1', () => {
-  check(p.onPrimary, p.primary, 4.5, 'onPrimary on primary');
-  check(p.onDisabled, p.disabled, 4.5, 'onDisabled on disabled');
-  check(p.onPrimary, p.ok, 4.5, 'white on the green button');
-  check(p.onPrimary, p.bad, 4.5, 'white on the red button');
-  check(p.okText, p.okBg, 4.5, 'okText on okBg');
-  check(p.badText, p.badBg, 4.5, 'badText on badBg');
-});
-
-test('strokes drawn on the stage are at least 3:1 on the sky', () => {
-  for (const k of ['vel', 'acc', 'ok', 'bad', 'ghost', 'groundLine', 'select', 'lineStrong', 'sack'] as const) check(s[k], s.sky, 3, `stage ${k}`);
-  check(s.acc, s.okBg, 3, 'acceleration glyph in a green circle');
-  check(s.acc, s.badBg, 3, 'acceleration glyph in a red circle');
 });

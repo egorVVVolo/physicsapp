@@ -1,135 +1,150 @@
-// Start screen for the first lesson: the course title, a blueprint card, the lesson title, one button.
-// The card shows the balloon until the lesson is done; then the height–time graph (from the model).
-// The graph is not shown earlier: it would answer the lesson's first question (which way it moves first).
-import { useCallback, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { useFocusEffect, useRouter } from 'expo-router';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { APP_NAME } from '@/config';
-import { l4, W } from '@/content/l4';
-import { BalloonScene, BlueprintGrid } from '@/scene/BalloonScene';
-import { useClock } from '@/scene/useClock';
-import { fixed } from '@/physics/format';
-import { position } from '@/physics/kinematics';
-import { countOutcomes, questionCount, type SavedProgress } from '@/session/logic';
-import { clearProgress, loadProgress } from '@/session/storage';
+// Home: the course map. Levels follow the WPH11 specification; each lesson is a puck on a path.
+// Tap a ready puck to pick it; the card at the bottom starts it. Lessons not built yet say "Soon".
+import { useCallback, useMemo, useRef, useState, type ComponentRef } from 'react';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { router, useFocusEffect } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { course } from '@/content/course';
+import { lessons } from '@/content/lessons';
+import type { LessonRef } from '@/content/types';
+import { Puck } from '@/figures/Puck';
+import { loadProgress } from '@/session/storage';
 import { useTheme } from '@/theme/ThemeContext';
-import { font, radius, touch } from '@/theme/tokens';
-import { svgFont } from '@/theme/svgFont';
-import Svg, { Circle, Line, Path, Text as SvgText } from 'react-native-svg';
-import type { Palette } from '@/theme/tokens';
+import { font, levelColors, radius } from '@/theme/tokens';
 import { MainButton } from '@/ui/parts';
+import { CONTENT_MAX } from '@/lesson/Frame';
 
-const lesson = l4;
-const session = lesson.sessions[0];
+type Status = 'new' | 'started' | 'done';
+const ZIGZAG = [0, 32, 48, 32, 0, -32, -48, -32];
 
-export default function Start() {
-  const { palette: p, stage: st } = useTheme();
-  const router = useRouter();
-  const clock = useClock(); // never played: the scene just shows the balloon, swaying
-  const [saved, setSaved] = useState<SavedProgress | null>(null);
-  const [box, setBox] = useState<{ w: number; h: number } | null>(null);
+export default function CourseMap() {
+  const { palette: p } = useTheme();
+  const insets = useSafeAreaInsets();
+  const [status, setStatus] = useState<Record<string, Status>>({});
+  const ready = useMemo(() => course.levels.flatMap((l) => l.lessons.map((r) => ({ r, level: l.id }))).filter((x) => x.r.ready), []);
+  const [picked, setPicked] = useState<string>(ready[0]?.r.id ?? '');
+  const scroll = useRef<ComponentRef<typeof ScrollView>>(null);
+  const levelY = useRef<Record<string, number>>({});
+  const scrolled = useRef(false);
+  /** Once the levels are laid out, bring the picked lesson's level into view. */
+  const scrollToPicked = () => {
+    const level = ready.find((x) => x.r.id === picked)?.level;
+    const y = level ? levelY.current[level] : undefined;
+    if (scrolled.current || y === undefined) return;
+    scrolled.current = true;
+    scroll.current?.scrollTo({ y: Math.max(0, y - 12), animated: false });
+  };
 
   useFocusEffect(
     useCallback(() => {
       let alive = true;
-      loadProgress(lesson.id, session).then((s) => alive && setSaved(s));
+      Promise.all(
+        ready.map(async ({ r }) => {
+          const saved = await loadProgress(lessons[r.id]);
+          return [r.id, !saved ? 'new' : saved.state.finished ? 'done' : 'started'] as const;
+        }),
+      ).then((pairs) => alive && setStatus(Object.fromEntries(pairs)));
       return () => {
         alive = false;
       };
-    }, []),
+    }, [ready]),
   );
 
-  const finished = saved?.state.finished === true;
-  const started = saved !== null && !finished && (saved.state.index > 0 || Object.keys(saved.state.outcomes).length > 0);
-  const n = saved ? countOutcomes(saved.state) : null;
-  const status =
-    finished && n
-      ? `Done: ${n.independent} of ${questionCount(session)} questions on your own`
-      : started
-        ? `Step ${saved!.state.index + 1} of ${session.steps.length}`
-        : `${session.steps.length} steps, about ${session.minutes} minutes`;
-
-  async function startAgain() {
-    await clearProgress(lesson.id, session.id);
-    router.push('/session');
-  }
+  const pickedRef = ready.find((x) => x.r.id === picked);
+  const pickedStatus = status[picked] ?? 'new';
+  const color = levelColors[pickedRef?.level ?? 'forces'];
 
   return (
-    <SafeAreaView style={[styles.root, { backgroundColor: p.page }]} edges={['top', 'bottom']}>
-      <View style={styles.head}>
-        <Text style={[styles.app, { color: p.muted }]}>{APP_NAME}</Text>
-        <Text style={[styles.course, { color: p.ink }]} accessibilityRole="header">Kinematics</Text>
-        <Text style={[styles.unit, { color: p.muted }]}>Edexcel IAL Unit 1, WPH11</Text>
-      </View>
-
-      <View style={[styles.card, { backgroundColor: st.sky }]}>
-        <View style={styles.graph} onLayout={(e) => setBox({ w: e.nativeEvent.layout.width, h: e.nativeEvent.layout.height })}>
-          {box && (finished ? <HeightGraph w={box.w} h={box.h} st={st} /> : <BalloonScene t={clock.t} width={box.w} height={box.h} scene={W.scene} playback={null} />)}
+    <View style={{ flex: 1, backgroundColor: p.page, paddingTop: insets.top }}>
+      <ScrollView ref={scroll} contentContainerStyle={styles.scroll}>
+        <View style={styles.column}>
+          <Text accessibilityRole="header" style={[styles.title, { color: p.ink }]}>{course.title}</Text>
+          <Text style={[styles.subtitle, { color: p.muted }]}>Edexcel IAL Unit 1 (WPH11)</Text>
+          {course.levels.map((level, li) => {
+            const c = levelColors[level.id];
+            return (
+              <View
+                key={level.id}
+                style={{ marginTop: 28 }}
+                onLayout={(e) => {
+                  levelY.current[level.id] = e.nativeEvent.layout.y;
+                  scrollToPicked();
+                }}
+              >
+                <View style={[styles.levelCard, { borderColor: c.main, backgroundColor: c.soft }]}>
+                  <Text style={[styles.levelNo, { color: c.lip }]}>Level {li + 1}</Text>
+                  <Text accessibilityRole="header" style={[styles.levelTitle, { color: p.ink }]}>{level.title}</Text>
+                </View>
+                <View style={styles.path}>
+                  {level.lessons.map((r, i) => (
+                    <PuckRow key={r.id} r={r} offset={ZIGZAG[i % ZIGZAG.length]} color={c} status={status[r.id]} picked={picked === r.id} onPick={() => setPicked(r.id)} />
+                  ))}
+                </View>
+              </View>
+            );
+          })}
+          <View style={{ height: 200 }} />
         </View>
-        <View style={styles.cardText}>
-          <Text style={[styles.lessonNo, { color: st.muted }]}>Lesson 4</Text>
-          <Text style={[styles.title, { color: st.ink }]}>{lesson.title}</Text>
-          <Text style={[styles.idea, { color: st.muted }]}>A sandbag is let go from a rising balloon. Which way does it move first?</Text>
-        </View>
-      </View>
+      </ScrollView>
 
-      <Text style={[styles.status, { color: p.muted }]}>{status}</Text>
-      <MainButton label={finished ? 'Play again' : started ? 'Continue' : 'Start'} onPress={finished ? startAgain : () => router.push('/session')} />
-      {started ? (
-        <Pressable accessibilityRole="button" onPress={startAgain} style={styles.secondary}>
-          <Text style={[styles.secondaryText, { color: p.ink }]}>Start from the beginning</Text>
-        </Pressable>
-      ) : (
-        <View style={{ height: 8 }} />
+      {pickedRef && (
+        <View style={[styles.dock, { paddingBottom: insets.bottom + 14 }]}>
+          <View style={[styles.dockCard, { borderColor: p.line, backgroundColor: p.page }]}>
+            <Text style={[styles.dockTitle, { color: p.ink }]}>{pickedRef.r.title}</Text>
+            <Text style={[styles.dockMeta, { color: p.muted }]}>
+              Spec points {pickedRef.r.spec.join(', ')}. About {lessons[pickedRef.r.id].minutes} minutes.
+            </Text>
+            <MainButton
+              tone="level"
+              color={color}
+              label={pickedStatus === 'started' ? 'Continue' : pickedStatus === 'done' ? 'Play again' : 'Start'}
+              onPress={() => router.push(`/lesson/${pickedRef.r.id}`)}
+            />
+          </View>
+        </View>
       )}
-    </SafeAreaView>
+    </View>
   );
 }
 
-/** Height of the sandbag against time, from the release to the landing, drawn from the lesson's model. */
-function HeightGraph({ w, h, st }: { w: number; h: number; st: Palette }) {
-  const m = W.real;
-  const L = 34;
-  const R = w - 18;
-  const T = 18;
-  const B = h - 26;
-  const sMax = W.hTop * 1.1;
-  const X = (t: number) => L + (t / W.tLand) * (R - L);
-  const Y = (s: number) => B - (s / sMax) * (B - T);
-  const pts: string[] = [];
-  for (let i = 0; i <= 48; i++) {
-    const t = (W.tLand * i) / 48;
-    pts.push(`${i === 0 ? 'M' : 'L'}${X(t).toFixed(1)},${Y(Math.max(0, position(t, m))).toFixed(1)}`);
-  }
+function PuckRow({ r, offset, color, status, picked, onPick }: { r: LessonRef; offset: number; color: { main: string; lip: string; soft: string }; status?: Status; picked: boolean; onPick: () => void }) {
+  const { palette: p } = useTheme();
+  const state = !r.ready ? 'soon' : status === 'done' ? 'done' : picked ? 'current' : 'open';
   return (
-    <Svg width={w} height={h} fontFamily={svgFont} accessibilityLabel="Height against time: the sandbag rises, stops at the top, then falls to the ground.">
-      <BlueprintGrid width={w} height={h} color={st.grid} />
-      <Line x1={L} y1={B} x2={R} y2={B} stroke={st.groundLine} strokeWidth={1.5} />
-      <Line x1={L} y1={T - 6} x2={L} y2={B} stroke={st.groundLine} strokeWidth={1.5} />
-      <SvgText x={L - 8} y={T + 4} fontSize={12} fill={st.muted} textAnchor="end">s</SvgText>
-      <SvgText x={R} y={B + 18} fontSize={12} fill={st.muted} textAnchor="end">t</SvgText>
-      <Line x1={L} y1={Y(W.h0)} x2={X(W.tBack)} y2={Y(W.h0)} stroke={st.ink} strokeOpacity={0.35} strokeWidth={1} strokeDasharray="3 5" />
-      <SvgText x={L - 8} y={Y(W.h0) + 4} fontSize={12} fill={st.muted} textAnchor="end">{`${fixed(W.h0, 0)}`}</SvgText>
-      <Path d={pts.join(' ')} stroke={st.ink} strokeWidth={2.5} fill="none" strokeLinejoin="round" />
-      <Circle cx={X(W.tTop)} cy={Y(W.hTop)} r={5} fill={st.vel} />
-    </Svg>
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={`${r.title}${r.ready ? (status === 'done' ? ', done' : '') : ', coming soon'}`}
+      accessibilityState={{ disabled: !r.ready, selected: picked }}
+      disabled={!r.ready}
+      onPress={onPick}
+      style={[styles.row, { transform: [{ translateX: offset }] }]}
+    >
+      <Puck size={84} state={state} color={color} />
+      <View style={styles.rowText}>
+        <Text style={[styles.rowTitle, { color: r.ready ? p.ink : p.faint }]} numberOfLines={2}>
+          {r.title}
+        </Text>
+        {!r.ready && <Text style={[styles.soon, { color: p.faint }]}>Soon</Text>}
+      </View>
+    </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, paddingHorizontal: 20, paddingBottom: 8, gap: 12 },
-  head: { marginTop: 8, gap: 2 },
-  app: { fontSize: 14, fontFamily: font.bodySemi },
-  course: { fontSize: 32, lineHeight: 38, fontFamily: font.display },
-  unit: { fontSize: 14, fontFamily: font.body },
-  card: { flex: 1, minHeight: 300, borderRadius: radius.l, overflow: 'hidden' },
-  graph: { flex: 1, minHeight: 150 },
-  cardText: { paddingHorizontal: 18, paddingBottom: 18, paddingTop: 4, gap: 4 },
-  lessonNo: { fontSize: 14, fontFamily: font.bodySemi },
-  title: { fontSize: 30, lineHeight: 34, fontFamily: font.display, letterSpacing: -0.4 },
-  idea: { fontSize: 15, lineHeight: 21, fontFamily: font.body },
-  status: { fontSize: 14, textAlign: 'center', fontFamily: font.bodyMedium },
-  secondary: { minHeight: touch, alignItems: 'center', justifyContent: 'center' },
-  secondaryText: { fontSize: 15, fontFamily: font.bodySemi },
+  scroll: { paddingHorizontal: 20, paddingTop: 20 },
+  column: { width: '100%', maxWidth: CONTENT_MAX, alignSelf: 'center' },
+  title: { fontFamily: font.display, fontSize: 30, lineHeight: 36, letterSpacing: -0.3 },
+  subtitle: { fontFamily: font.bodyMedium, fontSize: 16, marginTop: 4 },
+  levelCard: { borderWidth: 2, borderBottomWidth: 5, borderRadius: radius.m, paddingVertical: 12, alignItems: 'center' },
+  levelNo: { fontFamily: font.displaySemi, fontSize: 14 },
+  levelTitle: { fontFamily: font.display, fontSize: 22, marginTop: 2 },
+  path: { marginTop: 16, gap: 10, alignItems: 'center' },
+  row: { flexDirection: 'row', alignItems: 'center', gap: 10, width: 220 },
+  rowText: { flex: 1 },
+  rowTitle: { fontFamily: font.bodySemi, fontSize: 16, lineHeight: 21 },
+  soon: { fontFamily: font.bodyMedium, fontSize: 13, marginTop: 2 },
+  dock: { position: 'absolute', left: 0, right: 0, bottom: 0, paddingHorizontal: 16 },
+  dockCard: { width: '100%', maxWidth: CONTENT_MAX, alignSelf: 'center', borderWidth: 2, borderRadius: 24, padding: 18, gap: 8, shadowColor: '#000', shadowOpacity: 0.08, shadowRadius: 16, shadowOffset: { width: 0, height: 4 }, elevation: 6 },
+  dockTitle: { fontFamily: font.display, fontSize: 22 },
+  dockMeta: { fontFamily: font.bodyMedium, fontSize: 15, marginBottom: 6 },
 });

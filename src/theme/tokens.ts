@@ -1,124 +1,57 @@
-// Design tokens, "Blueprint" look (chosen by the owner on 11 Nov 2026).
-// A light page (questions' answers, buttons, verdicts) around a dark-blue stage with a fine grid
-// (the scene, the question on it). Colours carry meaning: velocity blue, acceleration coral,
-// right green, wrong red. The stage has its own brighter twins, because it is dark.
-// "*Text" colours are the twins used for text (≥ 4.5:1, checked by tokens.test.ts).
+// Design tokens, "Brilliant + engineering drawing" look (owner's choice, 11 Nov 2026, night).
+// A plain white page with ink text and one dark main button. The memorable part is the figure:
+// every scene is a drawing sheet (pale drafting paper, FIG label, line art), and every FORCE is drawn
+// in one signature colour, like a reviewer's red pen. Other vectors are told apart by shape, not colour.
+// "*Text" colours are the ones used for text (≥ 4.5:1, checked by tokens.test.ts).
 
-export type Palette = {
-  page: string; // background
-  ink: string; // main text
-  muted: string; // secondary text
-  faint: string; // hints, axis numbers
-  line: string; // card borders
-  lineStrong: string; // stronger borders, tracks
-  grid: string; // the blueprint grid lines
-  // the scene
-  sky: string;
-  ground: string;
-  groundLine: string;
-  // buttons (flat)
-  primary: string;
-  onPrimary: string;
-  disabled: string;
-  onDisabled: string;
-  select: string; // ring around the chosen card / handle
-  selectBg: string;
-  // quantities
-  vel: string;
-  velText: string;
-  acc: string;
-  accText: string;
-  // verdicts
-  ok: string;
-  okBg: string;
-  okText: string;
-  bad: string;
-  badBg: string;
-  badText: string;
-  // things in the scene
-  balloon: string;
-  balloonLine: string;
-  balloonShade: string;
-  gore: string;
-  kraft: string;
-  kraftLight: string;
-  kraftDark: string;
-  sack: string;
-  ghost: string;
-  rope: string;
-  burner: string;
-  flame: string;
-  flameCore: string;
-};
-
-/** The page: everything outside the dark stage. */
-export const palette: Palette = {
-  page: '#F5F8FC',
-  ink: '#13253F',
-  muted: '#4B5D75',
-  faint: '#56677E',
-  line: '#D5DEEA',
-  lineStrong: '#B6C4D6',
-  grid: 'rgba(19,37,63,0.06)',
-  sky: '#0F3B73',
-  ground: '#0B2F5E',
-  groundLine: '#9DB7DA',
-  primary: '#0F3B73',
+export const palette = {
+  page: '#FFFFFF',
+  ink: '#1A1E25', // main text and the main button
+  muted: '#4E5663', // secondary text
+  faint: '#646C79', // hints, axis numbers
+  line: '#DADFE5', // card borders
+  lineStrong: '#B9C1CB',
+  // the main button: dark pill with a bottom lip
+  primary: '#1A1E25',
+  primaryLip: '#000000',
   onPrimary: '#FFFFFF',
-  disabled: '#E3E9F1',
-  onDisabled: '#56677E',
-  select: '#1F5FAE',
-  selectBg: '#E8F0FB',
-  vel: '#1479C9',
-  velText: '#0F64A8',
-  acc: '#E4572E',
-  accText: '#B4421C',
-  ok: '#1F7F43',
-  okBg: '#E8F5ED',
-  okText: '#175C30',
-  bad: '#CC3D3D',
-  badBg: '#FBECEC',
-  badText: '#962A2A',
-  balloon: '#FFFFFF',
-  balloonLine: '#DCE5F0',
-  balloonShade: '#DCE5F0',
-  gore: '#2F6DB5',
-  kraft: '#D8A468',
-  kraftLight: '#E8BE89',
-  kraftDark: '#A97A45',
-  sack: '#D2A66E',
-  ghost: '#C9D8EC',
-  rope: '#9DB7DA',
-  burner: '#DCE5F0',
-  flame: '#FFB02E',
-  flameCore: '#FFE6A3',
+  disabled: '#ECEEF1',
+  onDisabled: '#5A626E',
+  // answer cards
+  select: '#1A1E25', // border of the chosen card
+  selectBg: '#F2F4F6',
+  // verdicts
+  ok: '#1B7F45',
+  okLip: '#12592F',
+  okBg: '#DFF3E6',
+  okText: '#145C33',
+  bad: '#C2303A',
+  badBg: '#FCE7E8',
+  badText: '#9A2129',
+  // the drawing sheet
+  paper: '#F4F6F8',
+  paperLine: '#C9D0D8',
+  draw: '#2A3039', // line art
+  drawFill: '#E2E6EB', // flat fills of bodies
+  drawFillDark: '#C3CAD3',
+  label: '#4E5663', // FIG labels and dimensions (mono)
+  force: '#C8124F', // every force, everywhere
+  forceText: '#B0103F',
 };
 
-/** The stage: the dark-blue scene and the question on it. Same keys, colours that read on dark blue. */
-export const stage: Palette = {
-  ...palette,
-  page: '#1B4C8A', // fill of circles and pills drawn on the scene
-  ink: '#FFFFFF',
-  muted: '#C9D8EC',
-  faint: '#A9C0DE',
-  line: '#4C73A8',
-  lineStrong: '#7E9FCB',
-  grid: 'rgba(255,255,255,0.09)',
-  select: '#FFFFFF',
-  selectBg: '#1B4C8A',
-  vel: '#5CC8FF',
-  velText: '#8FDBFF',
-  acc: '#FF8A65',
-  accText: '#FFB199',
-  ok: '#5FD38D',
-  okBg: '#164B3A',
-  okText: '#8FE3B0',
-  bad: '#FF7A7A',
-  badBg: '#5A2238',
-  badText: '#FFA8A8',
+export type Palette = typeof palette;
+
+/** One colour per level of the course map. Forces use the signature force colour. */
+export const levelColors: Record<string, { main: string; lip: string; soft: string }> = {
+  motion: { main: '#2563C9', lip: '#1A4794', soft: '#E4EDFB' },
+  forces: { main: '#C8124F', lip: '#8F0C38', soft: '#FBE4EC' },
+  'momentum-moments': { main: '#0E7C74', lip: '#095852', soft: '#DDF2F0' },
+  energy: { main: '#B4570A', lip: '#7F3D07', soft: '#FBEBDD' },
+  fluids: { main: '#0B6FA4', lip: '#084F75', soft: '#DDEFF8' },
+  materials: { main: '#4D6170', lip: '#36444F', soft: '#E6EBEF' },
 };
 
-/** Fonts: Space Grotesk for questions, titles and buttons; IBM Plex Sans for everything else. One family per weight. */
+/** Space Grotesk: titles, questions, buttons. IBM Plex Sans: reading text. IBM Plex Mono: labels inside figures only. */
 export const font = {
   display: 'SpaceGrotesk_700Bold',
   displaySemi: 'SpaceGrotesk_600SemiBold',
@@ -126,9 +59,11 @@ export const font = {
   bodyMedium: 'IBMPlexSans_500Medium',
   bodySemi: 'IBMPlexSans_600SemiBold',
   bodyBold: 'IBMPlexSans_700Bold',
-  italic: 'IBMPlexSans_600SemiBold_Italic', // quantity letters: a, s, u, v, t
+  italic: 'IBMPlexSans_600SemiBold_Italic',
+  mono: 'IBMPlexMono_500Medium',
+  monoBold: 'IBMPlexMono_600SemiBold',
 } as const;
 
-export const radius = { s: 10, m: 12, l: 16 } as const;
+export const radius = { s: 10, m: 14, pill: 999 } as const;
 export const touch = 44; // minimum touch target, pt
-export const GRID = 20; // blueprint grid step, pt
+export const LIP = 4; // height of the bottom lip under main buttons and the picked card
