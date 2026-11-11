@@ -22,6 +22,8 @@ const config: ExpoConfig = {
   web: { output: 'static', favicon: './assets/images/favicon.png' },
   plugins: [
     'expo-router',
+    'expo-font',
+    'expo-status-bar',
     ['expo-splash-screen', { backgroundColor: '#FFFFFF', image: './assets/images/splash-icon.png', imageWidth: 76 }],
   ],
   experiments: { typedRoutes: true, reactCompiler: true },
