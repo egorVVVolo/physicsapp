@@ -1,7 +1,8 @@
 // Lesson 4, "Up, stop, down": a sandbag released from a rising hot-air balloon.
 // Every number in the text is computed from the givens below through src/physics.
 // Lesson flow: idea, question, idea, question ... then spot-the-error and an exam-format step.
-// Text limits (checked by l4.test.ts): question ≤ 48, idea line ≤ 70, feedback ≤ 45, caption ≤ 38.
+// Each question screen: a full natural question (what is asked) + an instruction (how to answer).
+// Text limits (checked by l4.test.ts): question ≤ 58, instruction ≤ 44, idea line ≤ 70, feedback ≤ 45, caption ≤ 38.
 import {
   G,
   initialVelocityFor,
@@ -84,7 +85,8 @@ const hookU: Record<string, number> = { zero: 0, up: W.vb, down: -W.vb };
 export const hook: PredictStep = {
   id: 'hook',
   type: 'predict',
-  question: 'Released. Drag its velocity arrow.',
+  question: 'The sandbag is let go. How is it moving at that instant?',
+  instruction: 'Drag the arrow on the sandbag up or down',
   scene: W.scene,
   input: 'vector', // the arrow snaps to the options' preview values: 0, +12 or −12
   options: [
@@ -151,7 +153,8 @@ const tFall = 2 * W.tTop - tRise; // the same height as the rising frame: the fl
 export const accTop: StrobeStep = {
   id: 'acc-top',
   type: 'strobe',
-  question: 'Set its acceleration at each moment.',
+  question: 'What is its acceleration rising, at the top and falling?',
+  instruction: 'Tap each circle to turn its arrow',
   scene: W.scene,
   sign: true,
   frames: [
@@ -231,12 +234,14 @@ function buildTime(w: World, id: string): BuildStep {
   return {
     id,
     type: 'build',
-    question: 'Find the time to reach the ground.',
+    question: 'How long after the release does it hit the ground?',
     scene: w.scene,
     sign: true,
+    goal: 'Find: t to hit the ground',
     unknown: 't',
     known: ['s', 'u', 'a'],
-    relationPrompt: 'Known s, u, a. Which gives t?',
+    relationPrompt: 'You know s, u and a. Which equation gives t?',
+    relationInstruction: 'Tap the equation you would use',
     // The right one (sut) sits in the middle here; the exam step puts it first.
     relations: [
       { id: 'vuat', misconception: 'K-SUVAT-PICK', feedback: 'No v is given: it needs two stages.' },
@@ -248,7 +253,8 @@ function buildTime(w: World, id: string): BuildStep {
       {
         quantity: 's',
         correct: -h0,
-        prompt: 'Drag s from release point to ground.',
+        prompt: 'Where is the ground, measured from the release point?',
+        instruction: 'Drag the s handle up or down',
         highlight: 's',
         input: 'displacement',
         chips: [
@@ -259,7 +265,8 @@ function buildTime(w: World, id: string): BuildStep {
       {
         quantity: 'u',
         correct: vb,
-        prompt: 'Drag u: its velocity at the release.',
+        prompt: 'What is u, its velocity at the release?',
+        instruction: 'Drag the arrow on the sandbag up or down',
         highlight: 'u',
         input: 'vector',
         chips: [
@@ -271,7 +278,8 @@ function buildTime(w: World, id: string): BuildStep {
       {
         quantity: 'a',
         correct: -G,
-        prompt: 'Tap the a arrow until it is right.',
+        prompt: 'What is a, its acceleration after the release?',
+        instruction: 'Tap the circle to turn the a arrow',
         highlight: 'a',
         input: 'flip',
         chips: [
@@ -283,7 +291,8 @@ function buildTime(w: World, id: string): BuildStep {
     ],
     solved: `t = ${fixed(tLand, 2)} s  or  t = ${fixed(tBefore, 2)} s`,
     final: {
-      prompt: 'Two solutions. Tap the landing time.',
+      prompt: 'Two times solve it. Which one is the landing?',
+      instruction: 'Tap a time on the line',
       input: 'timeline',
       choices: [
         { id: 'before', label: `${fixed(tBefore, 2)} s`, value: tBefore, misconception: 'K-ROOT-PICK', feedback: 'A negative t is before the release.' },
@@ -359,7 +368,8 @@ export const studentT = (vUp - W.vb) / -G; // what the wrong sign leads to
 export const spotError: SpotErrorStep = {
   id: 'spot-error',
   type: 'spot-error',
-  question: 'A student got a negative time. Tap the error.',
+  question: `A student got t = ${fixed(studentT, 2)} s. Which value is wrong?`,
+  instruction: 'Tap the wrong arrow or value on the scene',
   scene: W.scene,
   sign: true,
   misconception: 'K-SPEED-VEL',
@@ -412,10 +422,12 @@ export const exam: BuildStep = {
     secretCarrierSpeed: true, // the balloon's velocity arrow would give the answer away
   },
   sign: true,
-  facts: [`sandbag lands after ${fixed(EXAM_T, 1)} s`],
+  facts: [`lands after ${fixed(EXAM_T, 1)} s`],
+  goal: 'Find: balloon’s u',
   unknown: 'u',
   known: ['s', 'a', 't'],
-  relationPrompt: 'Known s, a, t. Which gives u?',
+  relationPrompt: 'You know s, a and t. Which equation gives u?',
+  relationInstruction: 'Tap the equation you would use',
   relations: [
     { id: 'sut', feedback: 'It has u, and all the rest are known.' },
     { id: 'vuat', misconception: 'K-SUVAT-PICK', feedback: 'v is unknown too: two unknowns.' },
@@ -427,7 +439,8 @@ export const exam: BuildStep = {
     {
       quantity: 's',
       correct: -EXAM_H,
-      prompt: 'Tap a tile for s.',
+      prompt: 'What is s, measured from the release point?',
+      instruction: 'Tap a tile to put it into the equation',
       highlight: 's',
       input: 'tiles',
       chips: [
@@ -438,7 +451,8 @@ export const exam: BuildStep = {
     {
       quantity: 'a',
       correct: -G,
-      prompt: 'Tap a tile for a.',
+      prompt: 'What is a, the sandbag’s acceleration?',
+      instruction: 'Tap a tile to put it into the equation',
       highlight: 'a',
       input: 'tiles',
       chips: [
@@ -449,7 +463,8 @@ export const exam: BuildStep = {
   ],
   solved: `u = ${signed(examU, 1)} ${MS}`,
   final: {
-    prompt: `u = ${signed(examU, 1)} ${MS}. The balloon was…`,
+    prompt: `u = ${signed(examU, 1)} ${MS}. Which way was the balloon moving?`,
+    instruction: 'Tap climbing or descending',
     input: 'cards',
     choices: [
       { id: 'up', label: 'climbing', correct: true, feedback: `Positive is up: it was climbing at ${examSpeed}.` },

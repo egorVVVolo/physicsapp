@@ -206,7 +206,7 @@ test('exam step: u from the model lands the sandbag at the given time, and it is
   assert.ok(exam.solved.includes(fixed(examU, 1)));
   assert.equal(exam.scene.secretCarrierSpeed, true, 'the balloon’s velocity arrow would give the answer away');
   assert.deepEqual(exam.exam, { command: 'Determine', marks: 3 });
-  assert.deepEqual(exam.facts, [`sandbag lands after ${fixed(EXAM_T, 1)} s`]);
+  assert.deepEqual(exam.facts, [`lands after ${fixed(EXAM_T, 1)} s`]);
   assert.equal(exam.scene.body.s0, EXAM_H);
   assert.equal(exam.given!.value, EXAM_T);
 });
@@ -224,20 +224,22 @@ test('every playback: ordered events, one final event, a caption for each', () =
   }
 });
 
-test('text fits one screen: question ≤ 48, idea line ≤ 70, feedback ≤ 45, caption ≤ 38, slot prompt ≤ 40, facts ≤ 28, working ≤ 46', () => {
+test('text fits one screen: question ≤ 58, instruction ≤ 44, idea line ≤ 70, feedback ≤ 45, caption ≤ 38, facts ≤ 28, working ≤ 46', () => {
   const all = core.steps.flatMap((s): Step[] => (s.type === 'build' && s.retry ? [s, s.retry] : [s]));
   for (const step of all) {
     const question = step.type === 'build' && step.exam ? `${step.exam.command} ${step.question}` : step.question;
-    assert.ok(question.length <= 48, `${step.id} question (${question.length}): ${question}`);
+    assert.ok(question.length <= 58, `${step.id} question (${question.length}): ${question}`);
+    if (step.instruction) assert.ok(step.instruction.length <= 44, `${step.id} instruction: ${step.instruction}`);
     assert.ok((step.facts?.length ?? 0) <= 2, step.id);
     for (const f of step.facts ?? []) assert.ok(f.length <= 28, `${step.id} fact: ${f}`);
     if (step.type === 'idea') assert.ok(step.line.length <= 70, `${step.id} line (${step.line.length})`);
     for (const f of feedbacks(step)) assert.ok(f.length <= 45, `${step.id} feedback (${f.length}): ${f}`);
     for (const [name, p] of playbacks(step)) for (const c of Object.values(p.captions)) assert.ok(c.length <= 38, `${name} caption (${c.length}): ${c}`);
     if (step.type === 'build') {
-      assert.ok(step.relationPrompt.length <= 48 && step.final.prompt.length <= 40, step.id);
-      for (const sl of step.slots) assert.ok(sl.prompt.length <= 40, `${step.id} prompt (${sl.prompt.length}): ${sl.prompt}`);
+      for (const t of [step.relationPrompt, step.final.prompt, ...step.slots.map((sl) => sl.prompt)]) assert.ok(t.length <= 58, `${step.id} prompt (${t.length}): ${t}`);
+      for (const t of [step.relationInstruction, step.final.instruction, ...step.slots.map((sl) => sl.instruction)]) assert.ok(t.length <= 44, `${step.id} instruction: ${t}`);
       for (const l of step.worked) assert.ok(l.length <= 100, `${step.id} worked: ${l}`);
+      assert.ok(step.goal.length <= 28, `${step.id} goal: ${step.goal}`);
     }
     if (step.type === 'spot-error') {
       assert.ok(step.working.length <= 46, `${step.id} working (${step.working.length})`);
@@ -261,4 +263,24 @@ test('every build stage says how it is answered; timeline answers sit at the mod
   }
   // ordinary choice stays where choosing is the skill: which equation, and what the sign means
   assert.ok(core.steps.some((s) => s.type === 'build' && s.final.input === 'cards'));
+});
+
+test('every question screen says how to answer: an instruction that names the gesture', () => {
+  const gesture = /^(Drag|Tap)\b/;
+  for (const step of core.steps) {
+    if (step.type === 'idea') {
+      assert.equal(step.instruction, undefined, step.id);
+      continue;
+    }
+    if (step.type === 'build') {
+      for (const st of [step, ...(step.retry ? [step.retry] : [])]) {
+        for (const t of [st.relationInstruction, st.final.instruction, ...st.slots.map((sl) => sl.instruction)]) assert.match(t, gesture, `${st.id}: ${t}`);
+        // a stage prompt is a question, not a command
+        for (const t of [st.relationPrompt, st.final.prompt, ...st.slots.map((sl) => sl.prompt)]) assert.match(t, /\?$/, `${st.id}: ${t}`);
+      }
+      continue;
+    }
+    assert.match(step.instruction ?? '', gesture, step.id);
+    assert.match(step.question, /\?$/, `${step.id}: ${step.question}`);
+  }
 });

@@ -62,8 +62,9 @@ export function PredictStepView({ step, isLast, progress, onDone, onNext }: Step
         ))}
       </CardRow>
     ) : !checked ? (
-      <Text style={[text.hint, { color: p.muted }]} maxFontSizeMultiplier={1.25}>
-        Drag the arrow on the sandbag up or down
+      // the arrow is the answer; the strip only repeats what it says, in words
+      <Text style={[text.line, { color: choice ? p.ink : p.faint }]} maxFontSizeMultiplier={1.25}>
+        {choice ? `Your answer: ${choice.label}` : 'No answer yet'}
       </Text>
     ) : null;
 
@@ -71,6 +72,8 @@ export function PredictStepView({ step, isLast, progress, onDone, onNext }: Step
     <LessonScreen
       progress={progress}
       prompt={step.question}
+      instruction={step.instruction}
+      instructionHidden={checked}
       note={noteFor(step)}
       scene={step.scene}
       playback={playback}

@@ -17,6 +17,7 @@ import {
   chooseFinal,
   chooseRelation,
   currentHighlight,
+  currentInstruction,
   currentPrompt,
   initialBuild,
   marksEarned,
@@ -222,7 +223,10 @@ export function BuildStepView({ step, isLast, progress, onDone, onNext }: StepVi
       progress={progress}
       command={examFirst ? exam.command : undefined}
       prompt={examFirst ? `${step.question} (${exam.marks})` : currentPrompt(step, result && result.action !== 'finish' ? s : shownState)}
-      note={noteFor(step)}
+      instruction={currentInstruction(step, s)}
+      instructionHidden={!answering || shownState.revealed}
+      // the stage asks one small question; the goal keeps the whole task in view (the exam's first screen states it in full)
+      note={noteFor(step, !examFirst && shownState.stage !== 'done')}
       scene={step.scene}
       playback={playback}
       clock={clock}

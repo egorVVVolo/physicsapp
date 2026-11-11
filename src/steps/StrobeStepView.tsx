@@ -44,6 +44,8 @@ export function StrobeStepView({ step, isLast, progress, onDone, onNext }: StepV
     <LessonScreen
       progress={progress}
       prompt={step.question}
+      instruction={step.instruction}
+      instructionHidden={checked}
       note={noteFor(step)}
       scene={step.scene}
       playback={playback}
@@ -58,7 +60,7 @@ export function StrobeStepView({ step, isLast, progress, onDone, onNext }: StepV
       strip={
         !checked ? (
           <Text style={[text.hint, { color: p.muted }]} maxFontSizeMultiplier={1.25}>
-            Tap a circle to turn its arrow. Blue arrows show v.
+            Blue arrows show its velocity at each moment.
           </Text>
         ) : null
       }

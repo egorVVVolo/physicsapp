@@ -19,6 +19,8 @@ export type LessonScreenProps = {
   progress: { index: number; total: number; onClose: () => void };
   prompt: string;
   command?: string; // exam format: the bold command word in front of the prompt
+  instruction?: string; // how to answer, named by its gesture ("Drag the arrow…"), under the prompt
+  instructionHidden?: boolean; // after a check: the line keeps its room (so the scene does not jump) but is not shown
   note?: string; // one small line under the prompt ("up is +", a given fact)
   scene: SceneSetup;
   playback: Playback | null;
@@ -32,7 +34,7 @@ export type LessonScreenProps = {
 };
 
 export function LessonScreen(props: LessonScreenProps) {
-  const { progress, prompt, command, note, scene, playback, clock, highlight, showBalloon, showHeldSack, overlay, strip, bar } = props;
+  const { progress, prompt, command, instruction, instructionHidden, note, scene, playback, clock, highlight, showBalloon, showHeldSack, overlay, strip, bar } = props;
   const { palette: p } = useTheme();
   const [size, setSize] = useState<{ w: number; h: number } | null>(null);
   const caption = playback && clock.eventId ? (playback.captions[clock.eventId] ?? null) : null;
@@ -63,6 +65,15 @@ export function LessonScreen(props: LessonScreenProps) {
           {command ? <Text style={{ fontWeight: '800' }}>{command} </Text> : null}
           {prompt}
         </Text>
+        {instruction ? (
+          <View
+            style={[styles.instructionRow, instructionHidden && { opacity: 0 }]}
+            aria-hidden={instructionHidden}
+          >
+            <HandIcon color={p.select} />
+            <Text style={[styles.instruction, { color: p.select }]} maxFontSizeMultiplier={1.2}>{instruction}</Text>
+          </View>
+        ) : null}
         {note ? <Text style={[styles.note, { color: p.muted }]} maxFontSizeMultiplier={1.2}>{note}</Text> : null}
       </View>
 
@@ -133,6 +144,24 @@ export function LessonScreen(props: LessonScreenProps) {
   );
 }
 
+/** A small pointing finger: marks the line that says how to answer. */
+function HandIcon({ color }: { color: string }) {
+  return (
+    <View aria-hidden>
+      <Svg width={16} height={16} viewBox="0 0 20 20">
+        <Path
+          d="M7.5 10V3.8a1.5 1.5 0 0 1 3 0V9m0-1.2a1.5 1.5 0 0 1 3 0V9.5m0-.7a1.5 1.5 0 0 1 3 0v3.4c0 3-2.2 5.3-5.2 5.3h-.6c-1.8 0-3.2-.8-4.2-2.2L3.7 12a1.4 1.4 0 0 1 2.3-1.6l1.5 1.8"
+          stroke={color}
+          strokeWidth={1.6}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          fill="none"
+        />
+      </Svg>
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
   root: { flex: 1 },
   top: { height: 48, flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16 },
@@ -142,6 +171,8 @@ const styles = StyleSheet.create({
   shine: { position: 'absolute', left: 6, right: 6, top: 3, height: 3, borderRadius: 2, backgroundColor: 'rgba(255,255,255,0.35)' },
   promptBox: { paddingHorizontal: 22, paddingBottom: 10, minHeight: 56, alignItems: 'center', justifyContent: 'center' },
   prompt: { fontSize: 19, lineHeight: 24, fontWeight: '700', textAlign: 'center' },
+  instructionRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 6 },
+  instruction: { fontSize: 14, fontWeight: '700', textAlign: 'center', flexShrink: 1 },
   note: { fontSize: 13, marginTop: 4, textAlign: 'center' },
   scene: { flex: 1, minHeight: 240, overflow: 'hidden' },
   captionWrap: { position: 'absolute', top: 10, left: 60, right: 60, alignItems: 'center' },

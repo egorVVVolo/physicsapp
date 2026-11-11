@@ -1,6 +1,8 @@
 // The shape of lesson content. Content files have no React imports, so tests can load them.
-// Text limits (checked by tests): question ≤ 48 characters, idea line ≤ 70, feedback ≤ 45,
-// caption ≤ 38, slot prompt ≤ 40. One short thought per screen.
+// Every question screen says two things: WHAT is asked (a full, natural question) and HOW to answer
+// (a short instruction that names the gesture: "Drag…", "Tap…").
+// Text limits (checked by tests): question ≤ 58 characters, instruction ≤ 44, idea line ≤ 70,
+// feedback ≤ 45, caption ≤ 38. One short thought per screen.
 import type { Motion, Quantity, RelationId, Track } from '../physics/kinematics.ts';
 import type { ClockEvent } from '../scene/clockStep.ts';
 
@@ -52,6 +54,8 @@ export type Option = {
 type StepBase = {
   id: string;
   question: string; // the sentence centred on the scene (on an idea card: its title)
+  /** How to answer, shown under the question: names the gesture. Every question step has one; idea steps none. */
+  instruction?: string;
   scene: SceneSetup;
   /** Show the small "up is +  g = 9.81 m s⁻²" tag. */
   sign?: boolean;
@@ -86,7 +90,15 @@ export type Chip = { value: number; label: string; misconception?: Misconception
  * flip = tap the acceleration arrow to turn it; tiles = tap number tiles into the equation; cards = tap a card.
  */
 export type SlotInput = 'displacement' | 'vector' | 'flip' | 'tiles' | 'cards';
-export type Slot = { quantity: Quantity; correct: number; prompt: string; highlight: Highlight; input: SlotInput; chips: Chip[] };
+export type Slot = {
+  quantity: Quantity;
+  correct: number;
+  prompt: string; // the question of this stage
+  instruction: string; // how to answer it
+  highlight: Highlight;
+  input: SlotInput;
+  chips: Chip[];
+};
 
 /**
  * The learner picks an equation, fills it with signed values one at a time, the app solves,
@@ -94,16 +106,19 @@ export type Slot = { quantity: Quantity; correct: number; prompt: string; highli
  */
 export type BuildStep = StepBase & {
   type: 'build';
+  /** The whole task in a few words, kept in view on every stage ("Find: t to hit the ground"). ≤ 28 characters. */
+  goal: string;
   unknown: Quantity;
   known: Quantity[];
   relationPrompt: string;
+  relationInstruction: string;
   relations: { id: RelationId; misconception?: MisconceptionId; feedback: string }[];
   /** The chosen equation as it is drawn: text pieces and quantities (slots, givens, the unknown). */
   template: (string | { q: Quantity })[];
   slots: Slot[];
   given?: { quantity: Quantity; value: number; label: string };
   solved: string; // what the app shows after solving
-  final: { prompt: string; choices: Option[]; input: 'timeline' | 'cards' };
+  final: { prompt: string; instruction: string; choices: Option[]; input: 'timeline' | 'cards' };
   methodHint: string; // second level of help
   worked: string[]; // shown when the answer is revealed
   wrongPlayback: (values: Values) => Playback;

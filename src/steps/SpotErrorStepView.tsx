@@ -63,6 +63,8 @@ export function SpotErrorStepView({ step, isLast, progress, onDone, onNext }: St
     <LessonScreen
       progress={progress}
       prompt={step.question}
+      instruction={step.instruction}
+      instructionHidden={finished}
       note={noteFor(step)}
       scene={step.scene}
       playback={playback}

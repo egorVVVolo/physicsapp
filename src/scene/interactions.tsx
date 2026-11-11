@@ -1,8 +1,10 @@
 // Ways to answer ON the scene. Each one draws in its own Svg layer over the scene, using the
 // scene geometry so handles sit exactly on the picture, and adds touch areas (≥ 44 pt) above it.
 // Every control also works with a screen reader (adjustable or button) without any drag.
-import { useMemo, useRef } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+// Until a control is first touched it shows its gesture: a pulsing ring, and ▲▼ chevrons on drag handles.
+import { useEffect, useMemo, useRef } from 'react';
+import { Animated, Easing, Platform, Pressable, StyleSheet, View } from 'react-native';
+import { useReducedMotion } from 'react-native-reanimated';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Svg, { Circle, G, Line, Path, Rect, Text } from 'react-native-svg';
 import type { AccDir, WorkingItem } from '@/content/types';
@@ -18,6 +20,43 @@ function useLatest<T>(value: T) {
   const ref = useRef(value);
   ref.current = value;
   return ref;
+}
+
+// ── "Touch me": a ring that pulses out from a control until it is first used ─────────────
+
+/** A ring around (x, y) that grows and fades on a loop. With reduced motion it is a still ring. */
+function Pulse({ x, y, r, color }: { x: number; y: number; r: number; color: string }) {
+  const reduced = useReducedMotion();
+  const k = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    if (reduced) return;
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(k, { toValue: 1, duration: 1100, easing: Easing.out(Easing.quad), useNativeDriver: Platform.OS !== 'web' }),
+        Animated.delay(350),
+      ]),
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [k, reduced]);
+  const ring = { position: 'absolute' as const, left: x - r, top: y - r, width: 2 * r, height: 2 * r, borderRadius: r, borderWidth: 2.5, borderColor: color };
+  if (reduced) return <View pointerEvents="none" style={[ring, { opacity: 0.5 }]} />;
+  return (
+    <Animated.View
+      pointerEvents="none"
+      style={[ring, { opacity: k.interpolate({ inputRange: [0, 1], outputRange: [0.75, 0] }), transform: [{ scale: k.interpolate({ inputRange: [0, 1], outputRange: [1, 1.7] }) }] }]}
+    />
+  );
+}
+
+/** ▲ above and ▼ below a drag handle: "this moves up and down". */
+function Chevrons({ x, y, color }: { x: number; y: number; color: string }) {
+  return (
+    <>
+      <Path d={`M${x - 7},${y - 25} L${x},${y - 32} L${x + 7},${y - 25}`} stroke={color} strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" fill="none" />
+      <Path d={`M${x - 7},${y + 25} L${x},${y + 32} L${x + 7},${y + 25}`} stroke={color} strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" fill="none" />
+    </>
+  );
 }
 
 // ── Drag a vertical arrow (velocity on the sandbag, or the displacement s) ────────────────
@@ -83,6 +122,7 @@ function ArrowDrag({ g, x, y0, pxPerUnit, value, snaps, disabled, onChange, onRe
         ))}
         {value !== null && <Path d={arrowD(x, y0, len)} stroke={p.vel} strokeWidth={4} strokeLinecap="round" strokeLinejoin="round" fill="none" />}
         <Circle cx={x} cy={tipY} r={16} fill={p.select} fillOpacity={0.12} stroke={p.select} strokeWidth={2} strokeDasharray="4 3" />
+        {value === null && <Chevrons x={x} y={tipY} color={p.select} />}
         {pill ? (
           <>
             <Rect x={x + 22} y={labelY - 17} width={text.length * 8 + 16} height={24} rx={12} fill={p.page} stroke={p.vel} strokeWidth={1.5} />
@@ -92,6 +132,7 @@ function ArrowDrag({ g, x, y0, pxPerUnit, value, snaps, disabled, onChange, onRe
           <Text x={x + 22} y={labelY} fontSize={14} fontWeight="700" fill={p.velText}>{text}</Text>
         )}
       </Svg>
+      {value === null && <Pulse x={x} y={tipY} r={16} color={p.select} />}
       <GestureDetector gesture={pan}>
         <View
           style={[styles.handle, { left: x - 28, top: tipY - 28 }]}
@@ -148,12 +189,14 @@ function AccGlyph({ x, y0, dir, label }: { x: number; y0: number; dir: AccDir | 
 
 /** Tap the acceleration arrow next to the hanging sandbag: up → zero → down → up… */
 export function AccFlip({ g, dir, disabled, onTap, label }: { g: SceneGeometry; dir: AccDir | null; disabled?: boolean; onTap: () => void; label: string }) {
+  const { palette: p } = useTheme();
   const y0 = g.yRelease - g.bagH / 2;
   return (
     <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
       <Svg width={g.width} height={g.height} style={StyleSheet.absoluteFill} pointerEvents="none" fontFamily={svgFont}>
         <AccGlyph x={g.accX} y0={y0} dir={dir} label={label} />
       </Svg>
+      {dir === null && <Pulse x={g.accX} y={y0} r={16} color={p.acc} />}
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={`Acceleration arrow, ${dir ? dirWords[dir] : 'not set'}. Tap to turn it.`}
@@ -174,12 +217,17 @@ export function StrobeFrames({ g, frames, answers, marks, disabled, onTap }: { g
   const xs = frames.map((_, i) => Math.round(g.width * (0.24 + (0.52 * i) / Math.max(1, frames.length - 1))));
   const lowest = Math.max(...frames.map((f) => g.yOf(f.h)));
   const rowY = Math.min(lowest + 64, g.ground - 52); // the row of acceleration buttons
+  const firstUnset = disabled ? undefined : frames.find((f) => !answers[f.id]); // the next circle to tap pulses
   return (
     <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
       <Svg width={g.width} height={g.height} style={StyleSheet.absoluteFill} pointerEvents="none" fontFamily={svgFont}>
         {/* time runs left to right */}
         <Path d={`M${xs[0] - 30},${rowY + 44} H${xs[xs.length - 1] + 30} M${xs[xs.length - 1] + 22},${rowY + 39} L${xs[xs.length - 1] + 30},${rowY + 44} L${xs[xs.length - 1] + 22},${rowY + 49}`} stroke={p.faint} strokeWidth={1.5} fill="none" strokeLinecap="round" strokeLinejoin="round" />
         <Text x={xs[xs.length - 1] + 30} y={rowY + 62} fontSize={11} fill={p.faint} textAnchor="end">time</Text>
+        {/* one sandbag, not three: say it on the picture */}
+        <Text x={g.width / 2} y={Math.max(18, Math.min(...frames.map((f) => g.yOf(f.h))) - g.bagH - 22)} fontSize={13} fontWeight="700" fill={p.muted} textAnchor="middle">
+          The same sandbag at three moments
+        </Text>
         {frames.map((f, i) => {
           const y = g.yOf(f.h);
           const m = marks?.[f.id];
@@ -194,6 +242,7 @@ export function StrobeFrames({ g, frames, answers, marks, disabled, onTap }: { g
           );
         })}
       </Svg>
+      {firstUnset && <Pulse x={xs[frames.indexOf(firstUnset)]} y={rowY} r={22} color={p.acc} />}
       {frames.map((f, i) => (
         <Pressable
           key={f.id}

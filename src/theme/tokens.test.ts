@@ -20,6 +20,7 @@ test('text on the page and in the scene is at least 4.5:1', () => {
   }
   check(p.muted, p.ground, 4.5, 'labels under the ground line');
   check(p.ink, p.selectBg, 4.5, 'text on a selected card');
+  check(p.select, p.page, 4.5, 'the instruction line under the question');
 });
 
 test('buttons and verdict banners are at least 4.5:1', () => {

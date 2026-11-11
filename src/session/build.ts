@@ -97,6 +97,14 @@ export function currentPrompt(step: BuildStep, s: BuildState): string {
   return step.exam ? `${step.exam.command} ${step.question}` : step.question; // 'done': the task itself stays on the stage
 }
 
+/** How the current stage is answered (shown under the question). */
+export function currentInstruction(step: BuildStep, s: BuildState): string | undefined {
+  if (s.stage === 'relation') return step.relationInstruction;
+  if (s.stage === 'slot') return step.slots[s.slotIndex].instruction;
+  if (s.stage === 'final') return step.final.instruction;
+  return undefined;
+}
+
 /** The quantity the scene points out while a slot is being filled. */
 export function currentHighlight(step: BuildStep, s: BuildState): Highlight {
   return s.stage === 'slot' ? step.slots[s.slotIndex].highlight : null;

@@ -14,8 +14,12 @@ export type StepViewProps<S> = {
 
 export const nextLabel = (isLast: boolean) => (isLast ? 'Finish' : 'Continue');
 
-/** The small line under the prompt: the sign convention and any given facts. */
-export const noteFor = (step: Step) => [step.sign ? 'up is +' : null, ...(step.facts ?? [])].filter(Boolean).join(', ') || undefined;
+/** The small line under the prompt: the goal of a multi-stage task, the sign convention and any given facts. */
+export const noteFor = (step: Step, withGoal = false) => {
+  const rest = [step.sign ? 'up is +' : null, ...(step.facts ?? [])].filter(Boolean).join(', ');
+  const goal = withGoal && step.type === 'build' ? step.goal : '';
+  return [goal, rest].filter(Boolean).join('  ·  ') || undefined;
+};
 
 export const text = StyleSheet.create({
   hint: { fontSize: 14, fontWeight: '600', textAlign: 'center' },
