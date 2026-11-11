@@ -1,6 +1,6 @@
 # Lesson Design Framework — Physicsapp
 
-Nov 4, 2026 · updated Nov 10, 2026 (sections 2–8, 11, 13, 15 aligned with the decisions in 1a) · Egor
+Nov 4, 2026 · updated Nov 11, 2026 (section 1b: lesson format v2 overrides older sections) · Egor
 
 ## 1. Purpose and how to use
 
@@ -10,6 +10,27 @@ Every lesson is built from this framework: one idea per lesson, split into sessi
 - **For Egor:** review a lesson spec (section 13 format) before it is built — it is the cheapest point to fix physics, level and flow. Then play the built lesson on a phone.
 - **Language:** lesson content in English; this framework is the source of truth for structure, step types, visuals and exam alignment.
 - **Scope:** written for Kinematics (Edexcel IAL Unit 1, WPH11), designed to reuse for every later module.
+
+## 1b. Lesson format v2: decisions of 11 Nov 2026, night (supersedes everything below where it conflicts)
+
+The owner played the Blueprint L4 and rejected both the lessons and the look, then sent 60 screenshots of Brilliant. What we take from them:
+
+**Story, not drills.** One small topic from the specification per lesson (for example "normal reaction", not "dynamics"). The lesson is a short story around one puzzle:
+intro (title, one or two sentences, a figure) → a prediction with no right answer → screens that build the idea, each followed soon by a question → back to the puzzle, now answerable (`revisitOf`) → **Skill check** (3–5 exam-level questions, one try, "Why?" only after the answer) → **Lesson complete** with the honest tally.
+
+**One focus per screen.** A screen is either text (at most two short paragraphs, optionally one definition card) or a figure with one sentence. Never a picture and text saying the same thing. Text screens are welcome when the text is the focus. Limits live in `src/content/rules.test.ts`.
+
+**Six screen kinds** (`src/content/types.ts`): `intro`, `text`, `predict`, `choice`, `explore` (a slider drives the figure through the physics model, then a light question that is not counted), `tapFig` (answer by tapping something drawn on the figure).
+
+**Answers and honesty.** Check → green sheet "Correct!" with Why? and Continue, or red "Not quite" with the wrong option's hint and Try again. The second miss in the story shows the answer (revealed); one miss in the Skill check shows it. Outcomes: independent / assisted / revealed (`src/session/logic.ts`). Predictions and explore questions have no outcome. After the answer the figure may show what the question hid (for example the real N arrow).
+
+**Look: "Brilliant + engineering drawing".** White page, ink text, one dark pill button with a bottom lip, answer cards with a corner badge when right or wrong, a thin green progress bar plus one dot per Skill check question. The memorable part is the figure: a drawing sheet on pale drafting paper with `FIG. n` and the given values in IBM Plex Mono, flat line art, a centre-of-gravity mark, hatched floors. **Every force is drawn in one signature colour** (ruby); other vectors are told apart by shape (motion = outline arrow, acceleration = double chevron). Space Grotesk for titles and buttons, IBM Plex Sans for reading. Mono caps only inside figures. No mascot, no purple gradients, no XP or streaks yet.
+
+**Course map.** Home is a map of Unit 1: levels follow the specification, each lesson is a puck on a path (done / current / soon), a card at the bottom starts the picked lesson. `src/content/course.ts` lists every lesson; a test checks that all 32 WPH11 points are covered.
+
+**Reference lesson:** `src/content/normal-reaction.ts` ("The push from the floor", points 8, 9, 10, 12, and 3 in the Skill check). Copy its shape, not its text.
+
+**Superseded:** "idea → question pairs" (10 Nov), "the scene is ~60 % of the screen", "every question has a separate how-to-answer line" (now only on `explore` and `tapFig`), the Blueprint dark stage, the balloon carrier, sessions Core / Exam workout (one lesson = story + Skill check for now).
 
 ## 1a. Decisions of 9–10 Nov 2026
 
