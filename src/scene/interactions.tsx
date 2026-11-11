@@ -77,7 +77,7 @@ type ArrowDragProps = {
 };
 
 function ArrowDrag({ g, x, y0, pxPerUnit, value, snaps, disabled, onChange, onRelease, label, name, pill }: ArrowDragProps) {
-  const { palette: p } = useTheme();
+  const { stage: p } = useTheme();
   const latest = useLatest({ value, snaps, onChange, onRelease, pxPerUnit });
   const start = useRef(0);
   const lo = Math.min(...snaps) * 1.25;
@@ -126,10 +126,10 @@ function ArrowDrag({ g, x, y0, pxPerUnit, value, snaps, disabled, onChange, onRe
         {pill ? (
           <>
             <Rect x={x + 22} y={labelY - 17} width={text.length * 8 + 16} height={24} rx={12} fill={p.page} stroke={p.vel} strokeWidth={1.5} />
-            <Text x={x + 30} y={labelY} fontSize={14} fontWeight="700" fill={p.velText}>{text}</Text>
+            <Text x={x + 30} y={labelY} fontSize={14} fill={p.velText}>{text}</Text>
           </>
         ) : (
-          <Text x={x + 22} y={labelY} fontSize={14} fontWeight="700" fill={p.velText}>{text}</Text>
+          <Text x={x + 22} y={labelY} fontSize={14} fill={p.velText}>{text}</Text>
         )}
       </Svg>
       {value === null && <Pulse x={x} y={tipY} r={16} color={p.select} />}
@@ -168,12 +168,12 @@ const dirWords: Record<AccDir, string> = { up: 'pointing up', zero: 'zero', down
 
 /** An acceleration arrow drawn at (x, y0): up, down, a dot for zero, or "?" when not set. */
 function AccGlyph({ x, y0, dir, label }: { x: number; y0: number; dir: AccDir | null; label?: string }) {
-  const { palette: p } = useTheme();
+  const { stage: p } = useTheme();
   if (dir === null) {
     return (
       <>
         <Circle cx={x} cy={y0} r={16} fill={p.page} stroke={p.acc} strokeWidth={2} strokeDasharray="4 3" />
-        <Text x={x} y={y0 + 6} fontSize={16} fontWeight="800" fill={p.accText} textAnchor="middle">?</Text>
+        <Text x={x} y={y0 + 6} fontSize={16} fill={p.accText} textAnchor="middle">?</Text>
       </>
     );
   }
@@ -182,14 +182,14 @@ function AccGlyph({ x, y0, dir, label }: { x: number; y0: number; dir: AccDir | 
   return (
     <>
       <Path d={arrowD(x, dir === 'zero' ? y0 : top, len)} stroke={p.acc} strokeWidth={4} strokeLinecap="round" strokeLinejoin="round" fill={dir === 'zero' ? p.acc : 'none'} />
-      {label ? <Text x={x - 12} y={y0 + 5} fontSize={14} fontWeight="700" fill={p.accText} textAnchor="end">{label}</Text> : null}
+      {label ? <Text x={x - 12} y={y0 + 5} fontSize={14} fill={p.accText} textAnchor="end">{label}</Text> : null}
     </>
   );
 }
 
 /** Tap the acceleration arrow next to the hanging sandbag: up → zero → down → up… */
 export function AccFlip({ g, dir, disabled, onTap, label }: { g: SceneGeometry; dir: AccDir | null; disabled?: boolean; onTap: () => void; label: string }) {
-  const { palette: p } = useTheme();
+  const { stage: p } = useTheme();
   const y0 = g.yRelease - g.bagH / 2;
   return (
     <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
@@ -213,7 +213,7 @@ export function AccFlip({ g, dir, disabled, onTap, label }: { g: SceneGeometry; 
 export type StrobeFrame = { id: string; label: string; h: number; v: number };
 
 export function StrobeFrames({ g, frames, answers, marks, disabled, onTap }: { g: SceneGeometry; frames: StrobeFrame[]; answers: Record<string, AccDir | undefined>; marks?: Record<string, 'right' | 'wrong'>; disabled?: boolean; onTap: (id: string) => void }) {
-  const { palette: p } = useTheme();
+  const { stage: p } = useTheme();
   const xs = frames.map((_, i) => Math.round(g.width * (0.24 + (0.52 * i) / Math.max(1, frames.length - 1))));
   const lowest = Math.max(...frames.map((f) => g.yOf(f.h)));
   const rowY = Math.min(lowest + 64, g.ground - 52); // the row of acceleration buttons
@@ -225,7 +225,7 @@ export function StrobeFrames({ g, frames, answers, marks, disabled, onTap }: { g
         <Path d={`M${xs[0] - 30},${rowY + 44} H${xs[xs.length - 1] + 30} M${xs[xs.length - 1] + 22},${rowY + 39} L${xs[xs.length - 1] + 30},${rowY + 44} L${xs[xs.length - 1] + 22},${rowY + 49}`} stroke={p.faint} strokeWidth={1.5} fill="none" strokeLinecap="round" strokeLinejoin="round" />
         <Text x={xs[xs.length - 1] + 30} y={rowY + 62} fontSize={11} fill={p.faint} textAnchor="end">time</Text>
         {/* one sandbag, not three: say it on the picture */}
-        <Text x={g.width / 2} y={Math.max(18, Math.min(...frames.map((f) => g.yOf(f.h))) - g.bagH - 22)} fontSize={13} fontWeight="700" fill={p.muted} textAnchor="middle">
+        <Text x={g.width / 2} y={Math.max(18, Math.min(...frames.map((f) => g.yOf(f.h))) - g.bagH - 22)} fontSize={13} fill={p.muted} textAnchor="middle">
           The same sandbag at three moments
         </Text>
         {frames.map((f, i) => {
@@ -237,7 +237,7 @@ export function StrobeFrames({ g, frames, answers, marks, disabled, onTap }: { g
               <Path d={arrowD(xs[i] + 22, y - g.bagH / 2, f.v * V_SCALE)} stroke={p.vel} strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" fill={Math.abs(f.v) < 0.5 ? p.vel : 'none'} />
               <Circle cx={xs[i]} cy={rowY} r={22} fill={m === 'right' ? p.okBg : m === 'wrong' ? p.badBg : p.page} stroke={m === 'right' ? p.ok : m === 'wrong' ? p.bad : answers[f.id] ? p.acc : p.lineStrong} strokeWidth={2} />
               <AccGlyphSmall x={xs[i]} y={rowY} dir={answers[f.id] ?? null} />
-              <Text x={xs[i]} y={rowY + 34} fontSize={12} fontWeight="700" fill={p.muted} textAnchor="middle">{f.label}</Text>
+              <Text x={xs[i]} y={rowY + 34} fontSize={12} fill={p.muted} textAnchor="middle">{f.label}</Text>
             </G>
           );
         })}
@@ -258,8 +258,8 @@ export function StrobeFrames({ g, frames, answers, marks, disabled, onTap }: { g
 }
 
 function AccGlyphSmall({ x, y, dir }: { x: number; y: number; dir: AccDir | null }) {
-  const { palette: p } = useTheme();
-  if (dir === null) return <Text x={x} y={y + 6} fontSize={17} fontWeight="800" fill={p.faint} textAnchor="middle">?</Text>;
+  const { stage: p } = useTheme();
+  if (dir === null) return <Text x={x} y={y + 6} fontSize={17} fill={p.faint} textAnchor="middle">?</Text>;
   if (dir === 'zero') return <Circle cx={x} cy={y} r={4.5} fill={p.acc} />;
   const d = dir === 'up' ? `M${x},${y + 11} V${y - 11} M${x - 6},${y - 4} L${x},${y - 11} L${x + 6},${y - 4}` : `M${x},${y - 11} V${y + 11} M${x - 6},${y + 4} L${x},${y + 11} L${x + 6},${y + 4}`;
   return <Path d={d} stroke={p.acc} strokeWidth={3.2} strokeLinecap="round" strokeLinejoin="round" fill="none" />;
@@ -286,7 +286,7 @@ function layoutWorking(g: SceneGeometry, items: WorkingItem[]) {
 }
 
 export function WorkingPicture({ g, items, selected, cleared, revealed, disabled, onTap }: { g: SceneGeometry; items: WorkingItem[]; selected: string | null; cleared: string[]; revealed: boolean; disabled?: boolean; onTap: (id: string) => void }) {
-  const { palette: p } = useTheme();
+  const { stage: p } = useTheme();
   const { mid, groundMid, sX, boxes } = layoutWorking(g, items);
   return (
     <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
@@ -304,7 +304,7 @@ export function WorkingPicture({ g, items, selected, cleared, revealed, disabled
           return (
             <G key={it.id}>
               <Rect x={14} y={16} width={it.label.length * 8 + 22} height={30} rx={15} fill={p.page} stroke={p.lineStrong} strokeWidth={1.5} />
-              <Text x={25} y={36} fontSize={14} fontWeight="700" fill={p.ink}>{it.label}</Text>
+              <Text x={25} y={36} fontSize={14} fill={p.ink}>{it.label}</Text>
             </G>
           );
         })}
@@ -339,7 +339,7 @@ function Item({ d, color, textColor, tx, ty, label, anchor }: { d: string; color
   return (
     <>
       <Path d={d} stroke={color} strokeWidth={3.5} strokeLinecap="round" strokeLinejoin="round" fill="none" />
-      <Text x={tx} y={ty} fontSize={14} fontWeight="700" fill={textColor} textAnchor={anchor ?? 'start'}>{label}</Text>
+      <Text x={tx} y={ty} fontSize={14} fill={textColor} textAnchor={anchor ?? 'start'}>{label}</Text>
     </>
   );
 }

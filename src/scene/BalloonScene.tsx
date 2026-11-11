@@ -1,5 +1,5 @@
 // The scene: a hot-air balloon, the sandbag, and the numbers that belong on the picture.
-// Drawn with react-native-svg on a pale sky. The balloon always sways a little and its flame
+// Drawn with react-native-svg on the dark-blue blueprint stage. The balloon always sways a little and its flame
 // flickers (unless the phone asks for reduced motion). Model time comes in as `t`.
 //
 // Interactions (drag an arrow, tap a frame...) are drawn on top through two slots that get the
@@ -21,7 +21,8 @@ import { fixed } from '@/physics/format';
 import { position, trackPosition, trackVelocity, type Track } from '@/physics/kinematics';
 import { useTheme } from '@/theme/ThemeContext';
 import type { Palette } from '@/theme/tokens';
-import { svgFont } from '@/theme/svgFont';
+import { svgFont, svgItalic } from '@/theme/svgFont';
+import { GRID } from '@/theme/tokens';
 
 // Animated props write the native `matrix` prop of <G> on phones (a JS `transform` array is only converted in
 // G.setNativeProps, which Reanimated bypasses); web renders `transform`. The G typings do not list `matrix`.
@@ -124,13 +125,14 @@ export type BalloonSceneProps = {
   highlight?: Highlight;
   showBalloon?: boolean; // false: only the sandbag (strobe frames, worked pictures)
   showHeldSack?: boolean; // false: the hanging sandbag is drawn by an overlay instead
+  bare?: boolean; // true: no background or grid (the screen draws one stage behind the question and the scene)
   svgOverlay?: (g: SceneGeometry) => ReactNode;
   viewOverlay?: (g: SceneGeometry) => ReactNode;
 };
 
 export function BalloonScene(props: BalloonSceneProps) {
-  const { t, width, height, scene, playback, highlight, showBalloon = true, showHeldSack = true, svgOverlay, viewOverlay } = props;
-  const { palette: p } = useTheme();
+  const { t, width, height, scene, playback, highlight, showBalloon = true, showHeldSack = true, bare = false, svgOverlay, viewOverlay } = props;
+  const { stage: p } = useTheme();
   const reduced = useReducedMotion();
 
   // gentle always-on time for the sway and the flame
@@ -160,24 +162,20 @@ export function BalloonScene(props: BalloonSceneProps) {
     return { [MK]: [1 - 0.05 * Math.sin(sw.value * 29), 0, 0, flicker, 0, -54] as Matrix };
   });
 
-  const grid: number[] = [];
-  for (let m = 10; m <= scene.worldTop; m += 10) grid.push(m);
   const carrierLen = carrier.u * V_SCALE;
 
   return (
     <View style={{ width, height }}>
       <Svg width={width} height={height} fontFamily={svgFont}>
-        <Rect x={0} y={0} width={width} height={height} fill={p.sky} />
-        {grid.map((m) => (
-          <Line key={m} x1={0} y1={yOf(m)} x2={width} y2={yOf(m)} stroke={p.ink} strokeOpacity={0.05} strokeWidth={1} />
-        ))}
+        {!bare && <Rect x={0} y={0} width={width} height={height} fill={p.sky} />}
+        {!bare && <BlueprintGrid width={width} height={height} color={p.grid} />}
         <Line x1={DIM_X + 14} y1={yRelease} x2={width - 16} y2={yRelease} stroke={p.ink} strokeOpacity={0.2} strokeWidth={1} strokeDasharray="3 6" />
         <Rect x={0} y={ground} width={width} height={GROUND_BAND} fill={p.ground} />
         <Line x1={0} y1={ground} x2={width} y2={ground} stroke={p.groundLine} strokeWidth={2} />
 
         {/* the release height: ground to the release point */}
         <Path d={`M${DIM_X},${ground} V${yRelease} M${DIM_X - 6},${ground} h12 M${DIM_X - 6},${yRelease} h12`} stroke={p.muted} strokeWidth={1.5} strokeLinecap="round" fill="none" />
-        <Text x={DIM_X + 10} y={(ground + yRelease) / 2 + 5} fontSize={13} fontWeight="700" fill={p.muted}>
+        <Text x={DIM_X + 10} y={(ground + yRelease) / 2 + 5} fontSize={13} fill={p.muted}>
           {`${fixed(scene.body.s0, 0)} m`}
         </Text>
         {highlight === 's' && playback === null && <StaticDisplacement x={g.sX} top={yRelease} ground={ground} color={p.vel} textColor={p.velText} />}
@@ -185,8 +183,8 @@ export function BalloonScene(props: BalloonSceneProps) {
         {/* labels under the ground line when two bodies are compared */}
         {playback && comp && (
           <>
-            <Text x={px} y={ground + 20} fontSize={12} fontWeight="700" fill={p.ink} textAnchor="middle">{playback.realLabel}</Text>
-            <Text x={gx} y={ground + 20} fontSize={12} fontWeight="700" fill={p.muted} textAnchor="middle">{comp.label}</Text>
+            <Text x={px} y={ground + 20} fontSize={12} fill={p.ink} textAnchor="middle">{playback.realLabel}</Text>
+            <Text x={gx} y={ground + 20} fontSize={12} fill={p.muted} textAnchor="middle">{comp.label}</Text>
           </>
         )}
         {playback && comp && <Companion t={t} track={comp.track} kind={comp.kind} x={gx} yOf={yOf} p={p} />}
@@ -223,7 +221,7 @@ export function BalloonScene(props: BalloonSceneProps) {
               <>
                 {highlight === 'u' && <Path d={arrowD(-44, -6, carrierLen)} stroke={p.vel} strokeOpacity={0.22} strokeWidth={12} strokeLinecap="round" fill="none" />}
                 <Path d={arrowD(-44, -6, carrierLen)} stroke={p.vel} strokeWidth={3.5} strokeLinecap="round" strokeLinejoin="round" fill="none" />
-                <Text x={-54} y={-6 - carrierLen / 2 + 5} fontSize={13} fontWeight="700" fill={p.velText} textAnchor="end">
+                <Text x={-54} y={-6 - carrierLen / 2 + 5} fontSize={13} fill={p.velText} textAnchor="end">
                   {`${fixed(carrier.u, 1)} m/s`}
                 </Text>
               </>
@@ -246,7 +244,7 @@ export function BalloonScene(props: BalloonSceneProps) {
 /** The sandbag, drawn about its bottom-centre (bottom at y = 0), about 30 units tall. */
 export function Sack({ p, ghost }: { p: Palette; ghost?: boolean }) {
   if (ghost) {
-    return <Path d="M-5,-26 C-15,-23 -16,-9 -12,-4 C-9,1 9,1 12,-4 C16,-9 15,-23 5,-26Z" fill="#FFFFFF" fillOpacity={0.55} stroke={p.ghost} strokeWidth={1.6} strokeDasharray="4 3" />;
+    return <Path d="M-5,-26 C-15,-23 -16,-9 -12,-4 C-9,1 9,1 12,-4 C16,-9 15,-23 5,-26Z" fill="#FFFFFF" fillOpacity={0.12} stroke={p.ghost} strokeWidth={1.6} strokeDasharray="4 3" />;
   }
   return (
     <>
@@ -272,7 +270,7 @@ function StaticDisplacement({ x, top, ground, color, textColor }: { x: number; t
   return (
     <>
       <Path d={arrowD(x, top, -(ground - top - 2))} stroke={color} strokeWidth={3.5} strokeLinecap="round" strokeLinejoin="round" fill="none" />
-      <Text x={x + 10} y={(top + ground) / 2 + 5} fontSize={15} fontWeight="700" fill={textColor}>s</Text>
+      <Text x={x + 10} y={(top + ground) / 2 + 5} fontSize={15} fill={textColor}>s</Text>
     </>
   );
 }
@@ -283,7 +281,7 @@ export function StaticAcc({ x, y0, p, dir = 'down' }: { x: number; y0: number; p
   return (
     <>
       <Path d={arrowD(x, y0, len)} stroke={p.acc} strokeWidth={3.5} strokeLinecap="round" strokeLinejoin="round" fill={dir === 'zero' ? p.acc : 'none'} />
-      <Text x={x - 10} y={y0 + (dir === 'up' ? -14 : 22)} fontSize={15} fontWeight="700" fontStyle="italic" fill={p.accText} textAnchor="end">a</Text>
+      <Text x={x - 10} y={y0 + (dir === 'up' ? -14 : 22)} fontSize={15} fontFamily={svgItalic} fill={p.accText} textAnchor="end">a</Text>
     </>
   );
 }
@@ -327,13 +325,13 @@ function FallingBag({ t, real, g, showAcc, reduced, p }: { t: SharedValue<number
   return (
     <>
       <APath animatedProps={arrowProps} stroke={p.vel} strokeWidth={3.5} strokeLinecap="round" strokeLinejoin="round" fill="none" />
-      <AText animatedProps={labelProps} x={velX + 12} fontSize={14} fontWeight="700" fill={p.velText}>
+      <AText animatedProps={labelProps} x={velX + 12} fontSize={14} fill={p.velText}>
         {speedLabel(tenths)}
       </AText>
       {showAcc && (
         <>
           <APath animatedProps={accProps} stroke={p.acc} strokeWidth={3.5} strokeLinecap="round" strokeLinejoin="round" fill="none" />
-          <AText animatedProps={accLabelProps} x={accX - 10} fontSize={15} fontWeight="700" fontStyle="italic" fill={p.accText} textAnchor="end">a</AText>
+          <AText animatedProps={accLabelProps} x={accX - 10} fontSize={15} fontFamily={svgItalic} fill={p.accText} textAnchor="end">a</AText>
         </>
       )}
       <AG animatedProps={bagProps}>
@@ -357,5 +355,23 @@ function Companion({ t, track, kind, x, yOf, p }: { t: SharedValue<number>; trac
         <Sack p={p} ghost={kind === 'ghost'} />
       </G>
     </AG>
+  );
+}
+
+/** The blueprint grid: thin lines every GRID pt, starting at the top-left corner. */
+export function BlueprintGrid({ width, height, color }: { width: number; height: number; color: string }) {
+  const xs: number[] = [];
+  const ys: number[] = [];
+  for (let x = GRID; x < width; x += GRID) xs.push(x);
+  for (let y = GRID; y < height; y += GRID) ys.push(y);
+  return (
+    <G>
+      {xs.map((x) => (
+        <Line key={'x' + x} x1={x} y1={0} x2={x} y2={height} stroke={color} strokeWidth={1} />
+      ))}
+      {ys.map((y) => (
+        <Line key={'y' + y} x1={0} y1={y} x2={width} y2={y} stroke={color} strokeWidth={1} />
+      ))}
+    </G>
   );
 }

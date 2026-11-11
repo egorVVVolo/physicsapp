@@ -1,5 +1,6 @@
-import { Platform } from 'react-native';
+import { font } from './tokens';
 
-// SVG text: on the web an unset font falls back to a serif, so name a sans-serif stack there.
-// On iOS and Android leave it unset to get the system font (a CSS-style stack does not work natively).
-export const svgFont = Platform.select({ web: 'Helvetica Neue, Helvetica, Arial, sans-serif', default: undefined });
+// Text drawn inside SVG (labels on the scene, the time line): one semibold family, no fontWeight,
+// because each weight is its own family (loaded in app/_layout.tsx).
+export const svgFont = font.bodySemi;
+export const svgItalic = font.italic;

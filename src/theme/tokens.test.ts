@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { palette as p } from './tokens.ts';
+import { palette as p, stage as s } from './tokens.ts';
 
 function luminance(hex: string) {
   const c = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255);
@@ -14,13 +14,20 @@ const contrast = (a: string, b: string) => {
 const check = (fg: string, bg: string, min: number, what: string) =>
   assert.ok(contrast(fg, bg) >= min, `${what}: ${fg} on ${bg} is ${contrast(fg, bg).toFixed(2)}, needs ${min}`);
 
-test('text on the page and in the scene is at least 4.5:1', () => {
-  for (const bg of [p.page, p.sky]) {
-    for (const k of ['ink', 'muted', 'faint', 'velText', 'accText', 'okText', 'badText'] as const) check(p[k], bg, 4.5, `${k} on ${bg}`);
-  }
-  check(p.muted, p.ground, 4.5, 'labels under the ground line');
+const TEXT = ['ink', 'muted', 'faint', 'velText', 'accText', 'okText', 'badText'] as const;
+
+test('text on the page is at least 4.5:1', () => {
+  for (const k of TEXT) check(p[k], p.page, 4.5, `${k} on the page`);
   check(p.ink, p.selectBg, 4.5, 'text on a selected card');
-  check(p.select, p.page, 4.5, 'the instruction line under the question');
+  check(p.select, p.page, 4.5, 'selected card ring and active slot');
+});
+
+test('text on the dark stage is at least 4.5:1, on the sky and on pills drawn over it', () => {
+  for (const bg of [s.sky, s.page]) {
+    for (const k of TEXT) check(s[k], bg, 4.5, `stage ${k} on ${bg}`);
+  }
+  check(s.muted, s.ground, 4.5, 'labels under the ground line');
+  check(p.ink, '#FFFFFF', 4.5, 'caption text on its white pill');
 });
 
 test('buttons and verdict banners are at least 4.5:1', () => {
@@ -32,6 +39,8 @@ test('buttons and verdict banners are at least 4.5:1', () => {
   check(p.badText, p.badBg, 4.5, 'badText on badBg');
 });
 
-test('strokes drawn in the scene are at least 3:1 on the sky', () => {
-  for (const k of ['vel', 'acc', 'ghost', 'groundLine', 'select', 'kraftDark'] as const) check(p[k], p.sky, 3, k);
+test('strokes drawn on the stage are at least 3:1 on the sky', () => {
+  for (const k of ['vel', 'acc', 'ok', 'bad', 'ghost', 'groundLine', 'select', 'lineStrong', 'sack'] as const) check(s[k], s.sky, 3, `stage ${k}`);
+  check(s.acc, s.okBg, 3, 'acceleration glyph in a green circle');
+  check(s.acc, s.badBg, 3, 'acceleration glyph in a red circle');
 });

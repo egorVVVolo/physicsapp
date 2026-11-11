@@ -1,10 +1,10 @@
-// Small shared pieces: glyphs, the chunky button, answer cards, the time line and the number tiles.
-// Cards and buttons have a darker bottom lip and sink when pressed (Duolingo-style), in calm colours.
+// Small shared pieces: glyphs, the main button, answer cards, the time line and the number tiles.
+// Blueprint look: flat shapes with clear borders; pressed = a little darker.
 import { useEffect, useRef, type ReactNode } from 'react';
 import { AccessibilityInfo, Animated, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import Svg, { Circle, Line, Path, Text as SvgText } from 'react-native-svg';
 import { useTheme } from '@/theme/ThemeContext';
-import { radius, touch } from '@/theme/tokens';
+import { font, radius, touch } from '@/theme/tokens';
 import { svgFont } from '@/theme/svgFont';
 
 // ── Glyphs ───────────────────────────────────────────────────────────────────────────────
@@ -40,25 +40,21 @@ export function CloseIcon({ color, size = 16 }: { color: string; size?: number }
   );
 }
 
-// ── The chunky button ────────────────────────────────────────────────────────────────────
+// ── The main button ──────────────────────────────────────────────────────────────────────
 
 export type Tone = 'primary' | 'ok' | 'bad';
 
-/** The one main button: full width, 52 pt, a darker lip at the bottom that disappears when pressed. */
-export function ChunkyButton({ label, onPress, disabled, tone = 'primary' }: { label: string; onPress?: () => void; disabled?: boolean; tone?: Tone }) {
+/** The one main button: full width, 52 pt, flat. */
+export function MainButton({ label, onPress, disabled, tone = 'primary' }: { label: string; onPress?: () => void; disabled?: boolean; tone?: Tone }) {
   const { palette: p } = useTheme();
   const bg = disabled ? p.disabled : tone === 'ok' ? p.ok : tone === 'bad' ? p.bad : p.primary;
-  const lip = disabled ? p.disabledLip : tone === 'ok' ? p.okLip : tone === 'bad' ? p.badLip : p.primaryLip;
   return (
     <Pressable
       accessibilityRole="button"
       accessibilityState={{ disabled: !!disabled }}
       disabled={disabled || !onPress}
       onPress={onPress}
-      style={({ pressed }) => [
-        styles.button,
-        { backgroundColor: bg, borderBottomColor: lip, borderBottomWidth: pressed ? 1 : 4, transform: [{ translateY: pressed ? 3 : 0 }] },
-      ]}
+      style={({ pressed }) => [styles.button, { backgroundColor: bg, opacity: pressed ? 0.85 : 1 }]}
     >
       <Text style={[styles.buttonText, { color: disabled ? p.onDisabled : p.onPrimary }]} maxFontSizeMultiplier={1.3}>
         {label}
@@ -88,8 +84,7 @@ export function Card({ label, state, onPress, disabled, minHeight = 56, italic }
   }, [state, shake]);
 
   const border = state === 'selected' ? p.select : state === 'right' ? p.ok : state === 'wrong' ? p.bad : p.line;
-  const lip = state === 'selected' ? p.select : state === 'right' ? p.okLip : state === 'wrong' ? p.badLip : p.lineStrong;
-  const bg = state === 'selected' ? p.selectBg : state === 'right' ? p.okBg : state === 'wrong' ? p.badBg : p.page;
+  const bg = state === 'selected' ? p.selectBg : state === 'right' ? p.okBg : state === 'wrong' ? p.badBg : '#FFFFFF';
   const color = state === 'right' ? p.okText : state === 'wrong' ? p.badText : state === 'dim' ? p.faint : p.ink;
   const said = state === 'right' ? ', correct' : state === 'wrong' ? ', incorrect' : '';
   return (
@@ -102,11 +97,11 @@ export function Card({ label, state, onPress, disabled, minHeight = 56, italic }
         onPress={onPress}
         style={({ pressed }) => [
           styles.card,
-          { minHeight, borderColor: border, borderBottomColor: lip, backgroundColor: bg, borderBottomWidth: pressed ? 2 : 4, transform: [{ translateY: pressed ? 2 : 0 }] },
+          { minHeight, borderColor: border, backgroundColor: pressed && state === 'idle' ? p.selectBg : bg },
         ]}
       >
         {(state === 'right' || state === 'wrong') && <Mark kind={state === 'right' ? 'ok' : 'bad'} color={state === 'right' ? p.ok : p.bad} size={14} />}
-        <Text style={[styles.cardText, { color, fontStyle: italic ? 'italic' : 'normal' }]} maxFontSizeMultiplier={1.25}>
+        <Text style={[styles.cardText, { color }, italic && { fontFamily: font.italic }]} maxFontSizeMultiplier={1.25}>
           {label}
         </Text>
       </Pressable>
@@ -155,14 +150,14 @@ export function Timeline({ choices, selected, marks, disabled, onSelect, width }
           <Line key={'k' + i} x1={X(i)} y1={axisY - 4} x2={X(i)} y2={axisY + 4} stroke={p.lineStrong} strokeWidth={1.5} />
         ))}
         <Line x1={X(0)} y1={axisY - 12} x2={X(0)} y2={axisY + 12} stroke={p.ink} strokeWidth={2} />
-        <SvgText x={X(0)} y={axisY + 26} fontSize={11} fontWeight="700" fill={p.ink} textAnchor="middle">release</SvgText>
+        <SvgText x={X(0)} y={axisY + 26} fontSize={11} fill={p.ink} textAnchor="middle">release</SvgText>
         <SvgText x={R} y={axisY + 40} fontSize={11} fill={p.faint} textAnchor="end">t / s</SvgText>
         {choices.map((c) => {
           const m = marks?.[c.id];
           const on = selected === c.id;
           const stroke = m === 'right' ? p.ok : m === 'wrong' ? p.bad : p.select;
           return (
-            <SvgText key={'l' + c.id} x={X(c.value)} y={axisY - 22} fontSize={14} fontWeight="700" fill={m === 'wrong' ? p.badText : p.ink} textAnchor="middle">
+            <SvgText key={'l' + c.id} x={X(c.value)} y={axisY - 22} fontSize={14} fill={m === 'wrong' ? p.badText : p.ink} textAnchor="middle">
               {c.label}
             </SvgText>
           );
@@ -209,10 +204,8 @@ export function TileBank({ tiles, selected, used, disabled, onSelect }: { tiles:
             style={({ pressed }) => [
               styles.tile,
               {
-                borderColor: on ? p.select : p.line,
-                borderBottomColor: on ? p.select : p.lineStrong,
-                backgroundColor: on ? p.selectBg : gone ? p.disabled : p.page,
-                borderBottomWidth: pressed ? 2 : 4,
+                borderColor: on ? p.select : p.lineStrong,
+                backgroundColor: on || pressed ? p.selectBg : gone ? p.disabled : '#FFFFFF',
                 opacity: gone ? 0.5 : 1,
               },
             ]}
@@ -227,11 +220,11 @@ export function TileBank({ tiles, selected, used, disabled, onSelect }: { tiles:
 
 const styles = StyleSheet.create({
   button: { minHeight: 52, borderRadius: radius.m, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 16 },
-  buttonText: { fontSize: 17, fontWeight: '700', letterSpacing: 0.2 },
+  buttonText: { fontSize: 17, fontFamily: font.displaySemi, letterSpacing: 0.2 },
   row: { flexDirection: 'row', gap: 8, alignSelf: 'stretch' },
   card: { borderWidth: 2, borderRadius: radius.m, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 8, paddingVertical: 6, flexDirection: 'row', gap: 6 },
-  cardText: { fontSize: 15, fontWeight: '700', textAlign: 'center' },
+  cardText: { fontSize: 15, fontFamily: font.bodySemi, textAlign: 'center' },
   tiles: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 8 },
   tile: { minHeight: touch, minWidth: 76, paddingHorizontal: 12, borderWidth: 2, borderRadius: radius.s, alignItems: 'center', justifyContent: 'center' },
-  tileText: { fontSize: 16, fontWeight: '700', fontVariant: ['tabular-nums'] },
+  tileText: { fontSize: 16, fontFamily: font.bodySemi, fontVariant: ['tabular-nums'] },
 });

@@ -63,6 +63,13 @@ Agreed with Egor after the visuals research (`docs/research/visuals-2026-11-09.m
 - **Ordinary choice stays where choosing is the skill:** which equation, and what the sign of an answer means.
 - Bigger balloon (scale 0.72) and sandbag (about 36 pt). Every wrong answer still plays as a ghost from the model.
 
+**Decision of 11 Nov, evening ("Blueprint" look, chosen by the owner out of five mock-up directions)**
+- **Look:** a light page (`#F5F8FC`) around a **dark-blue stage with a fine 20 pt grid** (`#0F3B73`), like an engineering drawing. The question sits on the stage in white; the "how to answer" line sits just under the stage in blue; answers, the verdict banner and the button stay on the light page. This supersedes the "pale sky scene" of 11 Nov (the rest of that block stands).
+- **Colours on the stage** have their own brighter twins (`stage` in `src/theme/tokens.ts`): velocity cyan, acceleration coral, white handles and labels. The page keeps the darker ones (`palette`). The contrast test covers both.
+- **Type:** Space Grotesk for questions, titles and buttons; IBM Plex Sans for everything else (loaded with expo-font, work in Expo Go).
+- **Buttons and cards are flat** (no bottom lip); the progress bar is a thin navy line.
+- **Start screen:** a blueprint card with the swaying balloon; after the lesson is done the card shows the height–time graph from the model. The graph is not shown before: it would answer the first question.
+
 ## 2. Learner model
 
 The **default reader is the Intermediate learner**: a strong A-level student who knows the formulas and makes the classic mistakes. The pilot runs in a strong school, where the main risk is "too easy".

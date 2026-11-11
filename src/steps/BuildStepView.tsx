@@ -11,6 +11,7 @@ import { speedLabel, type SceneGeometry } from '@/scene/BalloonScene';
 import { AccFlip, DisplacementDrag, nextDir, VelocityDrag } from '@/scene/interactions';
 import { LessonScreen, type Banner, type BarState } from '@/scene/LessonScreen';
 import { useClock } from '@/scene/useClock';
+import { font } from '@/theme/tokens';
 import {
   buildOutcome,
   chooseChip,
@@ -117,7 +118,7 @@ export function BuildStepView({ step, isLast, progress, onDone, onNext }: StepVi
     strip = (
       <ScrollView style={{ maxHeight: 132 }} contentContainerStyle={{ gap: 4 }}>
         {step.worked.map((l, i) => (
-          <Text key={i} style={{ color: p.ink, fontSize: 14, lineHeight: 19 }} maxFontSizeMultiplier={1.2}>{`${i + 1}. ${l}`}</Text>
+          <Text key={i} style={{ color: p.ink, fontSize: 14, lineHeight: 19, fontFamily: font.body }} maxFontSizeMultiplier={1.2}>{`${i + 1}. ${l}`}</Text>
         ))}
       </ScrollView>
     );
@@ -251,7 +252,7 @@ function Equation({ step, values, active, small }: { step: BuildStep; values: Pa
         const isActive = active === piece.q;
         if (v === undefined || v === null) {
           return (
-            <Text key={i} style={{ fontStyle: 'italic', color: isActive ? p.select : p.ink, textDecorationLine: isActive ? 'underline' : 'none' }}>
+            <Text key={i} style={{ fontFamily: font.italic, color: isActive ? p.select : p.ink, textDecorationLine: isActive ? 'underline' : 'none' }}>
               {piece.q}
             </Text>
           );

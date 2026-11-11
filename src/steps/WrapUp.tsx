@@ -4,8 +4,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import type { Session } from '@/content/types';
 import { countOutcomes, onYourOwn, questionCount, type SessionState, type Survey } from '@/session/logic';
 import { useTheme } from '@/theme/ThemeContext';
-import { radius, touch } from '@/theme/tokens';
-import { ChunkyButton, CloseIcon, Mark } from '@/ui/parts';
+import { font, radius, touch } from '@/theme/tokens';
+import { MainButton, CloseIcon, Mark } from '@/ui/parts';
 
 const QUESTIONS: { id: keyof Survey; question: string; options: string[] }[] = [
   { id: 'difficulty', question: 'How was the level?', options: ['Too easy', 'About right', 'Too hard'] },
@@ -48,7 +48,7 @@ export function WrapUp({ session, state, survey, onSurvey, onClose }: Props) {
           {rows.map((r) => (
             <View key={r.label} style={styles.countRow} accessible accessibilityLabel={`${r.count} ${r.label}`}>
               <Text style={[styles.count, { color: p.ink }]}>{r.count}</Text>
-              <View style={styles.markBox}>{r.mark ? <Mark kind={r.mark} color={r.color} size={16} /> : <Text style={{ color: p.ink, fontWeight: '800' }}>2×</Text>}</View>
+              <View style={styles.markBox}>{r.mark ? <Mark kind={r.mark} color={r.color} size={16} /> : <Text style={{ color: p.ink, fontFamily: font.bodyBold }}>2×</Text>}</View>
               <Text style={[styles.countLabel, { color: p.ink }]}>{r.label}</Text>
             </View>
           ))}
@@ -69,7 +69,7 @@ export function WrapUp({ session, state, survey, onSurvey, onClose }: Props) {
                     accessibilityRole="radio"
                     accessibilityState={{ checked: on }}
                     onPress={() => onSurvey({ ...survey, [q.id]: o })}
-                    style={[styles.option, { backgroundColor: on ? p.selectBg : p.page, borderColor: on ? p.select : p.line, borderBottomColor: on ? p.select : p.lineStrong }]}
+                    style={[styles.option, { backgroundColor: on ? p.selectBg : '#FFFFFF', borderColor: on ? p.select : p.line, borderBottomColor: on ? p.select : p.lineStrong }]}
                   >
                     <Text style={[styles.optionText, { color: p.ink }]}>{o}</Text>
                   </Pressable>
@@ -80,7 +80,7 @@ export function WrapUp({ session, state, survey, onSurvey, onClose }: Props) {
         ))}
       </ScrollView>
       <View style={styles.footer}>
-        <ChunkyButton label="Done" onPress={onClose} />
+        <MainButton label="Done" onPress={onClose} />
       </View>
     </SafeAreaView>
   );
@@ -91,19 +91,19 @@ const styles = StyleSheet.create({
   top: { height: 48, paddingHorizontal: 16, justifyContent: 'center' },
   close: { width: touch, height: touch, marginLeft: -14, alignItems: 'center', justifyContent: 'center' },
   content: { paddingHorizontal: 20, paddingBottom: 16, gap: 10 },
-  title: { fontSize: 28, fontWeight: '800', letterSpacing: -0.4 },
-  heading: { fontSize: 16, fontWeight: '700', marginTop: 10 },
+  title: { fontSize: 28, fontFamily: font.display, letterSpacing: -0.4 },
+  heading: { fontSize: 16, fontFamily: font.displaySemi, marginTop: 10 },
   can: { flexDirection: 'row', gap: 10 },
   bar: { width: 4, borderRadius: 2 },
-  canText: { flex: 1, fontSize: 15, lineHeight: 21 },
-  card: { borderWidth: 2, borderBottomWidth: 4, borderRadius: radius.m, paddingVertical: 6, paddingHorizontal: 14 },
+  canText: { flex: 1, fontSize: 15, lineHeight: 21, fontFamily: font.body },
+  card: { borderWidth: 2, backgroundColor: '#FFFFFF', borderRadius: radius.m, paddingVertical: 6, paddingHorizontal: 14 },
   countRow: { flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 36 },
-  count: { width: 20, fontSize: 20, fontWeight: '800', fontVariant: ['tabular-nums'], textAlign: 'right' },
+  count: { width: 20, fontSize: 20, fontFamily: font.display, fontVariant: ['tabular-nums'], textAlign: 'right' },
   markBox: { width: 22, alignItems: 'center' },
-  countLabel: { fontSize: 15 },
-  note: { fontSize: 14, lineHeight: 19 },
+  countLabel: { fontSize: 15, fontFamily: font.body },
+  note: { fontSize: 14, lineHeight: 19, fontFamily: font.body },
   options: { flexDirection: 'row', gap: 8 },
-  option: { flex: 1, minHeight: touch, borderWidth: 2, borderBottomWidth: 4, borderRadius: radius.m, alignItems: 'center', justifyContent: 'center' },
-  optionText: { fontSize: 15, fontWeight: '700' },
+  option: { flex: 1, minHeight: touch, borderWidth: 2, borderRadius: radius.m, alignItems: 'center', justifyContent: 'center' },
+  optionText: { fontSize: 15, fontFamily: font.bodySemi },
   footer: { paddingHorizontal: 16, paddingTop: 10, paddingBottom: 12 },
 });

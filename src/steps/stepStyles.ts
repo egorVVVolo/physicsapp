@@ -1,5 +1,6 @@
 // Shared bits of the step views: their props, small text styles, and the line under the prompt.
 import { StyleSheet } from 'react-native';
+import { font } from '@/theme/tokens';
 import type { LessonScreenProps } from '@/scene/LessonScreen';
 import type { Step } from '@/content/types';
 import type { Outcome } from '@/session/logic';
@@ -22,8 +23,8 @@ export const noteFor = (step: Step, withGoal = false) => {
 };
 
 export const text = StyleSheet.create({
-  hint: { fontSize: 14, fontWeight: '600', textAlign: 'center' },
-  line: { fontSize: 16, lineHeight: 22, fontWeight: '600', textAlign: 'center' },
-  equation: { fontSize: 22, fontWeight: '700', textAlign: 'center', fontVariant: ['tabular-nums'] },
-  small: { fontSize: 13, textAlign: 'center', marginTop: 4 },
+  hint: { fontSize: 14, fontFamily: font.bodySemi, textAlign: 'center' },
+  line: { fontSize: 16, lineHeight: 22, fontFamily: font.bodySemi, textAlign: 'center' },
+  equation: { fontSize: 22, fontFamily: font.bodyBold, textAlign: 'center', fontVariant: ['tabular-nums'] },
+  small: { fontSize: 13, fontFamily: font.body, textAlign: 'center', marginTop: 4 },
 });
