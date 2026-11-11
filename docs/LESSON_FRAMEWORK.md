@@ -50,6 +50,19 @@ Agreed with Egor after the visuals research (`docs/research/visuals-2026-11-09.m
 - **Carrier is a hot-air balloon** (sandbag released from a rising balloon). Illustrations are simple, flat, soft shapes; anything more detailed needs an asset from the owner.
 - The sections below that describe the older layout (graph switch, readout, conditions) are superseded by this block where they conflict.
 
+**Decisions of 11 Nov (second design pass, owner: "more creative answers, bigger scene, Duolingo/Brilliant style, a bit more adult")**
+- **Look:** light theme (white page, pale sky scene, ink-navy chunky button with a bottom lip). The scene takes most of the screen; the answer strip is slim; after Check a green or red banner slides over the strip with one line and Continue (Try again on a build stage). The dark stage of 10 Nov is superseded.
+- **Answer on the scene, in different ways, each chosen for what it teaches:**
+  - drag the velocity arrow on the sandbag (sets direction and size, the learner sees their vector next to the balloon's);
+  - strobe: three frozen moments (rising, top, falling), tap to set a on each (catches "a = 0 at the top" and "a follows the motion" at once);
+  - drag s from the release point to where it ends (the sign comes from a direction the learner drew);
+  - tap-turn the acceleration arrow;
+  - tap the landing time on a time line where t = 0 is the release (the negative root is visibly "before the release");
+  - spot the error: the student's working is drawn as arrows; tap the wrong one (v pointing up at the ground);
+  - number tiles into the equation in the exam (a wrong-unit tile is possible and telling).
+- **Ordinary choice stays where choosing is the skill:** which equation, and what the sign of an answer means.
+- Bigger balloon (scale 0.72) and sandbag (about 36 pt). Every wrong answer still plays as a ghost from the model.
+
 ## 2. Learner model
 
 The **default reader is the Intermediate learner**: a strong A-level student who knows the formulas and makes the classic mistakes. The pilot runs in a strong school, where the main risk is "too easy".

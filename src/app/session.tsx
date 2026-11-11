@@ -9,6 +9,7 @@ import { BuildStepView } from '@/steps/BuildStepView';
 import { IdeaStepView } from '@/steps/IdeaStepView';
 import { PredictStepView } from '@/steps/PredictStepView';
 import { SpotErrorStepView } from '@/steps/SpotErrorStepView';
+import { StrobeStepView } from '@/steps/StrobeStepView';
 import { WrapUp } from '@/steps/WrapUp';
 import { useTheme } from '@/theme/ThemeContext';
 
@@ -40,7 +41,7 @@ export default function SessionPlayer() {
   }
   const close = () => router.replace('/');
 
-  if (!state) return <View style={{ flex: 1, backgroundColor: p.stage }} />;
+  if (!state) return <View style={{ flex: 1, backgroundColor: p.page }} />;
 
   const step = currentStep(state, session);
   const isLast = state.index === session.steps.length - 1 && !(step?.type === 'build' && step.retry && state.outcomes[step.id] === 'revealed');
@@ -57,6 +58,8 @@ export default function SessionPlayer() {
     <IdeaStepView key={step.id} step={step} {...common} />
   ) : step.type === 'predict' ? (
     <PredictStepView key={step.id} step={step} {...common} />
+  ) : step.type === 'strobe' ? (
+    <StrobeStepView key={step.id} step={step} {...common} />
   ) : step.type === 'build' ? (
     <BuildStepView key={step.id} step={step} {...common} />
   ) : (

@@ -1,38 +1,47 @@
-// Design tokens. One theme: a dark stage for the scene, a light sheet for the controls.
-// Colours carry meaning (velocity cyan, acceleration coral, right green, wrong rose); everything else is neutral.
-// "*Text" colours are the darker twins used for text on the light sheet (≥ 4.5:1, checked by tokens.test.ts).
+// Design tokens. One light theme in the spirit of Brilliant and Duolingo, kept adult:
+// white page, a pale sky for the scene, ink-navy main button, muted green/red verdicts.
+// Colours carry meaning: velocity blue, acceleration coral, right green, wrong red, selection blue.
+// "*Text" colours are the darker twins used for text (≥ 4.5:1, checked by tokens.test.ts).
 
 export type Palette = {
-  // the stage (scene + question)
-  stage: string;
-  stageGround: string;
-  stageGroundLine: string;
-  stageText: string; // question text on the stage
-  stageMuted: string; // dimension labels, tag text
-  stageDim: string; // ghost labels, ruler
-  // the sheet (controls) and neutrals
-  sheet: string;
-  card: string; // answer cards
-  line: string; // borders on the sheet
-  ink: string; // text on the sheet
-  muted: string; // secondary text on the sheet
-  primary: string; // the one main button
+  page: string; // screen background
+  ink: string; // main text
+  muted: string; // secondary text
+  faint: string; // hints, axis numbers
+  line: string; // card borders
+  lineStrong: string; // card bottom lip, track
+  // the scene
+  sky: string;
+  ground: string;
+  groundLine: string;
+  // buttons (chunky, with a darker bottom lip)
+  primary: string;
+  primaryLip: string;
   onPrimary: string;
   disabled: string;
+  disabledLip: string;
   onDisabled: string;
+  select: string; // ring around the chosen card / handle
+  selectBg: string;
   // quantities
-  vel: string; // velocity strokes on the stage
-  velText: string; // velocity on the light sheet
-  acc: string; // acceleration strokes on the stage
+  vel: string;
+  velText: string;
+  acc: string;
   accText: string;
   // verdicts
   ok: string;
+  okLip: string;
   okBg: string;
+  okText: string;
   bad: string;
+  badLip: string;
   badBg: string;
+  badText: string;
   // things in the scene
   balloon: string;
+  balloonLine: string;
   balloonShade: string;
+  gore: string;
   kraft: string;
   kraftLight: string;
   kraftDark: string;
@@ -45,49 +54,49 @@ export type Palette = {
 };
 
 export const palette: Palette = {
-  stage: '#0E1A2B',
-  stageGround: '#132338',
-  stageGroundLine: '#5F7FA3',
-  stageText: '#FFFFFF',
-  stageMuted: '#C6D4E6',
-  stageDim: '#9FB4CD',
-  sheet: '#F3F5F9',
-  card: '#FFFFFF',
-  line: '#D5DCE6',
-  ink: '#0E1A2B',
-  muted: '#4A5870',
-  primary: '#0E1A2B',
+  page: '#FFFFFF',
+  ink: '#172033',
+  muted: '#545F72',
+  faint: '#5F6A7B',
+  line: '#E2E6EC',
+  lineStrong: '#CDD4DE',
+  sky: '#EDF3F9',
+  ground: '#E1E7EE',
+  groundLine: '#7A8BA0',
+  primary: '#1F2A44',
+  primaryLip: '#0C1322',
   onPrimary: '#FFFFFF',
-  disabled: '#C9D2DE',
-  onDisabled: '#445267',
-  vel: '#3DC6FF',
-  velText: '#0A6EA3',
-  acc: '#FF7A59',
-  accText: '#B8401F',
-  ok: '#167A4B',
-  okBg: '#DDF3E7',
-  bad: '#C0263F',
-  badBg: '#FBE1E5',
-  balloon: '#EEF3F9',
-  balloonShade: '#C5D3E4',
+  disabled: '#E7EAEF',
+  disabledLip: '#D3D9E1',
+  onDisabled: '#5F6A7C',
+  select: '#2563EB',
+  selectBg: '#EEF4FF',
+  vel: '#1479C9',
+  velText: '#0F64A8',
+  acc: '#E4572E',
+  accText: '#B4421C',
+  ok: '#1F7F43',
+  okLip: '#176A37',
+  okBg: '#E8F5ED',
+  okText: '#175C30',
+  bad: '#CC3D3D',
+  badLip: '#A12E2E',
+  badBg: '#FBECEC',
+  badText: '#962A2A',
+  balloon: '#FFFFFF',
+  balloonLine: '#AEBBCC',
+  balloonShade: '#DCE5F0',
+  gore: '#FF7A59',
   kraft: '#D8A468',
   kraftLight: '#E8BE89',
-  kraftDark: '#BF8449',
+  kraftDark: '#A97A45',
   sack: '#D2A66E',
-  ghost: '#8FA6C2',
-  rope: '#8FA4BE',
+  ghost: '#7D8899',
+  rope: '#8597B0',
   burner: '#2A3B55',
   flame: '#FFB02E',
   flameCore: '#FFE6A3',
 };
 
-export const type = {
-  title: 23,
-  body: 16,
-  small: 14,
-  label: 13,
-} as const;
-
-export const space = { xs: 4, s: 8, m: 12, l: 16, xl: 24 } as const;
-export const radius = { s: 10, m: 14, l: 16, sheet: 26 } as const;
+export const radius = { s: 10, m: 14, l: 18 } as const;
 export const touch = 44; // minimum touch target, pt

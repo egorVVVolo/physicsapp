@@ -1,5 +1,5 @@
 // Pure session logic: which step is on screen, what each step's honest outcome is. No React.
-import type { Session, Step } from '../content/types.ts';
+import type { AccDir, MisconceptionId, Session, Step, StrobeStep } from '../content/types.ts';
 
 /** independent: first try, no help · assisted: needed help or a second try · revealed: the answer was shown. */
 export type Outcome = 'independent' | 'assisted' | 'revealed';
@@ -77,4 +77,14 @@ export function parseProgress(json: string | null, lessonId: string, session: Se
   } catch {
     return null;
   }
+}
+
+// ── Strobe step: one acceleration arrow per frozen frame ─────────────────────────────────
+
+/** Right only if every frame has a pointing down. Otherwise name the most telling mistake. */
+export function judgeStrobe(step: StrobeStep, answers: Record<string, AccDir>): { ok: boolean; text: string; misconception?: MisconceptionId } {
+  if (step.frames.every((f) => answers[f.id] === 'down')) return { ok: true, text: step.feedback.right };
+  if (answers.top === 'zero') return { ok: false, text: step.feedback.zeroTop, misconception: step.misconceptions.zeroTop };
+  if (answers.rise === 'up') return { ok: false, text: step.feedback.followsMotion, misconception: step.misconceptions.followsMotion };
+  return { ok: false, text: step.feedback.other };
 }

@@ -40,7 +40,14 @@ export type Playback = {
   showAcc: boolean; // the acceleration arrow is hidden while a later question still asks about it
 };
 
-export type Option = { id: string; label: string; correct?: true; misconception?: MisconceptionId; feedback: string };
+export type Option = {
+  id: string;
+  label: string;
+  correct?: true;
+  misconception?: MisconceptionId;
+  feedback: string;
+  value?: number; // where the option sits on a number line (timeline answers)
+};
 
 type StepBase = {
   id: string;
@@ -63,6 +70,8 @@ export type IdeaStep = StepBase & {
 /** One attempt; the answer then plays on the scene. */
 export type PredictStep = StepBase & {
   type: 'predict';
+  /** How the learner answers: tap a card, or drag the velocity arrow on the sandbag (it snaps to the options' preview values). */
+  input: 'cards' | 'vector';
   options: Option[];
   /** Velocity (m s⁻¹, up positive) the chosen option shows as an arrow before release; null = no arrow. */
   preview: (optionId: string) => number | null;
@@ -71,7 +80,13 @@ export type PredictStep = StepBase & {
 
 export type Values = Partial<Record<Quantity, number>>;
 export type Chip = { value: number; label: string; misconception?: MisconceptionId; feedback?: string };
-export type Slot = { quantity: Quantity; correct: number; prompt: string; highlight: Highlight; chips: Chip[] };
+/**
+ * How a value is entered on the scene or in the strip:
+ * displacement = drag the s arrow from the release point; vector = drag the velocity arrow on the sandbag;
+ * flip = tap the acceleration arrow to turn it; tiles = tap number tiles into the equation; cards = tap a card.
+ */
+export type SlotInput = 'displacement' | 'vector' | 'flip' | 'tiles' | 'cards';
+export type Slot = { quantity: Quantity; correct: number; prompt: string; highlight: Highlight; input: SlotInput; chips: Chip[] };
 
 /**
  * The learner picks an equation, fills it with signed values one at a time, the app solves,
@@ -88,7 +103,7 @@ export type BuildStep = StepBase & {
   slots: Slot[];
   given?: { quantity: Quantity; value: number; label: string };
   solved: string; // what the app shows after solving
-  final: { prompt: string; choices: Option[] };
+  final: { prompt: string; choices: Option[]; input: 'timeline' | 'cards' };
   methodHint: string; // second level of help
   worked: string[]; // shown when the answer is revealed
   wrongPlayback: (values: Values) => Playback;
@@ -97,16 +112,42 @@ export type BuildStep = StepBase & {
   retry?: BuildStep; // same problem with new values, after a reveal
 };
 
+/** One quantity of a student's working, drawn on the scene as an arrow or a tag. */
+export type WorkingItem = {
+  id: string;
+  kind: 's' | 'u' | 'a' | 'v' | 't';
+  label: string; // shown next to the arrow, e.g. "v = +23.2"
+  value: number; // signed value in SI units (sets the arrow direction)
+  wrong?: true;
+  feedback: string; // ≤ 45 characters
+};
+
+/** Spot the error: the student's working is drawn on the scene; the learner taps the wrong item. */
 export type SpotErrorStep = StepBase & {
   type: 'spot-error';
-  lines: { id: string; text: string; wrong?: true; feedback: string }[];
+  working: string; // one line of the student's final step, shown under the scene
+  items: WorkingItem[];
   misconception: MisconceptionId;
   methodHint: string;
   worked: string[];
   playback: () => Playback;
 };
 
-export type Step = IdeaStep | PredictStep | BuildStep | SpotErrorStep;
+export type AccDir = 'down' | 'zero' | 'up';
+
+/**
+ * Strobe: the sandbag frozen at a few instants (rising, top, falling). The learner sets the
+ * acceleration arrow on every frame; the right answer is the same arrow everywhere.
+ */
+export type StrobeStep = StepBase & {
+  type: 'strobe';
+  frames: { id: string; t: number; label: string }[];
+  feedback: { right: string; zeroTop: string; followsMotion: string; other: string };
+  misconceptions: { zeroTop: MisconceptionId; followsMotion: MisconceptionId };
+  playbackFor: (answers: Record<string, AccDir>) => Playback;
+};
+
+export type Step = IdeaStep | PredictStep | StrobeStep | BuildStep | SpotErrorStep;
 
 export type Session = {
   id: string;

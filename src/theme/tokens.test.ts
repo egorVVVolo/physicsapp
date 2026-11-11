@@ -14,25 +14,23 @@ const contrast = (a: string, b: string) => {
 const check = (fg: string, bg: string, min: number, what: string) =>
   assert.ok(contrast(fg, bg) >= min, `${what}: ${fg} on ${bg} is ${contrast(fg, bg).toFixed(2)}, needs ${min}`);
 
-test('text on the dark stage is at least 4.5:1', () => {
-  for (const k of ['stageText', 'stageMuted', 'stageDim'] as const) check(p[k], p.stage, 4.5, k);
-});
-
-test('text on the sheet and on answer cards is at least 4.5:1', () => {
-  for (const bg of [p.sheet, p.card]) {
-    for (const k of ['ink', 'muted', 'velText', 'accText', 'ok', 'bad'] as const) check(p[k], bg, 4.5, `${k} on ${bg}`);
+test('text on the page and in the scene is at least 4.5:1', () => {
+  for (const bg of [p.page, p.sky]) {
+    for (const k of ['ink', 'muted', 'faint', 'velText', 'accText', 'okText', 'badText'] as const) check(p[k], bg, 4.5, `${k} on ${bg}`);
   }
+  check(p.muted, p.ground, 4.5, 'labels under the ground line');
+  check(p.ink, p.selectBg, 4.5, 'text on a selected card');
 });
 
-test('buttons and verdict colours are at least 4.5:1', () => {
+test('buttons and verdict banners are at least 4.5:1', () => {
   check(p.onPrimary, p.primary, 4.5, 'onPrimary on primary');
   check(p.onDisabled, p.disabled, 4.5, 'onDisabled on disabled');
-  check(p.bad, p.badBg, 4.5, 'bad on badBg');
-  check(p.ok, p.okBg, 4.5, 'ok on okBg');
+  check(p.onPrimary, p.ok, 4.5, 'white on the green button');
+  check(p.onPrimary, p.bad, 4.5, 'white on the red button');
+  check(p.okText, p.okBg, 4.5, 'okText on okBg');
+  check(p.badText, p.badBg, 4.5, 'badText on badBg');
 });
 
-test('strokes and labels drawn on the stage are at least 3:1', () => {
-  for (const k of ['vel', 'acc', 'kraft', 'ghost', 'stageGroundLine'] as const) check(p[k], p.stage, 3, k);
-  // text drawn in the scene (speed labels, "a") must read as text
-  for (const k of ['vel', 'acc'] as const) check(p[k], p.stage, 4.5, `${k} as text`);
+test('strokes drawn in the scene are at least 3:1 on the sky', () => {
+  for (const k of ['vel', 'acc', 'ghost', 'groundLine', 'select', 'kraftDark'] as const) check(p[k], p.sky, 3, k);
 });

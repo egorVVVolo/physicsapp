@@ -75,7 +75,8 @@ export function chooseChip(step: BuildStep, s0: BuildState, value: number): Answ
   const advance = afterSlot(step, { ...s, values: { ...s.values, [slot.quantity]: slot.correct } }, s.slotIndex); // exam format only
   // The wrong numbers play as a ghost: the motion they describe, next to the real one.
   const playback = step.exam ? null : step.wrongPlayback({ ...s.values, [slot.quantity]: value });
-  return wrongTap(step, s, hintOr(step, s, chip?.feedback ?? ''), playback, advance);
+  // a value that belongs to another quantity (a tile with the wrong unit) gets a plain note
+  return wrongTap(step, s, hintOr(step, s, chip?.feedback ?? 'Wrong quantity: check the unit.'), playback, advance);
 }
 
 export function chooseFinal(step: BuildStep, s0: BuildState, choiceId: string): Answered {

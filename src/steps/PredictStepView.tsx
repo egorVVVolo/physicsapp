@@ -1,22 +1,32 @@
-// Predict: pick an answer card (the scene shows it as an arrow on the held sandbag), press "Let go", watch. One attempt.
-import { useState, type ReactNode } from 'react';
-import { View } from 'react-native';
-import type { Playback, PredictStep } from '@/content/types';
-import { StageScreen } from '@/scene/StageScreen';
+// Predict: commit to an answer, then watch it play. One attempt. A wrong answer plays as a ghost.
+// Answered by dragging the velocity arrow on the sandbag (input 'vector') or by tapping a card.
+import { useEffect, useState } from 'react';
+import { Text } from 'react-native';
+import type { PredictStep, Playback } from '@/content/types';
+import { speedLabel } from '@/scene/BalloonScene';
+import { VelocityDrag } from '@/scene/interactions';
+import { LessonScreen, type BarState } from '@/scene/LessonScreen';
 import { useClock } from '@/scene/useClock';
-import { ArrowGlyph, Choice, ChoiceRow, FeedbackRow } from '@/ui/parts';
-import { nextLabel, stepStyles, type StepViewProps } from './stepStyles';
-
-export type { StepViewProps };
+import { useTheme } from '@/theme/ThemeContext';
+import { Card, CardRow } from '@/ui/parts';
+import { nextLabel, noteFor, text, type StepViewProps } from './stepStyles';
 
 export function PredictStepView({ step, isLast, progress, onDone, onNext }: StepViewProps<PredictStep>) {
+  const { palette: p } = useTheme();
   const clock = useClock();
   const [choiceId, setChoiceId] = useState<string | null>(null);
+  const [drag, setDrag] = useState<number | null>(null); // live arrow value while dragging
   const [playback, setPlayback] = useState<Playback | null>(null);
-  const released = playback !== null;
+  const [showVerdict, setShowVerdict] = useState(false);
   const choice = step.options.find((o) => o.id === choiceId) ?? null;
+  const checked = playback !== null;
 
-  function letGo() {
+  // the verdict appears once the motion has played: the animation is the explanation
+  useEffect(() => {
+    if (checked && clock.status === 'ended') setShowVerdict(true);
+  }, [checked, clock.status]);
+
+  function check() {
     if (!choice) return;
     const next = step.playbackFor(choice.id);
     setPlayback(next);
@@ -24,50 +34,66 @@ export function PredictStepView({ step, isLast, progress, onDone, onNext }: Step
     onDone(choice.correct ? 'independent' : 'revealed');
   }
 
-  /** The glyph on a card follows the sign of the velocity the answer stands for. */
-  function glyphFor(id: string): ((color: string) => ReactNode) | undefined {
-    const v = step.preview(id);
-    if (v === null) return undefined;
-    const kind = v > 0 ? 'up' : v < 0 ? 'down' : 'dot';
-    return (color) => <ArrowGlyph kind={kind} color={color} />;
-  }
+  const snaps = step.options.map((o) => step.preview(o.id)).filter((v): v is number => v !== null);
+  const optionFor = (v: number) => step.options.find((o) => step.preview(o.id) === v) ?? null;
 
-  const primary = !released
-    ? { label: 'Let go', disabled: !choice, onPress: letGo }
-    : clock.status === 'ended'
-      ? { label: nextLabel(isLast), onPress: onNext }
-      : { label: 'Watch', disabled: true, onPress: () => {} };
+  const bar: BarState = !checked
+    ? { label: 'Check', disabled: !choice, onPress: check }
+    : !showVerdict
+      ? { label: 'Watch', disabled: true }
+      : {
+          label: nextLabel(isLast),
+          onPress: onNext,
+          tone: choice?.correct ? 'ok' : 'bad',
+          banner: { ok: choice?.correct === true, title: choice?.correct ? 'Right' : 'Not quite', text: choice?.feedback ?? '' },
+        };
+
+  const strip =
+    step.input === 'cards' ? (
+      <CardRow>
+        {step.options.map((o) => (
+          <Card
+            key={o.id}
+            label={o.label}
+            disabled={checked}
+            onPress={() => setChoiceId(o.id)}
+            state={checked ? (o.correct ? 'right' : o.id === choiceId ? 'wrong' : 'dim') : o.id === choiceId ? 'selected' : 'idle'}
+          />
+        ))}
+      </CardRow>
+    ) : !checked ? (
+      <Text style={[text.hint, { color: p.muted }]} maxFontSizeMultiplier={1.25}>
+        Drag the arrow on the sandbag up or down
+      </Text>
+    ) : null;
 
   return (
-    <StageScreen
+    <LessonScreen
+      progress={progress}
+      prompt={step.question}
+      note={noteFor(step)}
       scene={step.scene}
       playback={playback}
       clock={clock}
-      title={step.question}
-      tag={step.sign}
-      facts={step.facts}
-      previewValue={!released && choice ? step.preview(choice.id) : null}
-      progress={progress}
-      primary={primary}
-    >
-      <View style={stepStyles.sheet}>
-        {!released ? (
-          <ChoiceRow>
-            {step.options.map((o) => (
-              <Choice
-                key={o.id}
-                label={o.label}
-                minHeight={78}
-                glyph={glyphFor(o.id)}
-                state={o.id === choiceId ? 'selected' : 'idle'}
-                onPress={() => setChoiceId(o.id)}
+      overlay={
+        step.input === 'vector' && !checked
+          ? (g) => (
+              <VelocityDrag
+                g={g}
+                value={drag}
+                snaps={snaps}
+                onChange={setDrag}
+                onRelease={(v) => {
+                  setDrag(v);
+                  setChoiceId(optionFor(v)?.id ?? null);
+                }}
+                label={(v) => (v === null ? 'v = ?' : speedLabel(Math.round(v * 10)))}
               />
-            ))}
-          </ChoiceRow>
-        ) : (
-          choice && <FeedbackRow verdict={{ ok: choice.correct === true, text: choice.feedback }} reserve />
-        )}
-      </View>
-    </StageScreen>
+            )
+          : undefined
+      }
+      strip={strip}
+      bar={bar}
+    />
   );
 }

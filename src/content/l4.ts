@@ -15,7 +15,7 @@ import {
 } from '../physics/kinematics.ts';
 import { fixed, signed } from '../physics/format.ts';
 import type { ClockEvent } from '../scene/clockStep.ts';
-import type { BuildStep, IdeaStep, Lesson, Playback, PredictStep, SceneSetup, SpotErrorStep, Values } from './types.ts';
+import type { AccDir, BuildStep, IdeaStep, Lesson, Playback, PredictStep, SceneSetup, SpotErrorStep, StrobeStep, Values } from './types.ts';
 
 const WORLD_TOP = 34; // m on the ruler: the climb to about 27 m must be clearly visible
 const MS = 'm\u00A0s⁻¹'; // non-breaking space: the unit never splits across lines
@@ -84,8 +84,9 @@ const hookU: Record<string, number> = { zero: 0, up: W.vb, down: -W.vb };
 export const hook: PredictStep = {
   id: 'hook',
   type: 'predict',
-  question: 'Released. What is its velocity right then?',
+  question: 'Released. Drag its velocity arrow.',
   scene: W.scene,
+  input: 'vector', // the arrow snaps to the options' preview values: 0, +12 or −12
   options: [
     { id: 'zero', label: `0 ${MS}`, misconception: 'K-RELEASE-REST', feedback: 'Not from rest: it rises with the balloon.' },
     { id: 'up', label: `${W.speed} up`, correct: true, feedback: `Same as the balloon: ${W.speed} up.` },
@@ -140,41 +141,57 @@ export const ideaGravity: IdeaStep = {
   },
 };
 
-// ── 2. Acceleration at the top ───────────────────────────────────────────────────────────
+// ── 2. Acceleration at three moments: rising, top, falling (strobe) ──────────────────────
+// Setting one arrow per frame shows the idea "a never changes" far better than one question
+// about the top: a learner who thinks "a follows the motion" sets different arrows and sees it.
 
-export const accTop: PredictStep = {
+const tRise = 0.6;
+const tFall = 2 * W.tTop - tRise; // the same height as the rising frame: the flight is symmetric
+
+export const accTop: StrobeStep = {
   id: 'acc-top',
-  type: 'predict',
-  question: 'At the very top, what is its acceleration?',
+  type: 'strobe',
+  question: 'Set its acceleration at each moment.',
   scene: W.scene,
   sign: true,
-  options: [
-    { id: 'up', label: 'g, up', misconception: 'K-ACC-DIR', feedback: 'a follows gravity, not the motion.' },
-    { id: 'zero', label: '0', misconception: 'K-TOP-ZERO-A', feedback: 'v is zero for an instant, but a is not.' },
-    { id: 'down', label: 'g, down', correct: true, feedback: `Only gravity acts: ${gText} down.` },
+  frames: [
+    { id: 'rise', t: tRise, label: 'rising' },
+    { id: 'top', t: W.tTop, label: 'top' },
+    { id: 'fall', t: tFall, label: 'falling' },
   ],
-  preview: () => null,
-  playbackFor(optionId) {
-    const endT = W.tTop + 0.6; // before the sandbag is back at the release height
+  feedback: {
+    right: `The same every time: ${gText} down.`,
+    zeroTop: 'v is 0 at the top for an instant; a is not.',
+    followsMotion: 'a follows gravity, not the motion.',
+    other: 'Only gravity acts, so a never changes.',
+  },
+  misconceptions: { zeroTop: 'K-TOP-ZERO-A', followsMotion: 'K-ACC-DIR' },
+  playbackFor(answers: Record<string, AccDir>) {
+    const endT = tFall + 0.15; // ends long before the landing
     const hang: Motion = { s0: W.hTop, u: 0, a: 0 }; // what "a = 0 at the top" would do
-    const speedsUp: Motion = { s0: W.h0, u: W.vb, a: G }; // what "a points up" would do
-    const speedsUpEnd = Math.min(timeToReach(WORLD_TOP, speedsUp)!, endT);
-    const wrong = optionId !== 'down';
-    const topCaption: Record<string, string> = {
-      down: 'Top: v = 0, but a is still g',
-      zero: 'Yours would hang here. It does not.',
-      up: 'Yours would speed up and leave.',
-    };
+    const speedsUp: Motion = { s0: W.h0, u: W.vb, a: G }; // what "a points up while rising" would do
+    const companion =
+      answers.top === 'zero'
+        ? { track: { motion: hang, from: W.tTop, end: endT }, label: 'your a = 0', kind: 'ghost' as const }
+        : answers.rise === 'up'
+          ? { track: { motion: speedsUp, from: 0, end: Math.min(timeToReach(WORLD_TOP, speedsUp)!, endT) }, label: 'your answer', kind: 'ghost' as const }
+          : null;
     return {
-      events: [{ t: W.tTop, id: 'top' }, { t: endT, id: 'after', end: true }],
+      events: [
+        { t: tRise, id: 'rise' },
+        { t: W.tTop, id: 'top' },
+        { t: tFall, id: 'fall' },
+        { t: endT, id: 'end', end: true },
+      ],
       endT,
-      captions: { top: topCaption[optionId], after: wrong ? 'Real: a = g down all the way' : 'a is the same before and after' },
+      captions: {
+        rise: 'Rising: v up, a down',
+        top: 'Top: v = 0, a still down',
+        fall: 'Falling: v down, a down',
+        end: 'One a for the whole flight',
+      },
       ...real(W, endT),
-      companion: !wrong
-        ? null
-        : optionId === 'up'
-          ? { track: { motion: speedsUp, from: 0, end: speedsUpEnd }, label: 'your answer', kind: 'ghost' }
-          : { track: { motion: hang, from: W.tTop, end: endT }, label: 'your answer', kind: 'ghost' },
+      companion,
       showAcc: true,
     };
   },
@@ -219,7 +236,7 @@ function buildTime(w: World, id: string): BuildStep {
     sign: true,
     unknown: 't',
     known: ['s', 'u', 'a'],
-    relationPrompt: 'Known s, u, a. Which equation gives t?',
+    relationPrompt: 'Known s, u, a. Which gives t?',
     // The right one (sut) sits in the middle here; the exam step puts it first.
     relations: [
       { id: 'vuat', misconception: 'K-SUVAT-PICK', feedback: 'No v is given: it needs two stages.' },
@@ -231,8 +248,9 @@ function buildTime(w: World, id: string): BuildStep {
       {
         quantity: 's',
         correct: -h0,
-        prompt: 'Ground, from the release point?',
+        prompt: 'Drag s from release point to ground.',
         highlight: 's',
+        input: 'displacement',
         chips: [
           { value: h0, label: m(h0), misconception: 'K-SIGN-CONV', feedback: `The ground is below: s = ${m(-h0)}.` },
           { value: -h0, label: m(-h0) },
@@ -241,8 +259,9 @@ function buildTime(w: World, id: string): BuildStep {
       {
         quantity: 'u',
         correct: vb,
-        prompt: 'Velocity at the release?',
+        prompt: 'Drag u: its velocity at the release.',
         highlight: 'u',
+        input: 'vector',
         chips: [
           { value: 0, label: v(0), misconception: 'K-RELEASE-REST', feedback: `It leaves with the balloon: ${v(vb)}.` },
           { value: vb, label: v(vb) },
@@ -252,8 +271,9 @@ function buildTime(w: World, id: string): BuildStep {
       {
         quantity: 'a',
         correct: -G,
-        prompt: 'Acceleration after the release?',
+        prompt: 'Tap the a arrow until it is right.',
         highlight: 'a',
+        input: 'flip',
         chips: [
           { value: -G, label: a(-G) },
           { value: G, label: a(G), misconception: 'K-SIGN-CONV', feedback: `Gravity pulls down: a = ${a(-G)}.` },
@@ -263,10 +283,11 @@ function buildTime(w: World, id: string): BuildStep {
     ],
     solved: `t = ${fixed(tLand, 2)} s  or  t = ${fixed(tBefore, 2)} s`,
     final: {
-      prompt: 'Two solutions. Which is the landing?',
+      prompt: 'Two solutions. Tap the landing time.',
+      input: 'timeline',
       choices: [
-        { id: 'before', label: `${fixed(tBefore, 2)} s`, misconception: 'K-ROOT-PICK', feedback: 'A negative t is before the release.' },
-        { id: 'land', label: `${fixed(tLand, 2)} s`, correct: true, feedback: `After the release, so t = ${fixed(tLand, 2)} s.` },
+        { id: 'before', label: `${fixed(tBefore, 2)} s`, value: tBefore, misconception: 'K-ROOT-PICK', feedback: 'A negative t is before the release.' },
+        { id: 'land', label: `${fixed(tLand, 2)} s`, value: tLand, correct: true, feedback: `After the release, so t = ${fixed(tLand, 2)} s.` },
       ],
     },
     methodHint: 'Known: s, u, a. Up is +, so check signs.',
@@ -338,14 +359,18 @@ export const studentT = (vUp - W.vb) / -G; // what the wrong sign leads to
 export const spotError: SpotErrorStep = {
   id: 'spot-error',
   type: 'spot-error',
-  question: 'Tap the line that goes wrong.',
+  question: 'A student got a negative time. Tap the error.',
   scene: W.scene,
+  sign: true,
   misconception: 'K-SPEED-VEL',
-  lines: [
-    { id: '1', text: `u = ${signed(W.vb, 1)},  a = ${signed(-G, 2)},  s = ${signed(-W.h0, 0)}`, feedback: 'Fine: the ground is below, so s < 0.' },
-    { id: '2', text: `v² = ${fixed(W.vb, 1)}² + 2(${fixed(-G, 2)})(${fixed(-W.h0, 0)}) = ${fixed(v2, 0)}`, feedback: 'Fine: a and s are both negative.' },
-    { id: '3', text: `v = √${fixed(v2, 0)} = ${signed(vUp, 1)} ${MS}`, wrong: true, feedback: `√ gives ±${fixed(vUp, 1)}. Moving down: v = ${signed(W.vLand, 1)}` },
-    { id: '4', text: `t = (${fixed(vUp, 1)} − ${fixed(W.vb, 1)}) / (${fixed(-G, 2)}) = ${fixed(studentT, 2)} s`, feedback: 'Sums fine. Negative t comes from line 3.' },
+  working: `v² = ${fixed(v2, 0)}, v = ${signed(vUp, 1)}, so t = ${fixed(studentT, 2)} s`,
+  // Each quantity of the working is drawn on the scene: s, u, a at the release, v at the ground, t on a clock tag.
+  items: [
+    { id: 's', kind: 's', label: `s = ${signed(-W.h0, 0)} m`, value: -W.h0, feedback: 'Fine: the ground is below, so s < 0.' },
+    { id: 'u', kind: 'u', label: `u = ${signed(W.vb, 1)}`, value: W.vb, feedback: 'Fine: it leaves moving up.' },
+    { id: 'a', kind: 'a', label: `a = ${signed(-G, 2)}`, value: -G, feedback: 'Fine: gravity pulls down.' },
+    { id: 'v', kind: 'v', label: `v = ${signed(vUp, 1)}`, value: vUp, wrong: true, feedback: `√ gives ±${fixed(vUp, 1)}. Moving down: v = ${signed(W.vLand, 1)}` },
+    { id: 't', kind: 't', label: `t = ${fixed(studentT, 2)} s`, value: studentT, feedback: 'That is the symptom. Find the cause.' },
   ],
   methodHint: 'Which way does it move at the ground?',
   worked: [
@@ -402,8 +427,9 @@ export const exam: BuildStep = {
     {
       quantity: 's',
       correct: -EXAM_H,
-      prompt: 'Ground, from the release point?',
+      prompt: 'Tap a tile for s.',
       highlight: 's',
+      input: 'tiles',
       chips: [
         { value: -EXAM_H, label: `${signed(-EXAM_H, 0)} m` },
         { value: EXAM_H, label: `${signed(EXAM_H, 0)} m`, misconception: 'K-SIGN-CONV', feedback: `The ground is below: s = ${signed(-EXAM_H, 0)} m.` },
@@ -412,8 +438,9 @@ export const exam: BuildStep = {
     {
       quantity: 'a',
       correct: -G,
-      prompt: 'Acceleration after the release?',
+      prompt: 'Tap a tile for a.',
       highlight: 'a',
+      input: 'tiles',
       chips: [
         { value: G, label: `${signed(G, 2)} ${MS2}`, misconception: 'K-SIGN-CONV', feedback: `Gravity pulls down: a = ${signed(-G, 2)} ${MS2}.` },
         { value: -G, label: `${signed(-G, 2)} ${MS2}` },
@@ -423,6 +450,7 @@ export const exam: BuildStep = {
   solved: `u = ${signed(examU, 1)} ${MS}`,
   final: {
     prompt: `u = ${signed(examU, 1)} ${MS}. The balloon was…`,
+    input: 'cards',
     choices: [
       { id: 'up', label: 'climbing', correct: true, feedback: `Positive is up: it was climbing at ${examSpeed}.` },
       { id: 'down', label: 'descending', misconception: 'K-SPEED-VEL', feedback: 'Up is +, so a positive u means moving up.' },

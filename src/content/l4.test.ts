@@ -3,7 +3,8 @@ import assert from 'node:assert/strict';
 import { G, initialVelocityFor, position, relationFits, timesForDisplacement, timeToReach, velocity } from '../physics/kinematics.ts';
 import { fixed } from '../physics/format.ts';
 import { accTop, build, exam, EXAM_H, EXAM_T, examU, hook, ideaGravity, ideaRelease, ideaSign, l4, spotError, studentT, W, W2 } from './l4.ts';
-import type { BuildStep, Playback, Step } from './types.ts';
+import type { AccDir, BuildStep, Playback, Step } from './types.ts';
+import { judgeStrobe } from '../session/logic.ts';
 
 const near = (a: number, b: number, tol = 0.005) => assert.ok(Math.abs(a - b) <= tol, `expected ${b}, got ${a}`);
 const core = l4.sessions[0];
@@ -12,10 +13,16 @@ const core = l4.sessions[0];
 function playbacks(step: Step): [string, Playback][] {
   if (step.type === 'idea') return [[step.id, step.playback]];
   if (step.type === 'predict') return step.options.map((o) => [`${step.id}/${o.id}`, step.playbackFor(o.id)]);
+  if (step.type === 'strobe') return strobeAnswers().map((a) => [`${step.id}/${JSON.stringify(a)}`, step.playbackFor(a)]);
   if (step.type === 'spot-error') return [[step.id, step.playback()]];
   const out: [string, Playback][] = [[`${step.id}/done`, step.donePlayback()]];
   for (const combo of combos(step)) out.push([`${step.id}/${JSON.stringify(combo)}`, step.wrongPlayback(combo)]);
   return out.concat(step.retry ? playbacks(step.retry) : []);
+}
+/** All 27 ways of setting the three strobe arrows. */
+function strobeAnswers(): Record<string, AccDir>[] {
+  const dirs: AccDir[] = ['down', 'zero', 'up'];
+  return dirs.flatMap((rise) => dirs.flatMap((top) => dirs.map((fall) => ({ rise, top, fall }))));
 }
 /** Every way of filling the slots except the correct one. */
 function combos(step: BuildStep) {
@@ -27,7 +34,8 @@ function combos(step: BuildStep) {
 function feedbacks(step: Step): string[] {
   if (step.type === 'idea') return [];
   if (step.type === 'predict') return step.options.map((o) => o.feedback);
-  if (step.type === 'spot-error') return [...step.lines.map((l) => l.feedback), step.methodHint];
+  if (step.type === 'strobe') return Object.values(step.feedback);
+  if (step.type === 'spot-error') return [...step.items.map((l) => l.feedback), step.methodHint];
   return [
     ...step.relations.map((r) => r.feedback),
     ...step.slots.flatMap((sl) => sl.chips.map((c) => c.feedback ?? '')),
@@ -60,13 +68,13 @@ test('the session has 8 steps with unique ids, in the agreed order, and at least
   assert.ok(new Set(core.steps.map((s) => (s.type === 'build' && s.exam ? 'exam' : s.type))).size >= 3);
 });
 
-test('predict steps: exactly one correct option, every wrong one names a misconception, order is not a giveaway', () => {
-  for (const step of [hook, accTop]) {
-    assert.equal(step.options.filter((o) => o.correct).length, 1, step.id);
-    for (const o of step.options) assert.ok(o.correct || o.misconception, `${step.id}/${o.id}`);
-    assert.equal(new Set(step.options.map((o) => o.id)).size, step.options.length);
-  }
-  assert.notEqual(hook.options.findIndex((o) => o.correct), accTop.options.findIndex((o) => o.correct));
+test('hook: one correct option, every wrong one names a misconception, answered by dragging the arrow', () => {
+  assert.equal(hook.input, 'vector');
+  assert.equal(hook.options.filter((o) => o.correct).length, 1);
+  for (const o of hook.options) assert.ok(o.correct || o.misconception, o.id);
+  // the drag snaps to the preview values, so they must be distinct numbers
+  const values = hook.options.map((o) => hook.preview(o.id));
+  assert.equal(new Set(values).size, values.length);
 });
 
 test('hook: the correct option is the model’s u, the preview arrow matches, playback stops before the real landing', () => {
@@ -74,7 +82,6 @@ test('hook: the correct option is the model’s u, the preview arrow matches, pl
   assert.equal(hook.preview('zero'), 0);
   assert.equal(hook.preview('up'), W.vb);
   assert.equal(hook.preview('down'), -W.vb);
-  assert.equal(accTop.preview('down'), null);
   for (const o of hook.options) {
     const p = hook.playbackFor(o.id);
     assert.ok(p.endT < W.tLand - 0.5);
@@ -83,13 +90,26 @@ test('hook: the correct option is the model’s u, the preview arrow matches, pl
   }
 });
 
-test('acceleration step: stops before the sandbag is back at the release height', () => {
-  assert.equal(accTop.options.find((o) => o.correct)!.id, 'down');
-  for (const o of accTop.options) {
-    const p = accTop.playbackFor(o.id);
-    assert.ok(p.endT < W.tBack);
+test('strobe: rising, top, falling in time order; rising and falling at the same height', () => {
+  const [rise, top, fall] = accTop.frames;
+  assert.ok(rise.t < top.t && top.t < fall.t);
+  near(top.t, W.tTop, 1e-9);
+  near(position(rise.t, W.real), position(fall.t, W.real), 1e-9);
+  near(velocity(top.t, W.real), 0, 1e-9);
+});
+
+test('strobe: only all-down is right; the telling mistakes get their own feedback', () => {
+  assert.equal(judgeStrobe(accTop, { rise: 'down', top: 'down', fall: 'down' }).ok, true);
+  const zero = judgeStrobe(accTop, { rise: 'down', top: 'zero', fall: 'down' });
+  assert.equal(zero.ok, false);
+  assert.equal(zero.misconception, 'K-TOP-ZERO-A');
+  const follows = judgeStrobe(accTop, { rise: 'up', top: 'down', fall: 'down' });
+  assert.equal(follows.misconception, 'K-ACC-DIR');
+  for (const a of strobeAnswers()) {
+    const p = accTop.playbackFor(a);
+    assert.ok(p.endT < W.tBack, 'it never shows the return to the release height');
     assert.equal(p.showAcc, true);
-    assert.equal(p.companion === null, o.correct === true, 'only a wrong answer plays a ghost');
+    if (judgeStrobe(accTop, a).ok) assert.equal(p.companion, null);
   }
 });
 
@@ -159,14 +179,21 @@ test('build step: no wrong setup ever shows the real landing time', () => {
   }
 });
 
-test('spot the error: one wrong line, and its numbers follow from the model', () => {
-  assert.equal(spotError.lines.length, 4);
-  assert.equal(spotError.lines.filter((l) => l.wrong).length, 1);
+test('spot the error: one wrong item (v at the ground), and every value follows from the model', () => {
+  assert.equal(spotError.items.length, 5);
+  const wrong = spotError.items.filter((l) => l.wrong);
+  assert.deepEqual(wrong.map((w) => w.kind), ['v']);
   near(studentT, W.roots[1], 1e-9); // the wrong sign leads exactly to the rejected root
   const v2 = W.vb ** 2 + 2 * G * W.h0;
-  assert.ok(spotError.lines[1].text.includes(fixed(v2, 0)));
-  assert.ok(spotError.lines[2].text.includes(fixed(Math.sqrt(v2), 1)));
-  assert.ok(spotError.lines[3].text.includes(fixed(studentT, 2)));
+  const byKind = Object.fromEntries(spotError.items.map((i) => [i.kind, i]));
+  near(byKind.v.value, Math.sqrt(v2), 1e-9);
+  near(byKind.v.value, -W.vLand, 1e-9); // the student's v has the right size and the wrong sign
+  assert.equal(byKind.s.value, -W.h0);
+  assert.equal(byKind.u.value, W.vb);
+  near(byKind.t.value, studentT, 1e-9);
+  assert.ok(byKind.v.label.includes(fixed(Math.sqrt(v2), 1)));
+  assert.ok(byKind.t.label.includes(fixed(studentT, 2)));
+  assert.ok(spotError.working.includes(fixed(v2, 0)) && spotError.working.includes(fixed(studentT, 2)));
   assert.ok(spotError.worked.at(-1)!.includes(fixed(W.tLand, 2)));
 });
 
@@ -197,7 +224,7 @@ test('every playback: ordered events, one final event, a caption for each', () =
   }
 });
 
-test('text fits one screen: question ≤ 48, idea line ≤ 70, feedback ≤ 45, caption ≤ 38, slot prompt ≤ 40, facts ≤ 28, spot lines ≤ 46', () => {
+test('text fits one screen: question ≤ 48, idea line ≤ 70, feedback ≤ 45, caption ≤ 38, slot prompt ≤ 40, facts ≤ 28, working ≤ 46', () => {
   const all = core.steps.flatMap((s): Step[] => (s.type === 'build' && s.retry ? [s, s.retry] : [s]));
   for (const step of all) {
     const question = step.type === 'build' && step.exam ? `${step.exam.command} ${step.question}` : step.question;
@@ -213,7 +240,8 @@ test('text fits one screen: question ≤ 48, idea line ≤ 70, feedback ≤ 45, 
       for (const l of step.worked) assert.ok(l.length <= 100, `${step.id} worked: ${l}`);
     }
     if (step.type === 'spot-error') {
-      for (const l of step.lines) assert.ok(l.text.length <= 46, `${step.id} line (${l.text.length}): ${l.text}`);
+      assert.ok(step.working.length <= 46, `${step.id} working (${step.working.length})`);
+      for (const l of step.items) assert.ok(l.label.length <= 14, `${step.id} item label: ${l.label}`);
       for (const l of step.worked) assert.ok(l.length <= 100, l);
     }
   }
@@ -221,4 +249,16 @@ test('text fits one screen: question ≤ 48, idea line ≤ 70, feedback ≤ 45, 
 
 test('no filler feedback ("Yes.", "Not quite.", "Correct!")', () => {
   for (const step of core.steps) for (const f of feedbacks(step)) assert.doesNotMatch(f, /^(Yes|No|Not quite|Correct|Right|Wrong|Great)\b[.!,]/, f);
+});
+
+test('every build stage says how it is answered; timeline answers sit at the model roots', () => {
+  for (const step of [build, build.retry!, exam]) {
+    for (const sl of step.slots) assert.ok(['displacement', 'vector', 'flip', 'tiles', 'cards'].includes(sl.input), `${step.id}/${sl.quantity}`);
+    if (step.final.input === 'timeline') {
+      const roots = timesForDisplacement(step.slots[0].correct, step.slots[1].correct, step.slots[2].correct);
+      for (const c of step.final.choices) assert.ok(roots.some((r) => Math.abs(r - (c.value ?? NaN)) < 1e-9), `${step.id}/${c.id}`);
+    }
+  }
+  // ordinary choice stays where choosing is the skill: which equation, and what the sign means
+  assert.ok(core.steps.some((s) => s.type === 'build' && s.final.input === 'cards'));
 });
