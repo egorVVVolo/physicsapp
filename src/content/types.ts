@@ -117,7 +117,8 @@ export type Lesson = {
 
 // ── Course map ───────────────────────────────────────────────────────────────────────────
 
-export type LessonRef = { id: string; title: string; spec: number[]; ready: boolean };
+/** `about`: one sentence on the map card saying what the lesson is about (shown for lessons not built yet too). */
+export type LessonRef = { id: string; title: string; spec: number[]; ready: boolean; about: string };
 export type Level = { id: string; title: string; lessons: LessonRef[] };
 export type Course = { title: string; subtitle: string; levels: Level[] };
 
