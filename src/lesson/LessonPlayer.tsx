@@ -1,7 +1,7 @@
 // Plays one lesson: the top bar (close, progress, Skill check dots) and the current screen.
 // Each new screen slides in; the progress fill glides, a Skill check dot pops when answered.
-import { useEffect } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import { BackHandler, Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { Lesson, Screen } from '@/content/types';
 import { itemsOf, next, progressOf, recordOutcome, recordPick, type LessonState } from '@/session/logic';
@@ -11,6 +11,7 @@ import { CloseIcon } from '@/ui/parts';
 import { ScreenEnter, useReducedMotionPref } from '@/ui/motion';
 import Animated, { Easing, useAnimatedStyle, useSharedValue, withSequence, withSpring, withTiming } from 'react-native-reanimated';
 import { CONTENT_MAX } from './Frame';
+import { LEAVE_SHEET_OUT, LeaveSheet } from './LeaveSheet';
 import { ExploreView } from './screens/ExploreView';
 import { QuestionView } from './screens/QuestionView';
 import { CheckIntroView, IntroView, PredictView, TextView } from './screens/Simple';
@@ -34,6 +35,30 @@ export function LessonPlayer({ lesson, state, onChange, onClose }: Props) {
   const prog = progressOf(state, lesson);
   const go = () => onChange(next(state, lesson));
 
+  // × asks "Leave the lesson?" — except on the very first screen, where there is nothing to lose.
+  const [leave, setLeave] = useState<'closed' | 'open' | 'closing'>('closed');
+  const stayTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => () => {
+    if (stayTimer.current) clearTimeout(stayTimer.current);
+  }, []);
+  const askToLeave = () => (state.index === 0 ? onClose() : setLeave('open'));
+  const stay = () => {
+    if (leave !== 'open') return;
+    setLeave('closing');
+    stayTimer.current = setTimeout(() => setLeave('closed'), LEAVE_SHEET_OUT);
+  };
+
+  // Android back button: the same question; with the sheet open it means "stay".
+  useEffect(() => {
+    const sub = BackHandler.addEventListener('hardwareBackPress', () => {
+      if (leave === 'open') stay();
+      else if (leave === 'closed' && state.index > 0) setLeave('open');
+      else return leave === 'closing';
+      return true;
+    });
+    return () => sub.remove();
+  });
+
   let body = null;
   if (item?.kind === 'checkIntro') body = <CheckIntroView count={lesson.skillCheck.length} onNext={go} />;
   else if (item) {
@@ -53,7 +78,7 @@ export function LessonPlayer({ lesson, state, onChange, onClose }: Props) {
   return (
     <View style={[styles.root, { paddingTop: insets.top + 6, paddingBottom: insets.bottom, backgroundColor: p.page }]}>
       <View style={styles.bar}>
-        <Pressable accessibilityRole="button" accessibilityLabel="Close the lesson" onPress={onClose} hitSlop={8} style={styles.close}>
+        <Pressable accessibilityRole="button" accessibilityLabel="Close the lesson" onPress={askToLeave} hitSlop={8} style={styles.close}>
           <CloseIcon color={p.muted} size={20} />
         </Pressable>
         <View style={[styles.track, { backgroundColor: p.disabled }]} accessible accessibilityRole="progressbar" accessibilityValue={{ min: 0, max: 100, now: Math.round(prog.story * 100) }}>
@@ -69,6 +94,7 @@ export function LessonPlayer({ lesson, state, onChange, onClose }: Props) {
       <View style={{ flex: 1 }} key={state.index}>
         <ScreenEnter>{body}</ScreenEnter>
       </View>
+      {leave !== 'closed' && <LeaveSheet closing={leave === 'closing'} onStay={stay} onLeave={onClose} />}
     </View>
   );
 }

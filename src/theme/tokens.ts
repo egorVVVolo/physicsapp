@@ -32,6 +32,7 @@ export const palette = {
   // the drawing sheet
   paper: '#F4F6F8',
   paperLine: '#C9D0D8',
+  scrim: 'rgba(26,30,37,0.45)', // dims the screen behind a sheet that asks a question (Leave the lesson?)
   draw: '#2A3039', // line art
   drawFill: '#E2E6EB', // flat fills of bodies
   drawFillDark: '#C3CAD3',
