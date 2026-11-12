@@ -41,15 +41,28 @@ export const palette = {
 
 export type Palette = typeof palette;
 
-/** One colour per level of the course map. Forces use the signature force colour. */
-export const levelColors: Record<string, { main: string; lip: string; soft: string }> = {
-  motion: { main: '#2563C9', lip: '#1A4794', soft: '#E4EDFB' },
-  forces: { main: '#C8124F', lip: '#8F0C38', soft: '#FBE4EC' },
-  'momentum-moments': { main: '#0E7C74', lip: '#095852', soft: '#DDF2F0' },
-  energy: { main: '#B4570A', lip: '#7F3D07', soft: '#FBEBDD' },
-  fluids: { main: '#0B6FA4', lip: '#084F75', soft: '#DDEFF8' },
-  materials: { main: '#4D6170', lip: '#36444F', soft: '#E6EBEF' },
+/**
+ * Colours of the course map, flat "vector 3D" (owner's pick, 12 Nov): every surface is one solid colour,
+ * depth comes from facets, no gradients or gloss. One calm blue for the whole course.
+ * main/lip: the Start button and its lip (white text) · soft: the wash behind the bottom card ·
+ * face/side/inner: top, side band and centre of a puck · text: "Level 2", "Up next" on white.
+ */
+export type LevelColor = { main: string; lip: string; soft: string; face: string; side: string; inner: string; text: string };
+export const courseBlue: LevelColor = {
+  main: '#2E66DB',
+  lip: '#1D47A3',
+  soft: '#E6EEFE',
+  face: '#3D7BF2',
+  side: '#2556C4',
+  inner: '#7CA6F7',
+  text: '#1F4FB8',
 };
+/** Pucks of lessons that are not built yet: flat grey, same facets. */
+export const soonGrey: LevelColor = { main: '#9CA3AD', lip: '#737B86', soft: '#EEF1F4', face: '#9CA3AD', side: '#737B86', inner: '#BCC2CA', text: '#646C79' };
+/** Kept per level so a level can get its own colour later; for now all share the course blue. */
+export const levelColors: Record<string, LevelColor> = Object.fromEntries(
+  ['motion', 'forces', 'momentum-moments', 'energy', 'fluids', 'materials'].map((id) => [id, courseBlue]),
+);
 
 /** Space Grotesk: titles, questions, buttons. IBM Plex Sans: reading text. IBM Plex Mono: labels inside figures only. */
 export const font = {

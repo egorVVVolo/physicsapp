@@ -1,7 +1,7 @@
 // Small line-art icons for lessons, drawn like tiny engineering sketches (white on a coloured tile).
 // A lesson can have its own icon; otherwise its level's icon is used.
-import Svg, { Circle, Defs, G, Line, LinearGradient, Path, Rect, Stop } from 'react-native-svg';
-import { mix, type LevelColor } from './Puck';
+import Svg, { Circle, G, Line, Path, Rect } from 'react-native-svg';
+import type { LevelColor } from '@/theme/tokens';
 
 type IconKey = 'normal-reaction' | 'motion' | 'forces' | 'momentum-moments' | 'energy' | 'fluids' | 'materials';
 
@@ -15,7 +15,7 @@ function Strokes({ k, color }: { k: IconKey; color: string }) {
         <G {...s}>
           <Line x1={4} y1={26} x2={28} y2={26} />
           <Path d="M8,26 l-3,4 M13,26 l-3,4 M18,26 l-3,4 M23,26 l-3,4 M28,26 l-3,4" strokeWidth={1.6} />
-          <Rect x={9} y={15} width={14} height={11} rx={1.5} />
+          <Rect x={9} y={15} width={14} height={11} rx={1.5} fill={color} />
           <Line x1={16} y1={13} x2={16} y2={3.5} />
           <Path d="M12.5,7 L16,3.5 L19.5,7" />
         </G>
@@ -85,23 +85,15 @@ export function iconFor(lessonId: string, levelId: string): IconKey {
 }
 
 /**
- * A raised tile with the lesson's icon: coloured face, darker lip underneath, a soft gloss on top.
- * Used above the current puck on the map and next to the lesson title in the card.
+ * A raised tile with the lesson's icon, flat vector 3D: one solid face over a darker lip, white line icon.
+ * Hovers above the next lesson on the map.
  */
-export function LessonTile({ lessonId, levelId, color, size = 60, id }: { lessonId: string; levelId: string; color: LevelColor; size?: number; id: string }) {
+export function LessonTile({ lessonId, levelId, color, size = 60 }: { lessonId: string; levelId: string; color: LevelColor; size?: number }) {
   const lip = 6;
-  const g = `tile-${id}`;
   return (
-    <Svg width={size} height={size * (60 + lip) / 60} viewBox={`0 0 60 ${60 + lip}`}>
-      <Defs>
-        <LinearGradient id={g} x1="0" y1="0" x2="0.4" y2="1">
-          <Stop offset="0" stopColor={mix(color.main, '#FFFFFF', 0.2)} />
-          <Stop offset="1" stopColor={color.main} />
-        </LinearGradient>
-      </Defs>
-      <Rect x={0} y={lip} width={60} height={60} rx={18} fill={color.lip} />
-      <Rect x={0} y={0} width={60} height={60} rx={18} fill={`url(#${g})`} />
-      <Path d="M10,14 Q12,5 22,4.5 L38,4.5" stroke="#FFFFFF" strokeOpacity={0.4} strokeWidth={2.4} strokeLinecap="round" fill="none" />
+    <Svg width={size} height={(size * (60 + lip)) / 60} viewBox={`0 0 60 ${60 + lip}`}>
+      <Rect x={0} y={lip} width={60} height={60} rx={18} fill={color.side} />
+      <Rect x={0} y={0} width={60} height={60} rx={18} fill={color.face} />
       <G transform="translate(12 12) scale(1.125)">
         <Strokes k={iconFor(lessonId, levelId)} color="#FFFFFF" />
       </G>

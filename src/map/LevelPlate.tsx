@@ -5,7 +5,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import Animated, { interpolateColor, useAnimatedStyle, useReducedMotion, useSharedValue, withTiming } from 'react-native-reanimated';
 import type { LevelColor } from '@/figures/Puck';
 import { useTheme } from '@/theme/ThemeContext';
-import { font, radius } from '@/theme/tokens';
+import { font } from '@/theme/tokens';
 
 type Shown = { index: number; title: string; color: LevelColor; done: number; total: number };
 
@@ -27,11 +27,10 @@ export function LevelPlate({ index, title, color, done, total }: Shown) {
   }, [index, title, color, done, total, t, dir, reduced]);
 
   const plate = useAnimatedStyle(() => ({
-    backgroundColor: interpolateColor(t.get(), [0, 1], [from.soft, color.soft]),
-    borderColor: interpolateColor(t.get(), [0, 1], [from.main, color.main]),
+    borderColor: interpolateColor(t.get(), [0, 1], [from.face, color.face]),
     transform: [{ scale: 1 + 0.025 * Math.sin(Math.PI * t.get()) }],
   }));
-  const lip = useAnimatedStyle(() => ({ backgroundColor: interpolateColor(t.get(), [0, 1], [from.lip, color.lip]) }));
+  const lip = useAnimatedStyle(() => ({ backgroundColor: interpolateColor(t.get(), [0, 1], [from.side, color.side]) }));
   const text = useAnimatedStyle(() => ({ opacity: t.get(), transform: [{ translateY: (1 - t.get()) * 14 * dir.get() }] }));
 
   return (
@@ -39,7 +38,7 @@ export function LevelPlate({ index, title, color, done, total }: Shown) {
       <Animated.View style={[styles.lip, lip]} />
       <Animated.View style={[styles.plate, plate]}>
         <Animated.View style={[styles.inner, text]}>
-          <Text style={[styles.no, { color: color.lip }]}>Level {index + 1}</Text>
+          <Text style={[styles.no, { color: color.text }]}>LEVEL {index + 1}</Text>
           <Text style={[styles.title, { color: p.ink }]} numberOfLines={1}>
             {title}
           </Text>
@@ -50,9 +49,9 @@ export function LevelPlate({ index, title, color, done, total }: Shown) {
 }
 
 const styles = StyleSheet.create({
-  lip: { position: 'absolute', left: 0, right: 0, top: 6, bottom: -5, borderRadius: radius.m + 2 },
-  plate: { borderWidth: 2, borderRadius: radius.m + 2, overflow: 'hidden', minHeight: 70, justifyContent: 'center' },
+  lip: { position: 'absolute', left: 0, right: 0, top: 6, bottom: -5, borderRadius: 18 },
+  plate: { borderWidth: 2, borderRadius: 18, overflow: 'hidden', minHeight: 74, justifyContent: 'center', backgroundColor: '#FFFFFF' },
   inner: { alignItems: 'center', paddingVertical: 10, paddingHorizontal: 16 },
-  no: { fontFamily: font.displaySemi, fontSize: 14, lineHeight: 18 },
-  title: { fontFamily: font.display, fontSize: 22, lineHeight: 28 },
+  no: { fontFamily: font.displaySemi, fontSize: 15, lineHeight: 19, letterSpacing: 0.3 },
+  title: { fontFamily: font.display, fontSize: 24, lineHeight: 30, marginTop: 1 },
 });

@@ -44,5 +44,7 @@ test('level colours: white text on the Start button, the colour visible on white
   for (const [id, c] of Object.entries(levelColors)) {
     check('#FFFFFF', c.main, 4.5, `${id} button`);
     check(c.main, c.soft, 3, `${id} on its soft tint`);
+    check(c.text, '#FFFFFF', 4.5, `${id} label text`);
+    check(c.face, '#FFFFFF', 3, `${id} puck face on white`);
   }
 });

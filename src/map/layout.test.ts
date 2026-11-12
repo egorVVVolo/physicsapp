@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { BADGE_SPACE, PUCK, ROW, labelX, levelAt, pathThrough, puckX, rowLayout } from './layout.ts';
+import { BADGE_SPACE, PUCK, ROW, labelX, levelAt, puckX, rowLayout } from './layout.ts';
 
 test('rows stack without gaps, and only the current row is taller', () => {
   const { tops, heights, total } = rowLayout(4, 2);
@@ -24,11 +24,4 @@ test('the pinned header shows the last level whose top has passed', () => {
   assert.equal(levelAt(499, tops), 0);
   assert.equal(levelAt(500, tops), 1);
   assert.equal(levelAt(5000, tops), 2);
-});
-
-test('the path starts at the first puck and ends at the last', () => {
-  const d = pathThrough([{ x: 10, y: 20 }, { x: 30, y: 120 }, { x: 5, y: 220 }]);
-  assert.ok(d.startsWith('M10,20'));
-  assert.ok(d.endsWith('5,220'));
-  assert.equal(pathThrough([]), '');
 });

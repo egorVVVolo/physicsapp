@@ -16,7 +16,7 @@ import { CONTENT_MAX } from '@/lesson/Frame';
 import { Dock } from '@/map/Dock';
 import { LevelPlate } from '@/map/LevelPlate';
 import { PuckRow } from '@/map/PuckRow';
-import { labelX, levelAt, pathThrough, puckX, puckY, rowLayout } from '@/map/layout';
+import { labelX, levelAt, puckX, puckY, rowLayout } from '@/map/layout';
 import { loadProgress } from '@/session/storage';
 import { useTheme } from '@/theme/ThemeContext';
 import { font, levelColors } from '@/theme/tokens';
@@ -38,7 +38,7 @@ export default function CourseMap() {
 
   const [width, setWidth] = useState(0);
   const [viewH, setViewH] = useState(0);
-  const [dockH, setDockH] = useState(220);
+  const [dockH, setDockH] = useState(170); // height of the bottom card
   const [plateIdx, setPlateIdx] = useState(0);
   const [away, setAway] = useState<0 | 1 | -1>(0); // next lesson is off screen: above (-1) or below (1)
   const sectionY = useRef<number[]>([]);
@@ -121,10 +121,7 @@ export default function CourseMap() {
             </Text>
             <Text style={[styles.courseSub, { color: p.muted }]}>Edexcel IAL Unit 1 (WPH11)</Text>
           </View>
-          <View style={[styles.count, { borderColor: p.line }]} accessibilityLabel={`${doneCount} of ${allRefs.length} lessons done`}>
-            <Svg width={18} height={18} viewBox="0 0 18 18">
-              <Path d="M4 9.5l3.2 3.2L14 5.6" stroke={doneCount ? p.ok : p.faint} strokeWidth={2.6} fill="none" strokeLinecap="round" strokeLinejoin="round" />
-            </Svg>
+          <View style={[styles.count, { borderColor: '#E3E6EA' }]} accessibilityLabel={`${doneCount} of ${allRefs.length} lessons done`}>
             <Text style={[styles.countText, { color: p.ink }]}>
               {doneCount}/{allRefs.length}
             </Text>
@@ -172,15 +169,13 @@ export default function CourseMap() {
 
         <Dock
           r={pickedRef.r}
-          levelId={pickedRef.level}
           color={levelColors[pickedRef.level]}
-          minutes={lessons[pickedRef.r.id]?.minutes}
           status={status[pickedRef.r.id] ?? 'new'}
           bottomInset={insets.bottom}
           onHeight={setDockH}
           onStart={() => router.push(`/lesson/${pickedRef.r.id}`)}
         />
-        <BackButton side={away} bottom={dockH - 46} onPress={() => bringBack(true)} />
+        <BackButton side={away} bottom={dockH + 12} onPress={() => bringBack(true)} />
       </View>
     </View>
   );
@@ -200,7 +195,7 @@ function LevelSection({ level, li, width, status, picked, nextId, firstOrder, on
   const { palette: p } = useTheme();
   const c = levelColors[level.id];
   const rows = rowLayout(level.lessons.length, level.lessons.findIndex((r) => r.id === nextId));
-  const points = level.lessons.map((_, i) => ({ x: puckX(width, i), y: puckY(rows.tops[i], rows.heights[i]) + 6 }));
+  const points = level.lessons.map((_, i) => ({ x: puckX(width, i), y: puckY(rows.tops[i], rows.heights[i]) }));
   const stateOf = (id: string, ready: boolean): PuckState => (!ready ? 'soon' : status[id] === 'done' ? 'done' : id === nextId ? 'current' : 'open');
 
   return (
@@ -209,30 +204,13 @@ function LevelSection({ level, li, width, status, picked, nextId, firstOrder, on
         <View style={styles.divider}>
           <View style={[styles.rule, { backgroundColor: p.line }]} />
           <View style={styles.dividerText}>
-            <Text style={[styles.dividerNo, { color: c.lip }]}>Level {li + 1}</Text>
+            <Text style={[styles.dividerNo, { color: c.text }]}>LEVEL {li + 1}</Text>
             <Text style={[styles.dividerTitle, { color: p.ink }]}>{level.title}</Text>
           </View>
           <View style={[styles.rule, { backgroundColor: p.line }]} />
         </View>
       )}
       <View style={{ height: rows.total, marginTop: li === 0 ? 12 : 0 }}>
-        {/* the path: a centre line like on a drawing; solid in the level colour after a finished lesson */}
-        <Svg pointerEvents="none" width={width} height={rows.total} style={StyleSheet.absoluteFill}>
-          {points.slice(1).map((b, i) => {
-            const done = status[level.lessons[i].id] === 'done';
-            return (
-              <Path
-                key={i}
-                d={pathThrough([points[i], b])}
-                fill="none"
-                stroke={done ? c.main : p.lineStrong}
-                strokeWidth={done ? 5 : 3}
-                strokeDasharray={done ? undefined : '14 6 3 6'}
-                strokeLinecap="round"
-              />
-            );
-          })}
-        </Svg>
         {level.lessons.map((r, i) => (
           <View key={r.id} style={{ position: 'absolute', left: 0, right: 0, top: rows.tops[i], height: rows.heights[i] }} pointerEvents="box-none">
             <PuckRow
@@ -243,7 +221,7 @@ function LevelSection({ level, li, width, status, picked, nextId, firstOrder, on
               picked={picked === r.id}
               next={nextId === r.id}
               cx={points[i].x}
-              cy={points[i].y - 6 - rows.tops[i]}
+              cy={points[i].y - rows.tops[i]}
               labelLeft={labelX(width)}
               order={firstOrder + i}
               onPick={() => onPick(r.id)}
@@ -287,7 +265,7 @@ const styles = StyleSheet.create({
   topBar: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingTop: 10, paddingBottom: 12 },
   courseTitle: { fontFamily: font.display, fontSize: 16, lineHeight: 21, letterSpacing: -0.1 },
   courseSub: { fontFamily: font.bodyMedium, fontSize: 14, lineHeight: 18 },
-  count: { flexDirection: 'row', alignItems: 'center', gap: 3, borderWidth: 2, borderRadius: 999, paddingHorizontal: 9, minHeight: 44 },
+  count: { alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderBottomWidth: 4, borderRadius: 999, paddingHorizontal: 12, minHeight: 44, backgroundColor: '#FFFFFF' },
   countText: { fontFamily: font.displaySemi, fontSize: 16 },
   plateWrap: { paddingBottom: 10, zIndex: 2 },
   list: { width: '100%', maxWidth: CONTENT_MAX, alignSelf: 'center' },
@@ -295,7 +273,7 @@ const styles = StyleSheet.create({
   divider: { height: 96, flexDirection: 'row', alignItems: 'center', gap: 12 },
   rule: { flex: 1, height: 2, borderRadius: 1 },
   dividerText: { alignItems: 'center' },
-  dividerNo: { fontFamily: font.displaySemi, fontSize: 14, lineHeight: 18 },
+  dividerNo: { fontFamily: font.displaySemi, fontSize: 14, lineHeight: 18, letterSpacing: 0.3 },
   dividerTitle: { fontFamily: font.display, fontSize: 18, lineHeight: 24 },
   back: { position: 'absolute', left: 20, width: 56, height: 60 },
   backLip: { width: 56, height: 60, borderRadius: 28, paddingBottom: 4 },

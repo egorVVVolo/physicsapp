@@ -16,15 +16,25 @@ import Animated, {
 import Svg, { Ellipse } from 'react-native-svg';
 import type { LessonRef } from '@/content/types';
 import { LessonTile } from '@/figures/LessonIcon';
-import { Puck, type LevelColor, type PuckState } from '@/figures/Puck';
+import { Puck, PUCK_FACE_Y, PUCK_VB_H, PUCK_VB_W, type LevelColor, type PuckState } from '@/figures/Puck';
 import { useTheme } from '@/theme/ThemeContext';
 import { font } from '@/theme/tokens';
 import { PUCK } from './layout';
 
-const K = PUCK / 100; // puck viewBox → pt
-const PUCK_H = 84 * K;
-const FACE_Y = 34 * K; // centre of the face inside the puck drawing
-const TILE = 56;
+const K = PUCK / PUCK_VB_W; // puck viewBox → pt
+const PUCK_H = PUCK_VB_H * K;
+const FACE_Y = PUCK_FACE_Y * K; // centre of the top face inside the puck drawing
+const HALO_W = PUCK + 34;
+const HALO_H = PUCK_H + 16;
+const TILE = 60;
+
+/** Mix two #RRGGBB colours (t = 0 gives a, 1 gives b). */
+function mix(a: string, b: string, t: number): string {
+  const pa = parseInt(a.slice(1), 16);
+  const pb = parseInt(b.slice(1), 16);
+  const ch = (shift: number) => Math.round(((pa >> shift) & 255) * (1 - t) + ((pb >> shift) & 255) * t);
+  return `#${((1 << 24) | (ch(16) << 16) | (ch(8) << 8) | ch(0)).toString(16).slice(1)}`;
+}
 const TILE_H = (TILE * 66) / 60;
 
 type Props = {
@@ -74,14 +84,14 @@ export function PuckRow({ r, levelId, color, state, picked, next, cx, cy, labelL
   }));
   const labelStyle = useAnimatedStyle(() => ({ opacity: appear.get() }));
   const haloStyle = useAnimatedStyle(() => ({
-    opacity: appear.get() * (0.95 - 0.45 * pulse.get()),
-    transform: [{ scale: 1 + 0.07 * pulse.get() - 0.04 * press.get() }],
+    opacity: appear.get() * (1 - 0.35 * pulse.get()),
+    transform: [{ scale: 1 + 0.05 * pulse.get() - 0.04 * press.get() }],
   }));
   const tileStyle = useAnimatedStyle(() => ({
     opacity: appear.get(),
     transform: [{ translateY: -7 * bob.get() + (1 - appear.get()) * 20 + press.get() * 5 }],
   }));
-  const tileShadow = useAnimatedStyle(() => ({ opacity: appear.get() * (0.28 - 0.12 * bob.get()), transform: [{ scale: 1 - 0.18 * bob.get() }] }));
+  const tileShadow = useAnimatedStyle(() => ({ opacity: appear.get() * (0.22 - 0.1 * bob.get()), transform: [{ scale: 1 - 0.18 * bob.get() }] }));
 
   const top = cy - FACE_Y;
   const left = cx - PUCK / 2;
@@ -91,11 +101,10 @@ export function PuckRow({ r, levelId, color, state, picked, next, cx, cy, labelL
   return (
     <>
       {picked && (
-        <Animated.View pointerEvents="none" style={[styles.abs, { left: cx - PUCK / 2 - 14, top: top + 6, width: PUCK + 28, height: PUCK_H }, haloStyle]}>
-          <Svg width={PUCK + 28} height={PUCK_H} viewBox={`0 0 ${PUCK + 28} ${PUCK_H}`}>
-            {/* a glow ring on the floor around the picked puck */}
-            <Ellipse cx={(PUCK + 28) / 2} cy={PUCK_H * 0.5} rx={(PUCK + 28) / 2 - 7} ry={PUCK_H * 0.38} fill="none" stroke={color.main} strokeOpacity={0.16} strokeWidth={10} />
-            <Ellipse cx={(PUCK + 28) / 2} cy={PUCK_H * 0.5} rx={(PUCK + 28) / 2 - 7} ry={PUCK_H * 0.38} fill="none" stroke={color.main} strokeOpacity={0.7} strokeWidth={3} />
+        <Animated.View pointerEvents="none" style={[styles.abs, { left: cx - HALO_W / 2, top: top + PUCK_H / 2 - HALO_H / 2, width: HALO_W, height: HALO_H }, haloStyle]}>
+          {/* a flat ring on the floor around the picked puck */}
+          <Svg width={HALO_W} height={HALO_H} viewBox={`0 0 ${HALO_W} ${HALO_H}`}>
+            <Ellipse cx={HALO_W / 2} cy={HALO_H / 2} rx={HALO_W / 2 - 5} ry={HALO_H / 2 - 5} fill="none" stroke={mix(color.face, '#FFFFFF', 0.75)} strokeWidth={8} />
           </Svg>
         </Animated.View>
       )}
@@ -114,7 +123,7 @@ export function PuckRow({ r, levelId, color, state, picked, next, cx, cy, labelL
         style={[styles.abs, { left, top: top - 8, right: 0, height: PUCK_H + 16 }]}
       >
         <Animated.View style={[{ marginTop: 8 }, puckStyle]}>
-          <Puck size={PUCK} state={state} color={color} press={press} id={r.id} />
+          <Puck size={PUCK} state={state} color={color} press={press} />
         </Animated.View>
       </Pressable>
 
@@ -123,14 +132,14 @@ export function PuckRow({ r, levelId, color, state, picked, next, cx, cy, labelL
           {r.title}
         </Text>
         {state === 'soon' && <Text style={[styles.soon, { color: p.faint }]}>Soon</Text>}
-        {next && <Text style={[styles.soon, { color: color.lip }]}>Up next</Text>}
+        {next && <Text style={[styles.soon, { color: color.text }]}>Up next</Text>}
       </Animated.View>
 
       {next && (
         <>
           <Animated.View pointerEvents="none" style={[styles.abs, styles.tileShadow, { left: cx - 22, top: cy - 6 }, tileShadow]} />
           <Animated.View pointerEvents="none" style={[styles.abs, { left: cx - TILE / 2, top: cy - TILE_H - 12 }, tileStyle]}>
-            <LessonTile lessonId={r.id} levelId={levelId} color={color} size={TILE} id={`map-${r.id}`} />
+            <LessonTile lessonId={r.id} levelId={levelId} color={color} size={TILE} />
           </Animated.View>
         </>
       )}
@@ -141,7 +150,7 @@ export function PuckRow({ r, levelId, color, state, picked, next, cx, cy, labelL
 const styles = StyleSheet.create({
   abs: { position: 'absolute' },
   label: { right: 0, justifyContent: 'center' },
-  title: { fontFamily: font.bodySemi, fontSize: 17, lineHeight: 22 },
+  title: { fontFamily: font.bodySemi, fontSize: 18, lineHeight: 23 },
   titleNext: { fontFamily: font.bodyBold },
   soon: { fontFamily: font.bodyMedium, fontSize: 14, marginTop: 2 },
   tileShadow: { width: 44, height: 13, borderRadius: 22, backgroundColor: '#1A1E25' },

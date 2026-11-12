@@ -1,92 +1,74 @@
-// A lesson "puck": a thick glossy disc seen at an angle, like a big physical button.
-// done = check on the face · current = recessed centre, the map adds a halo and a badge · soon = matte grey.
-// The face sits on its own layer so it can sink into the side band when pressed (`press` 0..1).
+// A lesson "puck" in flat vector 3D: a thick disc seen at an angle. Every surface is one solid colour
+// (top, side band, centre, white ring); depth comes from the facets, not from gradients.
+// done = check in the centre · current = a hollow well the lesson "fits into" · open / soon = ring broken in four.
+// The top sits on its own layer so it can sink into the side band when pressed (`press` 0..1).
 import { StyleSheet, View } from 'react-native';
 import Animated, { useAnimatedStyle, type SharedValue } from 'react-native-reanimated';
-import Svg, { Defs, Ellipse, G, LinearGradient, Path, RadialGradient, Rect, Stop } from 'react-native-svg';
+import Svg, { Ellipse, G, Path, Rect } from 'react-native-svg';
+import { soonGrey, type LevelColor } from '@/theme/tokens';
 
 export type PuckState = 'done' | 'current' | 'open' | 'soon';
-export type LevelColor = { main: string; lip: string; soft: string };
+export type { LevelColor };
 
-const GREY: LevelColor = { main: '#CDD3DA', lip: '#A3ACB7', soft: '#E9ECF0' };
-const VB_W = 100;
-const VB_H = 84;
-/** How far the face can sink, in viewBox units (the band is 14 thick at rest). */
-const SINK = 7;
+export const PUCK_VB_W = 100;
+export const PUCK_VB_H = 76;
+/** Centre of the top face in viewBox units. */
+export const PUCK_FACE_Y = 32;
+/** How far the top can sink, in viewBox units (the band is 12 thick at rest). */
+const SINK = 6;
+// the ring (rx 24, ry 13) is about 118.8 long: four dashes with gaps centred at 0°, 90°, 180°, 270°
+const RING_GAP = 3.6;
+const RING_DASH = 118.8 / 4 - RING_GAP;
 
-type Props = { size?: number; state: PuckState; color: LevelColor; press?: SharedValue<number>; id?: string };
+type Props = { size?: number; state: PuckState; color: LevelColor; press?: SharedValue<number> };
 
-export function Puck({ size = 92, state, color, press, id }: Props) {
-  const c = state === 'soon' ? GREY : color;
-  const k = size / VB_W;
-  const h = VB_H * k;
-  const faceStyle = useAnimatedStyle(() => ({ transform: [{ translateY: (press ? press.get() : 0) * SINK * k }] }));
-  // gradient ids are global on a web page; pucks that look the same may share them
-  const g = (name: string) => `${name}-${id ?? `${state}${c.main.slice(1)}`}`;
+export function Puck({ size = 100, state, color, press }: Props) {
+  const c = state === 'soon' ? soonGrey : color;
+  const k = size / PUCK_VB_W;
+  const h = PUCK_VB_H * k;
+  const vb = `0 0 ${PUCK_VB_W} ${PUCK_VB_H}`;
+  const topStyle = useAnimatedStyle(() => ({ transform: [{ translateY: (press ? press.get() : 0) * SINK * k }] }));
 
   return (
     <View style={{ width: size, height: h }} pointerEvents="none">
-      {/* shadow on the floor + the side band */}
-      <Svg width={size} height={h} viewBox={`0 0 ${VB_W} ${VB_H}`} style={StyleSheet.absoluteFill}>
-        <Defs>
-          <RadialGradient id={g('shadow')} cx="50%" cy="50%" rx="50%" ry="50%">
-            <Stop offset="0" stopColor="#1A1E25" stopOpacity={0.22} />
-            <Stop offset="1" stopColor="#1A1E25" stopOpacity={0} />
-          </RadialGradient>
-          <LinearGradient id={g('band')} x1="10" y1="0" x2="90" y2="0" gradientUnits="userSpaceOnUse">
-            <Stop offset="0" stopColor={c.lip} />
-            <Stop offset="0.35" stopColor={mix(c.lip, c.main, 0.45)} />
-            <Stop offset="1" stopColor={mix(c.lip, '#000000', 0.18)} />
-          </LinearGradient>
-        </Defs>
-        <Ellipse cx={50} cy={58} rx={48} ry={20} fill={`url(#${g('shadow')})`} />
-        <G fill={`url(#${g('band')})`}>
-          <Ellipse cx={50} cy={34 + SINK} rx={40} ry={22} />
-          <Rect x={10} y={34 + SINK} width={80} height={14 - SINK} />
-          <Ellipse cx={50} cy={48} rx={40} ry={22} />
+      {/* side band; its top edge follows the sunk top, so pressing never shows a gap */}
+      <Svg width={size} height={h} viewBox={vb} style={StyleSheet.absoluteFill}>
+        <G fill={c.side}>
+          <Ellipse cx={50} cy={32 + SINK} rx={40} ry={22} />
+          <Rect x={10} y={32 + SINK} width={80} height={12 - SINK} />
+          <Ellipse cx={50} cy={44} rx={40} ry={22} />
         </G>
       </Svg>
 
-      {/* the face */}
-      <Animated.View style={[StyleSheet.absoluteFill, faceStyle]}>
-        <Svg width={size} height={h} viewBox={`0 0 ${VB_W} ${VB_H}`}>
-          <Defs>
-            <LinearGradient id={g('face')} x1="0.2" y1="0" x2="0.8" y2="1">
-              <Stop offset="0" stopColor={mix(c.main, '#FFFFFF', state === 'soon' ? 0.25 : 0.22)} />
-              <Stop offset="1" stopColor={c.main} />
-            </LinearGradient>
-            <LinearGradient id={g('well')} x1="0" y1="0" x2="0" y2="1">
-              <Stop offset="0" stopColor={mix(c.lip, c.main, 0.3)} />
-              <Stop offset="1" stopColor={mix(c.main, '#FFFFFF', 0.12)} />
-            </LinearGradient>
-          </Defs>
-          <Ellipse cx={50} cy={34} rx={40} ry={22} fill={`url(#${g('face')})`} />
-          {/* rim highlight along the far edge */}
-          <Path d="M16,28 A40,22 0 0 1 84,28" fill="none" stroke="#FFFFFF" strokeOpacity={0.35} strokeWidth={1.6} strokeLinecap="round" />
+      <Animated.View style={[StyleSheet.absoluteFill, topStyle]}>
+        <Svg width={size} height={h} viewBox={vb}>
+          <Ellipse cx={50} cy={32} rx={40} ry={22} fill={c.face} />
           {state === 'current' ? (
             <>
-              {/* recessed centre: an open slot waiting for the lesson */}
-              <Ellipse cx={50} cy={35} rx={25} ry={13.5} fill={`url(#${g('well')})`} />
-              <Ellipse cx={50} cy={35} rx={25} ry={13.5} fill="none" stroke="#FFFFFF" strokeOpacity={0.85} strokeWidth={4} />
+              {/* the well: its far wall in shadow, the white rim around it */}
+              <Ellipse cx={50} cy={33} rx={24} ry={13} fill={c.side} />
+              <Path d="M26,33 A24,13 0 0 1 74,33 A24,10 0 0 0 26,33 Z" fill="#000000" fillOpacity={0.16} />
+              <Ellipse cx={50} cy={33} rx={24} ry={13} fill="none" stroke="#FFFFFF" strokeWidth={5} />
             </>
           ) : (
             <>
-              {/* a groove: a dark line under a light one reads as cut into the face */}
-              <Ellipse cx={50} cy={35.4} rx={25} ry={13.5} fill="none" stroke={c.lip} strokeOpacity={0.45} strokeWidth={4} />
-              <Ellipse cx={50} cy={34} rx={25} ry={13.5} fill="none" stroke="#FFFFFF" strokeOpacity={state === 'soon' ? 0.75 : 0.6} strokeWidth={3.2} />
+              <Ellipse cx={50} cy={32} rx={22} ry={11.5} fill={c.inner} />
+              <Ellipse
+                cx={50}
+                cy={32}
+                rx={24}
+                ry={13}
+                fill="none"
+                stroke="#FFFFFF"
+                strokeWidth={5}
+                strokeDasharray={state === 'done' ? undefined : `${RING_DASH} ${RING_GAP}`}
+                strokeDashoffset={RING_DASH + RING_GAP / 2}
+              />
             </>
           )}
-          {state === 'done' && <Path d="M40.5,34.5 L47,40 L60,28" fill="none" stroke="#FFFFFF" strokeWidth={5} strokeLinecap="round" strokeLinejoin="round" />}
+          {state === 'done' && <Path d="M41,32 L47.5,37.5 L59.5,26.5" fill="none" stroke="#FFFFFF" strokeWidth={5} strokeLinecap="round" strokeLinejoin="round" />}
         </Svg>
       </Animated.View>
     </View>
   );
-}
-
-/** Mix two #RRGGBB colours (t = 0 gives a, 1 gives b). */
-export function mix(a: string, b: string, t: number): string {
-  const pa = parseInt(a.slice(1), 16);
-  const pb = parseInt(b.slice(1), 16);
-  const ch = (shift: number) => Math.round(((pa >> shift) & 255) * (1 - t) + ((pb >> shift) & 255) * t);
-  return `#${((1 << 24) | (ch(16) << 16) | (ch(8) << 8) | ch(0)).toString(16).slice(1)}`;
 }
