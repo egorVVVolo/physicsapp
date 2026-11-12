@@ -1,26 +1,36 @@
 // FIG: the person lifted off the scales ("exploded" view) to show which object each force acts on.
 // N and W act on the person, P (the person's push) on the scales, E (the person's pull) on the Earth.
+// N and P sit on one vertical line, so the pair reads at a glance once it is found.
 import { G as Group, Circle, Path, Rect } from 'react-native-svg';
 import { useTheme } from '@/theme/ThemeContext';
-import { CgMark, ForceArrow, ForceLetter, Hatch, MonoLabel } from './draw';
+import { svgLetter } from '@/theme/svgFont';
+import { Text as SvgText } from 'react-native-svg';
+import { ForceArrow, Hatch, MonoLabel } from './draw';
+import { Person, PERSON_CG, Scales, SCALES_H } from './people';
 import type { TapProps, TapTarget } from './Sheet';
 
 export const PAIRS_VB = { w: 340, h: 270 };
-const L = 50; // every arrow has the same length: the lift is at rest, and pairs are equal
+const L = 46; // every arrow has the same length: the lift is at rest, and pairs are equal
 
-// Where each force is drawn: start point, direction (+1 down, −1 up), letter side.
+const PX = 104; // the person and the scales
+const FLOOR = 236;
+const SCALES_TOP = FLOOR - SCALES_H;
+const SOLES = SCALES_TOP - 24; // lifted off the scales
+const PAIR_X = PX + 40; // N and P share this line
+
+// Where each force is drawn: start point, direction (+1 down, −1 up), where its letter badge sits.
 const F = {
-  W: { x: 110, y: 104, dir: 1, side: 'end' as const }, // on the person, from the centre of gravity, down (between the legs)
-  N: { x: 138, y: 168, dir: -1, side: 'start' as const }, // on the person, at the feet, up (beside the body)
-  P: { x: 110, y: 194, dir: 1, side: 'start' as const }, // on the scales, at the top, down
-  E: { x: 272, y: 262, dir: -1, side: 'start' as const }, // on the Earth, up
-};
+  W: { x: PX, y: SOLES - PERSON_CG, dir: 1, bx: PX + 13, by: SOLES - PERSON_CG + L - 4 },
+  N: { x: PAIR_X, y: SOLES, dir: -1, bx: PAIR_X + 14, by: SOLES - L / 2 },
+  P: { x: PAIR_X, y: SCALES_TOP + 3, dir: 1, bx: PAIR_X + 14, by: SCALES_TOP + 3 + L - 6 },
+  E: { x: 282, y: 254, dir: -1, bx: 296, by: 254 - L / 2 },
+} as const;
 
 export function pairsTargets(): TapTarget[] {
   const box = (id: 'W' | 'P' | 'E', label: string) => {
     const f = F[id];
     const top = f.dir > 0 ? f.y : f.y - L;
-    return { id, x: f.x - 22, y: top - 6, w: 44, h: L + 12, label };
+    return { id, x: f.x - 22, y: top - 6, w: 56, h: L + 12, label };
   };
   return [box('W', 'W, your weight'), box('P', 'P, your push on the scales'), box('E', 'E, your pull on the Earth')];
 }
@@ -36,37 +46,38 @@ export function PairsFigure({ tap }: { tap?: TapProps }) {
   const arrow = (id: keyof typeof F) => {
     const f = F[id];
     const on = tap?.selected === id;
-    const c = id === 'N' ? p.force : colorOf(id);
+    const c = colorOf(id);
     const y2 = f.y + f.dir * L;
-    const lx = f.side === 'end' ? f.x - 22 : f.x + 10;
-    const ly = id === 'P' ? y2 - 4 : (f.y + y2) / 2 + 6; // P is labelled below the floor, clear of the scales
+    const given = id === 'N'; // the force the question is about: a filled badge
     return (
       <Group key={id}>
-        {on && <Rect x={f.x - 18} y={Math.min(f.y, y2) - 4} width={36} height={L + 8} rx={8} fill="none" stroke={p.ink} strokeWidth={2} />}
+        {on && <Rect x={f.x - 18} y={Math.min(f.y, y2) - 5} width={52} height={L + 10} rx={10} fill="none" stroke={p.ink} strokeWidth={2} />}
+        {/* a white halo keeps the arrow readable where it crosses the drawing */}
+        <ForceArrow x1={f.x} y1={f.y} x2={f.x} y2={y2} color="#FFFFFF" width={7} />
         <ForceArrow x1={f.x} y1={f.y} x2={f.x} y2={y2} color={c} />
-        <ForceLetter x={lx} y={ly} text={id} color={id === 'N' ? p.forceText : c === p.force ? p.forceText : c} anchor={f.side} />
+        <Circle cx={f.bx} cy={f.by} r={9.5} fill={given ? c : '#FFFFFF'} stroke={c} strokeWidth={1.6} />
+        <SvgText x={f.bx} y={f.by + 5} fontSize={14} fill={given ? '#FFFFFF' : c === p.force ? p.forceText : c} fontFamily={svgLetter} textAnchor="middle">
+          {id}
+        </SvgText>
       </Group>
     );
   };
 
   return (
     <Group>
-      {/* the person, floating just above the scales */}
-      <Circle cx={110} cy={36} r={15} fill={p.drawFill} stroke={p.draw} strokeWidth={2} />
-      <Path d="M92,62 Q92,55 99,55 L121,55 Q128,55 128,62 L128,120 L92,120 Z" fill={p.drawFill} stroke={p.draw} strokeWidth={2} strokeLinejoin="round" />
-      <Rect x={95} y={120} width={11} height={48} fill={p.drawFillDark} stroke={p.draw} strokeWidth={2} />
-      <Rect x={114} y={120} width={11} height={48} fill={p.drawFillDark} stroke={p.draw} strokeWidth={2} />
-      <CgMark x={110} y={104} color={p.draw} />
-      <MonoLabel x={160} y={42} text="YOU" color={p.label} anchor="start" />
-      {/* the scales on the floor */}
-      <Rect x={66} y={194} width={88} height={24} rx={5} fill={p.drawFill} stroke={p.draw} strokeWidth={2} />
-      <MonoLabel x={164} y={210} text="SCALES" color={p.label} anchor="start" />
-      <Hatch x1={24} x2={214} y={218} color={p.draw} />
-      {/* the Earth, as a large arc */}
-      <Path d="M206,270 Q275,248 340,240 L340,270 Z" fill={p.drawFill} />
-      <Path d="M206,270 Q275,248 340,240" fill="none" stroke={p.draw} strokeWidth={2} />
-      <MonoLabel x={312} y={264} text="EARTH" color={p.label} />
-      {(['N', 'W', 'P', 'E'] as const).map(arrow)}
+      {/* the Earth, as a large arc in the corner */}
+      <Path d="M196,270 Q268,246 340,238 L340,270 Z" fill={p.drawFill} />
+      <Path d="M196,270 Q268,246 340,238" fill="none" stroke={p.draw} strokeWidth={2} />
+      <MonoLabel x={318} y={264} text="EARTH" color={p.label} size={9} />
+      {/* the scales on the floor, the person lifted just above them */}
+      <Hatch x1={24} x2={190} y={FLOOR} color={p.draw} />
+      <Scales x={PX} y={FLOOR} reading="- - -" />
+      <MonoLabel x={PX - 56} y={FLOOR - 8} text="SCALES" color={p.label} size={9} anchor="end" />
+      <Person x={PX} y={SOLES} />
+      <MonoLabel x={PX - 34} y={SOLES - 118} text="YOU" color={p.label} size={9} anchor="end" />
+      {/* the gap between soles and scales: two short dashes show they were in contact */}
+      <Path d={`M${PX - 30},${SOLES + 12} L${PX - 20},${SOLES + 12} M${PX + 20},${SOLES + 12} L${PX + 30},${SOLES + 12}`} stroke={p.lineStrong} strokeWidth={1.4} />
+      {(['W', 'N', 'P', 'E'] as const).map(arrow)}
     </Group>
   );
 }

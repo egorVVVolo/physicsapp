@@ -31,6 +31,7 @@ export function ExploreView({ screen, figN, onNext }: { screen: ExploreScreen; f
         min={screen.slider.min}
         max={screen.slider.max}
         step={screen.slider.step}
+        tick={screen.slider.tick}
         label={screen.slider.label}
         format={(v) => `a = ${signed(v, 1)} ${screen.slider.unit}`}
         formatEnd={(v) => signed(v, 0)}

@@ -8,13 +8,16 @@ import { fixed } from '../physics/format.ts';
 import type { Lesson, LiftFig, Option } from './types.ts';
 
 /** "679 N": a force rounded to the newton, the way the lesson shows it. */
-export const newtons = (x: number): string => `${fixed(x, 0)}\u00a0N`;
+export const newtons = (x: number): string => `${fixed(x, 0)} N`;
 /** "69.2 kg": what bathroom scales show for a push N (they divide by g). */
-export const kilos = (n: number): string => `${fixed(scaleKg(n), 1)}\u00a0kg`;
+export const kilos = (n: number): string => `${fixed(scaleKg(n), 1)} kg`;
+/** "+1.5 m s⁻²" with no-break spaces. */
+const acc = (a: number) => `${a > 0 ? '+' : ''}${fixed(a, 1)} m s⁻²`;
 
 // The person in the story and the numbers of each question.
 export const M = 60; // kg
-export const CALC = { m: M, a: 1.5 }; // lift speeding up upward
+export const PUZZLE = { m: M, a: 1.5 }; // the lift starting up in the puzzle
+export const CALC = { m: 80, a: 1.2 }; // a friend in a lift speeding up upward
 export const STEADY_V = 2; // m s⁻¹, the lift moving up at a steady speed
 export const SLOW = { u: 2, a: -1.2 }; // moving up and slowing down
 export const DOWN_SLOW = { m: 75, a: 2.0 }; // lift moving down, slowing down → acceleration upward
@@ -32,8 +35,15 @@ export const ANSWERS = {
     subtractedA: normalInLift(CALC.m, -CALC.a), // N = m(g − a)
     onlyMa: resultant(CALC.m, CALC.a), // N = ma
   },
-  /** The puzzle: the reading at home and in a lift starting up at CALC.a. */
-  scales: { home: kilos(weight(M)), startingUp: kilos(normalInLift(M, CALC.a)) },
+  /** The puzzle: what the scales show at home and in the lift starting up (they show N ÷ g). */
+  scales: {
+    home: kilos(weight(M)),
+    startingUp: kilos(normalInLift(PUZZLE.m, PUZZLE.a)), // right
+    subtractedA: kilos(normalInLift(PUZZLE.m, -PUZZLE.a)), // m(g − a) ÷ g
+    addedToKg: `${fixed(PUZZLE.m + PUZZLE.a, 1)} kg`, // added a straight to the kilograms
+    n: normalInLift(PUZZLE.m, PUZZLE.a),
+  },
+  weight: weight(M),
   freeFall: { right: normalInLift(M, -G), weight: weight(M), double: 2 * weight(M) },
   downSlow: {
     right: normalInLift(DOWN_SLOW.m, DOWN_SLOW.a), // acceleration upward
@@ -52,32 +62,47 @@ const hookOptions: Option[] = [
 
 const c = ANSWERS.calc;
 const d = ANSWERS.downSlow;
+const k = ANSWERS.scales;
 
 export const normalReaction: Lesson = {
   id: 'normal-reaction',
   title: 'The push from the floor',
   spec: [8, 9, 10, 12],
-  minutes: 10,
+  minutes: 12,
   story: [
     {
       id: 'intro',
       kind: 'intro',
       title: 'The push from the floor',
-      body: `At home your scales say ${ANSWERS.scales.home}. Take them into a lift, and the number starts to change.`,
+      body: `At home your scales say ${k.home}. Take them into a lift, and the number starts to change.`,
       fig: lift({ reading: 'shown' }),
     },
     {
       id: 'hook',
       kind: 'predict',
       prompt: 'You stand on the scales in a lift. The lift starts moving up. What happens to the reading?',
-      fig: lift({ a: CALC.a, motion: { u: 0, text: 'starting up' } }),
+      fig: lift({ a: PUZZLE.a, motion: { u: 0, text: 'starting up' } }),
       options: [...hookOptions, { id: 'unsure', label: "I'm not sure" }],
       after: "Let's find out.",
     },
     {
+      id: 'weight',
+      kind: 'text',
+      body: [`Gravity pulls you down with your weight, W = mg. For you, that is ${newtons(ANSWERS.weight)}.`],
+      fig: lift({ forces: ['W'], values: true }),
+    },
+    {
+      id: 'fbd',
+      kind: 'text',
+      body: [
+        'On the right of the drawing you are shrunk to a dot, with one arrow for each force on you. This is a free-body diagram.',
+        'The longer the arrow, the bigger the force.',
+      ],
+    },
+    {
       id: 'two-forces',
       kind: 'text',
-      body: ['Two forces act on you: your weight W pulls down, and the scales push up with a force N.'],
+      body: ['The scales push back up on your feet. This push is called the normal reaction, N.'],
       fig: lift({ forces: ['W', 'N'], unknownN: true }),
     },
     {
@@ -93,11 +118,17 @@ export const normalReaction: Lesson = {
       why: "You are not accelerating, so the resultant force on you is zero (Newton's first law). N and W must be equal.",
     },
     {
+      id: 'spring',
+      kind: 'text',
+      body: ['A spring inside the scales squashes. The harder it pushes on you, the bigger the number.'],
+      fig: { kind: 'scales', m: M },
+    },
+    {
       id: 'what-scales-read',
       kind: 'text',
       body: [
-        "Scales can't feel your weight. They measure how hard they push up on you, N, and show N ÷ g in kilograms.",
-        'So a bigger push shows a bigger number, even though your mass has not changed.',
+        'So scales do not measure your weight. They measure N, the push on you, and show N ÷ g in kilograms.',
+        'If N changes, the number changes, even though your mass stays the same.',
       ],
       card: { term: 'Normal reaction', text: 'The push of a surface on an object, at right angles to the surface.' },
     },
@@ -106,7 +137,7 @@ export const normalReaction: Lesson = {
       kind: 'explore',
       instruction: "Drag the slider to change the lift's acceleration.",
       fig: lift({ forces: ['W', 'N'], showAcc: true, reading: 'shown', values: true }),
-      slider: { min: -3, max: 3, step: 0.5, label: 'Acceleration of the lift', unit: 'm s⁻²' },
+      slider: { min: -3, max: 3, step: 0.1, tick: 0.5, label: 'Acceleration of the lift', unit: 'm s⁻²' },
       question: {
         prompt: 'When is N bigger than W?',
         options: [
@@ -141,7 +172,7 @@ export const normalReaction: Lesson = {
     {
       id: 'calc',
       kind: 'choice',
-      prompt: `Your mass is ${CALC.m} kg and g = ${G} N kg⁻¹. The lift accelerates upward at ${fixed(CALC.a, 1)} m s⁻². What is N?`,
+      prompt: `Your friend has a mass of ${CALC.m} kg. The lift accelerates upward at ${fixed(CALC.a, 1)} m s⁻². Take g = ${G} N kg⁻¹. What is N?`,
       fig: lift({ m: CALC.m, a: CALC.a, forces: ['W', 'N'], unknownN: true, showAcc: true }),
       options: [
         { id: 'only-ma', label: newtons(c.onlyMa), hint: "That's only the resultant force ma. N = W + ma." },
@@ -168,14 +199,15 @@ export const normalReaction: Lesson = {
       id: 'hook-again',
       kind: 'choice',
       revisitOf: 'hook',
-      prompt: 'Back to the start. The lift starts moving up. What happens to the reading?',
-      fig: lift({ a: CALC.a, motion: { u: 0, text: 'starting up' }, reading: 'afterCheck' }),
+      prompt: `Back to the puzzle. The lift starts up at ${acc(PUZZLE.a)}. What number do your scales show now?`,
+      fig: lift({ a: PUZZLE.a, motion: { u: 0, text: 'starting up' }, reading: 'afterCheck' }),
       options: [
-        { ...hookOptions[0], correct: true },
-        { ...hookOptions[1], hint: 'Starting to move means the speed is changing. Which way is a?' },
-        { ...hookOptions[2], hint: 'The lift is speeding up, so a is not zero.' },
+        { id: 'home', label: k.home, hint: "That's the reading at rest. The lift is accelerating." },
+        { id: 'right', label: k.startingUp, correct: true },
+        { id: 'subtracted-a', label: k.subtractedA, hint: 'The acceleration is upward, so N is bigger than W, not smaller.' },
+        { id: 'added-to-kg', label: k.addedToKg, hint: 'You added a to the kilograms. Find N = m(g + a) first, then N ÷ g.' },
       ],
-      why: `Speeding up upward: a points up, so N = m(g + a) is bigger than W. At +${fixed(CALC.a, 1)} m s⁻² the scales show ${ANSWERS.scales.startingUp}, not ${ANSWERS.scales.home}.`,
+      why: `N = ${M} × (${G} + ${fixed(PUZZLE.a, 1)}) = ${newtons(k.n)}, so the scales show N ÷ g = ${k.startingUp}. You did not gain weight: the floor pushes harder.`,
     },
     {
       id: 'pairs',
@@ -201,7 +233,7 @@ export const normalReaction: Lesson = {
     {
       id: 'free-fall',
       kind: 'choice',
-      prompt: `The lift cable snaps and the lift falls freely. What is the normal reaction on the ${M}\u00a0kg person?`,
+      prompt: `The lift cable snaps and the lift falls freely. What is the normal reaction on the ${M} kg person?`,
       fig: lift({ a: -G, motion: { u: 0, text: 'falling freely' } }),
       options: [
         { id: 'zero', label: newtons(ANSWERS.freeFall.right), correct: true },
@@ -213,13 +245,13 @@ export const normalReaction: Lesson = {
     {
       id: 'down-slow',
       kind: 'choice',
-      prompt: `A ${DOWN_SLOW.m}\u00a0kg person rides a lift going down. The lift slows down at ${fixed(DOWN_SLOW.a, 1)}\u00a0m\u00a0s⁻². What is the normal reaction on the person?`,
+      prompt: `A ${DOWN_SLOW.m} kg person rides a lift going down. The lift slows down at ${fixed(DOWN_SLOW.a, 1)} m s⁻². What is the normal reaction on the person?`,
       options: [
         { id: 'wrong-sign', label: newtons(d.wrongSign) },
         { id: 'weight', label: newtons(d.weight) },
         { id: 'right', label: newtons(d.right), correct: true },
       ],
-      why: `Moving down and slowing down means the acceleration is upward (+${fixed(DOWN_SLOW.a, 1)}\u00a0m\u00a0s⁻²). N = ${DOWN_SLOW.m} × (${G} + ${fixed(DOWN_SLOW.a, 1)}) = ${newtons(d.right)}.`,
+      why: `Moving down and slowing down means the acceleration is upward (+${fixed(DOWN_SLOW.a, 1)} m s⁻²). N = ${DOWN_SLOW.m} × (${G} + ${fixed(DOWN_SLOW.a, 1)}) = ${newtons(d.right)}.`,
     },
     {
       id: 'trip',
@@ -235,15 +267,15 @@ export const normalReaction: Lesson = {
       why: 'The scales read most where the acceleration is upward. That is where the gradient of the v–t graph is positive: part A.',
     },
     {
-      id: 'explain',
+      id: 'book',
       kind: 'choice',
-      prompt: "Why are N and W on a person not a Newton's third law pair?",
+      prompt: "A book rests on a table. Which force is the Newton's third law partner of the book's weight?",
       options: [
-        { id: 'opposite', label: 'They point in opposite directions.' },
-        { id: 'same-object', label: 'They both act on the person, and are different types of force.', correct: true },
-        { id: 'no-partner', label: 'W comes from the Earth, so it has no partner.' },
+        { id: 'table-push', label: "The table's upward push on the book" },
+        { id: 'earth-pull', label: "The book's upward pull on the Earth", correct: true },
+        { id: 'book-push', label: "The book's downward push on the table" },
       ],
-      why: 'A third law pair acts on two different objects and is the same type of force. N and W both act on the person; N is a contact force, W is gravitational.',
+      why: "Weight is the Earth's pull on the book. Its partner is the book's pull on the Earth: the same type of force, on the other object.",
     },
   ],
   youCanNow: [
@@ -251,4 +283,8 @@ export const normalReaction: Lesson = {
     'Use N = m(g + a) with up as positive',
     "Pick out a Newton's third law pair",
   ],
+  recap: {
+    fig: { kind: 'liftPair', m: PUZZLE.m, a: PUZZLE.a },
+    text: `Same person, same mass. Starting up at ${acc(PUZZLE.a)}, the floor pushes harder, so the scales show ${k.startingUp}.`,
+  },
 };

@@ -1,14 +1,19 @@
 // FIG: a person on bathroom scales in a lift (left) and the free-body diagram of the person (right).
 // Arrow lengths and the scales reading come from src/physics/dynamics (normalInLift, weight, scaleKg).
-// A moving lift is shown by the shaft sliding past the car, with s = ut + ½at² from src/physics/kinematics.
-import { G as Group, Line, Rect, Circle, Path } from 'react-native-svg';
-import { G, position, timeAtRest } from '@/physics/kinematics';
+// A moving lift is shown by the shaft sliding past the car (ShaftMarks), driven on the UI thread by
+// s = ut + ½at² from src/physics/kinematics, so it stays smooth even while React is busy.
+import { useEffect } from 'react';
+import { StyleSheet, View } from 'react-native';
+import Animated, { useAnimatedStyle, useFrameCallback, useSharedValue, withTiming } from 'react-native-reanimated';
+import Svg, { G as Group, Line, Rect, Path, Circle, Polygon } from 'react-native-svg';
+import { G, position, velocity } from '@/physics/kinematics';
 import { normalInLift, scaleKg, weight } from '@/physics/dynamics';
 import { fixed, signed } from '@/physics/format';
 import { CANDIDATE_IDS, type LiftFig } from '@/content/types';
 import { useTheme } from '@/theme/ThemeContext';
-import { useLoopTime, useTween } from './anim';
-import { AccChevrons, CgMark, ForceArrow, ForceLetter, Hatch, MonoLabel, MotionArrow } from './draw';
+import { useTween } from './anim';
+import { AccChevrons, ForceArrow, ForceLetter, Hatch, MonoLabel, MotionArrow } from './draw';
+import { Person, Scales, SCALES_H } from './people';
 import { type TapProps, type TapTarget } from './Sheet';
 
 export const LIFT_VB = { w: 340, h: 260 };
@@ -19,17 +24,24 @@ const CAND_X: Record<(typeof CANDIDATE_IDS)[number], number> = { shorter: 238, e
 const CAND_K: Record<(typeof CANDIDATE_IDS)[number], number> = { shorter: 0.6, equal: 1, longer: 1.4 };
 const STUB = 34; // length of the dashed "N = ?" stub
 
+// The car and what stands in it
+const CAR = { x: 24, y: 30, w: 142, h: 212 }; // floor at y = 242
+const FLOOR = CAR.y + CAR.h;
+const CX = CAR.x + CAR.w / 2;
+const SOLES = FLOOR - SCALES_H + 3; // the soles stand on the middle of the top face
+
 /** Pixels per newton: the longest N the slider can make (a = +3 m s⁻²) fits above the dot. */
 const scaleFor = (m: number) => 100 / (m * (G + 3));
-
-/** Shaft drawing: pixels per metre of travel, and the gap between the marks on the shaft walls. */
-const PX_PER_M = 20;
-const MARK_GAP = 24;
-const CLIP = 1.8; // seconds of motion shown before the clip starts again
 
 /** True when the figure shows a moving lift (the shaft slides, a pause button appears). */
 export function liftMoves(fig: LiftFig, a: number): boolean {
   return !!fig.motion || Math.abs(a) > 1e-9;
+}
+
+/** With nothing drawn to the right, the lift sits in the middle of the sheet. */
+export function liftShiftX(fig: LiftFig): number {
+  const hasRight = fig.forces.length > 0 || !!fig.candidates || !!fig.motion || !!fig.showAcc;
+  return hasRight ? 0 : 75;
 }
 
 /** The values written in the sheet header. On an explore screen `a` is on the slider, so it is left out. */
@@ -47,44 +59,43 @@ export function liftTargets(fig: LiftFig): TapTarget[] {
   });
 }
 
-export function LiftFigure({ fig, a, tap, playing }: { fig: LiftFig; a: number; tap?: TapProps; playing: boolean }) {
+export function LiftFigure({ fig, a, tap }: { fig: LiftFig; a: number; tap?: TapProps }) {
   const { palette: p } = useTheme();
   const k = scaleFor(fig.m);
   const W = weight(fig.m);
   const N = normalInLift(fig.m, a);
-  const nLen = useTween(N * k, STUB); // N grows out of the "?" stub, and follows the slider smoothly
-  const nShown = useTween(N); // the number on the display counts to its new value
   const showW = fig.forces.includes('W');
   const showN = fig.forces.includes('N');
-  const reading = fig.reading === 'shown' ? `${fixed(scaleKg(nShown), 1)} kg` : '- - -';
-  const hasRight = showW || showN || !!fig.candidates || !!fig.motion || !!fig.showAcc;
-  const motionDir = fig.motion ? (fig.motion.u !== 0 ? fig.motion.u : a) > 0 ? 'up' : 'down' : null;
+  const motionDir = fig.motion ? ((fig.motion.u !== 0 ? fig.motion.u : a) > 0 ? 'up' : 'down') : null;
+  const shift = liftShiftX(fig);
 
   return (
     <Group>
-      {/* with nothing to the right, the lift moves to the middle of the sheet */}
-      <Group transform={hasRight ? undefined : 'translate(75 0)'}>
-        <Shaft fig={fig} a={a} playing={playing} />
-        {/* ── the lift ── */}
+      <Group transform={shift ? `translate(${shift} 0)` : undefined}>
+        {/* shaft walls; their marks slide in ShaftMarks, drawn over the SVG */}
+        <Line x1={10} y1={0} x2={10} y2={LIFT_VB.h} stroke={p.lineStrong} strokeWidth={1.4} />
+        <Line x1={180} y1={0} x2={180} y2={LIFT_VB.h} stroke={p.lineStrong} strokeWidth={1.4} />
+        {/* cable, or its frayed end when it has snapped */}
         {a <= -G + 1e-9 ? (
-          // the cable has snapped: a short frayed end hangs from the roof
-          <Path d="M95,30 L95,20 L91,16 M95,20 L99,15" stroke={p.draw} strokeWidth={2} fill="none" strokeLinecap="round" />
+          <Path d={`M${CX},${CAR.y} L${CX},20 L${CX - 4},16 M${CX},20 L${CX + 4},15`} stroke={p.draw} strokeWidth={2} fill="none" strokeLinecap="round" />
         ) : (
-          <Line x1={95} y1={0} x2={95} y2={30} stroke={p.draw} strokeWidth={2} />
+          <Line x1={CX} y1={0} x2={CX} y2={CAR.y} stroke={p.draw} strokeWidth={2} />
         )}
-        <Rect x={24} y={30} width={142} height={212} fill="#FFFFFF" stroke={p.draw} strokeWidth={2.4} />
-        <Line x1={24} y1={36} x2={166} y2={36} stroke={p.draw} strokeWidth={1} />
-        <Hatch x1={24} x2={166} y={242} color={p.draw} />
-        {/* scales with their display (kg, like real bathroom scales) */}
-        <Rect x={50} y={212} width={90} height={30} rx={5} fill={p.drawFill} stroke={p.draw} strokeWidth={2} />
-        <Rect x={60} y={217} width={70} height={20} rx={3} fill="#FFFFFF" stroke={p.draw} strokeWidth={1.2} />
-        <MonoLabel x={95} y={231} text={reading} color={p.ink} size={11.5} />
-        {/* the person, flat shapes with an ink outline */}
-        <Circle cx={95} cy={84} r={14} fill={p.drawFill} stroke={p.draw} strokeWidth={2} />
-        <Path d="M78,106 Q78,100 84,100 L106,100 Q112,100 112,106 L112,158 L78,158 Z" fill={p.drawFill} stroke={p.draw} strokeWidth={2} strokeLinejoin="round" />
-        <Rect x={81} y={158} width={11} height={54} fill={p.drawFillDark} stroke={p.draw} strokeWidth={2} />
-        <Rect x={98} y={158} width={11} height={54} fill={p.drawFillDark} stroke={p.draw} strokeWidth={2} />
-        <CgMark x={95} y={134} color={p.draw} />
+        {/* the car: white box, a ceiling strip, the floor indicator and a handrail on the back wall */}
+        <Rect x={CAR.x} y={CAR.y} width={CAR.w} height={CAR.h} fill="#FFFFFF" stroke={p.draw} strokeWidth={2.4} />
+        <Rect x={CAR.x} y={CAR.y} width={CAR.w} height={6} fill={p.drawFill} stroke={p.draw} strokeWidth={1.2} />
+        <Rect x={CX - 14} y={CAR.y + 12} width={28} height={13} rx={3} fill={p.ink} />
+        {motionDir ? (
+          <Polygon points={motionDir === 'up' ? `${CX - 5},${CAR.y + 22} ${CX + 5},${CAR.y + 22} ${CX},${CAR.y + 15}` : `${CX - 5},${CAR.y + 15} ${CX + 5},${CAR.y + 15} ${CX},${CAR.y + 22}`} fill="#FFFFFF" />
+        ) : (
+          <Line x1={CX - 5} y1={CAR.y + 18.5} x2={CX + 5} y2={CAR.y + 18.5} stroke="#FFFFFF" strokeWidth={2} strokeLinecap="round" />
+        )}
+        <Line x1={CAR.x + 8} y1={148} x2={CAR.x + CAR.w - 8} y2={148} stroke={p.lineStrong} strokeWidth={3} strokeLinecap="round" />
+        <Line x1={CAR.x + 14} y1={148} x2={CAR.x + 14} y2={155} stroke={p.lineStrong} strokeWidth={2} />
+        <Line x1={CAR.x + CAR.w - 14} y1={148} x2={CAR.x + CAR.w - 14} y2={155} stroke={p.lineStrong} strokeWidth={2} />
+        <Hatch x1={CAR.x} x2={CAR.x + CAR.w} y={FLOOR} color={p.draw} />
+        <Display fig={fig} n={N} />
+        <Person x={CX} y={SOLES} />
       </Group>
 
       {/* ── motion or acceleration, between the lift and the diagram ── */}
@@ -114,14 +125,7 @@ export function LiftFigure({ fig, a, tap, playing }: { fig: LiftFig; a: number; 
               {fig.values && <MonoLabel x={DOT.x + 12} y={DOT.y + W * k - 4} text={`${fixed(W, 0)} N`} color={p.forceText} anchor="start" />}
             </Group>
           )}
-          {showN && !fig.unknownN && nLen > 0.5 && (
-            <Group>
-              <ForceArrow x1={DOT.x} y1={DOT.y} x2={DOT.x} y2={DOT.y - nLen} color={p.force} />
-              <ForceLetter x={DOT.x - 12} y={DOT.y - nLen + 14} text="N" color={p.forceText} anchor="end" />
-              {fig.values && <MonoLabel x={DOT.x + 12} y={DOT.y - nLen + 10} text={`${fixed(nShown, 0)} N`} color={p.forceText} anchor="start" />}
-            </Group>
-          )}
-          {showN && !fig.unknownN && nLen <= 0.5 && fig.values && <MonoLabel x={DOT.x + 12} y={DOT.y - 6} text="N = 0" color={p.forceText} anchor="start" />}
+          {showN && !fig.unknownN && <NForce n={N} k={k} values={!!fig.values} />}
           {showN && fig.unknownN && (
             <Group>
               <Line x1={DOT.x} y1={DOT.y} x2={DOT.x} y2={DOT.y - STUB} stroke={p.force} strokeWidth={2.6} strokeDasharray="4 4" />
@@ -150,37 +154,146 @@ export function LiftFigure({ fig, a, tap, playing }: { fig: LiftFig; a: number; 
   );
 }
 
-/**
- * The shaft walls on both sides of the car, with marks every MARK_GAP. When the lift moves, the marks slide
- * the other way by s(t) = ut + ½at² (the car stays in the middle of the drawing, like a camera riding with it).
- * The clip ends early if the lift would stop and turn back, so a "slowing down" lift never reverses.
- */
-function Shaft({ fig, a, playing }: { fig: LiftFig; a: number; playing: boolean }) {
+/** The scales with their display. The number counts smoothly to a new value (its own component, so only it re-renders). */
+function Display({ fig, n }: { fig: LiftFig; n: number }) {
+  const shown = useTween(n, undefined, 360);
+  const reading = fig.reading === 'shown' ? `${fixed(scaleKg(shown), 1)} kg` : '- - -';
+  return <Scales x={CX} y={FLOOR} reading={reading} />;
+}
+
+/** The N arrow of the free-body diagram: grows out of the "?" stub, then follows N smoothly. */
+function NForce({ n, k, values }: { n: number; k: number; values: boolean }) {
   const { palette: p } = useTheme();
-  const u = fig.motion?.u ?? 0;
-  const moves = liftMoves(fig, a);
-  const stop = timeAtRest({ s0: 0, u, a });
-  const length = moves ? Math.min(CLIP, stop !== null && stop > 0 ? stop : CLIP) : 0;
-  const t = useLoopTime(playing && moves, length, `${u}/${a}`);
-  const s = position(t, { s0: 0, u, a }); // metres travelled, up positive
-  // the car goes up → the walls pass downward
-  const offset = (((s * PX_PER_M) % MARK_GAP) + MARK_GAP) % MARK_GAP;
-  const marks: number[] = [];
-  for (let y = offset - MARK_GAP; y < LIFT_VB.h; y += MARK_GAP) if (y > -2) marks.push(y);
+  const len = useTween(n * k, STUB, 480);
+  const shown = useTween(n, undefined, 360);
+  if (len <= 0.5) return values ? <MonoLabel x={DOT.x + 12} y={DOT.y - 6} text="N = 0" color={p.forceText} anchor="start" /> : null;
   return (
     <Group>
-      {/* marks point inward, into the gap between wall and car, so labels outside stay clear */}
-      {[{ x: 12, d: 7 }, { x: 178, d: -7 }].map(({ x, d }) => (
-        <Group key={x}>
-          <Line x1={x} y1={0} x2={x} y2={LIFT_VB.h} stroke={p.lineStrong} strokeWidth={1.2} />
-          {marks.map((y, i) => (
-            <Line key={i} x1={x} y1={y} x2={x + d} y2={y} stroke={p.lineStrong} strokeWidth={1.6} />
-          ))}
-        </Group>
-      ))}
+      <ForceArrow x1={DOT.x} y1={DOT.y} x2={DOT.x} y2={DOT.y - len} color={p.force} />
+      <ForceLetter x={DOT.x - 12} y={DOT.y - len + 14} text="N" color={p.forceText} anchor="end" />
+      {values && <MonoLabel x={DOT.x + 12} y={DOT.y - len + 10} text={`${fixed(shown, 0)} N`} color={p.forceText} anchor="start" />}
     </Group>
   );
 }
+
+// ── The sliding shaft ─────────────────────────────────────────────────────────────────────
+const PX_PER_M = 20; // viewBox units per metre of travel
+const PERIOD = 60; // one floor = 3 m: a slab every 60 units, a tick every metre
+const CLIP = 2; // s of motion before the clip fades and starts again
+const HOLD = 0.6; // s a lift that has come to rest waits before the clip starts again
+const FADE = 0.3; // s the marks take to fade out and back in
+const STRIP_W = 12;
+
+/**
+ * The marks on both shaft walls, laid over the SVG. They slide by s(t) = ut + ½at², stepped every frame on the
+ * UI thread (exact for constant a). A slowing lift stops exactly at rest and waits; an accelerating one runs
+ * for CLIP seconds; then the marks fade and the clip starts again. A steady lift slides forever.
+ * On an explore screen `a` changes with the slider: it eases to the new value, and the motion carries on.
+ */
+export function ShaftMarks({ fig, a, scale, playing }: { fig: LiftFig; a: number; scale: number; playing: boolean }) {
+  const { palette: p } = useTheme();
+  const u0 = fig.motion?.u ?? 0;
+  const accel = useSharedValue(a);
+  const s = useSharedValue(0);
+  const v = useSharedValue(u0);
+  const t = useSharedValue(0);
+  const phase = useSharedValue(0); // 0 running, 1 resting, 2 fading out
+  const phaseT = useSharedValue(0);
+  const opacity = useSharedValue(1);
+
+  useEffect(() => {
+    accel.set(withTiming(a, { duration: 260 }));
+  }, [a, accel]);
+
+  const frame = useFrameCallback((info) => {
+    'worklet';
+    const dt = Math.min(0.05, (info.timeSincePreviousFrame ?? 16) / 1000);
+    const acc = accel.get();
+    const ph = phase.get();
+    const vv = v.get();
+    if (ph !== 1) {
+      const vn = velocity(dt, { s0: 0, u: vv, a: acc });
+      if (u0 !== 0 && vn * u0 <= 0) {
+        // a slowing lift reaches rest inside this frame: stop exactly where v = 0
+        s.set(s.get() + (acc !== 0 ? (-vv * vv) / (2 * acc) : 0));
+        v.set(0);
+        phase.set(1);
+        phaseT.set(0);
+        return;
+      }
+      s.set(s.get() + position(dt, { s0: 0, u: vv, a: acc }));
+      v.set(vn);
+    }
+    const idle = Math.abs(acc) < 1e-6 && Math.abs(v.get() - u0) < 1e-6; // at rest, or a steady lift: no clip
+    t.set(idle ? 0 : t.get() + dt);
+    phaseT.set(phaseT.get() + dt);
+    if (ph === 0) {
+      opacity.set(Math.min(1, opacity.get() + dt / FADE));
+      if (t.get() >= CLIP) {
+        phase.set(2);
+        phaseT.set(0);
+      }
+    } else if (ph === 1) {
+      if (phaseT.get() >= HOLD) {
+        phase.set(2);
+        phaseT.set(0);
+      }
+    } else {
+      opacity.set(Math.max(0, 1 - phaseT.get() / FADE));
+      if (phaseT.get() >= FADE) {
+        v.set(u0);
+        t.set(0);
+        phase.set(0);
+        phaseT.set(0);
+      }
+    }
+  }, false);
+
+  useEffect(() => {
+    frame.setActive(playing);
+  }, [playing, frame]);
+
+  const slide = useAnimatedStyle(() => {
+    const off = (((s.get() * PX_PER_M) % PERIOD) + PERIOD) % PERIOD; // the car goes up → the walls pass downward
+    return { opacity: opacity.get(), transform: [{ translateY: off * scale }] };
+  });
+
+  const H = LIFT_VB.h + PERIOD;
+  const shift = liftShiftX(fig);
+  const strip = (x0: number, inward: 1 | -1) => {
+    const edge = inward === 1 ? 0 : STRIP_W; // the wall side of the strip
+    const marks = [];
+    for (let y = 0; y <= H; y += PX_PER_M) {
+      marks.push(
+        y % PERIOD === 0 ? (
+          <Rect key={y} x={0} y={y - 1.5} width={STRIP_W} height={3} fill={p.lineStrong} />
+        ) : (
+          <Line key={y} x1={edge} y1={y} x2={edge + inward * 5} y2={y} stroke={p.lineStrong} strokeWidth={1.4} />
+        ),
+      );
+    }
+    return (
+      <View key={x0} pointerEvents="none" style={[styles.strip, { left: (x0 + shift) * scale, width: STRIP_W * scale, height: LIFT_VB.h * scale }]}>
+        <Animated.View style={[{ position: 'absolute', left: 0, top: -PERIOD * scale, width: STRIP_W * scale, height: H * scale }, slide]}>
+          <Svg width={STRIP_W * scale} height={H * scale} viewBox={`0 0 ${STRIP_W} ${H}`}>
+            {marks}
+          </Svg>
+        </Animated.View>
+      </View>
+    );
+  };
+  // left strip from the left wall (x 10) inward; right strip ends at the right wall (x 180)
+  return (
+    <>
+      {strip(10, 1)}
+      {strip(180 - STRIP_W, -1)}
+    </>
+  );
+}
+
+const styles = StyleSheet.create({
+  strip: { position: 'absolute', top: 0, overflow: 'hidden' },
+});
 
 /** "slowing down" → ["slowing", "down"]: two short lines fit between the lift and the diagram. */
 function splitLabel(text: string): string[] {

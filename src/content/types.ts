@@ -41,7 +41,13 @@ export type PairsFig = { kind: 'pairs'; m: number };
 /** A velocity–time graph of a lift trip, split into lettered parts of constant acceleration. */
 export type VtFig = { kind: 'vt'; phases: { id: string; dt: number; a: number }[] };
 
-export type Fig = LiftFig | PairsFig | VtFig;
+/** A cutaway of the scales under a foot: the spring inside squashes and the display counts up. */
+export type ScalesFig = { kind: 'scales'; m: number };
+
+/** Two small lifts side by side: at rest, and accelerating at `a`. Used to show the puzzle solved. */
+export type LiftPairFig = { kind: 'liftPair'; m: number; a: number };
+
+export type Fig = LiftFig | PairsFig | VtFig | ScalesFig | LiftPairFig;
 
 /** Tap targets drawn by a lift figure with `candidates`. */
 export const CANDIDATE_IDS = ['shorter', 'equal', 'longer'] as const;
@@ -96,7 +102,8 @@ export type ExploreScreen = Base & {
   kind: 'explore';
   instruction: string; // names the gesture: "Drag …"
   fig: LiftFig;
-  slider: { min: number; max: number; step: number; label: string; unit: string };
+  /** `tick`: gap between the marks on the ruler (defaults to `step`). */
+  slider: { min: number; max: number; step: number; tick?: number; label: string; unit: string };
   question: { prompt: string; options: Option[]; right: string };
 };
 
@@ -122,6 +129,8 @@ export type Lesson = {
   /** Exam-level questions at the end: one try each, "Why?" only after the answer. */
   skillCheck: Question[];
   youCanNow: string[];
+  /** The last screen: the puzzle, solved, as one figure with one sentence. */
+  recap: { fig: Fig; text: string };
 };
 
 // ── Course map ───────────────────────────────────────────────────────────────────────────

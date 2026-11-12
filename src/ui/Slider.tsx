@@ -12,6 +12,8 @@ type Props = {
   min: number;
   max: number;
   step: number;
+  /** Gap between the ruler marks (defaults to `step`). */
+  tick?: number;
   label: string; // for screen readers and the caption under the ruler
   format: (v: number) => string; // the bubble text
   formatEnd?: (v: number) => string; // the numbers at both ends of the ruler
@@ -20,7 +22,7 @@ type Props = {
 
 const THUMB = 30;
 
-export function Slider({ value, min, max, step, label, format, formatEnd = format, onChange }: Props) {
+export function Slider({ value, min, max, step, tick = step, label, format, formatEnd = format, onChange }: Props) {
   const { palette: p } = useTheme();
   const [width, setWidth] = useState(0);
   const span = Math.max(1, width - THUMB);
@@ -46,7 +48,7 @@ export function Slider({ value, min, max, step, label, format, formatEnd = forma
     });
 
   const ticks: number[] = [];
-  for (let v = min; v <= max + 1e-9; v += step) ticks.push(Number(v.toFixed(6)));
+  for (let v = min; v <= max + 1e-9; v += tick) ticks.push(Number(v.toFixed(6)));
   const x = toX(value);
 
   return (

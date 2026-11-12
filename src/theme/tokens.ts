@@ -35,6 +35,14 @@ export const palette = {
   drawFill: '#E2E6EB', // flat fills of bodies
   drawFillDark: '#C3CAD3',
   label: '#4E5663', // FIG labels and dimensions (mono)
+  // the person and the scales in figures: quiet flat colours, never blue (blue means force)
+  skin: '#EFD6C2',
+  hair: '#3B4049',
+  shirt: '#D9E0E9',
+  trousers: '#59647A',
+  shoe: '#2A3039',
+  scalesTop: '#F3F5F8',
+  scalesFront: '#C9D0DA',
   force: '#2E66DB', // every force, everywhere: the course blue of the map (12 Nov), so red only ever means "wrong"
   forceText: '#1F4FB8',
 };

@@ -9,6 +9,7 @@ const max = (text: string, n: number, where: string) => assert.ok(text.length <=
 function targets(fig: Fig): readonly string[] {
   if (fig.kind === 'pairs') return PAIR_IDS;
   if (fig.kind === 'vt') return fig.phases.map((p) => p.id);
+  if (fig.kind !== 'lift') return [];
   return fig.candidates ? CANDIDATE_IDS : [];
 }
 

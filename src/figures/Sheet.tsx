@@ -7,7 +7,9 @@ import type { Fig } from '@/content/types';
 import { useTheme } from '@/theme/ThemeContext';
 import { font, radius } from '@/theme/tokens';
 import { useReducedMotionPref } from '@/ui/parts';
-import { LIFT_VB, LiftFigure, liftMoves, liftParams, liftTargets } from './LiftFigure';
+import { LIFT_VB, LiftFigure, liftMoves, liftParams, liftTargets, ShaftMarks } from './LiftFigure';
+import { LIFT_PAIR_VB, LiftPairFigure } from './LiftPairFigure';
+import { SCALES_VB, ScalesFigure } from './ScalesFigure';
 import { PAIRS_VB, PairsFigure, pairsTargets } from './PairsFigure';
 import { VT_VB, VtFigure, vtTargets } from './VtFigure';
 
@@ -25,17 +27,19 @@ type Props = {
   /** Live acceleration of a lift figure (the explore slider); defaults to the figure's own value. */
   a?: number;
   tap?: TapProps;
+  /** Replaces the values in the header (for a figure outside a lesson screen). */
+  caption?: string;
 };
 
 /** Every figure is drawn at the same size on every screen, so the drawing never jumps between screens. */
 const MAX_H = 270;
 
-export function Sheet({ fig, n, a, tap }: Props) {
+export function Sheet({ fig, n, a, tap, caption }: Props) {
   const { palette: p } = useTheme();
   const [width, setWidth] = useState(0);
   const [playing, setPlaying] = useState(true);
   const reduced = useReducedMotionPref();
-  const vb = fig.kind === 'lift' ? LIFT_VB : fig.kind === 'pairs' ? PAIRS_VB : VT_VB;
+  const vb = { lift: LIFT_VB, pairs: PAIRS_VB, vt: VT_VB, scales: SCALES_VB, liftPair: LIFT_PAIR_VB }[fig.kind];
   const aNow = fig.kind === 'lift' ? (a ?? fig.a) : 0;
   let w = width;
   let h = (width * vb.h) / vb.w;
@@ -44,9 +48,10 @@ export function Sheet({ fig, n, a, tap }: Props) {
     w = (h * vb.w) / vb.h;
   }
   const scale = w / vb.w;
-  const animates = fig.kind === 'lift' && liftMoves(fig, aNow) && !reduced;
-  const targets = !tap ? [] : fig.kind === 'lift' ? liftTargets(fig) : fig.kind === 'pairs' ? pairsTargets() : vtTargets(fig);
-  const params = fig.kind === 'lift' ? liftParams(fig, aNow, a !== undefined) : fig.kind === 'pairs' ? `m = ${fig.m} kg` : 'lift trip, upward';
+  const animates = !reduced && ((fig.kind === 'lift' && liftMoves(fig, aNow)) || fig.kind === 'scales');
+  const run = playing && !reduced;
+  const targets = !tap ? [] : fig.kind === 'lift' ? liftTargets(fig) : fig.kind === 'pairs' ? pairsTargets() : fig.kind === 'vt' ? vtTargets(fig) : [];
+  const params = caption ?? (fig.kind === 'lift' ? liftParams(fig, aNow, a !== undefined) : fig.kind === 'vt' ? 'lift trip, upward' : `m = ${fig.m} kg`);
 
   return (
     <View style={[styles.sheet, { backgroundColor: p.paper, borderColor: p.paperLine }]}>
@@ -80,10 +85,13 @@ export function Sheet({ fig, n, a, tap }: Props) {
         {width > 0 && (
           <View style={{ width: w, height: h, alignSelf: 'center' }}>
             <Svg width={w} height={h} viewBox={`0 0 ${vb.w} ${vb.h}`}>
-              {fig.kind === 'lift' && <LiftFigure fig={fig} a={aNow} tap={tap} playing={playing && !reduced} />}
+              {fig.kind === 'lift' && <LiftFigure fig={fig} a={aNow} tap={tap} />}
+              {fig.kind === 'scales' && <ScalesFigure fig={fig} playing={run} />}
+              {fig.kind === 'liftPair' && <LiftPairFigure fig={fig} playing={!reduced} />}
               {fig.kind === 'pairs' && <PairsFigure tap={tap} />}
               {fig.kind === 'vt' && <VtFigure fig={fig} tap={tap} />}
             </Svg>
+            {fig.kind === 'lift' && <ShaftMarks fig={fig} a={aNow} scale={scale} playing={run} />}
             {targets.map((t) => (
               <Pressable
                 key={t.id}
