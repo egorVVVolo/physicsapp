@@ -1,4 +1,6 @@
 // Plays one lesson: the top bar (close, progress, Skill check dots) and the current screen.
+// Each new screen slides in; the progress fill glides, a Skill check dot pops when answered.
+import { useEffect } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { Lesson, Screen } from '@/content/types';
@@ -6,6 +8,8 @@ import { itemsOf, next, progressOf, recordOutcome, recordPick, type LessonState 
 import { useTheme } from '@/theme/ThemeContext';
 import { courseBlue } from '@/theme/tokens';
 import { CloseIcon } from '@/ui/parts';
+import { ScreenEnter, useReducedMotionPref } from '@/ui/motion';
+import Animated, { Easing, useAnimatedStyle, useSharedValue, withSequence, withSpring, withTiming } from 'react-native-reanimated';
 import { CONTENT_MAX } from './Frame';
 import { ExploreView } from './screens/ExploreView';
 import { QuestionView } from './screens/QuestionView';
@@ -53,20 +57,43 @@ export function LessonPlayer({ lesson, state, onChange, onClose }: Props) {
           <CloseIcon color={p.muted} size={20} />
         </Pressable>
         <View style={[styles.track, { backgroundColor: p.disabled }]} accessible accessibilityRole="progressbar" accessibilityValue={{ min: 0, max: 100, now: Math.round(prog.story * 100) }}>
-          <View style={[styles.fill, { width: `${Math.max(3, prog.story * 100)}%`, backgroundColor: courseBlue.main }]} />
+          <ProgressFill share={Math.max(0.03, prog.story)} />
         </View>
         <View style={styles.dots} accessible accessibilityLabel={`Skill check: ${prog.checkDone} of ${prog.checkTotal} answered`}>
           {Array.from({ length: prog.checkTotal }, (_, i) => (
-            <View key={i} style={[styles.dot, { backgroundColor: i < prog.checkDone ? courseBlue.main : p.disabled }]} />
+            <CheckDot key={i} done={i < prog.checkDone} />
           ))}
         </View>
       </View>
       {/* key: every screen starts with fresh local state */}
       <View style={{ flex: 1 }} key={state.index}>
-        {body}
+        <ScreenEnter>{body}</ScreenEnter>
       </View>
     </View>
   );
+}
+
+/** The progress fill glides to its new length. */
+function ProgressFill({ share }: { share: number }) {
+  const reduced = useReducedMotionPref();
+  const w = useSharedValue(share);
+  useEffect(() => {
+    w.set(reduced ? share : withTiming(share, { duration: 520, easing: Easing.out(Easing.cubic) }));
+  }, [share, reduced, w]);
+  const style = useAnimatedStyle(() => ({ width: `${w.get() * 100}%` }));
+  return <Animated.View style={[styles.fill, { backgroundColor: courseBlue.main }, style]} />;
+}
+
+/** A Skill check dot: fills in with a small pop when its question is answered. */
+function CheckDot({ done }: { done: boolean }) {
+  const { palette: p } = useTheme();
+  const reduced = useReducedMotionPref();
+  const s = useSharedValue(1);
+  useEffect(() => {
+    if (done && !reduced) s.set(withSequence(withTiming(1.5, { duration: 140 }), withSpring(1, { damping: 7, stiffness: 200 })));
+  }, [done, reduced, s]);
+  const style = useAnimatedStyle(() => ({ transform: [{ scale: s.get() }] }));
+  return <Animated.View style={[styles.dot, { backgroundColor: done ? courseBlue.main : p.disabled }, style]} />;
 }
 
 const styles = StyleSheet.create({

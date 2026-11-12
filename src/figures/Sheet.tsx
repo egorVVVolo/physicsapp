@@ -88,7 +88,7 @@ export function Sheet({ fig, n, a, tap, caption }: Props) {
               {fig.kind === 'lift' && <LiftFigure fig={fig} a={aNow} tap={tap} />}
               {fig.kind === 'scales' && <ScalesFigure fig={fig} playing={run} />}
               {fig.kind === 'liftPair' && <LiftPairFigure fig={fig} playing={!reduced} />}
-              {fig.kind === 'pairs' && <PairsFigure tap={tap} />}
+              {fig.kind === 'pairs' && <PairsFigure fig={fig} tap={tap} />}
               {fig.kind === 'vt' && <VtFigure fig={fig} tap={tap} />}
             </Svg>
             {fig.kind === 'lift' && <ShaftMarks fig={fig} a={aNow} scale={scale} playing={run} />}

@@ -11,7 +11,7 @@ import { normalInLift, scaleKg, weight } from '@/physics/dynamics';
 import { fixed, signed } from '@/physics/format';
 import { CANDIDATE_IDS, type LiftFig } from '@/content/types';
 import { useTheme } from '@/theme/ThemeContext';
-import { useTween } from './anim';
+import { useTween, useWave } from './anim';
 import { AccChevrons, ForceArrow, ForceLetter, Hatch, MonoLabel, MotionArrow } from './draw';
 import { Person, Scales, SCALES_H } from './people';
 import { type TapProps, type TapTarget } from './Sheet';
@@ -109,7 +109,7 @@ export function LiftFigure({ fig, a, tap }: { fig: LiftFig; a: number; tap?: Tap
       )}
       {fig.showAcc && !fig.motion && Math.abs(a) > 1e-9 && (
         <Group>
-          <AccChevrons x={MID_X} y={118} dir={a > 0 ? 'up' : 'down'} color={p.draw} />
+          <DriftingChevrons x={MID_X} y={118} dir={a > 0 ? 'up' : 'down'} color={p.draw} />
           <MonoLabel x={MID_X} y={150} text="a" color={p.label} size={11} />
         </Group>
       )}
@@ -118,13 +118,7 @@ export function LiftFigure({ fig, a, tap }: { fig: LiftFig; a: number; tap?: Tap
       {(showW || showN || fig.candidates) && (
         <Group>
           <MonoLabel x={DOT.x} y={252} text="FREE-BODY" color={p.label} size={9} />
-          {showW && (
-            <Group>
-              <ForceArrow x1={DOT.x} y1={DOT.y} x2={DOT.x} y2={DOT.y + W * k} color={p.force} />
-              <ForceLetter x={DOT.x - 12} y={DOT.y + W * k - 2} text="W" color={p.forceText} anchor="end" />
-              {fig.values && <MonoLabel x={DOT.x + 12} y={DOT.y + W * k - 4} text={`${fixed(W, 0)} N`} color={p.forceText} anchor="start" />}
-            </Group>
-          )}
+          {showW && <WForce len={W * k} w={W} values={!!fig.values} />}
           {showN && !fig.unknownN && <NForce n={N} k={k} values={!!fig.values} />}
           {showN && fig.unknownN && (
             <Group>
@@ -154,6 +148,13 @@ export function LiftFigure({ fig, a, tap }: { fig: LiftFig; a: number; tap?: Tap
   );
 }
 
+/** The acceleration chevrons drift a little in the direction of a, endlessly: the acceleration does not stop. */
+function DriftingChevrons({ x, y, dir, color }: { x: number; y: number; dir: 'up' | 'down'; color: string }) {
+  const w = useWave(1.4);
+  const shift = (dir === 'up' ? -1 : 1) * 2.5 * w;
+  return <AccChevrons x={x} y={y + shift} dir={dir} color={color} />;
+}
+
 /** The scales with their display. The number counts smoothly to a new value (its own component, so only it re-renders). */
 function Display({ fig, n }: { fig: LiftFig; n: number }) {
   const shown = useTween(n, undefined, 360);
@@ -161,10 +162,24 @@ function Display({ fig, n }: { fig: LiftFig; n: number }) {
   return <Scales x={CX} y={FLOOR} reading={reading} />;
 }
 
+/** The W arrow of the free-body diagram: grows out of the dot when the figure appears. */
+function WForce({ len: full, w, values }: { len: number; w: number; values: boolean }) {
+  const { palette: p } = useTheme();
+  const len = useTween(full, 0, 560, 380);
+  if (len < 1) return null;
+  return (
+    <Group>
+      <ForceArrow x1={DOT.x} y1={DOT.y} x2={DOT.x} y2={DOT.y + len} color={p.force} />
+      <ForceLetter x={DOT.x - 12} y={DOT.y + len - 2} text="W" color={p.forceText} anchor="end" />
+      {values && <MonoLabel x={DOT.x + 12} y={DOT.y + len - 4} text={`${fixed(w, 0)} N`} color={p.forceText} anchor="start" />}
+    </Group>
+  );
+}
+
 /** The N arrow of the free-body diagram: grows out of the "?" stub, then follows N smoothly. */
 function NForce({ n, k, values }: { n: number; k: number; values: boolean }) {
   const { palette: p } = useTheme();
-  const len = useTween(n * k, STUB, 480);
+  const len = useTween(n * k, STUB, 520, 520);
   const shown = useTween(n, undefined, 360);
   if (len <= 0.5) return values ? <MonoLabel x={DOT.x + 12} y={DOT.y - 6} text="N = 0" color={p.forceText} anchor="start" /> : null;
   return (
@@ -179,27 +194,28 @@ function NForce({ n, k, values }: { n: number; k: number; values: boolean }) {
 // ── The sliding shaft ─────────────────────────────────────────────────────────────────────
 const PX_PER_M = 20; // viewBox units per metre of travel
 const PERIOD = 60; // one floor = 3 m: a slab every 60 units, a tick every metre
-const CLIP = 2; // s of motion before the clip fades and starts again
-const HOLD = 0.6; // s a lift that has come to rest waits before the clip starts again
-const FADE = 0.3; // s the marks take to fade out and back in
+const V_CAP = 3; // m s⁻¹: above this the marks would blur into a flicker, so the shaft speed stops growing here
+const HOLD = 0.6; // s a braking lift waits at rest before it moves off again
+const RAMP = 0.45; // s it takes to get back up to its starting speed
 const STRIP_W = 12;
 
 /**
- * The marks on both shaft walls, laid over the SVG. They slide by s(t) = ut + ½at², stepped every frame on the
- * UI thread (exact for constant a). A slowing lift stops exactly at rest and waits; an accelerating one runs
- * for CLIP seconds; then the marks fade and the clip starts again. A steady lift slides forever.
- * On an explore screen `a` changes with the slider: it eases to the new value, and the motion carries on.
+ * The marks on both shaft walls, laid over the SVG. They never fade or jump: the motion is continuous.
+ * Each frame (on the UI thread) the velocity changes by a·dt and the marks move by s = ut + ½at² (exact for constant a).
+ * A speeding-up lift gains speed until V_CAP and then keeps it (a cartoon limit, the chevrons still show a).
+ * A braking lift (a against u) stops exactly where v = 0, rests, then eases back up to u and brakes again.
+ * On an explore screen `a` eases to the slider value; with a = 0 the lift keeps the speed it has (steady motion).
  */
 export function ShaftMarks({ fig, a, scale, playing }: { fig: LiftFig; a: number; scale: number; playing: boolean }) {
   const { palette: p } = useTheme();
   const u0 = fig.motion?.u ?? 0;
+  const brakes = u0 !== 0 && a * u0 < 0; // e.g. moving up and slowing down
+  const cap = Math.max(V_CAP, Math.abs(u0));
   const accel = useSharedValue(a);
   const s = useSharedValue(0);
   const v = useSharedValue(u0);
-  const t = useSharedValue(0);
-  const phase = useSharedValue(0); // 0 running, 1 resting, 2 fading out
+  const phase = useSharedValue(0); // 0 moving, 1 resting (braking lift), 2 easing back up to u0
   const phaseT = useSharedValue(0);
-  const opacity = useSharedValue(1);
 
   useEffect(() => {
     accel.set(withTiming(a, { duration: 260 }));
@@ -211,42 +227,42 @@ export function ShaftMarks({ fig, a, scale, playing }: { fig: LiftFig; a: number
     const acc = accel.get();
     const ph = phase.get();
     const vv = v.get();
-    if (ph !== 1) {
-      const vn = velocity(dt, { s0: 0, u: vv, a: acc });
-      if (u0 !== 0 && vn * u0 <= 0) {
-        // a slowing lift reaches rest inside this frame: stop exactly where v = 0
-        s.set(s.get() + (acc !== 0 ? (-vv * vv) / (2 * acc) : 0));
-        v.set(0);
-        phase.set(1);
-        phaseT.set(0);
-        return;
-      }
-      s.set(s.get() + position(dt, { s0: 0, u: vv, a: acc }));
-      v.set(vn);
-    }
-    const idle = Math.abs(acc) < 1e-6 && Math.abs(v.get() - u0) < 1e-6; // at rest, or a steady lift: no clip
-    t.set(idle ? 0 : t.get() + dt);
     phaseT.set(phaseT.get() + dt);
-    if (ph === 0) {
-      opacity.set(Math.min(1, opacity.get() + dt / FADE));
-      if (t.get() >= CLIP) {
-        phase.set(2);
-        phaseT.set(0);
-      }
-    } else if (ph === 1) {
+    if (ph === 1) {
       if (phaseT.get() >= HOLD) {
         phase.set(2);
         phaseT.set(0);
       }
-    } else {
-      opacity.set(Math.max(0, 1 - phaseT.get() / FADE));
-      if (phaseT.get() >= FADE) {
-        v.set(u0);
-        t.set(0);
+      return;
+    }
+    if (ph === 2) {
+      // ease from rest back to u0 (smoothstep), the marks keep their place: no jump
+      const k = Math.min(1, phaseT.get() / RAMP);
+      const vn = u0 * k * k * (3 - 2 * k);
+      s.set(s.get() + ((vv + vn) / 2) * dt);
+      v.set(vn);
+      if (k >= 1) {
         phase.set(0);
         phaseT.set(0);
       }
+      return;
     }
+    let vn = velocity(dt, { s0: 0, u: vv, a: acc });
+    if (brakes && vn * u0 <= 0) {
+      // the braking lift reaches rest inside this frame: stop exactly where v = 0
+      s.set(s.get() + (acc !== 0 ? (-vv * vv) / (2 * acc) : 0));
+      v.set(0);
+      phase.set(1);
+      phaseT.set(0);
+      return;
+    }
+    if (Math.abs(vn) > cap) {
+      vn = Math.sign(vn) * cap;
+      s.set(s.get() + ((vv + vn) / 2) * dt);
+    } else {
+      s.set(s.get() + position(dt, { s0: 0, u: vv, a: acc }));
+    }
+    v.set(vn);
   }, false);
 
   useEffect(() => {
@@ -255,7 +271,7 @@ export function ShaftMarks({ fig, a, scale, playing }: { fig: LiftFig; a: number
 
   const slide = useAnimatedStyle(() => {
     const off = (((s.get() * PX_PER_M) % PERIOD) + PERIOD) % PERIOD; // the car goes up → the walls pass downward
-    return { opacity: opacity.get(), transform: [{ translateY: off * scale }] };
+    return { transform: [{ translateY: off * scale }] };
   });
 
   const H = LIFT_VB.h + PERIOD;

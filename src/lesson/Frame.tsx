@@ -1,7 +1,8 @@
 // The layout every lesson screen shares: scrolling content, a footer with the one main button,
 // and the verdict sheet sliding over the footer after Check.
-import type { ReactNode } from 'react';
+import { Children, type ReactNode } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
+import { Rise } from '@/ui/motion';
 
 export const CONTENT_MAX = 560;
 
@@ -9,7 +10,10 @@ export function Frame({ children, footer, sheet, center }: { children: ReactNode
   return (
     <View style={styles.root}>
       <ScrollView style={styles.scroll} contentContainerStyle={[styles.content, center && styles.center]} keyboardShouldPersistTaps="handled">
-        <View style={styles.column}>{children}</View>
+        <View style={styles.column}>
+          {/* the blocks of a screen rise in one after another (a block added later rises when it appears) */}
+          {Children.map(children, (child, i) => (child ? <Rise delay={90 + i * 80}>{child}</Rise> : null))}
+        </View>
       </ScrollView>
       <View style={styles.footer}>
         <View style={styles.column}>{footer}</View>

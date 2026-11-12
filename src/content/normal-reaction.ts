@@ -213,7 +213,7 @@ export const normalReaction: Lesson = {
       id: 'pairs',
       kind: 'text',
       body: ["N and W both act on you. A Newton's third law pair always acts on two different objects."],
-      fig: { kind: 'pairs', m: M },
+      fig: { kind: 'pairs', m: M, explode: true },
     },
     {
       id: 'partner',

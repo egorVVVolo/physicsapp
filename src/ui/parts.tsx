@@ -4,17 +4,11 @@ import { AccessibilityInfo, Animated, Platform, Pressable, StyleSheet, Text, Vie
 import Svg, { Path, Rect } from 'react-native-svg';
 import { useTheme } from '@/theme/ThemeContext';
 import { font, LIP, radius, touch } from '@/theme/tokens';
+import { Pop, Sparks, useReducedMotionPref } from './motion';
 
 const nativeDriver = Platform.OS !== 'web';
 
-/** True when the device asks for reduced motion (checked once). */
-export function useReducedMotionPref(): boolean {
-  const [reduced, setReduced] = useState(false);
-  useEffect(() => {
-    AccessibilityInfo.isReduceMotionEnabled().then(setReduced).catch(() => {});
-  }, []);
-  return reduced;
-}
+export { useReducedMotionPref };
 
 // ── Icons ────────────────────────────────────────────────────────────────────────────────
 
@@ -39,6 +33,7 @@ export function CloseIcon({ color, size = 18 }: { color: string; size?: number }
 function CornerBadge({ kind, color }: { kind: 'ok' | 'bad'; color: string }) {
   return (
     <View style={styles.badge} pointerEvents="none">
+      {kind === 'ok' && <Sparks color={color} size={70} />}
       <Svg width={24} height={24} viewBox="0 0 24 24">
         <Rect x={0} y={0} width={24} height={24} rx={6} fill={color} />
         <Path d={kind === 'ok' ? 'M6.5 12.5l3.5 3.5 7.5-8' : 'M7.5 7.5l9 9M16.5 7.5l-9 9'} stroke="#FFFFFF" strokeWidth={2.6} fill="none" strokeLinecap="round" strokeLinejoin="round" />
@@ -99,6 +94,7 @@ export function OptionCard({ label, state, onPress, disabled, compact }: { label
   const said = state === 'right' ? ', correct' : state === 'wrong' ? ', incorrect' : '';
   return (
     <Animated.View style={[{ transform: [{ translateX: shake }] }, compact && { flex: 1 }]}>
+      <Pop trigger={state === 'right'} style={compact && { flex: 1 }}>
       <Pressable
         accessibilityRole="radio"
         accessibilityState={{ checked: state === 'selected', disabled }}
@@ -116,6 +112,7 @@ export function OptionCard({ label, state, onPress, disabled, compact }: { label
         </Text>
       </Pressable>
       {(state === 'right' || state === 'wrong') && <CornerBadge kind={state === 'right' ? 'ok' : 'bad'} color={state === 'right' ? p.ok : p.bad} />}
+      </Pop>
     </Animated.View>
   );
 }
@@ -140,15 +137,15 @@ export function VerdictSheet({ verdict, button }: { verdict: Verdict; button: { 
   const { palette: p } = useTheme();
   const reduced = useReducedMotionPref();
   const [whyOpen, setWhyOpen] = useState(false);
-  const y = useRef(new Animated.Value(60)).current;
+  const y = useRef(new Animated.Value(90)).current;
   // a new verdict (not a re-render of the same one) slides in again and closes "Why?"
   const said = `${verdict.tone}|${verdict.title}|${verdict.text ?? ''}`;
   useEffect(() => {
     setWhyOpen(false);
     AccessibilityInfo.announceForAccessibility(`${verdict.title}. ${verdict.text ?? ''}`);
     if (reduced) return y.setValue(0);
-    y.setValue(60);
-    Animated.timing(y, { toValue: 0, duration: 220, useNativeDriver: nativeDriver }).start();
+    y.setValue(90);
+    Animated.spring(y, { toValue: 0, damping: 16, stiffness: 210, mass: 0.9, useNativeDriver: nativeDriver }).start();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [said, reduced, y]);
 
@@ -159,7 +156,10 @@ export function VerdictSheet({ verdict, button }: { verdict: Verdict; button: { 
     <Animated.View style={[styles.sheet, { backgroundColor: bg, transform: [{ translateY: y }] }]}>
       <View style={styles.sheetHead}>
         <View style={styles.sheetTitleRow}>
-          <Mark kind={ok ? 'ok' : 'bad'} color={ok ? p.ok : p.bad} size={20} />
+          <View>
+            {ok && <Sparks key={said} color={p.ok} size={56} />}
+            <Mark kind={ok ? 'ok' : 'bad'} color={ok ? p.ok : p.bad} size={20} />
+          </View>
           <Text style={[styles.sheetTitle, { color: p.ink }]} accessibilityRole="header">
             {verdict.title}
           </Text>

@@ -36,7 +36,12 @@ export type LiftFig = {
 };
 
 /** The person lifted off the scales ("exploded" view) with the forces on each body, for Newton's third law. */
-export type PairsFig = { kind: 'pairs'; m: number };
+export type PairsFig = {
+  kind: 'pairs';
+  m: number;
+  /** Start with the bodies stacked together, move them apart, then grow the arrows (the first time the figure is met). */
+  explode?: true;
+};
 
 /** A velocity–time graph of a lift trip, split into lettered parts of constant acceleration. */
 export type VtFig = { kind: 'vt'; phases: { id: string; dt: number; a: number }[] };
