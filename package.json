@@ -37,7 +37,8 @@
     "web": "expo start --web",
     "test": "node --test \"src/**/*.test.ts\"",
     "check": "tsc --noEmit && npm test",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "assets": "node --no-warnings scripts/build-assets.ts"
   },
   "private": true
 }

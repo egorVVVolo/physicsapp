@@ -90,3 +90,98 @@ export const font = {
 export const radius = { s: 10, m: 14, pill: 999 } as const;
 export const touch = 44; // minimum touch target, pt
 export const LIP = 4; // height of the bottom lip under main buttons and the picked card
+
+// ───────────────────────────────────────────────────────────────────────────────────────────────
+// Design system v1 (12 Nov, docs/DESIGN.md). Everything below is PROPOSED: it is used by the art
+// library (src/art/) and the demo page, and is switched on in the app step by step (docs/DESIGN.md, 9).
+// ───────────────────────────────────────────────────────────────────────────────────────────────
+
+/**
+ * One colour per level of the map: the colour means "where you are". Forces in figures and the chosen
+ * answer stay course blue everywhere. To switch on: replace `levelColors` above with this record.
+ */
+export const levelPalette: Record<string, LevelColor> = {
+  motion: courseBlue,
+  forces: { main: '#6B4BD8', lip: '#4A30A8', soft: '#EEE9FD', face: '#7C5CF0', side: '#5A3CC4', inner: '#A996F7', text: '#5536BD' },
+  'momentum-moments': { main: '#BF2D83', lip: '#8C1C5E', soft: '#FCE8F3', face: '#D8409A', side: '#A82572', inner: '#EC8CC4', text: '#A3216E' },
+  energy: { main: '#C4500B', lip: '#933A05', soft: '#FDEBDD', face: '#E8651A', side: '#B5480A', inner: '#F6A36E', text: '#A84407' },
+  fluids: { main: '#08808C', lip: '#055C66', soft: '#DDF4F6', face: '#0E9AA8', side: '#07707B', inner: '#6CCAD3', text: '#066E79' },
+  materials: { main: '#4F7A00', lip: '#385700', soft: '#EDF5D9', face: '#639700', side: '#456B00', inner: '#A5CF4A', text: '#446900' },
+};
+
+/**
+ * The reward yellow: the only meaning is "you earned this" (stamps, the momentum top, sparks, a new
+ * notebook card). Never a control, never body text (`text` is the dark twin for labels on white).
+ */
+export const reward = {
+  face: '#FFC531',
+  side: '#D99A00',
+  lip: '#B87F00',
+  pale: '#FFE38A',
+  soft: '#FFF4CC',
+  text: '#7A5200',
+  on: '#1A1E25', // ink on the yellow
+};
+export type Reward = typeof reward;
+
+/** Dark theme: the same keys as `palette`. The main button turns into a white pill; blue and the verdict colours get lighter twins. */
+export const darkPalette: Palette = {
+  page: '#101419',
+  ink: '#F1F3F6',
+  muted: '#B4BCC8',
+  faint: '#98A1AE',
+  line: '#2A313B',
+  lineStrong: '#3A434F',
+  primary: '#F1F3F6',
+  primaryLip: '#AEB6C2',
+  onPrimary: '#1A1E25',
+  disabled: '#232A33',
+  disabledLip: '#171C23',
+  onDisabled: '#9AA3B0',
+  select: '#6C9BFF',
+  selectBg: '#17264A',
+  ok: '#3FB97A',
+  okLip: '#2A8A58',
+  okBg: '#12301F',
+  okText: '#7FE0AC',
+  bad: '#F0717A',
+  badBg: '#3A161A',
+  badText: '#FFA5AB',
+  paper: '#171C23',
+  paperLine: '#323A46',
+  scrim: 'rgba(0,0,0,0.6)',
+  draw: '#D7DCE3',
+  drawFill: '#2B333E',
+  drawFillDark: '#3B4552',
+  label: '#B4BCC8',
+  skin: '#EFD6C2',
+  hair: '#8A919C',
+  shirt: '#3A4554',
+  trousers: '#7C89A3',
+  shoe: '#D7DCE3',
+  scalesTop: '#3A434F',
+  scalesFront: '#2B333E',
+  force: '#6C9BFF',
+  forceText: '#8FB3FF',
+};
+
+/**
+ * Motion tokens (ms). Interface eases out and never bounces; only drawn physical objects bounce, and they
+ * follow the model. `stagger` is the delay between blocks that rise one after another.
+ */
+export const motion = {
+  tap: 90, // press of a button or a card
+  fast: 160, // small state changes: a chosen card, a toggle
+  base: 240, // sheets, fades, the progress fill
+  screen: 340, // a screen sliding in
+  scene: 600, // a figure drawing itself, a colour flood
+  celebrate: 900, // a stamp, a puck landing: once per lesson
+  stagger: 60,
+  /** cubic-bezier control points: out = entrances, inOut = moves, in = exits */
+  easeOut: [0.22, 1, 0.36, 1],
+  easeInOut: [0.65, 0, 0.35, 1],
+  easeIn: [0.55, 0, 1, 0.45],
+  /** springs (Reanimated withSpring): a sheet settles without a bounce, a pop overshoots once */
+  springSheet: { damping: 22, stiffness: 240 },
+  springPop: { damping: 9, stiffness: 220 },
+} as const;

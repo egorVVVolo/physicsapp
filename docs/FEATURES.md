@@ -4,6 +4,8 @@ Nov 4, 2026 · updated Nov 10, 2026 (pilot build first; mirrors `docs/PLAN.md` v
 
 The app has eight feature areas. A **pilot build** comes first: 3 Kinematics lessons, no accounts and no placement, shared as a web link. The full MVP then adds 2 more lessons, placement, accounts, Practice, Review and Progress; payments, notifications and new modules wait for the pilot’s results.
 
+**Update 12 Nov:** the look, motion, sound and the new screens (Notebook, day streak, Level complete, Settings, dark theme) are specified in `docs/DESIGN.md` and built in its six design rounds, which run between lessons. Where a phase below disagrees with that document for one of those features (streak, sound and haptics toggles, dark theme), `docs/DESIGN.md` wins.
+
 Phase labels used below: **Pilot** — in the first pilot build · **MVP** — full MVP, built after the pilot build · **Next** — after the MVP, once pilot data is in · **Later** — needs proven demand first. If this list and `docs/PLAN.md` disagree, the plan wins. Lesson internals (sessions, step types, visuals) are specified in `docs/LESSON_FRAMEWORK.md`; this list covers the whole app around them.
 
 ## App map
