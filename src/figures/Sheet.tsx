@@ -10,7 +10,7 @@ import { useReducedMotionPref } from '@/ui/parts';
 import { LIFT_VB, LiftFigure, liftMoves, liftParams, liftTargets, ShaftMarks } from './LiftFigure';
 import { LIFT_PAIR_VB, LiftPairFigure } from './LiftPairFigure';
 import { SCALES_VB, ScalesFigure } from './ScalesFigure';
-import { PAIRS_VB, PairsFigure, pairsTargets } from './PairsFigure';
+import { PAIRS_MAX_H, PAIRS_VB, PairsFigure, pairsTargets } from './PairsFigure';
 import { VT_VB, VtFigure, vtTargets } from './VtFigure';
 
 export type TapTarget = { id: string; x: number; y: number; w: number; h: number; label: string };
@@ -43,8 +43,9 @@ export function Sheet({ fig, n, a, tap, caption }: Props) {
   const aNow = fig.kind === 'lift' ? (a ?? fig.a) : 0;
   let w = width;
   let h = (width * vb.h) / vb.w;
-  if (h > MAX_H) {
-    h = MAX_H;
+  const maxH = fig.kind === 'pairs' ? PAIRS_MAX_H : MAX_H;
+  if (h > maxH) {
+    h = maxH;
     w = (h * vb.w) / vb.h;
   }
   const scale = w / vb.w;

@@ -46,7 +46,7 @@ export function liftShiftX(fig: LiftFig): number {
 
 /** The values written in the sheet header. On an explore screen `a` is on the slider, so it is left out. */
 export function liftParams(fig: LiftFig, a: number, live: boolean): string {
-  return `m = ${fig.m} kg` + (fig.showAcc && !live ? `, a = ${signed(a, 1)} m s⁻²` : '');
+  return `m = ${fig.m} kg` + (fig.showG ? `, g = ${G} N kg⁻¹` : '') + (fig.showAcc && !live ? `, a = ${signed(a, 1)} m s⁻²` : '');
 }
 
 /** Tap targets in viewBox units (the candidate N arrows). */
@@ -96,6 +96,7 @@ export function LiftFigure({ fig, a, tap }: { fig: LiftFig; a: number; tap?: Tap
         <Hatch x1={CAR.x} x2={CAR.x + CAR.w} y={FLOOR} color={p.draw} />
         <Display fig={fig} n={N} />
         <Person x={CX} y={SOLES} />
+        {fig.nOnPerson && <NOnPerson />}
       </Group>
 
       {/* ── motion or acceleration, between the lift and the diagram ── */}
@@ -144,6 +145,25 @@ export function LiftFigure({ fig, a, tap }: { fig: LiftFig; a: number; tap?: Tap
           <Circle cx={DOT.x} cy={DOT.y} r={5} fill={p.draw} />
         </Group>
       )}
+    </Group>
+  );
+}
+
+/**
+ * Where N acts: a dot in the middle of the soles (where the scales touch you) and a short N arrow up from it.
+ * It only marks the point and the direction: its length is fixed, and W is not drawn on the person to compare with,
+ * so it gives nothing away about the size of N.
+ */
+function NOnPerson() {
+  const { palette: p } = useTheme();
+  const len = 34;
+  return (
+    <Group>
+      <ForceArrow x1={CX} y1={SOLES} x2={CX} y2={SOLES - len} color="#FFFFFF" width={8} />
+      <ForceArrow x1={CX} y1={SOLES} x2={CX} y2={SOLES - len} color={p.force} />
+      <Circle cx={CX} cy={SOLES} r={3.6} fill={p.force} stroke="#FFFFFF" strokeWidth={1.4} />
+      <ForceLetter x={CX + 30} y={SOLES - 12} text="N" color={p.forceText} size={15} />
+      <Line x1={CX + 24} y1={SOLES - 16} x2={CX + 5} y2={SOLES - 18} stroke={p.forceText} strokeWidth={1.2} />
     </Group>
   );
 }

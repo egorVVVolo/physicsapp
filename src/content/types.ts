@@ -33,6 +33,10 @@ export type LiftFig = {
   values?: true;
   /** Draw three candidate N arrows (shorter / equal to W / longer) to tap. Their ids are CANDIDATE_IDS. */
   candidates?: true;
+  /** Write g in the sheet header next to m (the screen where W = mg is worked out). */
+  showG?: true;
+  /** Mark on the person where N acts: a dot in the middle of the soles and a short N arrow up from it. */
+  nOnPerson?: true;
 };
 
 /** The person lifted off the scales ("exploded" view) with the forces on each body, for Newton's third law. */

@@ -89,7 +89,7 @@ export const normalReaction: Lesson = {
       id: 'weight',
       kind: 'text',
       body: [`Gravity pulls you down with your weight, W = mg. For you, that is ${newtons(ANSWERS.weight)}.`],
-      fig: lift({ forces: ['W'], values: true }),
+      fig: lift({ forces: ['W'], values: true, showG: true }),
     },
     {
       id: 'fbd',
@@ -103,13 +103,13 @@ export const normalReaction: Lesson = {
       id: 'two-forces',
       kind: 'text',
       body: ['The scales push back up on your feet. This push is called the normal reaction, N.'],
-      fig: lift({ forces: ['W', 'N'], unknownN: true }),
+      fig: lift({ forces: ['W', 'N'], unknownN: true, nOnPerson: true }),
     },
     {
       id: 'at-rest',
       kind: 'choice',
       prompt: 'The lift is at rest. How does N compare with W?',
-      fig: lift({ forces: ['W', 'N'], unknownN: true }),
+      fig: lift({ forces: ['W', 'N'], unknownN: true, nOnPerson: true }),
       options: [
         { id: 'bigger', label: 'N is bigger than W', hint: 'Then there would be a resultant force upward. Are you accelerating?' },
         { id: 'equal', label: 'N is equal to W', correct: true },

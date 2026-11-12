@@ -42,12 +42,12 @@ export function VtFigure({ fig, tap }: { fig: VtFig; tap?: TapProps }) {
       {fig.phases.map((ph, i) => {
         const m = tap?.marks?.[ph.id];
         const on = tap?.selected === ph.id;
-        const fill = m === 'right' ? p.okBg : m === 'wrong' ? p.badBg : on ? '#FFFFFF' : 'none';
+        const fill = m === 'right' ? p.okBg : m === 'wrong' ? p.badBg : on ? p.selectBg : 'none';
         const x1 = X(pts[i].t);
         const x2 = X(pts[i + 1].t);
         return (
           <Group key={ph.id}>
-            <Rect x={x1 + 1} y={O.y - PLOT_H - 24} width={x2 - x1 - 2} height={PLOT_H + 24} rx={6} fill={fill} stroke={on || m ? (m === 'right' ? p.ok : m === 'wrong' ? p.bad : p.ink) : 'none'} strokeWidth={2} />
+            <Rect x={x1 + 1} y={O.y - PLOT_H - 24} width={x2 - x1 - 2} height={PLOT_H + 24} rx={6} fill={fill} stroke={on || m ? (m === 'right' ? p.ok : m === 'wrong' ? p.bad : p.select) : 'none'} strokeWidth={2} />
             <ForceLetter x={(x1 + x2) / 2} y={O.y - PLOT_H - 6} text={ph.id} color={p.ink} size={16} />
             {i > 0 && <Line x1={x1} y1={O.y} x2={x1} y2={O.y - PLOT_H - 24} stroke={p.lineStrong} strokeWidth={1} strokeDasharray="3 4" />}
           </Group>

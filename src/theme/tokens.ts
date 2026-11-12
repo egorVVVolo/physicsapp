@@ -18,8 +18,8 @@ export const palette = {
   disabled: '#ECEEF1',
   onDisabled: '#5A626E',
   // answer cards
-  select: '#1A1E25', // border of the chosen card
-  selectBg: '#F2F4F6',
+  select: '#2E66DB', // border of the chosen card (and of a chosen part of a figure): the course blue
+  selectBg: '#E6EEFE',
   // verdicts
   ok: '#1B7F45',
   okLip: '#12592F',

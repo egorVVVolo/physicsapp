@@ -62,7 +62,7 @@ export function PuckRow({ r, levelId, color, state, picked, next, cx, cy, labelL
 
   useEffect(() => {
     if (reduced) return;
-    appear.set(withDelay(Math.min(order, 12) * 45, withSpring(1, { damping: 13, stiffness: 140 })));
+    appear.set(withDelay(Math.min(order, 12) * 45, withTiming(1, { duration: 360, easing: Easing.out(Easing.cubic) })));
   }, [appear, order, reduced]);
 
   useEffect(() => {

@@ -45,9 +45,9 @@ export const SCALES_H = 30;
 
 /**
  * Bathroom scales on the floor at height y, centred on x. The display on the front face shows `reading`
- * ("60.0 kg", or "- - -" when it is hidden).
+ * ("60.0 kg", or "- - -" when it is hidden); with `reading` null the front face is plain.
  */
-export function Scales({ x, y, reading, width = 96 }: { x: number; y: number; reading: string; width?: number }) {
+export function Scales({ x, y, reading, width = 96 }: { x: number; y: number; reading: string | null; width?: number }) {
   const { palette: p } = useTheme();
   const w = width / 2;
   const front = 23; // front face height
@@ -58,8 +58,12 @@ export function Scales({ x, y, reading, width = 96 }: { x: number; y: number; re
       <Polygon points={`${x - w},${top} ${x + w},${top} ${x + w - 7},${y - SCALES_H} ${x - w + 7},${y - SCALES_H}`} fill={p.scalesTop} stroke={p.draw} strokeWidth={1.8} strokeLinejoin="round" />
       {/* front face with the display */}
       <Rect x={x - w} y={top} width={width} height={front} rx={3} fill={p.scalesFront} stroke={p.draw} strokeWidth={1.8} />
-      <Rect x={x - 31} y={top + 4} width={62} height={15} rx={3} fill="#FFFFFF" stroke={p.draw} strokeWidth={1.2} />
-      <MonoLabel x={x} y={top + 15.5} text={reading} color={p.ink} size={11} />
+      {reading !== null && (
+        <G>
+          <Rect x={x - 31} y={top + 4} width={62} height={15} rx={3} fill="#FFFFFF" stroke={p.draw} strokeWidth={1.2} />
+          <MonoLabel x={x} y={top + 15.5} text={reading} color={p.ink} size={11} />
+        </G>
+      )}
     </G>
   );
 }

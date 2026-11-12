@@ -85,7 +85,7 @@ export function QuestionView({ screen, figN, phase, earlierPick, onOutcome, onNe
     >
       <Prompt>{screen.prompt}</Prompt>
       {earlierPick && (
-        <View style={[styles.earlier, { backgroundColor: p.selectBg }]}>
+        <View style={[styles.earlier, { backgroundColor: p.paper }]}>
           <Text style={[styles.earlierText, { color: p.muted }]}>You said earlier: {earlierPick.label.toLowerCase()}</Text>
         </View>
       )}
