@@ -9,6 +9,7 @@ import { useTheme } from '@/theme/ThemeContext';
 import { font } from '@/theme/tokens';
 import { Mark, MainButton, OptionCard, OptionList } from '@/ui/parts';
 import { Slider } from '@/ui/Slider';
+import { haptic } from '@/ui/haptics';
 import { Frame } from '../Frame';
 import { Instruction, Prompt } from '../text';
 
@@ -53,7 +54,11 @@ export function ExploreView({ screen, figN, onNext }: { screen: ExploreScreen; f
                 disabled={solved || wrong.includes(o.id)}
                 onPress={() => {
                   setSel(o.id);
-                  if (!o.correct) setWrong((w) => [...w, o.id]);
+                  if (o.correct) haptic.right();
+                  else {
+                    haptic.wrong();
+                    setWrong((w) => [...w, o.id]);
+                  }
                 }}
               />
             ))}

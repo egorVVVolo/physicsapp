@@ -4,7 +4,12 @@ import assert from 'node:assert/strict';
 import { lessons } from './lessons.ts';
 import { CANDIDATE_IDS, PAIR_IDS, isQuestion, type Fig, type Screen } from './types.ts';
 
-const max = (text: string, n: number, where: string) => assert.ok(text.length <= n, `${where}: ${text.length} > ${n} characters: "${text}"`);
+// **key words** are bold on screen: the stars do not count, but they must come in pairs
+const max = (text: string, n: number, where: string) => {
+  assert.equal(text.split('**').length % 2, 1, `${where}: unpaired ** in "${text}"`);
+  const shown = text.replaceAll('**', '');
+  assert.ok(shown.length <= n, `${where}: ${shown.length} > ${n} characters: "${shown}"`);
+};
 
 function targets(fig: Fig): readonly string[] {
   if (fig.kind === 'pairs') return PAIR_IDS;

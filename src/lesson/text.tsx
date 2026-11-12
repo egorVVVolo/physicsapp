@@ -8,9 +8,14 @@ export function Title({ children }: { children: string }) {
   return <Text accessibilityRole="header" style={[t.title, { color: p.ink }]}>{children}</Text>;
 }
 
+/** Reading text. Words wrapped in **double stars** are the key words of the screen and are set in bold. */
 export function Body({ children, style, ...rest }: TextProps & { children: string }) {
   const { palette: p } = useTheme();
-  return <Text {...rest} style={[t.body, { color: p.ink }, style]}>{children}</Text>;
+  return (
+    <Text {...rest} style={[t.body, { color: p.ink }, style]}>
+      {children.split('**').map((part, i) => (i % 2 === 1 ? <Text key={i} style={t.key}>{part}</Text> : part))}
+    </Text>
+  );
 }
 
 /** The question itself: the first thing to read on a question screen. */
@@ -39,7 +44,8 @@ export function TermCard({ term, text }: { term: string; text: string }) {
 const t = StyleSheet.create({
   title: { fontFamily: font.display, fontSize: 32, lineHeight: 38, letterSpacing: -0.4 },
   body: { fontFamily: font.body, fontSize: 19, lineHeight: 29 },
-  prompt: { fontFamily: font.bodyMedium, fontSize: 19, lineHeight: 28 },
+  prompt: { fontFamily: font.displaySemi, fontSize: 21, lineHeight: 28, letterSpacing: -0.1 },
+  key: { fontFamily: font.bodyBold },
   instruction: { fontFamily: font.bodyMedium, fontSize: 15, lineHeight: 21, marginTop: -8 },
   card: { borderWidth: 1, borderRadius: 14, paddingHorizontal: 18, paddingVertical: 16, gap: 6 },
   term: { fontFamily: font.display, fontSize: 19 },

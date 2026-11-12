@@ -50,7 +50,7 @@ export type Tone = 'primary' | 'ok' | 'level';
 export function MainButton({ label, onPress, disabled, tone = 'primary', color }: { label: string; onPress?: () => void; disabled?: boolean; tone?: Tone; color?: { main: string; lip: string } }) {
   const { palette: p } = useTheme();
   const main = disabled ? p.disabled : tone === 'ok' ? p.ok : tone === 'level' && color ? color.main : p.primary;
-  const lip = disabled ? p.disabled : tone === 'ok' ? p.okLip : tone === 'level' && color ? color.lip : p.primaryLip;
+  const lip = disabled ? p.disabledLip : tone === 'ok' ? p.okLip : tone === 'level' && color ? color.lip : p.primaryLip;
   return (
     <Pressable accessibilityRole="button" accessibilityState={{ disabled: !!disabled }} disabled={disabled || !onPress} onPress={onPress} style={[styles.buttonWrap, { backgroundColor: lip }]}>
       {({ pressed }) => (
@@ -168,7 +168,7 @@ export function VerdictSheet({ verdict, button }: { verdict: Verdict; button: { 
       </View>
       {verdict.text ? <Text style={[styles.sheetText, { color: text }]}>{verdict.text}</Text> : null}
       {whyOpen && verdict.why ? <Text style={[styles.sheetText, { color: text }]}>{verdict.why}</Text> : null}
-      <View style={{ marginTop: 14 }}>
+      <View style={{ marginTop: 12 }}>
         <MainButton label={button.label} onPress={button.onPress} tone={ok ? 'ok' : 'primary'} />
       </View>
     </Animated.View>
@@ -187,9 +187,9 @@ const styles = StyleSheet.create({
   cardCompact: { paddingHorizontal: 10, alignItems: 'center' },
   cardText: { fontSize: 17, lineHeight: 23, fontFamily: font.bodyMedium },
   badge: { position: 'absolute', top: -8, right: -8 },
-  sheet: { position: 'absolute', left: 0, right: 0, bottom: 0, paddingHorizontal: 20, paddingTop: 18, paddingBottom: 22, borderTopLeftRadius: 24, borderTopRightRadius: 24 },
+  sheet: { paddingHorizontal: 20, paddingTop: 16, paddingBottom: 20, borderTopLeftRadius: 24, borderTopRightRadius: 24 },
   sheetHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, minHeight: touch },
   sheetTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 8, flexShrink: 1 },
-  sheetTitle: { fontSize: 24, fontFamily: font.display },
+  sheetTitle: { fontSize: 22, fontFamily: font.display },
   sheetText: { fontSize: 16, lineHeight: 23, fontFamily: font.bodyMedium, marginTop: 8 },
 });

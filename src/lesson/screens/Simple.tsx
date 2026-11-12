@@ -7,6 +7,7 @@ import { Puck } from '@/figures/Puck';
 import { useTheme } from '@/theme/ThemeContext';
 import { font, levelColors } from '@/theme/tokens';
 import { MainButton, OptionCard, OptionList } from '@/ui/parts';
+import { haptic } from '@/ui/haptics';
 import { Frame } from '../Frame';
 import { Body, Prompt, TermCard, Title } from '../text';
 
@@ -22,7 +23,7 @@ export function IntroView({ screen, figN, onNext }: { screen: IntroScreen; figN:
 
 export function TextView({ screen, figN, onNext }: { screen: TextScreen; figN: number; onNext: () => void }) {
   return (
-    <Frame center={!screen.fig} footer={<MainButton label="Continue" onPress={onNext} />}>
+    <Frame footer={<MainButton label="Continue" onPress={onNext} />}>
       {screen.fig && <Sheet fig={screen.fig} n={figN} />}
       {screen.body.map((para, i) => (
         <Body key={i}>{para}</Body>
@@ -32,12 +33,12 @@ export function TextView({ screen, figN, onNext }: { screen: TextScreen; figN: n
   );
 }
 
-/** A prediction: any pick is fine. The pick is kept and shown again when the story comes back to it. */
+/** A prediction: any pick is fine. Once picked, the button says what comes next ("Let's find out").
+ * The pick is kept and shown again when the story comes back to it. */
 export function PredictView({ screen, figN, picked, onPick, onNext }: { screen: PredictScreen; figN: number; picked?: string; onPick: (id: string) => void; onNext: () => void }) {
-  const { palette: p } = useTheme();
   const [sel, setSel] = useState<string | null>(picked ?? null);
   return (
-    <Frame footer={<MainButton label="Continue" onPress={onNext} disabled={!sel} />}>
+    <Frame footer={<MainButton label={sel ? screen.after : 'Continue'} onPress={onNext} disabled={!sel} />}>
       <Prompt>{screen.prompt}</Prompt>
       {screen.fig && <Sheet fig={screen.fig} n={figN} />}
       <OptionList grid>
@@ -48,6 +49,7 @@ export function PredictView({ screen, figN, picked, onPick, onNext }: { screen: 
               label={o.label}
               state={sel === o.id ? 'selected' : 'idle'}
               onPress={() => {
+                haptic.pick();
                 setSel(o.id);
                 onPick(o.id);
               }}
@@ -55,7 +57,6 @@ export function PredictView({ screen, figN, picked, onPick, onNext }: { screen: 
           </View>
         ))}
       </OptionList>
-      {sel && <Text style={[styles.after, { color: p.muted }]}>{screen.after}</Text>}
     </Frame>
   );
 }
@@ -77,6 +78,5 @@ export function CheckIntroView({ count, onNext }: { count: number; onNext: () =>
 
 const styles = StyleSheet.create({
   half: { flexBasis: '47%', flexGrow: 1 },
-  after: { fontFamily: font.bodyMedium, fontSize: 17 },
   lead: { fontFamily: font.body, fontSize: 18, lineHeight: 27, textAlign: 'center', maxWidth: 340 },
 });

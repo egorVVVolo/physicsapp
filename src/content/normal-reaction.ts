@@ -83,26 +83,26 @@ export const normalReaction: Lesson = {
       prompt: 'You stand on the scales in a lift. The lift starts moving up. What happens to the reading?',
       fig: lift({ a: PUZZLE.a, motion: { u: 0, text: 'starting up' } }),
       options: [...hookOptions, { id: 'unsure', label: "I'm not sure" }],
-      after: "Let's find out.",
+      after: "Let's find out",
     },
     {
       id: 'weight',
       kind: 'text',
-      body: [`Gravity pulls you down with your weight, W = mg. For you, that is ${newtons(ANSWERS.weight)}.`],
+      body: [`Gravity pulls you down with your **weight**, W = mg. For you, that is ${newtons(ANSWERS.weight)}.`],
       fig: lift({ forces: ['W'], values: true, showG: true }),
     },
     {
       id: 'fbd',
       kind: 'text',
       body: [
-        'On the right of the drawing you are shrunk to a dot, with one arrow for each force on you. This is a free-body diagram.',
+        'On the right of the drawing you are shrunk to a dot, with one arrow for each force on you. This is a **free-body diagram**.',
         'The longer the arrow, the bigger the force.',
       ],
     },
     {
       id: 'two-forces',
       kind: 'text',
-      body: ['The scales push back up on your feet. This push is called the normal reaction, N.'],
+      body: ['The scales push back up on your feet. This push is called the **normal reaction**, N.'],
       fig: lift({ forces: ['W', 'N'], unknownN: true, nOnPerson: true }),
     },
     {
@@ -127,7 +127,7 @@ export const normalReaction: Lesson = {
       id: 'what-scales-read',
       kind: 'text',
       body: [
-        'So scales do not measure your weight. They measure N, the push on you, and show N ÷ g in kilograms.',
+        'So scales do not measure your weight. They measure **N**, the push on you, and show N ÷ g in kilograms.',
         'If N changes, the number changes, even though your mass stays the same.',
       ],
       card: { term: 'Normal reaction', text: 'The push of a surface on an object, at right angles to the surface.' },
@@ -165,7 +165,7 @@ export const normalReaction: Lesson = {
       kind: 'text',
       body: [
         "Take up as positive. The resultant force on you is N − W, and Newton's second law says it equals ma.",
-        'So N = W + ma = m(g + a), where a is the acceleration of the lift.',
+        'So **N = W + ma = m(g + a)**, where a is the acceleration of the lift.',
       ],
       card: { term: 'N = m(g + a)', text: 'Up is positive. If the lift accelerates downward, a is negative.' },
     },
@@ -212,7 +212,7 @@ export const normalReaction: Lesson = {
     {
       id: 'pairs',
       kind: 'text',
-      body: ["N and W both act on you. A Newton's third law pair always acts on two different objects."],
+      body: ["N and W both act on you. A **Newton's third law pair** always acts on two different objects."],
       fig: { kind: 'pairs', m: M, explode: true },
     },
     {

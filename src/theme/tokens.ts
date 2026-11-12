@@ -16,6 +16,7 @@ export const palette = {
   primaryLip: '#000000',
   onPrimary: '#FFFFFF',
   disabled: '#ECEEF1',
+  disabledLip: '#D2D7DE', // a disabled main button keeps a grey lip, so it still reads as a button
   onDisabled: '#5A626E',
   // answer cards
   select: '#2E66DB', // border of the chosen card (and of a chosen part of a figure): the course blue

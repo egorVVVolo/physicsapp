@@ -9,6 +9,7 @@ import { outcomeOf, STORY_TRIES, type Outcome, type Phase } from '@/session/logi
 import { useTheme } from '@/theme/ThemeContext';
 import { font, radius } from '@/theme/tokens';
 import { MainButton, OptionCard, OptionList, VerdictSheet, type CardState, type Verdict } from '@/ui/parts';
+import { haptic } from '@/ui/haptics';
 import { Frame } from '../Frame';
 import { Instruction, Prompt } from '../text';
 
@@ -36,10 +37,12 @@ export function QuestionView({ screen, figN, phase, earlierPick, onOutcome, onNe
   const check = () => {
     if (!sel) return;
     if (sel === right.id) {
+      haptic.right();
       onOutcome(outcomeOf(wrong.length, phase));
       setStatus('right');
       return;
     }
+    haptic.wrong();
     const missed = [...wrong, sel];
     setWrong(missed);
     if (missed.length >= tries) {
@@ -97,7 +100,16 @@ export function QuestionView({ screen, figN, phase, earlierPick, onOutcome, onNe
          
           tap={
             screen.kind === 'tapFig'
-              ? { selected: sel, marks: tapMarks, disabled: status !== 'answering', onTap: (id) => !wrong.includes(id) && setSel(id) }
+              ? {
+                  selected: sel,
+                  marks: tapMarks,
+                  disabled: status !== 'answering',
+                  onTap: (id) => {
+                    if (wrong.includes(id)) return;
+                    haptic.pick();
+                    setSel(id);
+                  },
+                }
               : undefined
           }
         />
@@ -105,14 +117,21 @@ export function QuestionView({ screen, figN, phase, earlierPick, onOutcome, onNe
       {screen.kind === 'choice' ? (
         <OptionList>
           {screen.options.map((o) => (
-            <OptionCard key={o.id} label={o.label} state={stateOf(o.id)} disabled={status !== 'answering' || wrong.includes(o.id)} onPress={() => setSel(o.id)} />
+            <OptionCard
+              key={o.id}
+              label={o.label}
+              state={stateOf(o.id)}
+              disabled={status !== 'answering' || wrong.includes(o.id)}
+              onPress={() => {
+                haptic.pick();
+                setSel(o.id);
+              }}
+            />
           ))}
         </OptionList>
       ) : (
         <Text style={[styles.pickedLine, { color: picked ? p.ink : p.faint }]}>{picked ? `Your answer: ${picked.label}` : 'Nothing picked yet'}</Text>
       )}
-      {/* room so the verdict sheet never covers the last option */}
-      <View style={{ height: verdict ? 150 : 0 }} />
     </Frame>
   );
 }

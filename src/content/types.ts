@@ -81,7 +81,7 @@ export type IntroScreen = Base & { kind: 'intro'; title: string; body: string; f
 /** Text only (≤ 2 short paragraphs, optional definition card), or a figure with one sentence. */
 export type TextScreen = Base & {
   kind: 'text';
-  body: string[];
+  body: string[]; // **word** marks the key words of the screen (bold)
   card?: { term: string; text: string };
   fig?: Fig;
 };
@@ -92,7 +92,7 @@ export type PredictScreen = Base & {
   prompt: string;
   fig?: Fig;
   options: Option[];
-  after: string; // one line once an option is picked ("Let's find out.")
+  after: string; // the button label once an option is picked ("Let's find out")
 };
 
 /** A question with one right option. */
