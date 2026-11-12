@@ -13,7 +13,7 @@ import { Body, Prompt, TermCard, Title } from '../text';
 export function IntroView({ screen, figN, onNext }: { screen: IntroScreen; figN: number; onNext: () => void }) {
   return (
     <Frame footer={<MainButton label="Start" onPress={onNext} />}>
-      <Sheet fig={screen.fig} n={figN} maxHeight={300} />
+      <Sheet fig={screen.fig} n={figN} />
       <Title>{screen.title}</Title>
       <Body>{screen.body}</Body>
     </Frame>
@@ -39,7 +39,7 @@ export function PredictView({ screen, figN, picked, onPick, onNext }: { screen: 
   return (
     <Frame footer={<MainButton label="Continue" onPress={onNext} disabled={!sel} />}>
       <Prompt>{screen.prompt}</Prompt>
-      {screen.fig && <Sheet fig={screen.fig} n={figN} maxHeight={240} />}
+      {screen.fig && <Sheet fig={screen.fig} n={figN} />}
       <OptionList grid>
         {screen.options.map((o) => (
           <View key={o.id} style={styles.half}>

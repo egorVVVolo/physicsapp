@@ -25,7 +25,7 @@ export function ExploreView({ screen, figN, onNext }: { screen: ExploreScreen; f
   return (
     <Frame footer={<MainButton label="Continue" onPress={onNext} disabled={!solved} />}>
       <Prompt>{screen.instruction}</Prompt>
-      <Sheet fig={screen.fig} n={figN} a={a} maxHeight={250} />
+      <Sheet fig={screen.fig} n={figN} a={a} />
       <Slider
         value={a}
         min={screen.slider.min}

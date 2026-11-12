@@ -1,7 +1,8 @@
 // Every number in the lesson is recomputed from the physics model, and every wrong option is a named mistake.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { normalReaction as L, ANSWERS, CALC, DOWN_SLOW, M, TRIP, newtons } from './normal-reaction.ts';
+import { normalReaction as L, ANSWERS, CALC, DOWN_SLOW, M, SLOW, TRIP, newtons } from './normal-reaction.ts';
+import { timeAtRest } from '../physics/kinematics.ts';
 import { G } from '../physics/kinematics.ts';
 import type { Question } from './types.ts';
 
@@ -63,4 +64,17 @@ test('numbers never break from their units', () => {
     const texts = 'prompt' in s ? [s.prompt] : [];
     for (const t of texts) assert.ok(!/\d (kg|N|m s)/.test(t) && !/ m s⁻/.test(t), `${s.id}: use a no-break space before units`);
   }
+});
+
+test('the puzzle: 60.0 kg at home, 69.2 kg in a lift starting up at +1.5 m s⁻² (scales show N ÷ g)', () => {
+  assert.equal(ANSWERS.scales.home, '60.0\u00a0kg');
+  assert.equal(ANSWERS.scales.startingUp, '69.2\u00a0kg');
+  const intro = L.story[0];
+  assert.ok(intro.kind === 'intro' && intro.body.includes(ANSWERS.scales.home));
+  assert.ok(q('hook-again').why.includes(ANSWERS.scales.startingUp));
+});
+
+test('the slowing lift is still moving up for a while (it does not stop at once)', () => {
+  const t = timeAtRest({ s0: 0, u: SLOW.u, a: SLOW.a });
+  assert.ok(SLOW.u > 0 && SLOW.a < 0 && t !== null && t > 1);
 });

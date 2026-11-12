@@ -2,11 +2,12 @@
 // It sizes the SVG to the available width and lays tap targets (if any) over the drawing.
 import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import Svg from 'react-native-svg';
+import Svg, { Path, Rect } from 'react-native-svg';
 import type { Fig } from '@/content/types';
 import { useTheme } from '@/theme/ThemeContext';
 import { font, radius } from '@/theme/tokens';
-import { LIFT_VB, LiftFigure, liftParams, liftTargets } from './LiftFigure';
+import { useReducedMotionPref } from '@/ui/parts';
+import { LIFT_VB, LiftFigure, liftMoves, liftParams, liftTargets } from './LiftFigure';
 import { PAIRS_VB, PairsFigure, pairsTargets } from './PairsFigure';
 import { VT_VB, VtFigure, vtTargets } from './VtFigure';
 
@@ -24,23 +25,28 @@ type Props = {
   /** Live acceleration of a lift figure (the explore slider); defaults to the figure's own value. */
   a?: number;
   tap?: TapProps;
-  maxHeight?: number;
 };
 
-export function Sheet({ fig, n, a, tap, maxHeight }: Props) {
+/** Every figure is drawn at the same size on every screen, so the drawing never jumps between screens. */
+const MAX_H = 270;
+
+export function Sheet({ fig, n, a, tap }: Props) {
   const { palette: p } = useTheme();
   const [width, setWidth] = useState(0);
+  const [playing, setPlaying] = useState(true);
+  const reduced = useReducedMotionPref();
   const vb = fig.kind === 'lift' ? LIFT_VB : fig.kind === 'pairs' ? PAIRS_VB : VT_VB;
   const aNow = fig.kind === 'lift' ? (a ?? fig.a) : 0;
   let w = width;
   let h = (width * vb.h) / vb.w;
-  if (maxHeight && h > maxHeight) {
-    h = maxHeight;
+  if (h > MAX_H) {
+    h = MAX_H;
     w = (h * vb.w) / vb.h;
   }
   const scale = w / vb.w;
+  const animates = fig.kind === 'lift' && liftMoves(fig, aNow) && !reduced;
   const targets = !tap ? [] : fig.kind === 'lift' ? liftTargets(fig) : fig.kind === 'pairs' ? pairsTargets() : vtTargets(fig);
-  const params = fig.kind === 'lift' ? liftParams(fig, aNow) : fig.kind === 'pairs' ? `m = ${fig.m} kg` : 'lift trip, upward';
+  const params = fig.kind === 'lift' ? liftParams(fig, aNow, a !== undefined) : fig.kind === 'pairs' ? `m = ${fig.m} kg` : 'lift trip, upward';
 
   return (
     <View style={[styles.sheet, { backgroundColor: p.paper, borderColor: p.paperLine }]}>
@@ -49,12 +55,32 @@ export function Sheet({ fig, n, a, tap, maxHeight }: Props) {
         <Text style={[styles.params, { color: p.label }]} numberOfLines={1}>
           {params}
         </Text>
+        {animates && (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={playing ? 'Pause the animation' : 'Play the animation'}
+            onPress={() => setPlaying((x) => !x)}
+            hitSlop={12}
+            style={[styles.play, { borderColor: p.paperLine }]}
+          >
+            <Svg width={12} height={12} viewBox="0 0 12 12">
+              {playing ? (
+                <>
+                  <Rect x={2} y={1.5} width={3} height={9} rx={0.8} fill={p.label} />
+                  <Rect x={7} y={1.5} width={3} height={9} rx={0.8} fill={p.label} />
+                </>
+              ) : (
+                <Path d="M3,1.5 L10.5,6 L3,10.5 Z" fill={p.label} />
+              )}
+            </Svg>
+          </Pressable>
+        )}
       </View>
       <View style={styles.body} onLayout={(e) => setWidth(e.nativeEvent.layout.width)}>
         {width > 0 && (
           <View style={{ width: w, height: h, alignSelf: 'center' }}>
             <Svg width={w} height={h} viewBox={`0 0 ${vb.w} ${vb.h}`}>
-              {fig.kind === 'lift' && <LiftFigure fig={fig} a={aNow} tap={tap} />}
+              {fig.kind === 'lift' && <LiftFigure fig={fig} a={aNow} tap={tap} playing={playing && !reduced} />}
               {fig.kind === 'pairs' && <PairsFigure tap={tap} />}
               {fig.kind === 'vt' && <VtFigure fig={fig} tap={tap} />}
             </Svg>
@@ -80,6 +106,7 @@ const styles = StyleSheet.create({
   sheet: { borderWidth: 1, borderRadius: radius.m, paddingTop: 10, paddingBottom: 8, paddingHorizontal: 10, alignSelf: 'stretch' },
   head: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', gap: 12, paddingHorizontal: 4 },
   fig: { fontFamily: font.monoBold, fontSize: 11, letterSpacing: 1 },
-  params: { fontFamily: font.mono, fontSize: 11, flexShrink: 1 },
+  params: { fontFamily: font.mono, fontSize: 11, flex: 1, textAlign: 'right' },
   body: { alignSelf: 'stretch', marginTop: 4 },
+  play: { width: 24, height: 24, borderRadius: 12, borderWidth: 1, alignItems: 'center', justifyContent: 'center', marginVertical: -6 },
 });

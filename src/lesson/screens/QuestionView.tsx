@@ -3,7 +3,7 @@
 // and after the last allowed miss the right answer is shown with Why? (honest "revealed").
 import { useMemo, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import type { Option, Question } from '@/content/types';
+import type { Fig, Option, Question } from '@/content/types';
 import { Sheet } from '@/figures/Sheet';
 import { outcomeOf, STORY_TRIES, type Outcome, type Phase } from '@/session/logic';
 import { useTheme } from '@/theme/ThemeContext';
@@ -92,9 +92,9 @@ export function QuestionView({ screen, figN, phase, earlierPick, onOutcome, onNe
       {screen.kind === 'tapFig' && <Instruction>{screen.instruction}</Instruction>}
       {screen.fig && (
         <Sheet
-          fig={locked && screen.fig.kind === 'lift' && screen.fig.unknownN ? { ...screen.fig, unknownN: undefined } : screen.fig}
+          fig={locked ? revealed(screen.fig) : screen.fig}
           n={figN}
-          maxHeight={screen.kind === 'tapFig' ? 320 : 230}
+         
           tap={
             screen.kind === 'tapFig'
               ? { selected: sel, marks: tapMarks, disabled: status !== 'answering', onTap: (id) => !wrong.includes(id) && setSel(id) }
@@ -115,6 +115,12 @@ export function QuestionView({ screen, figN, phase, earlierPick, onOutcome, onNe
       <View style={{ height: verdict ? 150 : 0 }} />
     </Frame>
   );
+}
+
+/** After the answer the figure shows what the question hid: the real N arrow, the number on the scales. */
+function revealed(fig: Fig): Fig {
+  if (fig.kind !== 'lift') return fig;
+  return { ...fig, unknownN: undefined, reading: fig.reading === 'afterCheck' ? 'shown' : fig.reading };
 }
 
 const styles = StyleSheet.create({

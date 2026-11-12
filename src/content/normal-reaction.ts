@@ -1,17 +1,22 @@
 // Lesson "The push from the floor" — normal reaction, WPH11 points 8, 9, 10, 12 (and 3 in the Skill check).
-// The puzzle: bathroom scales in a lift stop showing your weight. Why?
+// The puzzle: at home the scales say 60.0 kg; in a lift that starts moving up they say 69.2 kg. Did you gain 9 kg?
+// The answer: scales measure the push N (and show N ÷ g), not your weight.
 // Every number below comes from src/physics; wrong options are named mistakes, recomputed by the test.
 import { G } from '../physics/kinematics.ts';
-import { normalInLift, resultant, weight } from '../physics/dynamics.ts';
+import { normalInLift, resultant, scaleKg, weight } from '../physics/dynamics.ts';
 import { fixed } from '../physics/format.ts';
 import type { Lesson, LiftFig, Option } from './types.ts';
 
 /** "679 N": a force rounded to the newton, the way the lesson shows it. */
 export const newtons = (x: number): string => `${fixed(x, 0)}\u00a0N`;
+/** "69.2 kg": what bathroom scales show for a push N (they divide by g). */
+export const kilos = (n: number): string => `${fixed(scaleKg(n), 1)}\u00a0kg`;
 
 // The person in the story and the numbers of each question.
 export const M = 60; // kg
 export const CALC = { m: M, a: 1.5 }; // lift speeding up upward
+export const STEADY_V = 2; // m s⁻¹, the lift moving up at a steady speed
+export const SLOW = { u: 2, a: -1.2 }; // moving up and slowing down
 export const DOWN_SLOW = { m: 75, a: 2.0 }; // lift moving down, slowing down → acceleration upward
 export const TRIP = [
   { id: 'A', dt: 2, a: 1.2 }, // speeding up upward
@@ -27,6 +32,8 @@ export const ANSWERS = {
     subtractedA: normalInLift(CALC.m, -CALC.a), // N = m(g − a)
     onlyMa: resultant(CALC.m, CALC.a), // N = ma
   },
+  /** The puzzle: the reading at home and in a lift starting up at CALC.a. */
+  scales: { home: kilos(weight(M)), startingUp: kilos(normalInLift(M, CALC.a)) },
   freeFall: { right: normalInLift(M, -G), weight: weight(M), double: 2 * weight(M) },
   downSlow: {
     right: normalInLift(DOWN_SLOW.m, DOWN_SLOW.a), // acceleration upward
@@ -56,21 +63,21 @@ export const normalReaction: Lesson = {
       id: 'intro',
       kind: 'intro',
       title: 'The push from the floor',
-      body: 'Bathroom scales are meant to show your weight. Take them into a lift, and they start to disagree.',
-      fig: lift({}),
+      body: `At home your scales say ${ANSWERS.scales.home}. Take them into a lift, and the number starts to change.`,
+      fig: lift({ reading: 'shown' }),
     },
     {
       id: 'hook',
       kind: 'predict',
-      prompt: 'You stand on scales in a lift. The lift starts moving up. What happens to the reading?',
-      fig: lift({}),
+      prompt: 'You stand on the scales in a lift. The lift starts moving up. What happens to the reading?',
+      fig: lift({ a: CALC.a, motion: { u: 0, text: 'starting up' } }),
       options: [...hookOptions, { id: 'unsure', label: "I'm not sure" }],
       after: "Let's find out.",
     },
     {
       id: 'two-forces',
       kind: 'text',
-      body: ['Two forces act on you: your weight W pulls down, and the scales push up with N.'],
+      body: ['Two forces act on you: your weight W pulls down, and the scales push up with a force N.'],
       fig: lift({ forces: ['W', 'N'], unknownN: true }),
     },
     {
@@ -88,14 +95,17 @@ export const normalReaction: Lesson = {
     {
       id: 'what-scales-read',
       kind: 'text',
-      body: ["Scales can't feel your weight. They measure how hard they push on you.", 'So the reading is N, not W.'],
+      body: [
+        "Scales can't feel your weight. They measure how hard they push up on you, N, and show N ÷ g in kilograms.",
+        'So a bigger push shows a bigger number, even though your mass has not changed.',
+      ],
       card: { term: 'Normal reaction', text: 'The push of a surface on an object, at right angles to the surface.' },
     },
     {
       id: 'slider',
       kind: 'explore',
       instruction: "Drag the slider to change the lift's acceleration.",
-      fig: lift({ forces: ['W', 'N'], showAcc: true, showReading: true }),
+      fig: lift({ forces: ['W', 'N'], showAcc: true, reading: 'shown', values: true }),
       slider: { min: -3, max: 3, step: 0.5, label: 'Acceleration of the lift', unit: 'm s⁻²' },
       question: {
         prompt: 'When is N bigger than W?',
@@ -110,12 +120,12 @@ export const normalReaction: Lesson = {
     {
       id: 'steady',
       kind: 'choice',
-      prompt: 'The lift moves up at a steady 2\u00a0m\u00a0s⁻¹. What do the scales read?',
-      fig: lift({ forces: ['W', 'N'], unknownN: true, motion: { dir: 'up', text: 'steady 2\u00a0m\u00a0s⁻¹' } }),
+      prompt: `The lift moves up at a steady ${STEADY_V} m s⁻¹. What do the scales read?`,
+      fig: lift({ forces: ['W', 'N'], unknownN: true, motion: { u: STEADY_V, text: `steady ${STEADY_V} m s⁻¹` } }),
       options: [
-        { id: 'more', label: 'More than W', hint: 'Moving up is not enough. Is the speed changing?' },
-        { id: 'same', label: 'Exactly W', correct: true },
-        { id: 'less', label: 'Less than W', hint: 'A smaller N needs a downward acceleration. Is the lift slowing?' },
+        { id: 'more', label: 'More than at rest', hint: 'Moving up is not enough. Is the speed changing?' },
+        { id: 'same', label: 'The same as at rest', correct: true },
+        { id: 'less', label: 'Less than at rest', hint: 'A smaller N needs a downward acceleration. Is the lift slowing?' },
       ],
       why: 'Steady speed means a = 0. With no acceleration the resultant force is zero, so N = W, however fast the lift goes.',
     },
@@ -131,7 +141,7 @@ export const normalReaction: Lesson = {
     {
       id: 'calc',
       kind: 'choice',
-      prompt: `Your mass is ${CALC.m}\u00a0kg and g = ${G}\u00a0N\u00a0kg⁻¹. The lift accelerates upward at ${fixed(CALC.a, 1)}\u00a0m\u00a0s⁻². What is N?`,
+      prompt: `Your mass is ${CALC.m} kg and g = ${G} N kg⁻¹. The lift accelerates upward at ${fixed(CALC.a, 1)} m s⁻². What is N?`,
       fig: lift({ m: CALC.m, a: CALC.a, forces: ['W', 'N'], unknownN: true, showAcc: true }),
       options: [
         { id: 'only-ma', label: newtons(c.onlyMa), hint: "That's only the resultant force ma. N = W + ma." },
@@ -146,7 +156,7 @@ export const normalReaction: Lesson = {
       kind: 'tapFig',
       prompt: 'The lift is moving up but slowing down. How long is the N arrow?',
       instruction: 'Tap the N arrow you expect.',
-      fig: lift({ forces: ['W'], candidates: true, motion: { dir: 'up', text: 'slowing down' } }),
+      fig: lift({ a: SLOW.a, forces: ['W'], candidates: true, motion: { u: SLOW.u, text: 'slowing down' } }),
       options: [
         { id: 'shorter', label: 'Shorter than W', correct: true },
         { id: 'equal', label: 'Equal to W', hint: 'Equal arrows mean no acceleration. Is the speed changing?' },
@@ -159,13 +169,13 @@ export const normalReaction: Lesson = {
       kind: 'choice',
       revisitOf: 'hook',
       prompt: 'Back to the start. The lift starts moving up. What happens to the reading?',
-      fig: lift({}),
+      fig: lift({ a: CALC.a, motion: { u: 0, text: 'starting up' }, reading: 'afterCheck' }),
       options: [
         { ...hookOptions[0], correct: true },
         { ...hookOptions[1], hint: 'Starting to move means the speed is changing. Which way is a?' },
         { ...hookOptions[2], hint: 'The lift is speeding up, so a is not zero.' },
       ],
-      why: 'Starting to move up means speeding up upward: a points up, so N = m(g + a) is bigger than W. The scales show more.',
+      why: `Speeding up upward: a points up, so N = m(g + a) is bigger than W. At +${fixed(CALC.a, 1)} m s⁻² the scales show ${ANSWERS.scales.startingUp}, not ${ANSWERS.scales.home}.`,
     },
     {
       id: 'pairs',
@@ -191,8 +201,8 @@ export const normalReaction: Lesson = {
     {
       id: 'free-fall',
       kind: 'choice',
-      prompt: `The lift cable snaps and the lift falls freely. What do the scales under a ${M}\u00a0kg person read?`,
-      fig: lift({ a: -G, motion: { dir: 'down', text: 'falling freely' } }),
+      prompt: `The lift cable snaps and the lift falls freely. What is the normal reaction on the ${M}\u00a0kg person?`,
+      fig: lift({ a: -G, motion: { u: 0, text: 'falling freely' } }),
       options: [
         { id: 'zero', label: newtons(ANSWERS.freeFall.right), correct: true },
         { id: 'weight', label: newtons(ANSWERS.freeFall.weight) },
@@ -214,7 +224,7 @@ export const normalReaction: Lesson = {
     {
       id: 'trip',
       kind: 'tapFig',
-      prompt: 'The graph shows a lift trip upward. In which part do the scales read the most?',
+      prompt: 'The graph shows a lift trip upward. In which part do the scales show the biggest number?',
       instruction: 'Tap a part of the graph.',
       fig: { kind: 'vt', phases: TRIP },
       options: [
@@ -237,7 +247,7 @@ export const normalReaction: Lesson = {
     },
   ],
   youCanNow: [
-    'Explain why scales in a lift read more or less than your weight',
+    'Explain why scales in a lift show more or less than at home',
     'Use N = m(g + a) with up as positive',
     "Pick out a Newton's third law pair",
   ],

@@ -4,6 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { Lesson, Screen } from '@/content/types';
 import { itemsOf, next, progressOf, recordOutcome, recordPick, type LessonState } from '@/session/logic';
 import { useTheme } from '@/theme/ThemeContext';
+import { courseBlue } from '@/theme/tokens';
 import { CloseIcon } from '@/ui/parts';
 import { CONTENT_MAX } from './Frame';
 import { ExploreView } from './screens/ExploreView';
@@ -52,11 +53,11 @@ export function LessonPlayer({ lesson, state, onChange, onClose }: Props) {
           <CloseIcon color={p.muted} size={20} />
         </Pressable>
         <View style={[styles.track, { backgroundColor: p.disabled }]} accessible accessibilityRole="progressbar" accessibilityValue={{ min: 0, max: 100, now: Math.round(prog.story * 100) }}>
-          <View style={[styles.fill, { width: `${Math.max(3, prog.story * 100)}%`, backgroundColor: p.ok }]} />
+          <View style={[styles.fill, { width: `${Math.max(3, prog.story * 100)}%`, backgroundColor: courseBlue.main }]} />
         </View>
         <View style={styles.dots} accessible accessibilityLabel={`Skill check: ${prog.checkDone} of ${prog.checkTotal} answered`}>
           {Array.from({ length: prog.checkTotal }, (_, i) => (
-            <View key={i} style={[styles.dot, { backgroundColor: i < prog.checkDone ? p.ok : p.disabled }]} />
+            <View key={i} style={[styles.dot, { backgroundColor: i < prog.checkDone ? courseBlue.main : p.disabled }]} />
           ))}
         </View>
       </View>

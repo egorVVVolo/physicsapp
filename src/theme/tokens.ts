@@ -1,7 +1,7 @@
 // Design tokens, "Brilliant + engineering drawing" look (owner's choice, 11 Nov 2026, night).
 // A plain white page with ink text and one dark main button. The memorable part is the figure:
 // every scene is a drawing sheet (pale drafting paper, FIG label, line art), and every FORCE is drawn
-// in one signature colour, like a reviewer's red pen. Other vectors are told apart by shape, not colour.
+// in one signature colour, the course blue of the map. Other vectors are told apart by shape, not colour.
 // "*Text" colours are the ones used for text (≥ 4.5:1, checked by tokens.test.ts).
 
 export const palette = {
@@ -35,8 +35,8 @@ export const palette = {
   drawFill: '#E2E6EB', // flat fills of bodies
   drawFillDark: '#C3CAD3',
   label: '#4E5663', // FIG labels and dimensions (mono)
-  force: '#C8124F', // every force, everywhere
-  forceText: '#B0103F',
+  force: '#2E66DB', // every force, everywhere: the course blue of the map (12 Nov), so red only ever means "wrong"
+  forceText: '#1F4FB8',
 };
 
 export type Palette = typeof palette;

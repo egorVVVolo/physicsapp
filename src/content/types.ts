@@ -12,16 +12,25 @@ export type LiftFig = {
   kind: 'lift';
   m: number; // mass of the person, kg
   a: number; // acceleration of the lift, m s⁻² (up positive)
-  /** The way the lift is moving, drawn as an outline arrow with a short label ("2 m s⁻¹", "slowing"). */
-  motion?: { dir: 'up' | 'down'; text: string };
+  /**
+   * The lift is moving: the shaft slides past the car, driven by s = ut + ½at² from src/physics.
+   * u is the velocity when the loop starts (up positive); the label sits by an outline arrow ("steady 2 m s⁻¹").
+   * Without it the lift is at rest (or, on an explore screen, starts from rest with the slider's a).
+   */
+  motion?: { u: number; text: string };
   /** Which forces on the person are drawn. */
   forces: ('W' | 'N')[];
   /** Draw N as a dashed stub with "?" instead of its real length (the question asks about it). */
   unknownN?: true;
-  /** Draw the acceleration of the lift (a double chevron) with its value. */
+  /** Draw the acceleration of the lift (a double chevron). */
   showAcc?: true;
-  /** Show the number on the scales display (N, in newtons). Hidden when a question asks about it. */
-  showReading?: true;
+  /**
+   * The scales display, in kg like real bathroom scales (N ÷ g). Hidden ("- - -") by default;
+   * 'afterCheck' keeps it hidden until the question is answered, then shows it.
+   */
+  reading?: 'shown' | 'afterCheck';
+  /** Write the size of each force next to its arrow, in N. */
+  values?: true;
   /** Draw three candidate N arrows (shorter / equal to W / longer) to tap. Their ids are CANDIDATE_IDS. */
   candidates?: true;
 };
