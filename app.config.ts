@@ -9,12 +9,11 @@ const config: ExpoConfig = {
   icon: './assets/images/icon.png',
   scheme: APP_SLUG,
   userInterfaceStyle: 'light',
-  ios: { icon: './assets/expo.icon' },
+  ios: { icon: { light: './assets/images/icon.png', dark: './assets/images/icon-dark.png' } },
   android: {
     adaptiveIcon: {
-      backgroundColor: '#E6F4FE',
+      backgroundColor: '#FFFFFF',
       foregroundImage: './assets/images/android-icon-foreground.png',
-      backgroundImage: './assets/images/android-icon-background.png',
       monochromeImage: './assets/images/android-icon-monochrome.png',
     },
     predictiveBackGestureEnabled: false,
@@ -24,7 +23,7 @@ const config: ExpoConfig = {
     'expo-router',
     'expo-font',
     'expo-status-bar',
-    ['expo-splash-screen', { backgroundColor: '#FFFFFF', image: './assets/images/splash-icon.png', imageWidth: 76 }],
+    ['expo-splash-screen', { backgroundColor: '#FFFFFF', image: './assets/images/splash-icon.png', imageWidth: 120 }],
   ],
   experiments: { typedRoutes: true, reactCompiler: true },
 };
