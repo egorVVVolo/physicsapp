@@ -1,13 +1,15 @@
 // FIG: bathroom scales cut open under a person's feet. The top plate sinks, the springs squash, the push N on the
 // feet grows and the display counts up to N ÷ g. Then the person steps off and it starts again.
 // The final squash, N and the reading come from src/physics/dynamics (weight, scaleKg).
-import { G as Group, Line, Path, Rect } from 'react-native-svg';
+// The first time it appears in a lesson it draws itself (floor → case → springs → plate → legs → fills), with nobody
+// on the scales; the person steps on once the drawing is done.
+import { G as Group, Line, Rect } from 'react-native-svg';
 import { scaleKg, weight } from '@/physics/dynamics';
 import { fixed } from '@/physics/format';
 import type { ScalesFig } from '@/content/types';
 import { useTheme } from '@/theme/ThemeContext';
-import { useLoopTime } from './anim';
-import { ForceArrow, ForceLetter, Hatch, MonoLabel } from './draw';
+import { useDrawIn, useLoopTime } from './anim';
+import { DrawnFade, DrawnPath, ForceArrow, ForceLetter, Hatch, MonoLabel, rectPath } from './draw';
 
 export const SCALES_VB = { w: 340, h: 260 };
 
@@ -24,6 +26,20 @@ const T_OFF = 0.6;
 const T_EMPTY = 0.7;
 const CYCLE = T_ON + T_STAND + T_OFF + T_EMPTY;
 
+// when the pen draws each part, as shares of the draw-in
+const PEN = {
+  floor: [0, 0.2],
+  base: [0.12, 0.26],
+  wallL: [0.18, 0.32],
+  wallR: [0.24, 0.38],
+  springL: [0.3, 0.48],
+  springR: [0.34, 0.52],
+  plate: [0.46, 0.6],
+  legs: [0.52, 0.66],
+  leader: [0.56, 0.64],
+  fill: [0.62, 0.8],
+} as const;
+
 /** 0 = nobody on the scales, 1 = standing still. Eased so the plate settles like a real spring. */
 function squashAt(t: number): number {
   const ease = (x: number) => 1 - (1 - x) ** 3;
@@ -33,42 +49,61 @@ function squashAt(t: number): number {
   return 0;
 }
 
-export function ScalesFigure({ fig, playing }: { fig: ScalesFig; playing: boolean }) {
+export function ScalesFigure({ fig, playing, drawIn = false }: { fig: ScalesFig; playing: boolean; drawIn?: boolean }) {
   const { palette: p } = useTheme();
-  const t = useLoopTime(playing, CYCLE, fig.m, 0);
-  const k = playing ? squashAt(t) : 1; // paused or reduced motion: standing still, the answer to "what does it show"
+  const clock = useDrawIn(drawIn); // starts when the figure mounts, i.e. once the sheet knows its size
+  const drawing = clock.on;
+  const t = useLoopTime(playing && !drawing, CYCLE, fig.m, 0);
+  // while the drawing draws itself: nobody on the scales yet. Paused or reduced motion: standing still, the answer to "what does it show"
+  const k = drawing ? 0 : playing ? squashAt(t) : 1;
   const plate = PLATE_UP + SINK * k;
   const reading = fixed(scaleKg(weight(fig.m) * k), 1);
   const soles = plate - 1;
 
   // a spring between the plate and the floor of the case, as a zigzag of 7 coils
-  const spring = (x: number) => {
+  const spring = (x: number, pen: readonly [number, number]) => {
     const top = plate + 10;
     const n = 14;
     const step = (BASE - top) / n;
     let d = `M${x},${top}`;
     for (let i = 1; i < n; i++) d += ` L${x + (i % 2 ? 13 : -13)},${top + i * step}`;
     d += ` L${x},${BASE}`;
-    return <Path d={d} fill="none" stroke={p.draw} strokeWidth={2.2} strokeLinejoin="round" />;
+    // 2 half-coils of 13 sideways, the rest full coils of 26 sideways, each `step` down
+    const len = 2 * Math.hypot(13, step) + (n - 2) * Math.hypot(26, step);
+    return <DrawnPath clock={clock} len={len} from={pen[0]} to={pen[1]} d={d} fill="none" stroke={p.draw} strokeWidth={2.2} strokeLinejoin="round" />;
+  };
+  // a filled box with an outline: the outline is drawn by the pen, the fill fades in afterwards
+  const box = (x: number, y: number, w: number, h: number, fill: string, pen: readonly [number, number], r = 0) => {
+    const o = rectPath(x, y, w, h, r);
+    return (
+      <Group>
+        <DrawnFade clock={clock} from={PEN.fill[0]} to={PEN.fill[1]}>
+          <Rect x={x} y={y} width={w} height={h} rx={r} fill={fill} />
+        </DrawnFade>
+        <DrawnPath clock={clock} len={o.len} from={pen[0]} to={pen[1]} d={o.d} fill="none" stroke={p.draw} strokeWidth={1.8} />
+      </Group>
+    );
   };
 
   return (
     <Group>
       {/* the case, cut open at the front */}
-      <Rect x={CX - 88} y={BASE} width={176} height={8} fill={p.scalesFront} stroke={p.draw} strokeWidth={1.8} />
-      <Rect x={CX - 88} y={136} width={8} height={BASE - 136} fill={p.scalesFront} stroke={p.draw} strokeWidth={1.8} />
-      <Rect x={CX + 80} y={136} width={8} height={BASE - 136} fill={p.scalesFront} stroke={p.draw} strokeWidth={1.8} />
-      <Hatch x1={CX - 110} x2={CX + 110} y={BASE + 8} color={p.draw} />
-      {spring(CX - 42)}
-      {spring(CX + 42)}
+      {box(CX - 88, BASE, 176, 8, p.scalesFront, PEN.base)}
+      {box(CX - 88, 136, 8, BASE - 136, p.scalesFront, PEN.wallL)}
+      {box(CX + 80, 136, 8, BASE - 136, p.scalesFront, PEN.wallR)}
+      <Hatch x1={CX - 110} x2={CX + 110} y={BASE + 8} color={p.draw} clock={clock} from={PEN.floor[0]} to={PEN.floor[1]} />
+      {spring(CX - 42, PEN.springL)}
+      {spring(CX + 42, PEN.springR)}
       {/* the top plate the feet stand on */}
-      <Rect x={CX - 92} y={plate} width={184} height={10} rx={2} fill={p.scalesTop} stroke={p.draw} strokeWidth={1.8} />
+      {box(CX - 92, plate, 184, 10, p.scalesTop, PEN.plate, 2)}
       {/* the lower legs and shoes of the person (cut off by the sheet), riding down with the plate */}
       <Group opacity={0.25 + 0.75 * Math.min(1, k * 3)}>
-        <Rect x={CX - 26} y={-2} width={20} height={soles - 9} fill={p.trousers} stroke={p.draw} strokeWidth={1.8} />
-        <Rect x={CX + 6} y={-2} width={20} height={soles - 9} fill={p.trousers} stroke={p.draw} strokeWidth={1.8} />
-        <Rect x={CX - 32} y={soles - 12} width={28} height={12} rx={6} fill={p.shoe} />
-        <Rect x={CX + 4} y={soles - 12} width={28} height={12} rx={6} fill={p.shoe} />
+        {box(CX - 26, -2, 20, soles - 9, p.trousers, PEN.legs)}
+        {box(CX + 6, -2, 20, soles - 9, p.trousers, PEN.legs)}
+        <DrawnFade clock={clock} from={PEN.fill[0]} to={PEN.fill[1]}>
+          <Rect x={CX - 32} y={soles - 12} width={28} height={12} rx={6} fill={p.shoe} />
+          <Rect x={CX + 4} y={soles - 12} width={28} height={12} rx={6} fill={p.shoe} />
+        </DrawnFade>
       </Group>
       {/* N: the push of the plate up on the feet */}
       {k > 0.02 && (
@@ -78,13 +113,15 @@ export function ScalesFigure({ fig, playing }: { fig: ScalesFig; playing: boolea
         </Group>
       )}
       {/* labels with leader lines */}
-      <Line x1={CX - 52} y1={196} x2={CX - 98} y2={196} stroke={p.label} strokeWidth={1} />
+      <DrawnPath clock={clock} len={46} from={PEN.leader[0]} to={PEN.leader[1]} d={`M${CX - 52},196 H${CX - 98}`} stroke={p.label} strokeWidth={1} />
       <MonoLabel x={CX - 101} y={199} text="SPRING" color={p.label} size={9} anchor="end" />
-      {/* the display, wired to the plate */}
-      <Line x1={CX + 92} y1={plate + 5} x2={262} y2={plate + 5} stroke={p.lineStrong} strokeWidth={1.2} strokeDasharray="3 3" />
-      <Line x1={262} y1={plate + 5} x2={262} y2={92} stroke={p.lineStrong} strokeWidth={1.2} strokeDasharray="3 3" />
-      <Rect x={226} y={56} width={104} height={36} rx={6} fill={p.ink} />
-      <MonoLabel x={278} y={80} text={`${reading} kg`} color="#FFFFFF" size={15} />
+      {/* the display, wired to the plate (dashed wires cannot be traced by the pen: they fade in with the fills) */}
+      <DrawnFade clock={clock} from={PEN.fill[0]} to={PEN.fill[1]}>
+        <Line x1={CX + 92} y1={plate + 5} x2={262} y2={plate + 5} stroke={p.lineStrong} strokeWidth={1.2} strokeDasharray="3 3" />
+        <Line x1={262} y1={plate + 5} x2={262} y2={92} stroke={p.lineStrong} strokeWidth={1.2} strokeDasharray="3 3" />
+        <Rect x={226} y={56} width={104} height={36} rx={6} fill={p.ink} />
+        <MonoLabel x={278} y={80} text={`${reading} kg`} color="#FFFFFF" size={15} />
+      </DrawnFade>
       <MonoLabel x={278} y={48} text="DISPLAY" color={p.label} size={9} />
     </Group>
   );

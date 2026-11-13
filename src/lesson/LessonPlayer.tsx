@@ -5,6 +5,7 @@ import { BackHandler, Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { Lesson, Screen } from '@/content/types';
 import { itemsOf, next, progressOf, recordOutcome, recordPick, type LessonState } from '@/session/logic';
+import { SeenFigs } from '@/figures/anim';
 import { useTheme } from '@/theme/ThemeContext';
 import { colorOfLesson } from '@/theme/levelColor';
 import { CloseIcon } from '@/ui/parts';
@@ -35,6 +36,8 @@ export function LessonPlayer({ lesson, state, onChange, onClose }: Props) {
   const figs = figNumbers(lesson);
   const prog = progressOf(state, lesson);
   const go = () => onChange(next(state, lesson));
+  // the kinds of figure already shown in this lesson: only the first of each kind draws itself
+  const [seenFigs] = useState(() => new Set<string>());
 
   // × asks "Leave the lesson?" — except on the very first screen, where there is nothing to lose.
   const [leave, setLeave] = useState<'closed' | 'open' | 'closing'>('closed');
@@ -92,7 +95,9 @@ export function LessonPlayer({ lesson, state, onChange, onClose }: Props) {
       </View>
       {/* key: every screen starts with fresh local state */}
       <View style={{ flex: 1 }} key={state.index}>
-        <ScreenEnter>{body}</ScreenEnter>
+        <SeenFigs.Provider value={seenFigs}>
+          <ScreenEnter>{body}</ScreenEnter>
+        </SeenFigs.Provider>
       </View>
       {/* the Skill check splash floods the whole player, the top bar included */}
       {item?.kind === 'checkIntro' && (

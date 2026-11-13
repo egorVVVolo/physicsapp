@@ -1,8 +1,51 @@
 // Small animation clocks for figures. They run on requestAnimationFrame and re-render only the
 // component that uses them (a few SVG lines), which is cheap enough for Expo Go and works on the web.
 // With reduced motion turned on, values jump straight to their target and loops stay still.
-import { useEffect, useRef, useState } from 'react';
+import { createContext, useContext, useEffect, useRef, useState } from 'react';
+import { Easing, useSharedValue, withDelay, withTiming, type SharedValue } from 'react-native-reanimated';
+import { motion } from '@/theme/tokens';
 import { useReducedMotionPref } from '@/ui/parts';
+
+// ── A figure draws itself the first time it appears in a lesson ──
+
+/** While `on`, `t` runs 0 → 1 and each line of the drawing picks its own stretch of it (see DrawnPath). */
+export type DrawClock = { on: false } | { on: true; t: SharedValue<number> };
+export const STILL: DrawClock = { on: false };
+
+const DRAW_DELAY = 380; // the screen slides in first (340 ms)
+const DRAW_MS = motion.scene * 2;
+
+/** The pen's clock: 1.2 s, eased in and out. Not active or reduced motion: the figure is simply there. */
+export function useDrawIn(active: boolean): DrawClock {
+  const reduced = useReducedMotionPref();
+  const run = active && !reduced;
+  const t = useSharedValue(0);
+  const [on, setOn] = useState(run);
+  useEffect(() => {
+    if (!run) {
+      setOn(false);
+      return;
+    }
+    t.set(withDelay(DRAW_DELAY, withTiming(1, { duration: DRAW_MS, easing: Easing.inOut(Easing.cubic) })));
+    // when the pen is done the figure goes back to plain lines (nothing left animating)
+    const id = setTimeout(() => setOn(false), DRAW_DELAY + DRAW_MS + 40);
+    return () => clearTimeout(id);
+  }, [run, t]);
+  return on ? { on: true, t } : STILL;
+}
+
+/** The kinds of figure a lesson has already shown. The lesson player provides it; outside a lesson nothing draws itself. */
+export const SeenFigs = createContext<Set<string> | null>(null);
+
+/** True if this is the first time a figure of this kind appears in the lesson (decided once, when it mounts). */
+export function useFirstShow(kind: string): boolean {
+  const seen = useContext(SeenFigs);
+  const [first] = useState(() => seen !== null && !seen.has(kind));
+  useEffect(() => {
+    seen?.add(kind);
+  }, [seen, kind]);
+  return first;
+}
 
 /**
  * A number that eases to `target` whenever it changes (ease-out cubic). Starts at `from` if given.

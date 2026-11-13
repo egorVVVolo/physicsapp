@@ -1,7 +1,66 @@
 // Drawing-sheet primitives: arrows (force = solid, motion = outline, acceleration = double chevron),
 // a centre-of-gravity mark and mono labels. Coordinates are in each figure's viewBox units.
-import { Circle, G, Line, Path, Polygon, Text as SvgText } from 'react-native-svg';
+import type { ReactNode } from 'react';
+import Animated, { useAnimatedProps, type SharedValue } from 'react-native-reanimated';
+import { Circle, G, Line, Path, Polygon, Text as SvgText, type PathProps } from 'react-native-svg';
 import { svgLetter, svgMono } from '@/theme/svgFont';
+import { STILL, type DrawClock } from './anim';
+
+// ── Drawing itself: a line is traced by the pen, a fill fades in ──
+
+const AnimatedPath = Animated.createAnimatedComponent(Path);
+const AnimatedG = Animated.createAnimatedComponent(G);
+
+/** The share of the pen's clock `t` inside the stretch [from, to], from 0 to 1. */
+function shareOf(t: number, from: number, to: number): number {
+  'worklet';
+  return Math.min(1, Math.max(0, (t - from) / (to - from)));
+}
+
+type DrawnPathProps = PathProps & {
+  clock: DrawClock;
+  /** The length of the path in viewBox units: a figure from above is fine, a figure from below leaves a gap. */
+  len: number;
+  /** When the pen draws this line, as shares of the whole draw-in (0…1). */
+  from: number;
+  to: number;
+};
+
+/** A path the pen traces from its start to its end while the clock runs. Otherwise a plain path. */
+export function DrawnPath({ clock, len, from, to, ...rest }: DrawnPathProps) {
+  if (!clock.on) return <Path {...rest} />;
+  return <TracingPath t={clock.t} len={len} from={from} to={to} {...rest} />;
+}
+
+function TracingPath({ t, len, from, to, ...rest }: PathProps & { t: SharedValue<number>; len: number; from: number; to: number }) {
+  const animatedProps = useAnimatedProps(() => {
+    const k = shareOf(t.get(), from, to);
+    return { strokeDashoffset: len * (1 - k), opacity: k > 0 ? 1 : 0 };
+  });
+  return <AnimatedPath {...rest} strokeDasharray={[len, len]} animatedProps={animatedProps} />;
+}
+
+/** Fills (and anything else that is not a line) fade in over [from, to] while the clock runs. */
+export function DrawnFade({ clock, from, to, children }: { clock: DrawClock; from: number; to: number; children: ReactNode }) {
+  if (!clock.on) return <G>{children}</G>;
+  return (
+    <FadingGroup t={clock.t} from={from} to={to}>
+      {children}
+    </FadingGroup>
+  );
+}
+
+function FadingGroup({ t, from, to, children }: { t: SharedValue<number>; from: number; to: number; children: ReactNode }) {
+  const animatedProps = useAnimatedProps(() => ({ opacity: shareOf(t.get(), from, to) }));
+  return <AnimatedG animatedProps={animatedProps}>{children}</AnimatedG>;
+}
+
+/** The outline of a rectangle as a path (clockwise from the top left), with its length. */
+export function rectPath(x: number, y: number, w: number, h: number, r = 0): { d: string; len: number } {
+  const a = (dx: number, dy: number) => (r ? ` a${r},${r} 0 0 1 ${dx},${dy}` : '');
+  const d = `M${x + r},${y} H${x + w - r}${a(r, r)} V${y + h - r}${a(-r, r)} H${x + r}${a(-r, -r)} V${y + r}${a(r, -r)} Z`;
+  return { d, len: 2 * (w + h) };
+}
 
 /** A solid force arrow from (x1, y1) to (x2, y2), head at the end. Dashed when it is only a candidate. */
 export function ForceArrow({ x1, y1, x2, y2, color, width = 3.2, dashed }: { x1: number; y1: number; x2: number; y2: number; color: string; width?: number; dashed?: boolean }) {
@@ -72,14 +131,21 @@ export function ForceLetter({ x, y, text, color, size = 17, anchor = 'middle' }:
   );
 }
 
-/** Ground hatching under a floor line, as on a drawing. */
-export function Hatch({ x1, x2, y, color }: { x1: number; x2: number; y: number; color: string }) {
-  const lines = [];
-  for (let x = x1; x < x2; x += 9) lines.push(`M${x},${y + 8} L${x + 8},${y}`);
+/** Ground hatching under a floor line, as on a drawing. With a running clock the line is drawn first, then the ticks one by one. */
+export function Hatch({ x1, x2, y, color, clock = STILL, from = 0, to = 1 }: { x1: number; x2: number; y: number; color: string; clock?: DrawClock; from?: number; to?: number }) {
+  const ticks: string[] = [];
+  for (let x = x1; x < x2; x += 9) ticks.push(`M${x},${y + 8} L${x + 8},${y}`);
+  const mid = from + (to - from) * 0.5;
+  const rest = to - mid; // tick i starts a little after tick i − 1; the last one ends exactly at `to`
+  const start = (i: number) => mid + (rest * 0.7 * i) / ticks.length;
   return (
     <G>
-      <Line x1={x1} y1={y} x2={x2} y2={y} stroke={color} strokeWidth={2} />
-      <Path d={lines.join(' ')} stroke={color} strokeWidth={1} opacity={0.55} />
+      <DrawnPath clock={clock} len={x2 - x1} from={from} to={mid} d={`M${x1},${y} H${x2}`} stroke={color} strokeWidth={2} />
+      {clock.on ? (
+        ticks.map((d, i) => <DrawnPath key={i} clock={clock} len={12} from={start(i)} to={start(i) + rest * 0.3} d={d} stroke={color} strokeWidth={1} strokeOpacity={0.55} />)
+      ) : (
+        <Path d={ticks.join(' ')} stroke={color} strokeWidth={1} opacity={0.55} />
+      )}
     </G>
   );
 }
