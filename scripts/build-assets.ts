@@ -190,7 +190,7 @@ console.log(`sounds: ${Object.keys(sounds).length} files in assets/sounds/`);
 
 // ───────────────────────── brand images ─────────────────────────
 const variants: IconVariant[] = ['ink', 'blue', 'white'];
-const DEFAULT_ICON: IconVariant = 'ink'; // the owner picks one on the demo page; change it here and rebuild
+const DEFAULT_ICON: IconVariant = 'white'; // owner's choice, 13 Nov; icon-ink.png is the twin for the phone's dark appearance
 const svgFiles: Record<string, string> = {
   'mark.svg': mark(courseBlue),
   'android-foreground.svg': appIcon(courseBlue, DEFAULT_ICON, { background: false, scale: 5 }),
@@ -200,7 +200,7 @@ for (const v of variants) svgFiles[`icon-${v}.svg`] = appIcon(courseBlue, v, { s
 for (const [name, body] of Object.entries(svgFiles)) writeFileSync(out(`assets/brand/${name}`), body);
 
 function png(svgName: string, pngName: string, w: number, h = w) {
-  execFileSync('magick', ['-background', 'none', '-density', '288', out(`assets/brand/${svgName}`), '-resize', `${w}x${h}`, '-depth', '8', `PNG32:${out(`assets/brand/${pngName}`)}`]);
+  execFileSync('magick', ['-background', 'none', '-density', '288', out(`assets/brand/${svgName}`), '-resize', `${w}x${h}`, '-depth', '8', '-strip', '-define', 'png:exclude-chunks=date,time', `PNG32:${out(`assets/brand/${pngName}`)}`]);
 }
 try {
   for (const v of variants) png(`icon-${v}.svg`, `icon-${v}.png`, 1024);
