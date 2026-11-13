@@ -9,7 +9,7 @@ import { useTheme } from '@/theme/ThemeContext';
 import { font } from '@/theme/tokens';
 import { Mark, MainButton, OptionCard, OptionList } from '@/ui/parts';
 import { Slider } from '@/ui/Slider';
-import { haptic } from '@/ui/haptics';
+import { feedback } from '@/ui/feedback';
 import { Frame } from '../Frame';
 import { Instruction, Prompt } from '../text';
 
@@ -37,6 +37,7 @@ export function ExploreView({ screen, figN, onNext }: { screen: ExploreScreen; f
         format={(v) => `a = ${signed(v, 1)} ${screen.slider.unit}`}
         formatEnd={(v) => signed(v, 0)}
         onChange={(v) => {
+          feedback.step((v - screen.slider.min) / (screen.slider.max - screen.slider.min));
           setA(v);
           setMoved(true);
         }}
@@ -54,9 +55,9 @@ export function ExploreView({ screen, figN, onNext }: { screen: ExploreScreen; f
                 disabled={solved || wrong.includes(o.id)}
                 onPress={() => {
                   setSel(o.id);
-                  if (o.correct) haptic.right();
+                  if (o.correct) feedback.right();
                   else {
-                    haptic.wrong();
+                    feedback.wrong();
                     setWrong((w) => [...w, o.id]);
                   }
                 }}

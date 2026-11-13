@@ -4,6 +4,7 @@ import { AccessibilityInfo, Animated, Platform, Pressable, StyleSheet, Text, Vie
 import Svg, { Path, Rect } from 'react-native-svg';
 import { useTheme } from '@/theme/ThemeContext';
 import { font, LIP, radius, reward, touch } from '@/theme/tokens';
+import { feedback } from './feedback';
 import { Pop, Sparks, useReducedMotionPref } from './motion';
 
 const nativeDriver = Platform.OS !== 'web';
@@ -164,7 +165,17 @@ export function VerdictSheet({ verdict, button }: { verdict: Verdict; button: { 
             {verdict.title}
           </Text>
         </View>
-        {verdict.why && !whyOpen && <PillButton label="Why?" onPress={() => setWhyOpen(true)} color={p.ink} bg="rgba(0,0,0,0.07)" />}
+        {verdict.why && !whyOpen && (
+          <PillButton
+            label="Why?"
+            onPress={() => {
+              feedback.reveal();
+              setWhyOpen(true);
+            }}
+            color={p.ink}
+            bg="rgba(0,0,0,0.07)"
+          />
+        )}
       </View>
       {verdict.text ? <Text style={[styles.sheetText, { color: text }]}>{verdict.text}</Text> : null}
       {whyOpen && verdict.why ? <Text style={[styles.sheetText, { color: text }]}>{verdict.why}</Text> : null}

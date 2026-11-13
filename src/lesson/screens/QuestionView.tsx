@@ -9,7 +9,7 @@ import { outcomeOf, STORY_TRIES, type Outcome, type Phase } from '@/session/logi
 import { useTheme } from '@/theme/ThemeContext';
 import { font, radius } from '@/theme/tokens';
 import { MainButton, OptionCard, OptionList, VerdictSheet, type CardState, type Verdict } from '@/ui/parts';
-import { haptic } from '@/ui/haptics';
+import { feedback } from '@/ui/feedback';
 import { Frame } from '../Frame';
 import { Instruction, Prompt } from '../text';
 
@@ -37,12 +37,12 @@ export function QuestionView({ screen, figN, phase, earlierPick, onOutcome, onNe
   const check = () => {
     if (!sel) return;
     if (sel === right.id) {
-      haptic.right();
+      feedback.right();
       onOutcome(outcomeOf(wrong.length, phase));
       setStatus('right');
       return;
     }
-    haptic.wrong();
+    feedback.wrong();
     const missed = [...wrong, sel];
     setWrong(missed);
     if (missed.length >= tries) {
@@ -106,7 +106,7 @@ export function QuestionView({ screen, figN, phase, earlierPick, onOutcome, onNe
                   disabled: status !== 'answering',
                   onTap: (id) => {
                     if (wrong.includes(id)) return;
-                    haptic.pick();
+                    feedback.pick();
                     setSel(id);
                   },
                 }
@@ -123,7 +123,7 @@ export function QuestionView({ screen, figN, phase, earlierPick, onOutcome, onNe
               state={stateOf(o.id)}
               disabled={status !== 'answering' || wrong.includes(o.id)}
               onPress={() => {
-                haptic.pick();
+                feedback.pick();
                 setSel(o.id);
               }}
             />

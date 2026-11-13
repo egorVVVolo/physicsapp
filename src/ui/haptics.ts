@@ -13,4 +13,8 @@ export const haptic = {
   right: () => on && quiet(Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success)),
   /** The checked answer is wrong. */
   wrong: () => on && quiet(Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error)),
+  /** The lesson is complete: the puck landed. */
+  medium: () => on && quiet(Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium)),
+  /** A stamp hits the paper. */
+  heavy: () => on && quiet(Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy)),
 };

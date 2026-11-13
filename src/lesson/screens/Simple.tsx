@@ -1,5 +1,5 @@
 // Screens without a graded answer: intro, text, prediction and the Skill check splash.
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import type { IntroScreen, PredictScreen, TextScreen } from '@/content/types';
 import { Sheet } from '@/figures/Sheet';
@@ -7,7 +7,7 @@ import { Puck } from '@/figures/Puck';
 import { useTheme } from '@/theme/ThemeContext';
 import { font, type LevelColor } from '@/theme/tokens';
 import { MainButton, OptionCard, OptionList } from '@/ui/parts';
-import { haptic } from '@/ui/haptics';
+import { feedback } from '@/ui/feedback';
 import { Frame } from '../Frame';
 import { Body, Prompt, TermCard, Title } from '../text';
 
@@ -49,7 +49,7 @@ export function PredictView({ screen, figN, picked, onPick, onNext }: { screen: 
               label={o.label}
               state={sel === o.id ? 'selected' : 'idle'}
               onPress={() => {
-                haptic.pick();
+                feedback.pick();
                 setSel(o.id);
                 onPick(o.id);
               }}
@@ -63,6 +63,9 @@ export function PredictView({ screen, figN, picked, onPick, onNext }: { screen: 
 
 export function CheckIntroView({ count, color, onNext }: { count: number; color: LevelColor; onNext: () => void }) {
   const { palette: p } = useTheme();
+  useEffect(() => {
+    feedback.flood();
+  }, []);
   return (
     <Frame center footer={<MainButton label="Start the Skill check" onPress={onNext} />}>
       <View style={{ alignItems: 'center', gap: 18 }}>

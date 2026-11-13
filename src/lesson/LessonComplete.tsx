@@ -14,10 +14,12 @@ import { useTween } from '@/figures/anim';
 import { useTheme } from '@/theme/ThemeContext';
 import { colorOfLesson } from '@/theme/levelColor';
 import { courseBlue, font } from '@/theme/tokens';
+import { feedback } from '@/ui/feedback';
 import { MainButton, useReducedMotionPref } from '@/ui/parts';
 import { Frame } from './Frame';
 
 const PUCK = 132;
+const LAND_MS = 170; // the Drop spring first reaches the floor after ~0.17 s (damping 9, stiffness 140, mass 0.8)
 const BURST = 12; // arrows in the burst
 
 export function LessonComplete({ lesson, state, onDone, onReplay }: { lesson: Lesson; state: LessonState; onDone: () => void; onReplay: () => void }) {
@@ -117,6 +119,9 @@ function Drop({ children, reduced }: { children: ReactNode; reduced: boolean }) 
   const k = useSharedValue(reduced ? 1 : 0);
   useEffect(() => {
     if (!reduced) k.set(withSpring(1, { damping: 9, stiffness: 140, mass: 0.8 }));
+    // the sound and the buzz come when the puck lands; with reduced motion it is already there
+    const id = setTimeout(feedback.complete, reduced ? 0 : LAND_MS);
+    return () => clearTimeout(id);
   }, [k, reduced]);
   const style = useAnimatedStyle(() => ({
     opacity: Math.min(1, k.get() * 2),

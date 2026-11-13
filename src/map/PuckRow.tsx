@@ -19,6 +19,7 @@ import { LessonTile } from '@/figures/LessonIcon';
 import { Puck, PUCK_FACE_Y, PUCK_VB_H, PUCK_VB_W, type LevelColor, type PuckState } from '@/figures/Puck';
 import { useTheme } from '@/theme/ThemeContext';
 import { font } from '@/theme/tokens';
+import { feedback } from '@/ui/feedback';
 import { PUCK } from './layout';
 
 const K = PUCK / PUCK_VB_W; // puck viewBox → pt
@@ -113,7 +114,10 @@ export function PuckRow({ r, levelId, color, state, picked, next, cx, cy, labelL
         accessibilityRole="button"
         accessibilityLabel={`${r.title}${status}`}
         accessibilityState={{ selected: picked }}
-        onPress={onPick}
+        onPress={() => {
+          feedback.pick();
+          onPick();
+        }}
         onPressIn={() => {
           press.set(withTiming(1, { duration: 80 }));
         }}
