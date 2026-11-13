@@ -45,18 +45,20 @@ function CornerBadge({ kind, color }: { kind: 'ok' | 'bad'; color: string }) {
 
 // ── The main button ──────────────────────────────────────────────────────────────────────
 
-export type Tone = 'primary' | 'ok' | 'level';
+/** white: the one button on a screen filled with a level colour (the Skill check splash). */
+export type Tone = 'primary' | 'ok' | 'level' | 'white';
 
 /** The one main button per screen: a pill with a darker lip underneath that it presses into. */
 export function MainButton({ label, onPress, disabled, tone = 'primary', color }: { label: string; onPress?: () => void; disabled?: boolean; tone?: Tone; color?: { main: string; lip: string } }) {
   const { palette: p } = useTheme();
-  const main = disabled ? p.disabled : tone === 'ok' ? p.ok : tone === 'level' && color ? color.main : p.primary;
-  const lip = disabled ? p.disabledLip : tone === 'ok' ? p.okLip : tone === 'level' && color ? color.lip : p.primaryLip;
+  const main = disabled ? p.disabled : tone === 'white' ? '#FFFFFF' : tone === 'ok' ? p.ok : tone === 'level' && color ? color.main : p.primary;
+  const lip = disabled ? p.disabledLip : tone === 'white' ? 'rgba(0,0,0,0.22)' : tone === 'ok' ? p.okLip : tone === 'level' && color ? color.lip : p.primaryLip;
+  const ink = disabled ? p.onDisabled : tone === 'white' ? p.ink : p.onPrimary;
   return (
     <Pressable accessibilityRole="button" accessibilityState={{ disabled: !!disabled }} disabled={disabled || !onPress} onPress={onPress} style={[styles.buttonWrap, { backgroundColor: lip }]}>
       {({ pressed }) => (
         <View style={[styles.button, { backgroundColor: main, transform: [{ translateY: pressed ? LIP : 0 }] }]}>
-          <Text style={[styles.buttonText, { color: disabled ? p.onDisabled : p.onPrimary }]} maxFontSizeMultiplier={1.3}>
+          <Text style={[styles.buttonText, { color: ink }]} maxFontSizeMultiplier={1.3}>
             {label}
           </Text>
         </View>

@@ -61,8 +61,7 @@ export function LessonPlayer({ lesson, state, onChange, onClose }: Props) {
   });
 
   let body = null;
-  if (item?.kind === 'checkIntro') body = <CheckIntroView count={lesson.skillCheck.length} color={c} onNext={go} />;
-  else if (item) {
+  if (item && item.kind !== 'checkIntro') {
     const s = item.screen;
     const n = figs[s.id] ?? 0;
     if (s.kind === 'intro') body = <IntroView screen={s} figN={n} onNext={go} />;
@@ -95,6 +94,12 @@ export function LessonPlayer({ lesson, state, onChange, onClose }: Props) {
       <View style={{ flex: 1 }} key={state.index}>
         <ScreenEnter>{body}</ScreenEnter>
       </View>
+      {/* the Skill check splash floods the whole player, the top bar included */}
+      {item?.kind === 'checkIntro' && (
+        <View style={StyleSheet.absoluteFill} key={`check-${state.index}`}>
+          <CheckIntroView count={lesson.skillCheck.length} color={c} onNext={go} onClose={askToLeave} />
+        </View>
+      )}
       {leave !== 'closed' && <LeaveSheet closing={leave === 'closing'} onStay={stay} onLeave={onClose} />}
     </View>
   );
