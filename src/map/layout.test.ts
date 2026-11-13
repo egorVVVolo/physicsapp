@@ -1,13 +1,14 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { BADGE_SPACE, PUCK, ROW, labelX, levelAt, puckX, rowLayout } from './layout.ts';
+import { BADGE_SPACE, LEVEL_OBJECT, PUCK, ROW, labelX, levelAt, puckX, rowLayout } from './layout.ts';
 
 test('rows stack without gaps, and only the current row is taller', () => {
-  const { tops, heights, total } = rowLayout(4, 2);
+  const { tops, heights, objectTop, total } = rowLayout(4, 2);
   assert.deepEqual(heights, [ROW, ROW, ROW + BADGE_SPACE, ROW]);
   assert.deepEqual(tops, [0, ROW, 2 * ROW, 3 * ROW + BADGE_SPACE]);
-  assert.equal(total, 4 * ROW + BADGE_SPACE);
-  assert.equal(rowLayout(3, -1).total, 3 * ROW);
+  assert.equal(objectTop, 4 * ROW + BADGE_SPACE);
+  assert.equal(total, 4 * ROW + BADGE_SPACE + LEVEL_OBJECT);
+  assert.equal(rowLayout(3, -1).total, 3 * ROW + LEVEL_OBJECT);
 });
 
 test('pucks never reach the title column, on a small phone and on a tablet', () => {

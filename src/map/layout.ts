@@ -4,10 +4,14 @@
 export const PUCK = 100; // puck width, pt
 export const ROW = 118; // height of one lesson row
 export const BADGE_SPACE = 56; // extra room above the current lesson for its hovering tile
+export const LEVEL_OBJECT = 132; // the level's object after its last puck: width = height, pt
 const WAVE = [0, 30];
 
-/** Top and height of every row in a level; the row of the current lesson is taller (badge above). */
-export function rowLayout(count: number, currentIndex: number): { tops: number[]; heights: number[]; total: number } {
+/**
+ * Top and height of every row in a level; the row of the current lesson is taller (badge above).
+ * Below the last row sits the level's object (`objectTop`); `total` is the whole section.
+ */
+export function rowLayout(count: number, currentIndex: number): { tops: number[]; heights: number[]; objectTop: number; total: number } {
   const tops: number[] = [];
   const heights: number[] = [];
   let y = 0;
@@ -17,7 +21,7 @@ export function rowLayout(count: number, currentIndex: number): { tops: number[]
     heights.push(h);
     y += h;
   }
-  return { tops, heights, total: y };
+  return { tops, heights, objectTop: y, total: y + LEVEL_OBJECT };
 }
 
 /** Horizontal centre of the i-th puck in a column `width` wide. */

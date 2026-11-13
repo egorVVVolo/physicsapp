@@ -7,6 +7,7 @@ import { router, useFocusEffect } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, { useAnimatedStyle, useReducedMotion, useSharedValue, withSpring, withTiming } from 'react-native-reanimated';
 import Svg, { Path } from 'react-native-svg';
+import { levelObject, object } from '@/art/objects';
 import { course } from '@/content/course';
 import { lessons } from '@/content/lessons';
 import type { Level } from '@/content/types';
@@ -16,10 +17,11 @@ import { CONTENT_MAX } from '@/lesson/Frame';
 import { Dock } from '@/map/Dock';
 import { LevelPlate } from '@/map/LevelPlate';
 import { PuckRow } from '@/map/PuckRow';
-import { labelX, levelAt, puckX, puckY, rowLayout } from '@/map/layout';
+import { LEVEL_OBJECT, labelX, levelAt, puckX, puckY, rowLayout } from '@/map/layout';
 import { loadProgress } from '@/session/storage';
 import { useTheme } from '@/theme/ThemeContext';
-import { font, levelColors } from '@/theme/tokens';
+import { font, levelColors, reward, soonGrey, soonReward } from '@/theme/tokens';
+import { Art } from '@/ui/Art';
 
 type Status = 'new' | 'started' | 'done';
 const PAD_TOP = 4;
@@ -35,6 +37,9 @@ export default function CourseMap() {
   /** The next lesson to do: the first ready one not finished yet. */
   const nextId = ready.find((x) => status[x.r.id] !== 'done')?.r.id ?? '';
   const [picked, setPicked] = useState<string>(ready[0]?.r.id ?? allRefs[0].r.id);
+  /** Picked a puck since the map came into view: then the card shows that lesson even when all are done. */
+  const [touched, setTouched] = useState(false);
+  const allDone = ready.length > 0 && ready.every((x) => status[x.r.id] === 'done') && !touched;
 
   const [width, setWidth] = useState(0);
   const [viewH, setViewH] = useState(0);
@@ -49,6 +54,7 @@ export default function CourseMap() {
   useFocusEffect(
     useCallback(() => {
       let alive = true;
+      setTouched(false);
       Promise.all(
         ready.map(async ({ r }) => {
           const saved = await loadProgress(lessons[r.id]);
@@ -158,7 +164,10 @@ export default function CourseMap() {
                   picked={picked}
                   nextId={nextId}
                   firstOrder={(order += level.lessons.length) - level.lessons.length}
-                  onPick={setPicked}
+                  onPick={(id) => {
+                    setPicked(id);
+                    setTouched(true);
+                  }}
                   onLayoutY={(y) => onSectionLayout(li, y)}
                 />
               ))}
@@ -171,6 +180,7 @@ export default function CourseMap() {
           r={pickedRef.r}
           color={levelColors[pickedRef.level]}
           status={status[pickedRef.r.id] ?? 'new'}
+          allDone={allDone}
           bottomInset={insets.bottom}
           onHeight={setDockH}
           onStart={() => router.push(`/lesson/${pickedRef.r.id}`)}
@@ -197,6 +207,9 @@ function LevelSection({ level, li, width, status, picked, nextId, firstOrder, on
   const rows = rowLayout(level.lessons.length, level.lessons.findIndex((r) => r.id === nextId));
   const points = level.lessons.map((_, i) => ({ x: puckX(width, i), y: puckY(rows.tops[i], rows.heights[i]) }));
   const stateOf = (id: string, ready: boolean): PuckState => (!ready ? 'soon' : status[id] === 'done' ? 'done' : id === nextId ? 'current' : 'open');
+  /** The level's object is earned once every built lesson in it is done; until then it is grey. */
+  const built = level.lessons.filter((r) => r.ready);
+  const earned = built.length > 0 && built.every((r) => status[r.id] === 'done');
 
   return (
     <View onLayout={(e) => onLayoutY(e.nativeEvent.layout.y)}>
@@ -228,6 +241,14 @@ function LevelSection({ level, li, width, status, picked, nextId, firstOrder, on
             />
           </View>
         ))}
+        <View
+          accessible
+          accessibilityRole="image"
+          accessibilityLabel={earned ? 'Level reward: earned' : 'Level reward: locked'}
+          style={[styles.levelObject, { top: rows.objectTop }]}
+        >
+          <Art xml={object(levelObject[level.id], earned ? c : soonGrey, earned ? reward : soonReward)} width={LEVEL_OBJECT} />
+        </View>
       </View>
     </View>
   );
@@ -275,6 +296,7 @@ const styles = StyleSheet.create({
   dividerText: { alignItems: 'center' },
   dividerNo: { fontFamily: font.displaySemi, fontSize: 14, lineHeight: 18, letterSpacing: 0.3 },
   dividerTitle: { fontFamily: font.display, fontSize: 18, lineHeight: 24 },
+  levelObject: { position: 'absolute', left: 0, right: 0, alignItems: 'center' },
   back: { position: 'absolute', left: 20, width: 56, height: 60 },
   backLip: { width: 56, height: 60, borderRadius: 28, paddingBottom: 4 },
   backFace: { width: 56, height: 56, borderRadius: 28, borderWidth: 2, alignItems: 'center', justifyContent: 'center' },

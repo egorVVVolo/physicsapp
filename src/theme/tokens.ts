@@ -69,6 +69,8 @@ export const courseBlue: LevelColor = {
 };
 /** Pucks of lessons that are not built yet: flat grey, same facets. */
 export const soonGrey: LevelColor = { main: '#9CA3AD', lip: '#737B86', soft: '#EEF1F4', face: '#9CA3AD', side: '#737B86', inner: '#BCC2CA', text: '#646C79' };
+/** The grey stand-in for the reward yellow: a level's object before it is earned. */
+export const soonReward = { face: soonGrey.inner, side: soonGrey.side, lip: soonGrey.lip, pale: '#D7DBE0', soft: soonGrey.soft };
 
 /** Space Grotesk: titles, questions, buttons. IBM Plex Sans: reading text. IBM Plex Mono: labels inside figures only. */
 export const font = {

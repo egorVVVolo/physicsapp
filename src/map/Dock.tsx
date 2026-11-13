@@ -1,13 +1,16 @@
 // The card at the bottom of the map for the picked lesson: its title and the one main button.
 // A lesson that is not built yet also says in one line what it will cover, with a disabled button.
 // Picking another lesson swaps the contents with a short slide.
+// When every built lesson is done, the card says more are on the way (until a puck is picked).
 import { useEffect } from 'react';
 import { StyleSheet, Text, View, type LayoutChangeEvent } from 'react-native';
 import Animated, { useAnimatedStyle, useReducedMotion, useSharedValue, withSpring, withTiming } from 'react-native-reanimated';
 import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
+import { illustration } from '@/art/illustrations';
 import type { LessonRef } from '@/content/types';
 import { useTheme } from '@/theme/ThemeContext';
-import { font, type LevelColor } from '@/theme/tokens';
+import { courseBlue, font, reward, type LevelColor } from '@/theme/tokens';
+import { Art } from '@/ui/Art';
 import { MainButton } from '@/ui/parts';
 import { CONTENT_MAX } from '@/lesson/Frame';
 
@@ -15,6 +18,8 @@ type Props = {
   r: LessonRef;
   color: LevelColor;
   status: 'new' | 'started' | 'done';
+  /** Every built lesson of the course is done: show the all-done picture instead of the button. */
+  allDone?: boolean;
   bottomInset: number;
   onStart: () => void;
   /** Height of the card itself (without the wash above it). */
@@ -23,7 +28,7 @@ type Props = {
 
 const WASH = 120; // how far the colour wash reaches above the card
 
-export function Dock({ r, color, status, bottomInset, onStart, onHeight }: Props) {
+export function Dock({ r, color, status, allDone = false, bottomInset, onStart, onHeight }: Props) {
   const { palette: p } = useTheme();
   const reduced = useReducedMotion();
   const rise = useSharedValue(reduced ? 1 : 0);
@@ -36,7 +41,7 @@ export function Dock({ r, color, status, bottomInset, onStart, onHeight }: Props
     if (reduced) return;
     swap.set(0);
     swap.set(withTiming(1, { duration: 220 }));
-  }, [r.id, swap, reduced]);
+  }, [r.id, allDone, swap, reduced]);
 
   const card = useAnimatedStyle(() => ({ transform: [{ translateY: (1 - rise.get()) * 220 }] }));
   const body = useAnimatedStyle(() => ({ opacity: swap.get(), transform: [{ translateY: (1 - swap.get()) * 8 }] }));
@@ -59,17 +64,28 @@ export function Dock({ r, color, status, bottomInset, onStart, onHeight }: Props
       <Animated.View style={[styles.column, { paddingBottom: bottomInset + 16 }, card]}>
         <View style={[styles.lip, { backgroundColor: '#D5DAE0', bottom: bottomInset + 16 - 5 }]} />
         <View style={[styles.card, { backgroundColor: p.page, borderColor: '#E3E6EA' }]}>
-          <Animated.View style={body}>
-            <Text style={[styles.title, { color: p.ink }]} accessibilityRole="header" numberOfLines={2} maxFontSizeMultiplier={1.3}>
-              {r.title}
-            </Text>
-            {!r.ready && (
-              <Text style={[styles.about, { color: p.muted }]} maxFontSizeMultiplier={1.3}>
-                {r.about}
+          {allDone ? (
+            <Animated.View style={[styles.done, body]}>
+              <Art xml={illustration('allDone', courseBlue, reward)} width={220} />
+              <Text style={[styles.title, { color: p.ink }]} accessibilityRole="header" maxFontSizeMultiplier={1.3}>
+                More lessons are on the way
               </Text>
-            )}
-          </Animated.View>
-          <MainButton tone="level" color={color} label={label} disabled={!r.ready} onPress={r.ready ? onStart : undefined} />
+            </Animated.View>
+          ) : (
+            <>
+              <Animated.View style={body}>
+                <Text style={[styles.title, { color: p.ink }]} accessibilityRole="header" numberOfLines={2} maxFontSizeMultiplier={1.3}>
+                  {r.title}
+                </Text>
+                {!r.ready && (
+                  <Text style={[styles.about, { color: p.muted }]} maxFontSizeMultiplier={1.3}>
+                    {r.about}
+                  </Text>
+                )}
+              </Animated.View>
+              <MainButton tone="level" color={color} label={label} disabled={!r.ready} onPress={r.ready ? onStart : undefined} />
+            </>
+          )}
         </View>
       </Animated.View>
     </View>
@@ -82,5 +98,6 @@ const styles = StyleSheet.create({
   lip: { position: 'absolute', left: 0, right: 0, top: 6, borderRadius: 26 },
   card: { borderWidth: 2, borderRadius: 26, paddingHorizontal: 18, paddingTop: 18, paddingBottom: 18, gap: 16 },
   title: { fontFamily: font.display, fontSize: 22, lineHeight: 28, textAlign: 'center' },
+  done: { alignItems: 'center', gap: 4 },
   about: { fontFamily: font.body, fontSize: 16, lineHeight: 22, textAlign: 'center', marginTop: 6 },
 });
