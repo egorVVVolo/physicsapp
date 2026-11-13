@@ -55,6 +55,46 @@ function FadingGroup({ t, from, to, children }: { t: SharedValue<number>; from: 
   return <AnimatedG animatedProps={animatedProps}>{children}</AnimatedG>;
 }
 
+/** All fills fade in over this stretch of the draw-in, after the lines. */
+export const FILLS = [0.62, 0.8] as const;
+
+/** A stretch of the draw-in, as shares of it. */
+export type Pen = readonly [number, number];
+
+/** Part i of n of a stretch: the parts overlap a little, so the pen never stops. */
+export function penPart(pen: Pen, i: number, n: number): Pen {
+  const step = (pen[1] - pen[0]) / n;
+  return [pen[0] + step * i, Math.min(pen[1], pen[0] + step * (i + 1.8))];
+}
+
+/** A filled shape with an outline: the pen draws the outline, the fill fades in with all fills. Otherwise one plain path. */
+export function DrawnShape({ clock, d, len, pen, fill, ...stroke }: Omit<PathProps, 'd' | 'fill'> & { clock: DrawClock; d: string; len: number; pen: Pen; fill: string }) {
+  if (!clock.on) return <Path d={d} fill={fill} {...stroke} />;
+  return (
+    <G>
+      <DrawnFade clock={clock} from={FILLS[0]} to={FILLS[1]}>
+        <Path d={d} fill={fill} />
+      </DrawnFade>
+      <DrawnPath clock={clock} len={len} from={pen[0]} to={pen[1]} d={d} fill="none" {...stroke} />
+    </G>
+  );
+}
+
+/** A circle as a path (from its left point, clockwise over the top), with its length. */
+export function circlePath(cx: number, cy: number, r: number): { d: string; len: number } {
+  return { d: `M${cx - r},${cy} a${r},${r} 0 1 1 ${2 * r},0 a${r},${r} 0 1 1 ${-2 * r},0 Z`, len: 2 * Math.PI * r };
+}
+
+/** A closed polygon as a path, with its length. */
+export function polyPath(points: readonly (readonly [number, number])[]): { d: string; len: number } {
+  let len = 0;
+  points.forEach(([x, y], i) => {
+    const [nx, ny] = points[(i + 1) % points.length];
+    len += Math.hypot(nx - x, ny - y);
+  });
+  return { d: 'M' + points.map(([x, y]) => `${x},${y}`).join(' L') + ' Z', len };
+}
+
 /** The outline of a rectangle as a path (clockwise from the top left), with its length. */
 export function rectPath(x: number, y: number, w: number, h: number, r = 0): { d: string; len: number } {
   const a = (dx: number, dy: number) => (r ? ` a${r},${r} 0 0 1 ${dx},${dy}` : '');
@@ -82,13 +122,15 @@ export function ForceArrow({ x1, y1, x2, y2, color, width = 3.2, dashed }: { x1:
 }
 
 /** A hollow (outline) vertical arrow: the direction of motion. */
-export function MotionArrow({ x, y, dir, length, color }: { x: number; y: number; dir: 'up' | 'down'; length: number; color: string }) {
+export function MotionArrow({ x, y, dir, length, color, clock = STILL, pen = [0, 1] }: { x: number; y: number; dir: 'up' | 'down'; length: number; color: string; clock?: DrawClock; pen?: Pen }) {
   const s = dir === 'up' ? -1 : 1;
   const tip = y + (s * length) / 2;
   const tail = y - (s * length) / 2;
   const neck = tip - s * 14;
   const d = `M${x - 4},${tail} L${x - 4},${neck} L${x - 10},${neck} L${x},${tip} L${x + 10},${neck} L${x + 4},${neck} L${x + 4},${tail} Z`;
-  return <Path d={d} fill="none" stroke={color} strokeWidth={1.8} strokeLinejoin="round" />;
+  // two shafts (length − 14 each), two shoulders of 6, two head edges of √(10² + 14²), the tail of 8
+  const len = 2 * length + 28;
+  return <DrawnPath clock={clock} len={len} from={pen[0]} to={pen[1]} d={d} fill="none" stroke={color} strokeWidth={1.8} strokeLinejoin="round" />;
 }
 
 /** Two stacked chevrons: the direction of the acceleration. */

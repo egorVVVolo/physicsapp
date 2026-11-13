@@ -2,17 +2,18 @@
 // Arrow lengths and the scales reading come from src/physics/dynamics (normalInLift, weight, scaleKg).
 // A moving lift is shown by the shaft sliding past the car (ShaftMarks), driven on the UI thread by
 // s = ut + ½at² from src/physics/kinematics, so it stays smooth even while React is busy.
-import { useEffect } from 'react';
-import { StyleSheet, View } from 'react-native';
+// The first lift of a lesson draws itself: shaft → car → floor → scales → person → fills; the forces grow after that.
+import { useEffect, useState, type ReactNode } from 'react';
+import { StyleSheet } from 'react-native';
 import Animated, { useAnimatedStyle, useFrameCallback, useSharedValue, withTiming } from 'react-native-reanimated';
-import Svg, { G as Group, Line, Rect, Path, Circle, Polygon } from 'react-native-svg';
+import Svg, { G as Group, Line, Rect, Circle, Polygon } from 'react-native-svg';
 import { G, position, velocity } from '@/physics/kinematics';
 import { normalInLift, scaleKg, weight } from '@/physics/dynamics';
 import { fixed, signed } from '@/physics/format';
 import { CANDIDATE_IDS, type LiftFig } from '@/content/types';
 import { useTheme } from '@/theme/ThemeContext';
-import { useTween, useWave } from './anim';
-import { AccChevrons, ForceArrow, ForceLetter, Hatch, MonoLabel, MotionArrow } from './draw';
+import { DRAWN_MS, STILL, useTween, useWave, type DrawClock } from './anim';
+import { AccChevrons, DrawnFade, DrawnPath, DrawnShape, FILLS, ForceArrow, ForceLetter, Hatch, MonoLabel, MotionArrow, rectPath } from './draw';
 import { Person, Scales, SCALES_H } from './people';
 import { type TapProps, type TapTarget } from './Sheet';
 
@@ -29,6 +30,21 @@ const CAR = { x: 24, y: 30, w: 142, h: 212 }; // floor at y = 242
 const FLOOR = CAR.y + CAR.h;
 const CX = CAR.x + CAR.w / 2;
 const SOLES = FLOOR - SCALES_H + 3; // the soles stand on the middle of the top face
+
+// when the pen draws each part, as shares of the draw-in
+const PEN = {
+  wallL: [0, 0.14],
+  wallR: [0.04, 0.18],
+  cable: [0.1, 0.2],
+  car: [0.14, 0.34],
+  ceiling: [0.3, 0.38],
+  floor: [0.3, 0.44],
+  rail: [0.34, 0.42],
+  scales: [0.4, 0.52],
+  person: [0.46, 0.64],
+  motion: [0.6, 0.7],
+  marks: [0.8, 0.95], // acceleration chevrons, the dot of the diagram, the dashed candidates
+} as const;
 
 /** Pixels per newton: the longest N the slider can make (a = +3 m s⁻²) fits above the dot. */
 const scaleFor = (m: number) => 100 / (m * (G + 3));
@@ -59,8 +75,17 @@ export function liftTargets(fig: LiftFig): TapTarget[] {
   });
 }
 
-export function LiftFigure({ fig, a, tap }: { fig: LiftFig; a: number; tap?: TapProps }) {
+export function LiftFigure({ fig, a, tap, clock = STILL }: { fig: LiftFig; a: number; tap?: TapProps; clock?: DrawClock }) {
   const { palette: p } = useTheme();
+  const drawing = clock.on;
+  const line = (d: string, len: number, pen: readonly [number, number], color: string, width: number, cap?: 'round') => (
+    <DrawnPath clock={clock} len={len} from={pen[0]} to={pen[1]} d={d} stroke={color} strokeWidth={width} strokeLinecap={cap} fill="none" />
+  );
+  const late = (children: ReactNode) => (
+    <DrawnFade clock={clock} from={PEN.marks[0]} to={PEN.marks[1]}>
+      {children}
+    </DrawnFade>
+  );
   const k = scaleFor(fig.m);
   const W = weight(fig.m);
   const N = normalInLift(fig.m, a);
@@ -73,36 +98,36 @@ export function LiftFigure({ fig, a, tap }: { fig: LiftFig; a: number; tap?: Tap
     <Group>
       <Group transform={shift ? `translate(${shift} 0)` : undefined}>
         {/* shaft walls; their marks slide in ShaftMarks, drawn over the SVG */}
-        <Line x1={10} y1={0} x2={10} y2={LIFT_VB.h} stroke={p.lineStrong} strokeWidth={1.4} />
-        <Line x1={180} y1={0} x2={180} y2={LIFT_VB.h} stroke={p.lineStrong} strokeWidth={1.4} />
+        {line(`M10,0 V${LIFT_VB.h}`, LIFT_VB.h, PEN.wallL, p.lineStrong, 1.4)}
+        {line(`M180,0 V${LIFT_VB.h}`, LIFT_VB.h, PEN.wallR, p.lineStrong, 1.4)}
         {/* cable, or its frayed end when it has snapped */}
-        {a <= -G + 1e-9 ? (
-          <Path d={`M${CX},${CAR.y} L${CX},20 L${CX - 4},16 M${CX},20 L${CX + 4},15`} stroke={p.draw} strokeWidth={2} fill="none" strokeLinecap="round" />
-        ) : (
-          <Line x1={CX} y1={0} x2={CX} y2={CAR.y} stroke={p.draw} strokeWidth={2} />
-        )}
+        {a <= -G + 1e-9
+          ? line(`M${CX},${CAR.y} L${CX},20 L${CX - 4},16 M${CX},20 L${CX + 4},15`, 24, PEN.cable, p.draw, 2, 'round')
+          : line(`M${CX},0 V${CAR.y}`, CAR.y, PEN.cable, p.draw, 2)}
         {/* the car: white box, a ceiling strip, the floor indicator and a handrail on the back wall */}
-        <Rect x={CAR.x} y={CAR.y} width={CAR.w} height={CAR.h} fill="#FFFFFF" stroke={p.draw} strokeWidth={2.4} />
-        <Rect x={CAR.x} y={CAR.y} width={CAR.w} height={6} fill={p.drawFill} stroke={p.draw} strokeWidth={1.2} />
-        <Rect x={CX - 14} y={CAR.y + 12} width={28} height={13} rx={3} fill={p.ink} />
-        {motionDir ? (
-          <Polygon points={motionDir === 'up' ? `${CX - 5},${CAR.y + 22} ${CX + 5},${CAR.y + 22} ${CX},${CAR.y + 15}` : `${CX - 5},${CAR.y + 15} ${CX + 5},${CAR.y + 15} ${CX},${CAR.y + 22}`} fill="#FFFFFF" />
-        ) : (
-          <Line x1={CX - 5} y1={CAR.y + 18.5} x2={CX + 5} y2={CAR.y + 18.5} stroke="#FFFFFF" strokeWidth={2} strokeLinecap="round" />
-        )}
-        <Line x1={CAR.x + 8} y1={148} x2={CAR.x + CAR.w - 8} y2={148} stroke={p.lineStrong} strokeWidth={3} strokeLinecap="round" />
-        <Line x1={CAR.x + 14} y1={148} x2={CAR.x + 14} y2={155} stroke={p.lineStrong} strokeWidth={2} />
-        <Line x1={CAR.x + CAR.w - 14} y1={148} x2={CAR.x + CAR.w - 14} y2={155} stroke={p.lineStrong} strokeWidth={2} />
-        <Hatch x1={CAR.x} x2={CAR.x + CAR.w} y={FLOOR} color={p.draw} />
-        <Display fig={fig} n={N} />
-        <Person x={CX} y={SOLES} />
-        {fig.nOnPerson && <NOnPerson />}
+        <DrawnShape clock={clock} pen={PEN.car} {...rectPath(CAR.x, CAR.y, CAR.w, CAR.h)} fill="#FFFFFF" stroke={p.draw} strokeWidth={2.4} />
+        <DrawnShape clock={clock} pen={PEN.ceiling} {...rectPath(CAR.x, CAR.y, CAR.w, 6)} fill={p.drawFill} stroke={p.draw} strokeWidth={1.2} />
+        <DrawnFade clock={clock} from={FILLS[0]} to={FILLS[1]}>
+          <Rect x={CX - 14} y={CAR.y + 12} width={28} height={13} rx={3} fill={p.ink} />
+          {motionDir ? (
+            <Polygon points={motionDir === 'up' ? `${CX - 5},${CAR.y + 22} ${CX + 5},${CAR.y + 22} ${CX},${CAR.y + 15}` : `${CX - 5},${CAR.y + 15} ${CX + 5},${CAR.y + 15} ${CX},${CAR.y + 22}`} fill="#FFFFFF" />
+          ) : (
+            <Line x1={CX - 5} y1={CAR.y + 18.5} x2={CX + 5} y2={CAR.y + 18.5} stroke="#FFFFFF" strokeWidth={2} strokeLinecap="round" />
+          )}
+        </DrawnFade>
+        {line(`M${CAR.x + 8},148 H${CAR.x + CAR.w - 8}`, CAR.w - 16, PEN.rail, p.lineStrong, 3, 'round')}
+        {line(`M${CAR.x + 14},148 V155`, 7, PEN.rail, p.lineStrong, 2)}
+        {line(`M${CAR.x + CAR.w - 14},148 V155`, 7, PEN.rail, p.lineStrong, 2)}
+        <Hatch x1={CAR.x} x2={CAR.x + CAR.w} y={FLOOR} color={p.draw} clock={clock} from={PEN.floor[0]} to={PEN.floor[1]} />
+        <Display fig={fig} n={N} clock={clock} />
+        <Person x={CX} y={SOLES} clock={clock} pen={PEN.person} />
+        {fig.nOnPerson && <NOnPerson drawing={drawing} />}
       </Group>
 
       {/* ── motion or acceleration, between the lift and the diagram ── */}
       {fig.motion && motionDir && (
         <Group>
-          <MotionArrow x={MID_X} y={118} dir={motionDir} length={62} color={p.draw} />
+          <MotionArrow x={MID_X} y={118} dir={motionDir} length={62} color={p.draw} clock={clock} pen={PEN.motion} />
           {splitLabel(fig.motion.text).map((line, i) => (
             <MonoLabel key={i} x={MID_X} y={168 + i * 12} text={line} color={p.label} size={9} />
           ))}
@@ -110,7 +135,7 @@ export function LiftFigure({ fig, a, tap }: { fig: LiftFig; a: number; tap?: Tap
       )}
       {fig.showAcc && !fig.motion && Math.abs(a) > 1e-9 && (
         <Group>
-          <DriftingChevrons x={MID_X} y={118} dir={a > 0 ? 'up' : 'down'} color={p.draw} />
+          {late(<DriftingChevrons x={MID_X} y={118} dir={a > 0 ? 'up' : 'down'} color={p.draw} />)}
           <MonoLabel x={MID_X} y={150} text="a" color={p.label} size={11} />
         </Group>
       )}
@@ -119,14 +144,14 @@ export function LiftFigure({ fig, a, tap }: { fig: LiftFig; a: number; tap?: Tap
       {(showW || showN || fig.candidates) && (
         <Group>
           <MonoLabel x={DOT.x} y={252} text="FREE-BODY" color={p.label} size={9} />
-          {showW && <WForce len={W * k} w={W} values={!!fig.values} />}
-          {showN && !fig.unknownN && <NForce n={N} k={k} values={!!fig.values} />}
+          {showW && <WForce len={W * k} w={W} values={!!fig.values} drawing={drawing} />}
+          {showN && !fig.unknownN && <NForce n={N} k={k} values={!!fig.values} drawing={drawing} />}
           {showN && fig.unknownN && (
-            <Group>
+            <DrawnFade clock={clock} from={PEN.marks[0]} to={PEN.marks[1]}>
               <Line x1={DOT.x} y1={DOT.y} x2={DOT.x} y2={DOT.y - STUB} stroke={p.force} strokeWidth={2.6} strokeDasharray="4 4" />
               <ForceLetter x={DOT.x - 12} y={DOT.y - 20} text="N" color={p.forceText} anchor="end" />
               <ForceLetter x={DOT.x} y={DOT.y - 42} text="?" color={p.forceText} size={20} />
-            </Group>
+            </DrawnFade>
           )}
           {fig.candidates &&
             CANDIDATE_IDS.map((id) => {
@@ -135,14 +160,14 @@ export function LiftFigure({ fig, a, tap }: { fig: LiftFig; a: number; tap?: Tap
               const on = tap?.selected === id;
               const color = mark === 'right' ? p.ok : mark === 'wrong' ? p.bad : on ? p.force : p.faint;
               return (
-                <Group key={id}>
+                <DrawnFade key={id} clock={clock} from={PEN.marks[0]} to={PEN.marks[1]}>
                   <ForceArrow x1={CAND_X[id]} y1={DOT.y} x2={CAND_X[id]} y2={DOT.y - len} color={color} dashed={!on && !mark} width={on || mark ? 3.2 : 2} />
                   <ForceLetter x={CAND_X[id]} y={DOT.y - len - 8} text="N" color={on || mark ? color : p.faint} size={13} />
-                </Group>
+                </DrawnFade>
               );
             })}
-          {fig.candidates && <Line x1={222} y1={DOT.y} x2={322} y2={DOT.y} stroke={p.lineStrong} strokeWidth={1} strokeDasharray="2 3" />}
-          <Circle cx={DOT.x} cy={DOT.y} r={5} fill={p.draw} />
+          {fig.candidates && late(<Line x1={222} y1={DOT.y} x2={322} y2={DOT.y} stroke={p.lineStrong} strokeWidth={1} strokeDasharray="2 3" />)}
+          {late(<Circle cx={DOT.x} cy={DOT.y} r={5} fill={p.draw} />)}
         </Group>
       )}
     </Group>
@@ -154,9 +179,12 @@ export function LiftFigure({ fig, a, tap }: { fig: LiftFig; a: number; tap?: Tap
  * It only marks the point and the direction: its length is fixed, and W is not drawn on the person to compare with,
  * so it gives nothing away about the size of N.
  */
-function NOnPerson() {
+function NOnPerson({ drawing }: { drawing: boolean }) {
   const { palette: p } = useTheme();
-  const len = 34;
+  // on a lift that draws itself it grows out of the soles once the drawing is done; otherwise it is simply there
+  const [from] = useState(drawing ? 0 : 34); // decided once: it must not jump when the drawing ends
+  const len = useTween(34, from, 420, DRAWN_MS);
+  if (len < 1) return null;
   return (
     <Group>
       <ForceArrow x1={CX} y1={SOLES} x2={CX} y2={SOLES - len} color="#FFFFFF" width={8} />
@@ -176,16 +204,17 @@ function DriftingChevrons({ x, y, dir, color }: { x: number; y: number; dir: 'up
 }
 
 /** The scales with their display. The number counts smoothly to a new value (its own component, so only it re-renders). */
-function Display({ fig, n }: { fig: LiftFig; n: number }) {
+function Display({ fig, n, clock }: { fig: LiftFig; n: number; clock: DrawClock }) {
   const shown = useTween(n, undefined, 360);
   const reading = fig.reading === 'shown' ? `${fixed(scaleKg(shown), 1)} kg` : '- - -';
-  return <Scales x={CX} y={FLOOR} reading={reading} />;
+  return <Scales x={CX} y={FLOOR} reading={reading} clock={clock} pen={PEN.scales} />;
 }
 
 /** The W arrow of the free-body diagram: grows out of the dot when the figure appears. */
-function WForce({ len: full, w, values }: { len: number; w: number; values: boolean }) {
+function WForce({ len: full, w, values, drawing }: { len: number; w: number; values: boolean; drawing: boolean }) {
   const { palette: p } = useTheme();
-  const len = useTween(full, 0, 560, 380);
+  const [delay] = useState(drawing ? DRAWN_MS : 380); // decided once, when the arrow appears
+  const len = useTween(full, 0, 560, delay);
   if (len < 1) return null;
   return (
     <Group>
@@ -197,9 +226,10 @@ function WForce({ len: full, w, values }: { len: number; w: number; values: bool
 }
 
 /** The N arrow of the free-body diagram: grows out of the "?" stub, then follows N smoothly. */
-function NForce({ n, k, values }: { n: number; k: number; values: boolean }) {
+function NForce({ n, k, values, drawing }: { n: number; k: number; values: boolean; drawing: boolean }) {
   const { palette: p } = useTheme();
-  const len = useTween(n * k, STUB, 520, 520);
+  const [delay] = useState(drawing ? DRAWN_MS + 140 : 520); // decided once, when the arrow appears
+  const len = useTween(n * k, STUB, 520, delay);
   const shown = useTween(n, undefined, 360);
   if (len <= 0.5) return values ? <MonoLabel x={DOT.x + 12} y={DOT.y - 6} text="N = 0" color={p.forceText} anchor="start" /> : null;
   return (
@@ -226,8 +256,12 @@ const STRIP_W = 12;
  * A braking lift (a against u) stops exactly where v = 0, rests, then eases back up to u and brakes again.
  * On an explore screen `a` eases to the slider value; with a = 0 the lift keeps the speed it has (steady motion).
  */
-export function ShaftMarks({ fig, a, scale, playing }: { fig: LiftFig; a: number; scale: number; playing: boolean }) {
+export function ShaftMarks({ fig, a, scale, playing, clock = STILL }: { fig: LiftFig; a: number; scale: number; playing: boolean; clock?: DrawClock }) {
   const { palette: p } = useTheme();
+  // while the lift draws itself the marks fade in with the walls and the shaft stays still
+  const full = useSharedValue(1);
+  const pen = clock.on ? clock.t : full;
+  const fade = useAnimatedStyle(() => ({ opacity: Math.min(1, Math.max(0, (pen.get() - 0.12) / 0.18)) }));
   const u0 = fig.motion?.u ?? 0;
   const brakes = u0 !== 0 && a * u0 < 0; // e.g. moving up and slowing down
   const cap = Math.max(V_CAP, Math.abs(u0));
@@ -286,8 +320,8 @@ export function ShaftMarks({ fig, a, scale, playing }: { fig: LiftFig; a: number
   }, false);
 
   useEffect(() => {
-    frame.setActive(playing);
-  }, [playing, frame]);
+    frame.setActive(playing && !clock.on);
+  }, [playing, clock.on, frame]);
 
   const slide = useAnimatedStyle(() => {
     const off = (((s.get() * PX_PER_M) % PERIOD) + PERIOD) % PERIOD; // the car goes up → the walls pass downward
@@ -309,13 +343,13 @@ export function ShaftMarks({ fig, a, scale, playing }: { fig: LiftFig; a: number
       );
     }
     return (
-      <View key={x0} pointerEvents="none" style={[styles.strip, { left: (x0 + shift) * scale, width: STRIP_W * scale, height: LIFT_VB.h * scale }]}>
+      <Animated.View key={x0} pointerEvents="none" style={[styles.strip, { left: (x0 + shift) * scale, width: STRIP_W * scale, height: LIFT_VB.h * scale }, fade]}>
         <Animated.View style={[{ position: 'absolute', left: 0, top: -PERIOD * scale, width: STRIP_W * scale, height: H * scale }, slide]}>
           <Svg width={STRIP_W * scale} height={H * scale} viewBox={`0 0 ${STRIP_W} ${H}`}>
             {marks}
           </Svg>
         </Animated.View>
-      </View>
+      </Animated.View>
     );
   };
   // left strip from the left wall (x 10) inward; right strip ends at the right wall (x 180)

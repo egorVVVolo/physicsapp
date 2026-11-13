@@ -6,13 +6,15 @@
 // The person is drawn large and pale so the arrows read clearly over the body; W and N do not meet.
 // With `explode` the bodies start stacked together and move apart, then the arrows grow one by one.
 // Once the pair N–P is found, a bracket joins them: same size, opposite direction.
+// The first time it appears in a lesson it draws itself first (the Earth, the scales, the person, as they stand stacked),
+// and only then do the bodies move apart and the arrows grow.
 import { G as Group, Circle, Path, Rect, Text as SvgText } from 'react-native-svg';
 import type { PairsFig } from '@/content/types';
 import { useTheme } from '@/theme/ThemeContext';
 import { svgLetter } from '@/theme/svgFont';
-import { phaseOf, useOnceTime } from './anim';
-import { CgMark, ForceArrow, MonoLabel } from './draw';
-import { Person, PERSON_CG, Scales, SCALES_H } from './people';
+import { phaseOf, STILL, useOnceTime, type DrawClock } from './anim';
+import { CgMark, DrawnFade, DrawnPath, DrawnShape, FILLS, ForceArrow, MonoLabel, rectPath } from './draw';
+import { CG_MARK, Person, PERSON_CG, Scales, SCALES_H } from './people';
 import type { TapProps, TapTarget } from './Sheet';
 
 export const PAIRS_VB = { w: 320, h: 362 };
@@ -56,6 +58,14 @@ const F: Record<Id, { x: number; y: number; dir: 1 | -1; bx: number; by: number 
 };
 const ORDER: Id[] = ['W', 'N', 'P', 'E'];
 
+// when the pen draws each part, as shares of the draw-in
+const PEN = {
+  zones: [0, 0.24], // only when the zones are not part of the "explode" (then they appear as the bodies move apart)
+  earth: [0.06, 0.3],
+  scales: [0.26, 0.42],
+  person: [0.38, 0.62],
+} as const;
+
 /** The box around an arrow and its badge: the tap target and the soft highlight when it is chosen. */
 const boxOf = (id: Id) => {
   const f = F[id];
@@ -68,11 +78,11 @@ export function pairsTargets(): TapTarget[] {
   return [box('W', 'W, the force on you from the Earth'), box('P', 'P, the force on the scales from you'), box('E', 'E, the force on the Earth from you')];
 }
 
-export function PairsFigure({ fig, tap }: { fig: PairsFig; tap?: TapProps }) {
+export function PairsFigure({ fig, tap, clock = STILL }: { fig: PairsFig; tap?: TapProps; clock?: DrawClock }) {
   const { palette: p } = useTheme();
-  // the timeline (seconds): bodies move apart, zones appear, arrows grow one by one
+  // the timeline (seconds): bodies move apart, zones appear, arrows grow one by one. It waits while the figure draws itself.
   const explode = !!fig.explode;
-  const t = useOnceTime(explode ? 3.2 : 1.4);
+  const t = useOnceTime(explode ? 3.2 : 1.4, !clock.on);
   const apart = explode ? phaseOf(t, 0.35, 1.0) : 1;
   const zones = explode ? phaseOf(t, 0.9, 0.6) : 1;
   const grow = (i: number) => phaseOf(t, (explode ? 1.5 : 0.15) + i * 0.28, 0.45);
@@ -123,7 +133,7 @@ export function PairsFigure({ fig, tap }: { fig: PairsFig; tap?: TapProps }) {
 
   const zone = (z: (typeof ZONE)[keyof typeof ZONE]) => (
     <Group key={z.tag} opacity={zones}>
-      <Rect x={Z_X} y={z.y} width={Z_W} height={z.h} rx={10} fill="#FFFFFF" stroke={p.paperLine} strokeWidth={1.2} />
+      <DrawnShape clock={explode ? STILL : clock} pen={PEN.zones} {...rectPath(Z_X, z.y, Z_W, z.h, 10)} fill="#FFFFFF" stroke={p.paperLine} strokeWidth={1.2} />
       <MonoLabel x={Z_X + 10} y={z.y + 16} text={z.tag} color={p.label} size={9} anchor="start" />
     </Group>
   );
@@ -136,23 +146,28 @@ export function PairsFigure({ fig, tap }: { fig: PairsFig; tap?: TapProps }) {
       {zone(ZONE.earth)}
 
       {/* the Earth: a large arc filling the bottom of its zone, with rounded corners to match it */}
-      <Path
-        d={`M${Z_X + 1},${EARTH_EDGE} Q${Z_X + Z_W / 2},${EARTH_CTRL} ${Z_X + Z_W - 1},${EARTH_EDGE} L${Z_X + Z_W - 1},${zb - 10} A9,9 0 0 1 ${Z_X + Z_W - 10},${zb - 1} L${Z_X + 10},${zb - 1} A9,9 0 0 1 ${Z_X + 1},${zb - 10} Z`}
-        fill={p.drawFill}
-      />
-      <Path d={`M${Z_X + 1},${EARTH_EDGE} Q${Z_X + Z_W / 2},${EARTH_CTRL} ${Z_X + Z_W - 1},${EARTH_EDGE}`} fill="none" stroke={p.draw} strokeWidth={2} />
+      <DrawnFade clock={clock} from={FILLS[0]} to={FILLS[1]}>
+        <Path
+          d={`M${Z_X + 1},${EARTH_EDGE} Q${Z_X + Z_W / 2},${EARTH_CTRL} ${Z_X + Z_W - 1},${EARTH_EDGE} L${Z_X + Z_W - 1},${zb - 10} A9,9 0 0 1 ${Z_X + Z_W - 10},${zb - 1} L${Z_X + 10},${zb - 1} A9,9 0 0 1 ${Z_X + 1},${zb - 10} Z`}
+          fill={p.drawFill}
+        />
+      </DrawnFade>
+      {/* the arc is a little longer than its chord of 298 */}
+      <DrawnPath clock={clock} len={306} from={PEN.earth[0]} to={PEN.earth[1]} d={`M${Z_X + 1},${EARTH_EDGE} Q${Z_X + Z_W / 2},${EARTH_CTRL} ${Z_X + Z_W - 1},${EARTH_EDGE}`} fill="none" stroke={p.draw} strokeWidth={2} />
 
       {/* the scales, floating in their zone (no display: here only the push on them matters) */}
       <Group transform={`translate(${PX} ${SCALES_BASE + scalesDy}) scale(${SCALES_S})`}>
-        <Scales x={0} y={0} reading={null} width={SCALES_W} />
+        <Scales x={0} y={0} reading={null} width={SCALES_W} clock={clock} pen={PEN.scales} />
       </Group>
 
       {/* you: large and pale, so the force arrows read clearly over the body; the CG mark stays sharp */}
       <Group transform={personDy ? `translate(0 ${personDy})` : undefined}>
         <Group opacity={0.42}>
-          <Person x={PX} y={SOLES} scale={PERSON_S} cg={false} />
+          <Person x={PX} y={SOLES} scale={PERSON_S} cg={false} clock={clock} pen={PEN.person} />
         </Group>
-        <CgMark x={PX} y={CG_Y} color={p.draw} />
+        <DrawnFade clock={clock} from={CG_MARK[0]} to={CG_MARK[1]}>
+          <CgMark x={PX} y={CG_Y} color={p.draw} />
+        </DrawnFade>
       </Group>
 
       {ORDER.map(arrow)}

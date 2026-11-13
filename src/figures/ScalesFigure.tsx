@@ -8,8 +8,8 @@ import { scaleKg, weight } from '@/physics/dynamics';
 import { fixed } from '@/physics/format';
 import type { ScalesFig } from '@/content/types';
 import { useTheme } from '@/theme/ThemeContext';
-import { useDrawIn, useLoopTime } from './anim';
-import { DrawnFade, DrawnPath, ForceArrow, ForceLetter, Hatch, MonoLabel, rectPath } from './draw';
+import { STILL, useLoopTime, type DrawClock } from './anim';
+import { DrawnFade, DrawnPath, DrawnShape, FILLS, ForceArrow, ForceLetter, Hatch, MonoLabel, rectPath, type Pen } from './draw';
 
 export const SCALES_VB = { w: 340, h: 260 };
 
@@ -37,7 +37,6 @@ const PEN = {
   plate: [0.46, 0.6],
   legs: [0.52, 0.66],
   leader: [0.56, 0.64],
-  fill: [0.62, 0.8],
 } as const;
 
 /** 0 = nobody on the scales, 1 = standing still. Eased so the plate settles like a real spring. */
@@ -49,9 +48,8 @@ function squashAt(t: number): number {
   return 0;
 }
 
-export function ScalesFigure({ fig, playing, drawIn = false }: { fig: ScalesFig; playing: boolean; drawIn?: boolean }) {
+export function ScalesFigure({ fig, playing, clock = STILL }: { fig: ScalesFig; playing: boolean; clock?: DrawClock }) {
   const { palette: p } = useTheme();
-  const clock = useDrawIn(drawIn); // starts when the figure mounts, i.e. once the sheet knows its size
   const drawing = clock.on;
   const t = useLoopTime(playing && !drawing, CYCLE, fig.m, 0);
   // while the drawing draws itself: nobody on the scales yet. Paused or reduced motion: standing still, the answer to "what does it show"
@@ -61,7 +59,7 @@ export function ScalesFigure({ fig, playing, drawIn = false }: { fig: ScalesFig;
   const soles = plate - 1;
 
   // a spring between the plate and the floor of the case, as a zigzag of 7 coils
-  const spring = (x: number, pen: readonly [number, number]) => {
+  const spring = (x: number, pen: Pen) => {
     const top = plate + 10;
     const n = 14;
     const step = (BASE - top) / n;
@@ -73,17 +71,9 @@ export function ScalesFigure({ fig, playing, drawIn = false }: { fig: ScalesFig;
     return <DrawnPath clock={clock} len={len} from={pen[0]} to={pen[1]} d={d} fill="none" stroke={p.draw} strokeWidth={2.2} strokeLinejoin="round" />;
   };
   // a filled box with an outline: the outline is drawn by the pen, the fill fades in afterwards
-  const box = (x: number, y: number, w: number, h: number, fill: string, pen: readonly [number, number], r = 0) => {
-    const o = rectPath(x, y, w, h, r);
-    return (
-      <Group>
-        <DrawnFade clock={clock} from={PEN.fill[0]} to={PEN.fill[1]}>
-          <Rect x={x} y={y} width={w} height={h} rx={r} fill={fill} />
-        </DrawnFade>
-        <DrawnPath clock={clock} len={o.len} from={pen[0]} to={pen[1]} d={o.d} fill="none" stroke={p.draw} strokeWidth={1.8} />
-      </Group>
-    );
-  };
+  const box = (x: number, y: number, w: number, h: number, fill: string, pen: Pen, r = 0) => (
+    <DrawnShape clock={clock} pen={pen} {...rectPath(x, y, w, h, r)} fill={fill} stroke={p.draw} strokeWidth={1.8} />
+  );
 
   return (
     <Group>
@@ -100,7 +90,7 @@ export function ScalesFigure({ fig, playing, drawIn = false }: { fig: ScalesFig;
       <Group opacity={0.25 + 0.75 * Math.min(1, k * 3)}>
         {box(CX - 26, -2, 20, soles - 9, p.trousers, PEN.legs)}
         {box(CX + 6, -2, 20, soles - 9, p.trousers, PEN.legs)}
-        <DrawnFade clock={clock} from={PEN.fill[0]} to={PEN.fill[1]}>
+        <DrawnFade clock={clock} from={FILLS[0]} to={FILLS[1]}>
           <Rect x={CX - 32} y={soles - 12} width={28} height={12} rx={6} fill={p.shoe} />
           <Rect x={CX + 4} y={soles - 12} width={28} height={12} rx={6} fill={p.shoe} />
         </DrawnFade>
@@ -116,7 +106,7 @@ export function ScalesFigure({ fig, playing, drawIn = false }: { fig: ScalesFig;
       <DrawnPath clock={clock} len={46} from={PEN.leader[0]} to={PEN.leader[1]} d={`M${CX - 52},196 H${CX - 98}`} stroke={p.label} strokeWidth={1} />
       <MonoLabel x={CX - 101} y={199} text="SPRING" color={p.label} size={9} anchor="end" />
       {/* the display, wired to the plate (dashed wires cannot be traced by the pen: they fade in with the fills) */}
-      <DrawnFade clock={clock} from={PEN.fill[0]} to={PEN.fill[1]}>
+      <DrawnFade clock={clock} from={FILLS[0]} to={FILLS[1]}>
         <Line x1={CX + 92} y1={plate + 5} x2={262} y2={plate + 5} stroke={p.lineStrong} strokeWidth={1.2} strokeDasharray="3 3" />
         <Line x1={262} y1={plate + 5} x2={262} y2={92} stroke={p.lineStrong} strokeWidth={1.2} strokeDasharray="3 3" />
         <Rect x={226} y={56} width={104} height={36} rx={6} fill={p.ink} />

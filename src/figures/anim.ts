@@ -14,24 +14,26 @@ export const STILL: DrawClock = { on: false };
 
 const DRAW_DELAY = 380; // the screen slides in first (340 ms)
 const DRAW_MS = motion.scene * 2;
+/** Milliseconds from the start of a draw-in until the drawing (lines and fills) is done: forces grow after this. */
+export const DRAWN_MS = DRAW_DELAY + DRAW_MS * 0.85;
 
-/** The pen's clock: 1.2 s, eased in and out. Not active or reduced motion: the figure is simply there. */
+/**
+ * The pen's clock: 1.2 s, eased in and out, from the moment `active` becomes true (the sheet knows its size).
+ * Not active or reduced motion: the figure is simply there.
+ */
 export function useDrawIn(active: boolean): DrawClock {
   const reduced = useReducedMotionPref();
   const run = active && !reduced;
   const t = useSharedValue(0);
-  const [on, setOn] = useState(run);
+  const [finished, setFinished] = useState(false);
   useEffect(() => {
-    if (!run) {
-      setOn(false);
-      return;
-    }
+    if (!run) return;
     t.set(withDelay(DRAW_DELAY, withTiming(1, { duration: DRAW_MS, easing: Easing.inOut(Easing.cubic) })));
     // when the pen is done the figure goes back to plain lines (nothing left animating)
-    const id = setTimeout(() => setOn(false), DRAW_DELAY + DRAW_MS + 40);
+    const id = setTimeout(() => setFinished(true), DRAW_DELAY + DRAW_MS + 40);
     return () => clearTimeout(id);
   }, [run, t]);
-  return on ? { on: true, t } : STILL;
+  return run && !finished ? { on: true, t } : STILL;
 }
 
 /** The kinds of figure a lesson has already shown. The lesson player provides it; outside a lesson nothing draws itself. */
@@ -132,8 +134,11 @@ export function useWave(period = 1.6, running = true): number {
   return w;
 }
 
-/** Seconds since the component appeared, counting up to `length` once and then staying there. Reduced motion: `length` at once. */
-export function useOnceTime(length: number): number {
+/**
+ * Seconds since the component appeared (or since `start` became true), counting up to `length` once and then staying there.
+ * Reduced motion: `length` at once.
+ */
+export function useOnceTime(length: number, start = true): number {
   const reduced = useReducedMotionPref();
   const [t, setT] = useState(0);
   useEffect(() => {
@@ -141,6 +146,7 @@ export function useOnceTime(length: number): number {
       setT(length);
       return;
     }
+    if (!start) return;
     let raf = 0;
     const t0 = performance.now();
     const step = (now: number) => {
@@ -150,7 +156,7 @@ export function useOnceTime(length: number): number {
     };
     raf = requestAnimationFrame(step);
     return () => cancelAnimationFrame(raf);
-  }, [length, reduced]);
+  }, [length, reduced, start]);
   return t;
 }
 

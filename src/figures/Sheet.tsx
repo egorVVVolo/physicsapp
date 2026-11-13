@@ -11,7 +11,7 @@ import { LIFT_VB, LiftFigure, liftMoves, liftParams, liftTargets, ShaftMarks } f
 import { LIFT_PAIR_VB, LiftPairFigure } from './LiftPairFigure';
 import { SCALES_VB, ScalesFigure } from './ScalesFigure';
 import { PAIRS_MAX_H, PAIRS_VB, PairsFigure, pairsTargets } from './PairsFigure';
-import { useFirstShow } from './anim';
+import { useDrawIn, useFirstShow } from './anim';
 import { VT_VB, VtFigure, vtTargets } from './VtFigure';
 
 export type TapTarget = { id: string; x: number; y: number; w: number; h: number; label: string };
@@ -34,14 +34,17 @@ type Props = {
 
 /** Every figure is drawn at the same size on every screen, so the drawing never jumps between screens. */
 const MAX_H = 270;
+/** The figures that draw themselves the first time their kind appears in a lesson. */
+const DRAWS_ITSELF: Fig['kind'][] = ['scales', 'lift', 'pairs'];
 
 export function Sheet({ fig, n, a, tap, caption }: Props) {
   const { palette: p } = useTheme();
   const [width, setWidth] = useState(0);
   const [playing, setPlaying] = useState(true);
   const reduced = useReducedMotionPref();
-  // the first figure of each kind in a lesson draws itself (so far: the scales)
-  const drawIn = useFirstShow(fig.kind);
+  // the first figure of each kind in a lesson draws itself; the pen starts once the sheet knows its size
+  const first = useFirstShow(fig.kind);
+  const clock = useDrawIn(first && width > 0 && DRAWS_ITSELF.includes(fig.kind));
   const vb = { lift: LIFT_VB, pairs: PAIRS_VB, vt: VT_VB, scales: SCALES_VB, liftPair: LIFT_PAIR_VB }[fig.kind];
   const aNow = fig.kind === 'lift' ? (a ?? fig.a) : 0;
   let w = width;
@@ -89,13 +92,13 @@ export function Sheet({ fig, n, a, tap, caption }: Props) {
         {width > 0 && (
           <View style={{ width: w, height: h, alignSelf: 'center' }}>
             <Svg width={w} height={h} viewBox={`0 0 ${vb.w} ${vb.h}`}>
-              {fig.kind === 'lift' && <LiftFigure fig={fig} a={aNow} tap={tap} />}
-              {fig.kind === 'scales' && <ScalesFigure fig={fig} playing={run} drawIn={drawIn} />}
+              {fig.kind === 'lift' && <LiftFigure fig={fig} a={aNow} tap={tap} clock={clock} />}
+              {fig.kind === 'scales' && <ScalesFigure fig={fig} playing={run} clock={clock} />}
               {fig.kind === 'liftPair' && <LiftPairFigure fig={fig} playing={!reduced} />}
-              {fig.kind === 'pairs' && <PairsFigure fig={fig} tap={tap} />}
+              {fig.kind === 'pairs' && <PairsFigure fig={fig} tap={tap} clock={clock} />}
               {fig.kind === 'vt' && <VtFigure fig={fig} tap={tap} />}
             </Svg>
-            {fig.kind === 'lift' && <ShaftMarks fig={fig} a={aNow} scale={scale} playing={run} />}
+            {fig.kind === 'lift' && <ShaftMarks fig={fig} a={aNow} scale={scale} playing={run} clock={clock} />}
             {targets.map((t) => (
               <Pressable
                 key={t.id}
