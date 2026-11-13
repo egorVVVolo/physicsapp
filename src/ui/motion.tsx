@@ -49,6 +49,19 @@ export function Pop({ children, trigger, style }: { children: ReactNode; trigger
   return <Animated.View style={[style, anim]}>{children}</Animated.View>;
 }
 
+/** A "no" shake of the head: a short sideways wobble, each time `trigger` becomes true (a wrong card). */
+export function Shake({ children, trigger, style }: { children: ReactNode; trigger: boolean; style?: StyleProp<ViewStyle> }) {
+  const reduced = useReducedMotionPref();
+  const x = useSharedValue(0);
+  useEffect(() => {
+    if (!trigger || reduced) return;
+    const step = (to: number) => withTiming(to, { duration: 95, easing: out }); // 4 × 95 = 380 ms
+    x.set(withSequence(step(-7), step(6), step(-4), step(0)));
+  }, [trigger, reduced, x]);
+  const anim = useAnimatedStyle(() => ({ transform: [{ translateX: x.get() }] }));
+  return <Animated.View style={[style, anim]}>{children}</Animated.View>;
+}
+
 const SPARKS = 8;
 
 /** Short strokes shooting out from a point once (a right answer). Place it over the spot it bursts from. */

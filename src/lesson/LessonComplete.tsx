@@ -1,11 +1,13 @@
 // End of a lesson. One orchestrated moment: the lesson's puck drops in and a ring of force arrows bursts out of it.
+// The stamp hits next to it (gold: every Skill check answer right first try; otherwise the level's colour).
 // Then, quietly: the puzzle solved as a figure (the reading counts up), the honest tally, what you can do now.
 // Every number is real: the tally counts outcomes, the figure comes from src/physics.
 import { useEffect, useState, type ReactNode } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Animated, { Easing, useAnimatedStyle, useSharedValue, withDelay, withSpring, withTiming, type SharedValue } from 'react-native-reanimated';
+import Animated, { Easing, useAnimatedStyle, useSharedValue, withDelay, withSequence, withSpring, withTiming, type SharedValue } from 'react-native-reanimated';
 import Svg, { Path, Polygon } from 'react-native-svg';
+import { stamp } from '@/art/brand';
 import type { Lesson } from '@/content/types';
 import { countOutcomes, type LessonState } from '@/session/logic';
 import { Puck } from '@/figures/Puck';
@@ -13,7 +15,8 @@ import { Sheet } from '@/figures/Sheet';
 import { useTween } from '@/figures/anim';
 import { useTheme } from '@/theme/ThemeContext';
 import { colorOfLesson } from '@/theme/levelColor';
-import { courseBlue, font } from '@/theme/tokens';
+import { courseBlue, font, motion, reward, soonGrey } from '@/theme/tokens';
+import { Art } from '@/ui/Art';
 import { feedback } from '@/ui/feedback';
 import { MainButton, useReducedMotionPref } from '@/ui/parts';
 import { Frame } from './Frame';
@@ -21,6 +24,9 @@ import { Frame } from './Frame';
 const PUCK = 132;
 const LAND_MS = 170; // the Drop spring first reaches the floor after ~0.17 s (damping 9, stiffness 140, mass 0.8)
 const BURST = 12; // arrows in the burst
+const STAMP = 84;
+const STAMP_AT = LAND_MS + 420; // the stamp starts falling a beat after the puck lands
+const STAMP_MS = 200;
 
 export function LessonComplete({ lesson, state, onDone, onReplay }: { lesson: Lesson; state: LessonState; onDone: () => void; onReplay: () => void }) {
   const { palette: p } = useTheme();
@@ -31,9 +37,14 @@ export function LessonComplete({ lesson, state, onDone, onReplay }: { lesson: Le
   const firstTime = lesson.skillCheck.filter((q) => state.outcomes[q.id] === 'independent').length;
   const counting = useAfter(reduced ? 0 : 1100);
   const figCount = [...lesson.story, ...lesson.skillCheck].filter((x) => 'fig' in x && x.fig).length; // the recap is the next FIG
+  const gold = lesson.skillCheck.every((q) => state.outcomes[q.id] === 'independent');
+  const stampLabel = gold ? 'On your own' : 'With some help';
+  // the whole screen jolts down a little when the stamp hits
+  const jolt = useSharedValue(0);
+  const joltStyle = useAnimatedStyle(() => ({ transform: [{ translateY: jolt.get() }] }));
 
   return (
-    <View style={{ flex: 1, paddingTop: insets.top + 8, paddingBottom: insets.bottom, backgroundColor: p.page }}>
+    <Animated.View style={[{ flex: 1, paddingTop: insets.top + 8, paddingBottom: insets.bottom, backgroundColor: p.page }, joltStyle]}>
       <Frame footer={<MainButton label="Back to the map" onPress={onDone} tone="level" color={c} />}>
         {/* the moment: puck + burst */}
         <View style={styles.hero}>
@@ -41,12 +52,14 @@ export function LessonComplete({ lesson, state, onDone, onReplay }: { lesson: Le
           <Drop reduced={reduced}>
             <Puck size={PUCK} state="done" color={c} />
           </Drop>
+          <Stamp xml={stamp(gold ? 'independent' : 'assisted', c, reward, soonGrey)} label={stampLabel} reduced={reduced} jolt={jolt} />
         </View>
         <Rise delay={350} reduced={reduced}>
           <View style={{ alignItems: 'center', gap: 4 }}>
             <Text accessibilityRole="header" style={[styles.title, { color: p.ink }]}>
               Lesson complete
             </Text>
+            <Text style={[styles.stampLabel, { color: p.ink }]}>{stampLabel}</Text>
             <Text style={[styles.lessonName, { color: p.muted }]}>{lesson.title}</Text>
           </View>
         </Rise>
@@ -99,7 +112,7 @@ export function LessonComplete({ lesson, state, onDone, onReplay }: { lesson: Le
           Play the lesson again
         </Text>
       </Frame>
-    </View>
+    </Animated.View>
   );
 }
 
@@ -128,6 +141,44 @@ function Drop({ children, reduced }: { children: ReactNode; reduced: boolean }) 
     transform: [{ translateY: (1 - k.get()) * -40 }, { scale: 0.7 + 0.3 * k.get() }],
   }));
   return <Animated.View style={style}>{children}</Animated.View>;
+}
+
+/**
+ * The stamp: it falls from big and tilted, speeding up (ease-in) so the hit feels heavy. On the hit: the stamp sound,
+ * the screen jolts 4 pt down and back, a yellow ring spreads out. Reduced motion: it is already there, only the sound.
+ */
+function Stamp({ xml, label, reduced, jolt }: { xml: string; label: string; reduced: boolean; jolt: SharedValue<number> }) {
+  const k = useSharedValue(reduced ? 1 : 0);
+  const ring = useSharedValue(0);
+  useEffect(() => {
+    if (reduced) {
+      const id = setTimeout(feedback.stamp, 420); // after the "complete" sound, not on top of it
+      return () => clearTimeout(id);
+    }
+    const hit = STAMP_AT + STAMP_MS;
+    k.set(withDelay(STAMP_AT, withTiming(1, { duration: STAMP_MS, easing: Easing.in(Easing.cubic) })));
+    const half = motion.fast / 2;
+    jolt.set(withDelay(hit, withSequence(withTiming(4, { duration: half }), withTiming(0, { duration: half }))));
+    ring.set(withDelay(hit, withTiming(1, { duration: 480, easing: Easing.out(Easing.cubic) })));
+    const id = setTimeout(feedback.stamp, hit);
+    return () => clearTimeout(id);
+  }, [k, ring, jolt, reduced]);
+  const stampStyle = useAnimatedStyle(() => ({
+    opacity: k.get(),
+    transform: [{ scale: 2.3 - 1.3 * k.get() }, { rotate: `${-22 + 13 * k.get()}deg` }],
+  }));
+  const ringStyle = useAnimatedStyle(() => ({
+    opacity: ring.get() === 0 ? 0 : 0.9 * (1 - ring.get()),
+    transform: [{ scale: 0.7 + 0.8 * ring.get() }],
+  }));
+  return (
+    <>
+      {!reduced && <Animated.View pointerEvents="none" style={[styles.ring, { borderColor: reward.face }, ringStyle]} />}
+      <Animated.View accessible accessibilityRole="image" accessibilityLabel={label} style={[styles.stamp, stampStyle]}>
+        <Art xml={xml} width={STAMP} />
+      </Animated.View>
+    </>
+  );
 }
 
 /** A section fades in after `delay` ms (one sequence for the whole screen, nothing moves after that). */
@@ -217,6 +268,10 @@ function Count({ label, value }: { label: string; value: number }) {
 
 const styles = StyleSheet.create({
   hero: { height: 190, alignItems: 'center', justifyContent: 'center', marginTop: 4 },
+  // right of and below the puck's centre (95), inside the hero so it never covers the title
+  stamp: { position: 'absolute', left: '50%', marginLeft: 24, top: 93, width: STAMP, height: STAMP },
+  ring: { position: 'absolute', left: '50%', marginLeft: 24 + STAMP / 2 - 50, top: 93 + STAMP / 2 - 50, width: 100, height: 100, borderRadius: 50, borderWidth: 3 },
+  stampLabel: { fontFamily: font.display, fontSize: 19, textAlign: 'center' },
   arrow: { position: 'absolute', left: '50%', top: '50%', marginLeft: -6, marginTop: -15 },
   title: { fontFamily: font.display, fontSize: 32, lineHeight: 38, letterSpacing: -0.4, textAlign: 'center' },
   lessonName: { fontFamily: font.bodyMedium, fontSize: 17, textAlign: 'center' },

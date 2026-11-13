@@ -5,7 +5,7 @@ import Svg, { Path, Rect } from 'react-native-svg';
 import { useTheme } from '@/theme/ThemeContext';
 import { font, LIP, radius, reward, touch } from '@/theme/tokens';
 import { feedback } from './feedback';
-import { Pop, Sparks, useReducedMotionPref } from './motion';
+import { Pop, Shake, Sparks, useReducedMotionPref } from './motion';
 
 const nativeDriver = Platform.OS !== 'web';
 
@@ -83,20 +83,13 @@ export type CardState = 'idle' | 'selected' | 'right' | 'wrong' | 'dim';
 /** One answer card. Right and wrong get a corner badge and words for screen readers, never colour alone. */
 export function OptionCard({ label, state, onPress, disabled, compact }: { label: string; state: CardState; onPress: () => void; disabled?: boolean; compact?: boolean }) {
   const { palette: p } = useTheme();
-  const reduced = useReducedMotionPref();
-  const shake = useRef(new Animated.Value(0)).current;
-  useEffect(() => {
-    if (state !== 'wrong' || reduced) return;
-    const step = (to: number) => Animated.timing(shake, { toValue: to, duration: 55, useNativeDriver: nativeDriver });
-    Animated.sequence([step(-6), step(6), step(-4), step(3), step(0)]).start();
-  }, [state, shake, reduced]);
 
   const border = state === 'selected' ? p.select : state === 'right' ? p.ok : state === 'wrong' ? p.bad : p.line;
   const bg = state === 'right' ? p.okBg : state === 'wrong' ? p.badBg : state === 'selected' ? p.selectBg : p.page;
   const color = state === 'right' ? p.okText : state === 'wrong' ? p.badText : state === 'dim' ? p.faint : p.ink;
   const said = state === 'right' ? ', correct' : state === 'wrong' ? ', incorrect' : '';
   return (
-    <Animated.View style={[{ transform: [{ translateX: shake }] }, compact && { flex: 1 }]}>
+    <Shake trigger={state === 'wrong'} style={compact && { flex: 1 }}>
       <Pop trigger={state === 'right'} style={compact && { flex: 1 }}>
       <Pressable
         accessibilityRole="radio"
@@ -116,7 +109,7 @@ export function OptionCard({ label, state, onPress, disabled, compact }: { label
       </Pressable>
       {(state === 'right' || state === 'wrong') && <CornerBadge kind={state === 'right' ? 'ok' : 'bad'} color={state === 'right' ? p.ok : p.bad} />}
       </Pop>
-    </Animated.View>
+    </Shake>
   );
 }
 
