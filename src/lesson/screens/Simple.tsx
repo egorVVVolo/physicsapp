@@ -5,7 +5,7 @@ import type { IntroScreen, PredictScreen, TextScreen } from '@/content/types';
 import { Sheet } from '@/figures/Sheet';
 import { Puck } from '@/figures/Puck';
 import { useTheme } from '@/theme/ThemeContext';
-import { font, levelColors } from '@/theme/tokens';
+import { font, type LevelColor } from '@/theme/tokens';
 import { MainButton, OptionCard, OptionList } from '@/ui/parts';
 import { haptic } from '@/ui/haptics';
 import { Frame } from '../Frame';
@@ -61,12 +61,12 @@ export function PredictView({ screen, figN, picked, onPick, onNext }: { screen: 
   );
 }
 
-export function CheckIntroView({ count, onNext }: { count: number; onNext: () => void }) {
+export function CheckIntroView({ count, color, onNext }: { count: number; color: LevelColor; onNext: () => void }) {
   const { palette: p } = useTheme();
   return (
     <Frame center footer={<MainButton label="Start the Skill check" onPress={onNext} />}>
       <View style={{ alignItems: 'center', gap: 18 }}>
-        <Puck size={150} state="current" color={levelColors.forces} />
+        <Puck size={150} state="current" color={color} />
         <Title>Skill check</Title>
         <Text style={[styles.lead, { color: p.muted }]}>
           {count} exam-style questions. One try each, no hints. The reasons come after each answer.

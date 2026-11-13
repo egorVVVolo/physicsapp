@@ -69,3 +69,8 @@ export const course: Course = {
     },
   ],
 };
+
+/** The level a lesson belongs to ('motion', 'forces', …). */
+export function levelIdOf(lessonId: string): string {
+  return course.levels.find((lv) => lv.lessons.some((x) => x.id === lessonId))?.id ?? course.levels[0].id;
+}

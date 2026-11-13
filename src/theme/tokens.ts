@@ -69,10 +69,6 @@ export const courseBlue: LevelColor = {
 };
 /** Pucks of lessons that are not built yet: flat grey, same facets. */
 export const soonGrey: LevelColor = { main: '#9CA3AD', lip: '#737B86', soft: '#EEF1F4', face: '#9CA3AD', side: '#737B86', inner: '#BCC2CA', text: '#646C79' };
-/** Kept per level so a level can get its own colour later; for now all share the course blue. */
-export const levelColors: Record<string, LevelColor> = Object.fromEntries(
-  ['motion', 'forces', 'momentum-moments', 'energy', 'fluids', 'materials'].map((id) => [id, courseBlue]),
-);
 
 /** Space Grotesk: titles, questions, buttons. IBM Plex Sans: reading text. IBM Plex Mono: labels inside figures only. */
 export const font = {
@@ -92,13 +88,13 @@ export const touch = 44; // minimum touch target, pt
 export const LIP = 4; // height of the bottom lip under main buttons and the picked card
 
 // ───────────────────────────────────────────────────────────────────────────────────────────────
-// Design system v1 (12 Nov, docs/DESIGN.md). Everything below is PROPOSED: it is used by the art
-// library (src/art/) and the demo page, and is switched on in the app step by step (docs/DESIGN.md, 9).
+// Design system v1 (12 Nov, docs/DESIGN.md). `levelPalette` is switched on in the app (13 Nov, task 1.1);
+// `darkPalette` waits for task 5.1. The rest is switched on step by step (docs/DESIGN_TASKS.md).
 // ───────────────────────────────────────────────────────────────────────────────────────────────
 
 /**
  * One colour per level of the map: the colour means "where you are". Forces in figures and the chosen
- * answer stay course blue everywhere. To switch on: replace `levelColors` above with this record.
+ * answer stay course blue everywhere.
  */
 export const levelPalette: Record<string, LevelColor> = {
   motion: courseBlue,
@@ -108,6 +104,8 @@ export const levelPalette: Record<string, LevelColor> = {
   fluids: { main: '#08808C', lip: '#055C66', soft: '#DDF4F6', face: '#0E9AA8', side: '#07707B', inner: '#6CCAD3', text: '#066E79' },
   materials: { main: '#4F7A00', lip: '#385700', soft: '#EDF5D9', face: '#639700', side: '#456B00', inner: '#A5CF4A', text: '#446900' },
 };
+/** The colour of each level of the map (design system v1, switched on 13 Nov). */
+export const levelColors = levelPalette;
 
 /**
  * The reward yellow: the only meaning is "you earned this" (stamps, the momentum top, sparks, a new

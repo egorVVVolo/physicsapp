@@ -3,7 +3,7 @@ import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { AccessibilityInfo, Animated, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import Svg, { Path, Rect } from 'react-native-svg';
 import { useTheme } from '@/theme/ThemeContext';
-import { font, LIP, radius, touch } from '@/theme/tokens';
+import { font, LIP, radius, reward, touch } from '@/theme/tokens';
 import { Pop, Sparks, useReducedMotionPref } from './motion';
 
 const nativeDriver = Platform.OS !== 'web';
@@ -33,7 +33,7 @@ export function CloseIcon({ color, size = 18 }: { color: string; size?: number }
 function CornerBadge({ kind, color }: { kind: 'ok' | 'bad'; color: string }) {
   return (
     <View style={styles.badge} pointerEvents="none">
-      {kind === 'ok' && <Sparks color={color} size={70} />}
+      {kind === 'ok' && <Sparks color={reward.face} size={70} />}
       <Svg width={24} height={24} viewBox="0 0 24 24">
         <Rect x={0} y={0} width={24} height={24} rx={6} fill={color} />
         <Path d={kind === 'ok' ? 'M6.5 12.5l3.5 3.5 7.5-8' : 'M7.5 7.5l9 9M16.5 7.5l-9 9'} stroke="#FFFFFF" strokeWidth={2.6} fill="none" strokeLinecap="round" strokeLinejoin="round" />
@@ -157,7 +157,7 @@ export function VerdictSheet({ verdict, button }: { verdict: Verdict; button: { 
       <View style={styles.sheetHead}>
         <View style={styles.sheetTitleRow}>
           <View>
-            {ok && <Sparks key={said} color={p.ok} size={56} />}
+            {ok && <Sparks key={said} color={reward.face} size={56} />}
             <Mark kind={ok ? 'ok' : 'bad'} color={ok ? p.ok : p.bad} size={20} />
           </View>
           <Text style={[styles.sheetTitle, { color: p.ink }]} accessibilityRole="header">

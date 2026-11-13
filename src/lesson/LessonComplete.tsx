@@ -12,7 +12,8 @@ import { Puck } from '@/figures/Puck';
 import { Sheet } from '@/figures/Sheet';
 import { useTween } from '@/figures/anim';
 import { useTheme } from '@/theme/ThemeContext';
-import { courseBlue, font, levelColors } from '@/theme/tokens';
+import { colorOfLesson } from '@/theme/levelColor';
+import { courseBlue, font } from '@/theme/tokens';
 import { MainButton, useReducedMotionPref } from '@/ui/parts';
 import { Frame } from './Frame';
 
@@ -21,6 +22,7 @@ const BURST = 12; // arrows in the burst
 
 export function LessonComplete({ lesson, state, onDone, onReplay }: { lesson: Lesson; state: LessonState; onDone: () => void; onReplay: () => void }) {
   const { palette: p } = useTheme();
+  const c = colorOfLesson(lesson.id);
   const insets = useSafeAreaInsets();
   const reduced = useReducedMotionPref();
   const n = countOutcomes(state);
@@ -30,12 +32,12 @@ export function LessonComplete({ lesson, state, onDone, onReplay }: { lesson: Le
 
   return (
     <View style={{ flex: 1, paddingTop: insets.top + 8, paddingBottom: insets.bottom, backgroundColor: p.page }}>
-      <Frame footer={<MainButton label="Back to the map" onPress={onDone} tone="level" color={courseBlue} />}>
+      <Frame footer={<MainButton label="Back to the map" onPress={onDone} tone="level" color={c} />}>
         {/* the moment: puck + burst */}
         <View style={styles.hero}>
           <Burst reduced={reduced} />
           <Drop reduced={reduced}>
-            <Puck size={PUCK} state="done" color={levelColors.forces} />
+            <Puck size={PUCK} state="done" color={c} />
           </Drop>
         </View>
         <Rise delay={350} reduced={reduced}>
@@ -61,7 +63,7 @@ export function LessonComplete({ lesson, state, onDone, onReplay }: { lesson: Le
             <View style={styles.checkRow}>
               <View style={styles.dots}>
                 {lesson.skillCheck.map((q, i) => (
-                  <CheckDot key={q.id} ok={state.outcomes[q.id] === 'independent'} delay={1100 + i * 140} reduced={reduced} />
+                  <CheckDot key={q.id} ok={state.outcomes[q.id] === 'independent'} delay={1100 + i * 140} reduced={reduced} color={c.main} />
                 ))}
               </View>
               <Text style={[styles.checkText, { color: p.ink }]}>
@@ -84,7 +86,7 @@ export function LessonComplete({ lesson, state, onDone, onReplay }: { lesson: Le
             {lesson.youCanNow.map((s) => (
               <View key={s} style={styles.item}>
                 <Svg width={20} height={20} viewBox="0 0 20 20" style={{ marginTop: 3 }}>
-                  <Path d="M4,10.5 L8.2,14.5 L16,6" fill="none" stroke={courseBlue.main} strokeWidth={2.6} strokeLinecap="round" strokeLinejoin="round" />
+                  <Path d="M4,10.5 L8.2,14.5 L16,6" fill="none" stroke={c.main} strokeWidth={2.6} strokeLinecap="round" strokeLinejoin="round" />
                 </Svg>
                 <Text style={[styles.itemText, { color: p.ink }]}>{s}</Text>
               </View>
@@ -174,8 +176,8 @@ function BurstArrow({ i, t }: { i: number; t: SharedValue<number> }) {
   );
 }
 
-/** One Skill check question: a filled blue disc with a check when right first time, an empty ring otherwise. */
-function CheckDot({ ok, delay, reduced }: { ok: boolean; delay: number; reduced: boolean }) {
+/** One Skill check question: a filled disc in the level colour with a check when right first time, an empty ring otherwise. */
+function CheckDot({ ok, delay, reduced, color }: { ok: boolean; delay: number; reduced: boolean; color: string }) {
   const { palette: p } = useTheme();
   const k = useSharedValue(reduced ? 1 : 0);
   useEffect(() => {
@@ -186,7 +188,7 @@ function CheckDot({ ok, delay, reduced }: { ok: boolean; delay: number; reduced:
     <Animated.View
       accessible
       accessibilityLabel={ok ? 'right first time' : 'missed'}
-      style={[styles.dot, ok ? { backgroundColor: courseBlue.main } : { borderWidth: 2.5, borderColor: p.lineStrong }, style]}
+      style={[styles.dot, ok ? { backgroundColor: color } : { borderWidth: 2.5, borderColor: p.lineStrong }, style]}
     >
       {ok && (
         <Svg width={14} height={14} viewBox="0 0 14 14">
