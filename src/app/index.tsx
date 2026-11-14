@@ -3,7 +3,7 @@
 // lesson; a round button brings you back to the next lesson when it has scrolled away.
 // Coming back from a lesson just finished: its puck pops its check and a ball rolls to the next lesson.
 import { useCallback, useEffect, useMemo, useRef, useState, type ComponentRef } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View, type NativeScrollEvent, type NativeSyntheticEvent } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions, type NativeScrollEvent, type NativeSyntheticEvent } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, { useAnimatedStyle, useReducedMotion, useSharedValue, withSpring, withTiming } from 'react-native-reanimated';
@@ -13,13 +13,14 @@ import { course } from '@/content/course';
 import { lessons } from '@/content/lessons';
 import type { Level } from '@/content/types';
 import { CourseIcon } from '@/figures/CourseIcon';
-import type { PuckState } from '@/figures/Puck';
+import { PUCK_FACE_Y, PUCK_VB_W, type PuckState } from '@/figures/Puck';
 import { CONTENT_MAX } from '@/lesson/Frame';
 import { Dock } from '@/map/Dock';
+import { Launch, type LaunchTarget } from '@/map/Launch';
 import { LevelPlate } from '@/map/LevelPlate';
 import { PuckRow } from '@/map/PuckRow';
 import { RollingBall, type Point } from '@/map/RollingBall';
-import { LEVEL_OBJECT, labelX, levelAt, puckX, puckY, rowLayout } from '@/map/layout';
+import { LEVEL_OBJECT, PUCK, labelX, levelAt, puckX, puckY, rowLayout } from '@/map/layout';
 import { loadProgress } from '@/session/storage';
 import { useTheme } from '@/theme/ThemeContext';
 import { font, levelColors, reward, soonGrey, soonReward } from '@/theme/tokens';
@@ -59,7 +60,9 @@ export default function CourseMap() {
   const sectionY = useRef<number[]>([]);
   const scroll = useRef<ComponentRef<typeof ScrollView>>(null);
   const scrollY = useRef(0);
-  const savedY = useRef(0); // where the map was when a lesson opened (the web hides the map and loses it)
+  const savedY = useRef(0);
+  const mapTop = useRef(0); // top of the scrolling map on screen, under the header
+  const { width: screenW } = useWindowDimensions(); // where the map was when a lesson opened (the web hides the map and loses it)
   const placed = useRef(false);
 
   useFocusEffect(
@@ -176,6 +179,14 @@ export default function CourseMap() {
   };
   const [, setLaidOut] = useState(0);
 
+  /** The launch animation ends on the puck the map opens at: that puck's box on screen. */
+  const launchTarget = (): LaunchTarget | undefined => {
+    const at = puckAt(nextId || picked);
+    if (!at || !width) return undefined;
+    const k = PUCK / PUCK_VB_W;
+    return { x: (screenW - width) / 2 + at.x - PUCK / 2, y: mapTop.current + PAD_TOP + at.y - scrollY.current - PUCK_FACE_Y * k, w: PUCK };
+  };
+
   // the ball's ends, measured on every render so a late layout (width, section tops) cannot leave it stale
   const rollFrom = roll && puckAt(roll.from);
   const rollTo = roll && puckAt(roll.to);
@@ -213,7 +224,7 @@ export default function CourseMap() {
         </View>
       </View>
 
-      <View style={{ flex: 1 }}>
+      <View style={{ flex: 1 }} onLayout={(e) => e.nativeEvent.layout.height > 0 && (mapTop.current = e.nativeEvent.layout.y)}>
         <ScrollView
           ref={scroll}
           onLayout={(e) => e.nativeEvent.layout.height > 0 && setViewH(e.nativeEvent.layout.height)}
@@ -259,6 +270,7 @@ export default function CourseMap() {
         />
         <BackButton side={away} bottom={dockH + 12} onPress={() => bringBack(true)} />
       </View>
+      <Launch target={launchTarget} />
     </View>
   );
 }

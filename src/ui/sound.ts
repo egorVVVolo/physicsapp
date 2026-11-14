@@ -26,7 +26,7 @@ export const setSoundEnabled = (on: boolean) => {
 };
 
 /** Plays a sound from the start. `rate` above 1 plays it faster and higher (no pitch correction). */
-export function play(name: SoundName, rate = 1) {
+export function play(name: SoundName, rate = 1, volume = 0.7) {
   if (!enabled) return;
   try {
     if (!modeSet) {
@@ -34,7 +34,7 @@ export function play(name: SoundName, rate = 1) {
       setAudioModeAsync({ playsInSilentMode: false }).catch(() => {});
     }
     const p = (players[name] ??= createAudioPlayer(files[name]));
-    p.volume = 0.7;
+    p.volume = volume;
     p.shouldCorrectPitch = false;
     p.setPlaybackRate(rate);
     p.seekTo(0).catch(() => {});
