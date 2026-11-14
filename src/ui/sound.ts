@@ -20,7 +20,7 @@ let enabled = true;
 let modeSet = false;
 const players: Partial<Record<SoundName, AudioPlayer>> = {};
 
-/** Turned off from Settings (task 5.2). */
+/** Turned off from Settings. */
 export const setSoundEnabled = (on: boolean) => {
   enabled = on;
 };

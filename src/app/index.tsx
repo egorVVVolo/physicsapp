@@ -219,6 +219,14 @@ export default function CourseMap() {
           >
             <Art xml={uiIcon('notebook')} width={24} color={p.ink} />
           </Pressable>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Settings"
+            onPress={() => router.push('/settings')}
+            style={({ pressed }) => [styles.iconButton, { borderColor: p.chipLine, backgroundColor: p.page, transform: [{ translateY: pressed ? 2 : 0 }] }]}
+          >
+            <Art xml={uiIcon('settings')} width={24} color={p.ink} />
+          </Pressable>
           <View style={[styles.count, { borderColor: p.chipLine, backgroundColor: p.page }]} accessibilityLabel={`${doneCount} of ${allRefs.length} lessons done`}>
             <Text style={[styles.countText, { color: p.ink }]}>
               {doneCount}/{allRefs.length}

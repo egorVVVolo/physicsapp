@@ -1,7 +1,7 @@
 // What the app does when something happens: a sound and, on a phone, a vibration (docs/DESIGN.md, 7).
 // Screens call only this module, never `haptic` or `play` directly.
-import { haptic } from './haptics';
-import { play } from './sound';
+import { haptic, setHapticsEnabled } from './haptics';
+import { play, setSoundEnabled } from './sound';
 
 export const feedback = {
   /** An answer card, a puck or a part of a figure was picked. */
@@ -44,4 +44,7 @@ export const feedback = {
   bounce: (n: number) => play('tap', 1 - n * 0.12, Math.max(0.15, 0.6 - n * 0.18)),
   /** The momentum top spins up. */
   spin: () => play('spin'),
+  /** Settings: sound and vibration on or off (kept in prefs/v1, applied when the app starts). */
+  setSound: (on: boolean) => setSoundEnabled(on),
+  setHaptics: (on: boolean) => setHapticsEnabled(on),
 };

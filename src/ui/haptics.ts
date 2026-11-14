@@ -3,18 +3,25 @@
 import { Platform } from 'react-native';
 import * as Haptics from 'expo-haptics';
 
-const on = Platform.OS === 'ios' || Platform.OS === 'android';
+const phone = Platform.OS === 'ios' || Platform.OS === 'android';
+let enabled = true;
+const on = () => phone && enabled;
 const quiet = (p: Promise<void>) => p.catch(() => {});
+
+/** Turned off from Settings. */
+export const setHapticsEnabled = (value: boolean) => {
+  enabled = value;
+};
 
 export const haptic = {
   /** An answer card or a part of a figure was picked. */
-  pick: () => on && quiet(Haptics.selectionAsync()),
+  pick: () => on() && quiet(Haptics.selectionAsync()),
   /** The checked answer is right. */
-  right: () => on && quiet(Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success)),
+  right: () => on() && quiet(Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success)),
   /** The checked answer is wrong. */
-  wrong: () => on && quiet(Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error)),
+  wrong: () => on() && quiet(Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error)),
   /** The lesson is complete: the puck landed. */
-  medium: () => on && quiet(Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium)),
+  medium: () => on() && quiet(Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium)),
   /** A stamp hits the paper. */
-  heavy: () => on && quiet(Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy)),
+  heavy: () => on() && quiet(Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy)),
 };

@@ -103,3 +103,11 @@ export async function savePrefs(change: Partial<Prefs>): Promise<Prefs> {
   } catch {}
   return next;
 }
+
+/** Clears every lesson's progress, the notebook cards and the day streak. Settings stay. */
+export async function resetProgress(): Promise<void> {
+  try {
+    const keys = (await AsyncStorage.getAllKeys()).filter((k) => k.startsWith('progress/') || k === FINISHED_KEY || k === STREAK_KEY);
+    await AsyncStorage.multiRemove(keys);
+  } catch {}
+}

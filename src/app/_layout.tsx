@@ -15,6 +15,8 @@ import { IBMPlexMono_500Medium, IBMPlexMono_600SemiBold } from '@expo-google-fon
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { ThemeProvider, useTheme } from '@/theme/ThemeContext';
+import { loadPrefs } from '@/session/storage';
+import { feedback } from '@/ui/feedback';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -52,6 +54,13 @@ export default function RootLayout() {
 /** The status bar and the screens' background follow the theme. */
 function Screens() {
   const { palette: p, dark } = useTheme();
+  // sound and vibration as the learner left them in Settings
+  useEffect(() => {
+    loadPrefs().then((prefs) => {
+      feedback.setSound(prefs.sound);
+      feedback.setHaptics(prefs.haptics);
+    });
+  }, []);
   return (
     <>
       <StatusBar style={dark ? 'light' : 'dark'} />
