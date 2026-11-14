@@ -18,11 +18,13 @@ import { PUCK_FACE_Y, PUCK_VB_W, type PuckState } from '@/figures/Puck';
 import { CONTENT_MAX } from '@/lesson/Frame';
 import { Dock } from '@/map/Dock';
 import { Launch, type LaunchTarget } from '@/map/Launch';
+import { MomentumChip, MomentumSheet } from '@/map/Momentum';
 import { LevelPlate } from '@/map/LevelPlate';
 import { PuckRow } from '@/map/PuckRow';
 import { RollingBall, type Point } from '@/map/RollingBall';
 import { LEVEL_OBJECT, PUCK, labelX, levelAt, puckX, puckY, rowLayout } from '@/map/layout';
-import { loadProgress } from '@/session/storage';
+import { loadProgress, loadStreak } from '@/session/storage';
+import { emptyStreak, type Streak } from '@/session/streak';
 import { useTheme } from '@/theme/ThemeContext';
 import { font, levelColors, reward, soonGrey, soonReward } from '@/theme/tokens';
 import { Art } from '@/ui/Art';
@@ -52,6 +54,8 @@ export default function CourseMap() {
   const [arriving, setArriving] = useState(''); // the next lesson, waiting for the ball to reach it
   const [arrived, setArrived] = useState(''); // the next lesson, just opened by the ball
   const [roll, setRoll] = useState<{ from: string; to: string } | null>(null); // lesson ids
+  const [streak, setStreak] = useState<Streak>(emptyStreak);
+  const [momentumOpen, setMomentumOpen] = useState(false);
 
   const [width, setWidth] = useState(0);
   const [viewH, setViewH] = useState(0);
@@ -72,6 +76,7 @@ export default function CourseMap() {
       setTouched(false);
       setPopId('');
       setArrived('');
+      loadStreak().then((s) => alive && setStreak(s));
       Promise.all(
         ready.map(async ({ r }) => {
           const saved = await loadProgress(lessons[r.id]);
@@ -205,6 +210,7 @@ export default function CourseMap() {
             <CourseIcon size={42} />
           </View>
           <View style={{ flex: 1 }} />
+          <MomentumChip streak={streak} onPress={() => setMomentumOpen(true)} />
           <Pressable
             accessibilityRole="button"
             accessibilityLabel="Notebook"
@@ -282,6 +288,7 @@ export default function CourseMap() {
         />
         <BackButton side={away} bottom={dockH + 12} onPress={() => bringBack(true)} />
       </View>
+      {momentumOpen && <MomentumSheet streak={streak} onClose={() => setMomentumOpen(false)} />}
       <Launch target={launchTarget} />
     </View>
   );

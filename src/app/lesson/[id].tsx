@@ -4,7 +4,7 @@ import { Text, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { lessons } from '@/content/lessons';
 import { startState, type LessonState } from '@/session/logic';
-import { clearProgress, loadProgress, saveProgress } from '@/session/storage';
+import { clearProgress, loadProgress, recordFinishedDay, saveProgress } from '@/session/storage';
 import { LessonPlayer } from '@/lesson/LessonPlayer';
 import { LessonComplete } from '@/lesson/LessonComplete';
 import { useTheme } from '@/theme/ThemeContext';
@@ -34,6 +34,7 @@ export default function LessonRoute() {
   if (!state) return <View style={{ flex: 1, backgroundColor: p.page }} />;
 
   const update = (s: LessonState) => {
+    if (s.finished && !state.finished) recordFinishedDay(); // a finished lesson makes today count for the streak
     setState(s);
     saveProgress(lesson.id, s);
   };
