@@ -80,9 +80,30 @@ export function QuestionView({ screen, figN, phase, earlierPick, onOutcome, onNe
     if ((status === 'retry' || status === 'revealed') && sel && sel !== right.id) tapMarks[sel] = 'wrong';
   }
   const picked = screen.options.find((o) => o.id === sel);
+  const fig = screen.fig && (
+    <Sheet
+      fig={locked ? revealed(screen.fig) : screen.fig}
+      n={figN}
+      tap={
+        screen.kind === 'tapFig'
+          ? {
+              selected: sel,
+              marks: tapMarks,
+              disabled: status !== 'answering',
+              onTap: (id) => {
+                if (wrong.includes(id)) return;
+                feedback.pick();
+                setSel(id);
+              },
+            }
+          : undefined
+      }
+    />
+  );
 
   return (
     <Frame
+      fig={fig}
       footer={<MainButton label="Check" onPress={check} disabled={!sel || status !== 'answering'} />}
       sheet={verdict ? <VerdictSheet verdict={verdict} button={sheetButton} /> : null}
     >
@@ -93,27 +114,6 @@ export function QuestionView({ screen, figN, phase, earlierPick, onOutcome, onNe
         </View>
       )}
       {screen.kind === 'tapFig' && <Instruction>{screen.instruction}</Instruction>}
-      {screen.fig && (
-        <Sheet
-          fig={locked ? revealed(screen.fig) : screen.fig}
-          n={figN}
-         
-          tap={
-            screen.kind === 'tapFig'
-              ? {
-                  selected: sel,
-                  marks: tapMarks,
-                  disabled: status !== 'answering',
-                  onTap: (id) => {
-                    if (wrong.includes(id)) return;
-                    feedback.pick();
-                    setSel(id);
-                  },
-                }
-              : undefined
-          }
-        />
-      )}
       {screen.kind === 'choice' ? (
         <OptionList>
           {screen.options.map((o) => (

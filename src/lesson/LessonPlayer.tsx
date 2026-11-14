@@ -1,11 +1,12 @@
 // Plays one lesson: the top bar (close, progress, Skill check dots) and the current screen.
 // Each new screen slides in; the progress fill glides, a Skill check dot pops when answered.
+// When the next screen shows the same kind of figure, its sheet stays in place and only the text moves in.
 import { useEffect, useRef, useState } from 'react';
 import { BackHandler, Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import type { Lesson, Screen } from '@/content/types';
-import { itemsOf, next, progressOf, recordOutcome, recordPick, type LessonState } from '@/session/logic';
-import { SeenFigs } from '@/figures/anim';
+import type { Fig, Lesson } from '@/content/types';
+import { figNumbers, figOf, itemsOf, next, progressOf, recordOutcome, recordPick, type LessonState } from '@/session/logic';
+import { LessonFigs, SharedSheet, type FigMemory, type SharedFig } from '@/figures/anim';
 import { useTheme } from '@/theme/ThemeContext';
 import { colorOfLesson } from '@/theme/levelColor';
 import { CloseIcon } from '@/ui/parts';
@@ -19,25 +20,27 @@ import { CheckIntroView, IntroView, PredictView, TextView } from './screens/Simp
 
 type Props = { lesson: Lesson; state: LessonState; onChange: (s: LessonState) => void; onClose: () => void };
 
-/** FIG numbers run through the lesson in order of appearance. */
-function figNumbers(lesson: Lesson): Record<string, number> {
-  const out: Record<string, number> = {};
-  let n = 0;
-  for (const s of [...lesson.story, ...lesson.skillCheck] as Screen[]) if ('fig' in s && s.fig) out[s.id] = ++n;
-  return out;
-}
-
 export function LessonPlayer({ lesson, state, onChange, onClose }: Props) {
   const { palette: p } = useTheme();
   const c = colorOfLesson(lesson.id);
   const insets = useSafeAreaInsets();
   const items = itemsOf(lesson);
   const item = items[state.index];
-  const figs = figNumbers(lesson);
+  const figs = figNumbers(lesson).of;
   const prog = progressOf(state, lesson);
-  const go = () => onChange(next(state, lesson));
-  // the kinds of figure already shown in this lesson: only the first of each kind draws itself
-  const [seenFigs] = useState(() => new Set<string>());
+  // what the lesson remembers about its figures (only the first of each kind draws itself; see FigMemory)
+  const [memory] = useState<FigMemory>(() => ({ seen: new Set(), shown: null, width: 0, scrollY: 0 }));
+  // the screen just left: its figure as it was drawn, how wide and how far scrolled
+  const [left, setLeft] = useState<{ index: number; fig: Fig | null; width: number; scrollY: number } | null>(null);
+  const go = () => {
+    setLeft({ index: state.index, fig: memory.shown, width: memory.width, scrollY: memory.scrollY });
+    memory.shown = null;
+    onChange(next(state, lesson));
+  };
+  // the screen before showed the same kind of figure: keep its sheet (not after a resume: nothing was shown before)
+  const fig = figOf(item);
+  const shared: SharedFig | null =
+    left && left.index === state.index - 1 && left.fig && fig && left.fig.kind === fig.kind && left.width > 0 ? { prev: left.fig, width: left.width, fromY: left.scrollY } : null;
 
   // × asks "Leave the lesson?" — except on the very first screen, where there is nothing to lose.
   const [leave, setLeave] = useState<'closed' | 'open' | 'closing'>('closed');
@@ -95,9 +98,11 @@ export function LessonPlayer({ lesson, state, onChange, onClose }: Props) {
       </View>
       {/* key: every screen starts with fresh local state */}
       <View style={{ flex: 1 }} key={state.index}>
-        <SeenFigs.Provider value={seenFigs}>
-          <ScreenEnter>{body}</ScreenEnter>
-        </SeenFigs.Provider>
+        <LessonFigs.Provider value={memory}>
+          <SharedSheet.Provider value={shared}>
+            <ScreenEnter still={shared !== null}>{body}</ScreenEnter>
+          </SharedSheet.Provider>
+        </LessonFigs.Provider>
       </View>
       {/* the Skill check splash floods the whole player, the top bar included */}
       {item?.kind === 'checkIntro' && (

@@ -3,6 +3,7 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { AccessibilityInfo, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 import Animated, { Easing, useAnimatedStyle, useSharedValue, withDelay, withSequence, withSpring, withTiming } from 'react-native-reanimated';
+import { motion } from '@/theme/tokens';
 
 /** True when the device asks for reduced motion (checked once). */
 export function useReducedMotionPref(): boolean {
@@ -15,15 +16,35 @@ export function useReducedMotionPref(): boolean {
 
 const out = Easing.out(Easing.cubic);
 
-/** A whole screen slides in from the right and fades in. */
-export function ScreenEnter({ children }: { children: ReactNode }) {
+/**
+ * Slides in from the right and fades in: a whole screen, or only its text when the figure stays in place.
+ * `still`: shown as it is, without moving (decided when it mounts).
+ */
+export function ScreenEnter({ children, still = false, style }: { children: ReactNode; still?: boolean; style?: StyleProp<ViewStyle> }) {
   const reduced = useReducedMotionPref();
-  const k = useSharedValue(0);
+  const k = useSharedValue(still ? 1 : 0);
   useEffect(() => {
-    k.set(reduced ? 1 : withTiming(1, { duration: 340, easing: out }));
-  }, [k, reduced]);
-  const style = useAnimatedStyle(() => ({ opacity: k.get(), transform: [{ translateX: (1 - k.get()) * 36 }] }));
-  return <Animated.View style={[{ flex: 1 }, style]}>{children}</Animated.View>;
+    if (!still) k.set(reduced ? 1 : withTiming(1, { duration: motion.screen, easing: out }));
+  }, [k, reduced, still]);
+  const anim = useAnimatedStyle(() => ({ opacity: k.get(), transform: [{ translateX: (1 - k.get()) * 36 }] }));
+  return <Animated.View style={[style ?? styles.fill, anim]}>{children}</Animated.View>;
+}
+
+/** Further than this the block was off the screen anyway: it glides in from just above the edge. */
+const GLIDE_MAX = 320;
+
+/**
+ * A block that was already on the screen before (the figure sheet kept from the screen before) glides back
+ * from where it was, `fromY` pt higher, into its place: it moves, so it eases in and out.
+ */
+export function Glide({ children, fromY }: { children: ReactNode; fromY: number }) {
+  const reduced = useReducedMotionPref();
+  const y = useSharedValue(-Math.min(Math.max(0, fromY), GLIDE_MAX));
+  useEffect(() => {
+    y.set(reduced ? 0 : withTiming(0, { duration: motion.screen, easing: Easing.inOut(Easing.cubic) }));
+  }, [y, reduced]);
+  const anim = useAnimatedStyle(() => ({ transform: [{ translateY: y.get() }] }));
+  return <Animated.View style={anim}>{children}</Animated.View>;
 }
 
 /** One block of a screen rises into place after `delay` ms. */
@@ -96,6 +117,7 @@ function Spark({ i, t, color, reach }: { i: number; t: { get: () => number }; co
 }
 
 const styles = StyleSheet.create({
+  fill: { flex: 1 },
   sparks: { position: 'absolute', left: '50%', top: '50%' },
   spark: { position: 'absolute', left: '50%', top: '50%', width: 2.6, marginLeft: -1.3, borderRadius: 1.3 },
 });

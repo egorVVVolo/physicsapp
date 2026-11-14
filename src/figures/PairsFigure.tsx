@@ -78,11 +78,12 @@ export function pairsTargets(): TapTarget[] {
   return [box('W', 'W, the force on you from the Earth'), box('P', 'P, the force on the scales from you'), box('E', 'E, the force on the Earth from you')];
 }
 
-export function PairsFigure({ fig, tap, clock = STILL }: { fig: PairsFig; tap?: TapProps; clock?: DrawClock }) {
+/** `kept`: the screen before showed these bodies and arrows already, so they are simply there. */
+export function PairsFigure({ fig, tap, clock = STILL, kept = false }: { fig: PairsFig; tap?: TapProps; clock?: DrawClock; kept?: boolean }) {
   const { palette: p } = useTheme();
   // the timeline (seconds): bodies move apart, zones appear, arrows grow one by one. It waits while the figure draws itself.
   const explode = !!fig.explode;
-  const t = useOnceTime(explode ? 3.2 : 1.4, !clock.on);
+  const t = useOnceTime(explode ? 3.2 : 1.4, !clock.on, kept);
   const apart = explode ? phaseOf(t, 0.35, 1.0) : 1;
   const zones = explode ? phaseOf(t, 0.9, 0.6) : 1;
   const grow = (i: number) => phaseOf(t, (explode ? 1.5 : 0.15) + i * 0.28, 0.45);

@@ -3,6 +3,8 @@
 // A moving lift is shown by the shaft sliding past the car (ShaftMarks), driven on the UI thread by
 // s = ut + ½at² from src/physics/kinematics, so it stays smooth even while React is busy.
 // The first lift of a lesson draws itself: shaft → car → floor → scales → person → fills; the forces grow after that.
+// A lift kept from the screen before (`prev`) changes state instead: arrows already there stay, new ones grow,
+// N and the scales count from their old values to the new ones.
 import { useEffect, useState, type ReactNode } from 'react';
 import { StyleSheet } from 'react-native';
 import Animated, { useAnimatedStyle, useFrameCallback, useSharedValue, withTiming } from 'react-native-reanimated';
@@ -12,7 +14,7 @@ import { normalInLift, scaleKg, weight } from '@/physics/dynamics';
 import { fixed, signed } from '@/physics/format';
 import { CANDIDATE_IDS, type LiftFig } from '@/content/types';
 import { useTheme } from '@/theme/ThemeContext';
-import { DRAWN_MS, STILL, useTween, useWave, type DrawClock } from './anim';
+import { CHANGE_DELAY, DRAWN_MS, STILL, useTween, useWave, type DrawClock } from './anim';
 import { AccChevrons, DrawnFade, DrawnPath, DrawnShape, FILLS, ForceArrow, ForceLetter, Hatch, MonoLabel, MotionArrow, rectPath } from './draw';
 import { Person, Scales, SCALES_H } from './people';
 import { type TapProps, type TapTarget } from './Sheet';
@@ -75,7 +77,18 @@ export function liftTargets(fig: LiftFig): TapTarget[] {
   });
 }
 
-export function LiftFigure({ fig, a, tap, clock = STILL }: { fig: LiftFig; a: number; tap?: TapProps; clock?: DrawClock }) {
+type LiftProps = {
+  fig: LiftFig;
+  a: number;
+  tap?: TapProps;
+  clock?: DrawClock;
+  /** The lift the screen before showed (with its live a), when this sheet is kept from it. */
+  prev?: LiftFig;
+  /** How far the lift stands right of its usual place (eased by the sheet); defaults to liftShiftX(fig). */
+  shift?: number;
+};
+
+export function LiftFigure({ fig, a, tap, clock = STILL, prev, shift: shiftNow }: LiftProps) {
   const { palette: p } = useTheme();
   const drawing = clock.on;
   const line = (d: string, len: number, pen: readonly [number, number], color: string, width: number, cap?: 'round') => (
@@ -92,7 +105,14 @@ export function LiftFigure({ fig, a, tap, clock = STILL }: { fig: LiftFig; a: nu
   const showW = fig.forces.includes('W');
   const showN = fig.forces.includes('N');
   const motionDir = fig.motion ? ((fig.motion.u !== 0 ? fig.motion.u : a) > 0 ? 'up' : 'down') : null;
-  const shift = liftShiftX(fig);
+  const shift = shiftNow ?? liftShiftX(fig);
+  // while a kept lift glides aside, what appears beside it fades in as the room opens up
+  const room = Math.max(0, Math.min(1, 1 - (shift - liftShiftX(fig)) / 30));
+  // where the arrows and the reading start: grown already if the screen before showed them
+  const prevK = prev ? scaleFor(prev.m) : 0;
+  const wFrom = prev?.forces.includes('W') ? weight(prev.m) * prevK : 0;
+  const nPrev = prev?.forces.includes('N') && !prev.unknownN ? normalInLift(prev.m, prev.a) : undefined;
+  const readingFrom = prev?.reading === 'shown' ? normalInLift(prev.m, prev.a) : undefined;
 
   return (
     <Group>
@@ -119,14 +139,14 @@ export function LiftFigure({ fig, a, tap, clock = STILL }: { fig: LiftFig; a: nu
         {line(`M${CAR.x + 14},148 V155`, 7, PEN.rail, p.lineStrong, 2)}
         {line(`M${CAR.x + CAR.w - 14},148 V155`, 7, PEN.rail, p.lineStrong, 2)}
         <Hatch x1={CAR.x} x2={CAR.x + CAR.w} y={FLOOR} color={p.draw} clock={clock} from={PEN.floor[0]} to={PEN.floor[1]} />
-        <Display fig={fig} n={N} clock={clock} />
+        <Display fig={fig} n={N} clock={clock} from={readingFrom} />
         <Person x={CX} y={SOLES} clock={clock} pen={PEN.person} />
         {fig.nOnPerson && <NOnPerson drawing={drawing} />}
       </Group>
 
       {/* ── motion or acceleration, between the lift and the diagram ── */}
       {fig.motion && motionDir && (
-        <Group>
+        <Group opacity={room}>
           <MotionArrow x={MID_X} y={118} dir={motionDir} length={62} color={p.draw} clock={clock} pen={PEN.motion} />
           {splitLabel(fig.motion.text).map((line, i) => (
             <MonoLabel key={i} x={MID_X} y={168 + i * 12} text={line} color={p.label} size={9} />
@@ -134,7 +154,7 @@ export function LiftFigure({ fig, a, tap, clock = STILL }: { fig: LiftFig; a: nu
         </Group>
       )}
       {fig.showAcc && !fig.motion && Math.abs(a) > 1e-9 && (
-        <Group>
+        <Group opacity={room}>
           {late(<DriftingChevrons x={MID_X} y={118} dir={a > 0 ? 'up' : 'down'} color={p.draw} />)}
           <MonoLabel x={MID_X} y={150} text="a" color={p.label} size={11} />
         </Group>
@@ -142,10 +162,10 @@ export function LiftFigure({ fig, a, tap, clock = STILL }: { fig: LiftFig; a: nu
 
       {/* ── free-body diagram of the person ── */}
       {(showW || showN || fig.candidates) && (
-        <Group>
+        <Group opacity={room}>
           <MonoLabel x={DOT.x} y={252} text="FREE-BODY" color={p.label} size={9} />
-          {showW && <WForce len={W * k} w={W} values={!!fig.values} drawing={drawing} />}
-          {showN && !fig.unknownN && <NForce n={N} k={k} values={!!fig.values} drawing={drawing} />}
+          {showW && <WForce len={W * k} w={W} values={!!fig.values} drawing={drawing} from={wFrom} kept={!!prev} />}
+          {showN && !fig.unknownN && <NForce n={N} k={k} values={!!fig.values} drawing={drawing} from={nPrev} fromK={prevK} kept={!!prev} />}
           {showN && fig.unknownN && (
             <DrawnFade clock={clock} from={PEN.marks[0]} to={PEN.marks[1]}>
               <Line x1={DOT.x} y1={DOT.y} x2={DOT.x} y2={DOT.y - STUB} stroke={p.force} strokeWidth={2.6} strokeDasharray="4 4" />
@@ -204,17 +224,17 @@ function DriftingChevrons({ x, y, dir, color }: { x: number; y: number; dir: 'up
 }
 
 /** The scales with their display. The number counts smoothly to a new value (its own component, so only it re-renders). */
-function Display({ fig, n, clock }: { fig: LiftFig; n: number; clock: DrawClock }) {
-  const shown = useTween(n, undefined, 360);
+function Display({ fig, n, clock, from }: { fig: LiftFig; n: number; clock: DrawClock; from?: number }) {
+  const shown = useTween(n, from, 360, from !== undefined ? CHANGE_DELAY : 0);
   const reading = fig.reading === 'shown' ? `${fixed(scaleKg(shown), 1)} kg` : '- - -';
   return <Scales x={CX} y={FLOOR} reading={reading} clock={clock} pen={PEN.scales} />;
 }
 
-/** The W arrow of the free-body diagram: grows out of the dot when the figure appears. */
-function WForce({ len: full, w, values, drawing }: { len: number; w: number; values: boolean; drawing: boolean }) {
+/** The W arrow of the free-body diagram: grows out of the dot when the figure appears (from `from` on a kept sheet). */
+function WForce({ len: full, w, values, drawing, from, kept }: { len: number; w: number; values: boolean; drawing: boolean; from: number; kept: boolean }) {
   const { palette: p } = useTheme();
-  const [delay] = useState(drawing ? DRAWN_MS : 380); // decided once, when the arrow appears
-  const len = useTween(full, 0, 560, delay);
+  const [delay] = useState(drawing ? DRAWN_MS : kept ? CHANGE_DELAY : 380); // decided once, when the arrow appears
+  const len = useTween(full, from, 560, delay);
   if (len < 1) return null;
   return (
     <Group>
@@ -225,12 +245,16 @@ function WForce({ len: full, w, values, drawing }: { len: number; w: number; val
   );
 }
 
-/** The N arrow of the free-body diagram: grows out of the "?" stub, then follows N smoothly. */
-function NForce({ n, k, values, drawing }: { n: number; k: number; values: boolean; drawing: boolean }) {
+/**
+ * The N arrow of the free-body diagram: grows out of the "?" stub, then follows N smoothly.
+ * On a kept sheet that already showed N (`from`, drawn at scale `fromK`) it changes from that length instead.
+ */
+type NProps = { n: number; k: number; values: boolean; drawing: boolean; from?: number; fromK: number; kept: boolean };
+function NForce({ n, k, values, drawing, from, fromK, kept }: NProps) {
   const { palette: p } = useTheme();
-  const [delay] = useState(drawing ? DRAWN_MS + 140 : 520); // decided once, when the arrow appears
-  const len = useTween(n * k, STUB, 520, delay);
-  const shown = useTween(n, undefined, 360);
+  const [delay] = useState(drawing ? DRAWN_MS + 140 : kept ? CHANGE_DELAY : 520); // decided once, when the arrow appears
+  const len = useTween(n * k, from !== undefined ? from * fromK : STUB, 520, delay);
+  const shown = useTween(n, from, 360, from !== undefined ? CHANGE_DELAY : 0);
   if (len <= 0.5) return values ? <MonoLabel x={DOT.x + 12} y={DOT.y - 6} text="N = 0" color={p.forceText} anchor="start" /> : null;
   return (
     <Group>
@@ -256,7 +280,8 @@ const STRIP_W = 12;
  * A braking lift (a against u) stops exactly where v = 0, rests, then eases back up to u and brakes again.
  * On an explore screen `a` eases to the slider value; with a = 0 the lift keeps the speed it has (steady motion).
  */
-export function ShaftMarks({ fig, a, scale, playing, clock = STILL }: { fig: LiftFig; a: number; scale: number; playing: boolean; clock?: DrawClock }) {
+type ShaftProps = { fig: LiftFig; a: number; scale: number; playing: boolean; clock?: DrawClock; shift?: number };
+export function ShaftMarks({ fig, a, scale, playing, clock = STILL, shift: shiftNow }: ShaftProps) {
   const { palette: p } = useTheme();
   // while the lift draws itself the marks fade in with the walls and the shaft stays still
   const full = useSharedValue(1);
@@ -329,7 +354,7 @@ export function ShaftMarks({ fig, a, scale, playing, clock = STILL }: { fig: Lif
   });
 
   const H = LIFT_VB.h + PERIOD;
-  const shift = liftShiftX(fig);
+  const shift = shiftNow ?? liftShiftX(fig);
   const strip = (x0: number, inward: 1 | -1) => {
     const edge = inward === 1 ? 0 : STRIP_W; // the wall side of the strip
     const marks = [];

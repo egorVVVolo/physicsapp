@@ -11,7 +11,7 @@ import Svg, { Path, Polygon } from 'react-native-svg';
 import { stamp } from '@/art/brand';
 import { object } from '@/art/objects';
 import type { Lesson } from '@/content/types';
-import { countOutcomes, type LessonState } from '@/session/logic';
+import { countOutcomes, figNumbers, type LessonState } from '@/session/logic';
 import { LessonTile } from '@/figures/LessonIcon';
 import { Puck } from '@/figures/Puck';
 import { Sheet } from '@/figures/Sheet';
@@ -47,7 +47,7 @@ export function LessonComplete({ lesson, state, finish, onNext, onDone, onReplay
   const n = countOutcomes(state);
   const firstTime = lesson.skillCheck.filter((q) => state.outcomes[q.id] === 'independent').length;
   const counting = useAfter(reduced ? 0 : 1100);
-  const figCount = [...lesson.story, ...lesson.skillCheck].filter((x) => 'fig' in x && x.fig).length; // the recap is the next FIG
+  const figCount = figNumbers(lesson).count; // the recap is the next FIG
   const gold = lesson.skillCheck.every((q) => state.outcomes[q.id] === 'independent');
   const stampLabel = gold ? 'On your own' : 'With some help';
   // the whole screen jolts down a little when the stamp hits

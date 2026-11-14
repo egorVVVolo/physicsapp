@@ -1,17 +1,17 @@
 // The drawing sheet: every figure sits on pale drafting paper with a FIG number and its given values.
 // It sizes the SVG to the available width and lays tap targets (if any) over the drawing.
-import { useState } from 'react';
+import { useContext, useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import Svg, { Path, Rect } from 'react-native-svg';
 import type { Fig } from '@/content/types';
 import { useTheme } from '@/theme/ThemeContext';
-import { font, radius } from '@/theme/tokens';
+import { font, motion, radius } from '@/theme/tokens';
 import { useReducedMotionPref } from '@/ui/parts';
-import { LIFT_VB, LiftFigure, liftMoves, liftParams, liftTargets, ShaftMarks } from './LiftFigure';
+import { LIFT_VB, LiftFigure, liftMoves, liftParams, liftShiftX, liftTargets, ShaftMarks } from './LiftFigure';
 import { LIFT_PAIR_VB, LiftPairFigure } from './LiftPairFigure';
 import { SCALES_VB, ScalesFigure } from './ScalesFigure';
 import { PAIRS_MAX_H, PAIRS_VB, PairsFigure, pairsTargets } from './PairsFigure';
-import { useDrawIn, useFirstShow } from './anim';
+import { LessonFigs, SharedSheet, useDrawIn, useFirstShow, useTween } from './anim';
 import { VT_VB, VtFigure, vtTargets } from './VtFigure';
 
 export type TapTarget = { id: string; x: number; y: number; w: number; h: number; label: string };
@@ -39,7 +39,11 @@ const DRAWS_ITSELF: Fig['kind'][] = ['scales', 'lift', 'pairs'];
 
 export function Sheet({ fig, n, a, tap, caption }: Props) {
   const { palette: p } = useTheme();
-  const [width, setWidth] = useState(0);
+  const memory = useContext(LessonFigs);
+  // the screen before showed this kind of figure: the sheet is already drawn at its width and changes from `prev`
+  const shared = useContext(SharedSheet);
+  const prev = shared && shared.prev.kind === fig.kind ? shared.prev : undefined;
+  const [width, setWidth] = useState(prev && shared ? shared.width : 0);
   const [playing, setPlaying] = useState(true);
   const reduced = useReducedMotionPref();
   // the first figure of each kind in a lesson draws itself; the pen starts once the sheet knows its size
@@ -47,6 +51,12 @@ export function Sheet({ fig, n, a, tap, caption }: Props) {
   const clock = useDrawIn(first && width > 0 && DRAWS_ITSELF.includes(fig.kind));
   const vb = { lift: LIFT_VB, pairs: PAIRS_VB, vt: VT_VB, scales: SCALES_VB, liftPair: LIFT_PAIR_VB }[fig.kind];
   const aNow = fig.kind === 'lift' ? (a ?? fig.a) : 0;
+  // a lift with nothing drawn beside it stands in the middle; kept from the screen before, it glides aside to make room
+  const shift = useTween(fig.kind === 'lift' ? liftShiftX(fig) : 0, prev?.kind === 'lift' ? liftShiftX(prev) : undefined, motion.screen);
+  // tell the lesson what is on the sheet now (the next screen may keep it)
+  useEffect(() => {
+    if (memory) memory.shown = fig.kind === 'lift' ? { ...fig, a: aNow } : fig;
+  }, [memory, fig, aNow]);
   let w = width;
   let h = (width * vb.h) / vb.w;
   const maxH = fig.kind === 'pairs' ? PAIRS_MAX_H : MAX_H;
@@ -88,17 +98,24 @@ export function Sheet({ fig, n, a, tap, caption }: Props) {
           </Pressable>
         )}
       </View>
-      <View style={styles.body} onLayout={(e) => setWidth(e.nativeEvent.layout.width)}>
+      <View
+        style={styles.body}
+        onLayout={(e) => {
+          const wNow = e.nativeEvent.layout.width;
+          setWidth(wNow);
+          if (memory && wNow > 0) memory.width = wNow;
+        }}
+      >
         {width > 0 && (
           <View style={{ width: w, height: h, alignSelf: 'center' }}>
             <Svg width={w} height={h} viewBox={`0 0 ${vb.w} ${vb.h}`}>
-              {fig.kind === 'lift' && <LiftFigure fig={fig} a={aNow} tap={tap} clock={clock} />}
+              {fig.kind === 'lift' && <LiftFigure fig={fig} a={aNow} tap={tap} clock={clock} prev={prev?.kind === 'lift' ? prev : undefined} shift={shift} />}
               {fig.kind === 'scales' && <ScalesFigure fig={fig} playing={run} clock={clock} />}
               {fig.kind === 'liftPair' && <LiftPairFigure fig={fig} playing={!reduced} />}
-              {fig.kind === 'pairs' && <PairsFigure fig={fig} tap={tap} clock={clock} />}
+              {fig.kind === 'pairs' && <PairsFigure fig={fig} tap={tap} clock={clock} kept={prev !== undefined} />}
               {fig.kind === 'vt' && <VtFigure fig={fig} tap={tap} />}
             </Svg>
-            {fig.kind === 'lift' && <ShaftMarks fig={fig} a={aNow} scale={scale} playing={run} clock={clock} />}
+            {fig.kind === 'lift' && <ShaftMarks fig={fig} a={aNow} scale={scale} playing={run} clock={clock} shift={shift} />}
             {targets.map((t) => (
               <Pressable
                 key={t.id}

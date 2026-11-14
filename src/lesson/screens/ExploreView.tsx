@@ -24,9 +24,8 @@ export function ExploreView({ screen, figN, onNext }: { screen: ExploreScreen; f
   const hint = sel && !solved ? q.options.find((o) => o.id === sel)?.hint : null;
 
   return (
-    <Frame footer={<MainButton label="Continue" onPress={onNext} disabled={!solved} />}>
+    <Frame fig={<Sheet fig={screen.fig} n={figN} a={a} />} footer={<MainButton label="Continue" onPress={onNext} disabled={!solved} />}>
       <Prompt>{screen.instruction}</Prompt>
-      <Sheet fig={screen.fig} n={figN} a={a} />
       <Slider
         value={a}
         min={screen.slider.min}

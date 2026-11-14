@@ -1,5 +1,5 @@
 // Pure lesson logic: which screen is on, the honest outcome of each question, what is saved. No React.
-import { isQuestion, type Lesson, type Screen } from '../content/types.ts';
+import { isQuestion, type Fig, type Lesson, type Screen } from '../content/types.ts';
 
 /** independent: right first time · assisted: right after a hint · revealed: the answer was shown. */
 export type Outcome = 'independent' | 'assisted' | 'revealed';
@@ -24,6 +24,28 @@ export function itemsOf(lesson: Lesson): Item[] {
     { kind: 'checkIntro' },
     ...lesson.skillCheck.map((screen) => ({ kind: 'screen' as const, screen, phase: 'check' as const })),
   ];
+}
+
+/** The figure an item shows, if any (the Skill check splash shows none). */
+export function figOf(item: Item | undefined): Fig | undefined {
+  return item?.kind === 'screen' && 'fig' in item.screen ? item.screen.fig : undefined;
+}
+
+/**
+ * FIG numbers, in order of appearance. Neighbouring screens with the same kind of figure show one figure
+ * changing state (its sheet stays in place), so they keep one number. `count` is the last number used.
+ */
+export function figNumbers(lesson: Lesson): { of: Record<string, number>; count: number } {
+  const of: Record<string, number> = {};
+  let n = 0;
+  let last: Fig['kind'] | undefined;
+  for (const item of itemsOf(lesson)) {
+    const fig = figOf(item);
+    if (fig && fig.kind !== last) n += 1;
+    if (fig && item.kind === 'screen') of[item.screen.id] = n;
+    last = fig?.kind;
+  }
+  return { of, count: n };
 }
 
 export type LessonState = {

@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { countOutcomes, itemsOf, next, outcomeOf, parseProgress, progressOf, recordOutcome, recordPick, startState } from './logic.ts';
+import { countOutcomes, figNumbers, figOf, itemsOf, next, outcomeOf, parseProgress, progressOf, recordOutcome, recordPick, startState } from './logic.ts';
 import { normalReaction as L } from '../content/normal-reaction.ts';
 
 test('story questions: right first time, after a hint, or shown', () => {
@@ -42,4 +42,22 @@ test('saved progress round-trips, and broken data starts fresh', () => {
   assert.equal(parseProgress(JSON.stringify({ v: 1, lessonId: L.id, state: s }), L), null);
   assert.equal(parseProgress(JSON.stringify({ v: 2, lessonId: L.id, state: { ...s, outcomes: { nope: 'independent' } } }), L), null);
   assert.equal(parseProgress('{oops', L), null);
+});
+
+test('FIG numbers: one number per run of neighbouring screens with the same kind of figure', () => {
+  const { of, count } = figNumbers(L);
+  const items = itemsOf(L);
+  let expected = 0;
+  for (let i = 0; i < items.length; i++) {
+    const fig = figOf(items[i]);
+    const before = figOf(items[i - 1]);
+    if (!fig) continue;
+    if (fig.kind !== before?.kind) expected += 1;
+    const item = items[i];
+    assert.equal(item.kind === 'screen' && of[item.screen.id], expected);
+  }
+  assert.equal(count, expected);
+  // the opening lift and the prediction about it are one figure
+  assert.equal(of[L.story[0].id], 1);
+  assert.equal(of[L.story[1].id], 1);
 });

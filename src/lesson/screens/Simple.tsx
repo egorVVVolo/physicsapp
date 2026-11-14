@@ -14,8 +14,7 @@ import { Body, Prompt, TermCard, Title } from '../text';
 
 export function IntroView({ screen, figN, onNext }: { screen: IntroScreen; figN: number; onNext: () => void }) {
   return (
-    <Frame footer={<MainButton label="Start" onPress={onNext} />}>
-      <Sheet fig={screen.fig} n={figN} />
+    <Frame fig={<Sheet fig={screen.fig} n={figN} />} footer={<MainButton label="Start" onPress={onNext} />}>
       <Title>{screen.title}</Title>
       <Body>{screen.body}</Body>
     </Frame>
@@ -24,8 +23,7 @@ export function IntroView({ screen, figN, onNext }: { screen: IntroScreen; figN:
 
 export function TextView({ screen, figN, onNext }: { screen: TextScreen; figN: number; onNext: () => void }) {
   return (
-    <Frame footer={<MainButton label="Continue" onPress={onNext} />}>
-      {screen.fig && <Sheet fig={screen.fig} n={figN} />}
+    <Frame fig={screen.fig && <Sheet fig={screen.fig} n={figN} />} footer={<MainButton label="Continue" onPress={onNext} />}>
       {screen.body.map((para, i) => (
         <Body key={i}>{para}</Body>
       ))}
@@ -39,9 +37,8 @@ export function TextView({ screen, figN, onNext }: { screen: TextScreen; figN: n
 export function PredictView({ screen, figN, picked, onPick, onNext }: { screen: PredictScreen; figN: number; picked?: string; onPick: (id: string) => void; onNext: () => void }) {
   const [sel, setSel] = useState<string | null>(picked ?? null);
   return (
-    <Frame footer={<MainButton label={sel ? screen.after : 'Continue'} onPress={onNext} disabled={!sel} />}>
+    <Frame fig={screen.fig && <Sheet fig={screen.fig} n={figN} />} footer={<MainButton label={sel ? screen.after : 'Continue'} onPress={onNext} disabled={!sel} />}>
       <Prompt>{screen.prompt}</Prompt>
-      {screen.fig && <Sheet fig={screen.fig} n={figN} />}
       <OptionList grid>
         {screen.options.map((o) => (
           <View key={o.id} style={styles.half}>

@@ -3,6 +3,7 @@
 // With reduced motion turned on, values jump straight to their target and loops stay still.
 import { createContext, useContext, useEffect, useRef, useState } from 'react';
 import { Easing, useSharedValue, withDelay, withTiming, type SharedValue } from 'react-native-reanimated';
+import type { Fig } from '@/content/types';
 import { motion } from '@/theme/tokens';
 import { useReducedMotionPref } from '@/ui/parts';
 
@@ -36,18 +37,37 @@ export function useDrawIn(active: boolean): DrawClock {
   return run && !finished ? { on: true, t } : STILL;
 }
 
-/** The kinds of figure a lesson has already shown. The lesson player provides it; outside a lesson nothing draws itself. */
-export const SeenFigs = createContext<Set<string> | null>(null);
+/**
+ * What a lesson remembers about its figures from screen to screen. The lesson player provides it (outside a lesson
+ * it is null and nothing draws itself). `seen`: the kinds of figure already shown. `shown`: the figure on screen now,
+ * as drawn (after Check, with a lift's live acceleration). `width`: the sheet's drawing width. `scrollY`: how far
+ * the screen is scrolled. The sheet and the screen frame write it; the player reads it when it moves on.
+ */
+export type FigMemory = { seen: Set<string>; shown: Fig | null; width: number; scrollY: number };
+export const LessonFigs = createContext<FigMemory | null>(null);
 
 /** True if this is the first time a figure of this kind appears in the lesson (decided once, when it mounts). */
 export function useFirstShow(kind: string): boolean {
-  const seen = useContext(SeenFigs);
-  const [first] = useState(() => seen !== null && !seen.has(kind));
+  const memory = useContext(LessonFigs);
+  const [first] = useState(() => memory !== null && !memory.seen.has(kind));
   useEffect(() => {
-    seen?.add(kind);
-  }, [seen, kind]);
+    memory?.seen.add(kind);
+  }, [memory, kind]);
   return first;
 }
+
+// ── The same figure on the next screen ──
+
+/**
+ * Set when the screen before showed a figure of the same kind. Its sheet then stays where it was (only the text moves in)
+ * and the figure changes state from `prev`: arrows already there stay, new ones grow, values count to their new size.
+ * `fromY`: how far the screen before was scrolled, so the sheet glides back into place instead of jumping.
+ */
+export type SharedFig = { prev: Fig; width: number; fromY: number };
+export const SharedSheet = createContext<SharedFig | null>(null);
+
+/** On a sheet that stays, the change waits this long, so the eye is on the figure when it happens. */
+export const CHANGE_DELAY = motion.base;
 
 /**
  * A number that eases to `target` whenever it changes (ease-out cubic). Starts at `from` if given.
@@ -136,13 +156,13 @@ export function useWave(period = 1.6, running = true): number {
 
 /**
  * Seconds since the component appeared (or since `start` became true), counting up to `length` once and then staying there.
- * Reduced motion: `length` at once.
+ * Reduced motion, or `done` (the figure was already on the screen before): `length` at once.
  */
-export function useOnceTime(length: number, start = true): number {
+export function useOnceTime(length: number, start = true, done = false): number {
   const reduced = useReducedMotionPref();
-  const [t, setT] = useState(0);
+  const [t, setT] = useState(done ? length : 0);
   useEffect(() => {
-    if (reduced) {
+    if (reduced || done) {
       setT(length);
       return;
     }
@@ -156,7 +176,7 @@ export function useOnceTime(length: number, start = true): number {
     };
     raf = requestAnimationFrame(step);
     return () => cancelAnimationFrame(raf);
-  }, [length, reduced, start]);
+  }, [length, reduced, start, done]);
   return t;
 }
 
