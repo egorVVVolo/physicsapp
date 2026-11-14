@@ -9,6 +9,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, { useAnimatedStyle, useReducedMotion, useSharedValue, withSpring, withTiming } from 'react-native-reanimated';
 import Svg, { Path } from 'react-native-svg';
 import { levelObject, object } from '@/art/objects';
+import { uiIcon } from '@/art/uiIcons';
 import { course } from '@/content/course';
 import { lessons } from '@/content/lessons';
 import type { Level } from '@/content/types';
@@ -197,16 +198,21 @@ export default function CourseMap() {
 
   return (
     <View style={{ flex: 1, backgroundColor: p.page, paddingTop: insets.top }}>
-      {/* header: the course and an honest count of finished lessons */}
+      {/* top bar: the course mark, the tools, and an honest count of finished lessons (the course name heads the map) */}
       <View style={styles.column}>
         <View style={styles.topBar}>
-          <CourseIcon size={42} />
-          <View style={{ flex: 1 }}>
-            <Text accessibilityRole="header" style={[styles.courseTitle, { color: p.ink }]} numberOfLines={1}>
-              {course.title}
-            </Text>
-            <Text style={[styles.courseSub, { color: p.muted }]}>Edexcel IAL Unit 1 (WPH11)</Text>
+          <View accessible accessibilityLabel={`${course.title}, Edexcel IAL Unit 1 (WPH11)`}>
+            <CourseIcon size={42} />
           </View>
+          <View style={{ flex: 1 }} />
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Notebook"
+            onPress={() => router.push('/notebook')}
+            style={({ pressed }) => [styles.iconButton, { borderColor: '#E3E6EA', transform: [{ translateY: pressed ? 2 : 0 }] }]}
+          >
+            <Art xml={uiIcon('notebook')} width={24} color={p.ink} />
+          </Pressable>
           <View style={[styles.count, { borderColor: '#E3E6EA' }]} accessibilityLabel={`${doneCount} of ${allRefs.length} lessons done`}>
             <Text style={[styles.countText, { color: p.ink }]}>
               {doneCount}/{allRefs.length}
@@ -233,6 +239,12 @@ export default function CourseMap() {
           contentContainerStyle={{ paddingTop: PAD_TOP, paddingHorizontal: 20, paddingBottom: dockH + 40 }}
         >
           <View style={styles.list} onLayout={(e) => e.nativeEvent.layout.width > 0 && setWidth(e.nativeEvent.layout.width)}>
+            <View style={styles.courseHead}>
+              <Text accessibilityRole="header" style={[styles.courseTitle, { color: p.ink }]}>
+                {course.title}
+              </Text>
+              <Text style={[styles.courseSub, { color: p.muted }]}>Edexcel IAL Unit 1 (WPH11)</Text>
+            </View>
             {width > 0 &&
               course.levels.map((level, li) => (
                 <LevelSection
@@ -373,10 +385,12 @@ function BackButton({ side, bottom, onPress }: { side: 0 | 1 | -1; bottom: numbe
 const styles = StyleSheet.create({
   column: { width: '100%', maxWidth: CONTENT_MAX + 40, alignSelf: 'center', paddingHorizontal: 20 },
   topBar: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingTop: 10, paddingBottom: 12 },
-  courseTitle: { fontFamily: font.display, fontSize: 16, lineHeight: 21, letterSpacing: -0.1 },
-  courseSub: { fontFamily: font.bodyMedium, fontSize: 14, lineHeight: 18 },
+  courseHead: { alignItems: 'center', paddingTop: 10, paddingBottom: 2 },
+  courseTitle: { fontFamily: font.display, fontSize: 20, lineHeight: 26, letterSpacing: -0.1, textAlign: 'center' },
+  courseSub: { fontFamily: font.bodyMedium, fontSize: 14, lineHeight: 19, textAlign: 'center' },
   count: { alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderBottomWidth: 4, borderRadius: 999, paddingHorizontal: 12, minHeight: 44, backgroundColor: '#FFFFFF' },
   countText: { fontFamily: font.displaySemi, fontSize: 16 },
+  iconButton: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderBottomWidth: 4, borderRadius: 999, backgroundColor: '#FFFFFF' },
   plateWrap: { paddingBottom: 10, zIndex: 2 },
   list: { width: '100%', maxWidth: CONTENT_MAX, alignSelf: 'center' },
   topFade: { position: 'absolute', top: 0, left: 0, right: 0, height: 6, opacity: 0.9 },

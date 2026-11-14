@@ -287,4 +287,8 @@ export const normalReaction: Lesson = {
     fig: { kind: 'liftPair', m: PUZZLE.m, a: PUZZLE.a },
     text: `Same person, same mass. Starting up at ${acc(PUZZLE.a)}, the floor pushes harder, so the scales show ${k.startingUp}.`,
   },
+  card: {
+    formula: 'N = m(g + a)',
+    idea: 'The scales read the push of the floor, not your weight. Speed up upwards and the push grows.',
+  },
 };

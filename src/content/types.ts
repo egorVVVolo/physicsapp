@@ -140,6 +140,8 @@ export type Lesson = {
   youCanNow: string[];
   /** The last screen: the puzzle, solved, as one figure with one sentence. */
   recap: { fig: Fig; text: string };
+  /** The lesson's card in the Notebook: the formula to keep (≤ 24 characters) and the idea in words (≤ 110). */
+  card: { formula: string; idea: string };
 };
 
 // ── Course map ───────────────────────────────────────────────────────────────────────────

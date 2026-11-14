@@ -21,6 +21,11 @@ function targets(fig: Fig): readonly string[] {
 for (const lesson of Object.values(lessons)) {
   const all: Screen[] = [...lesson.story, ...lesson.skillCheck];
 
+  test(`${lesson.id}: the notebook card is short`, () => {
+    assert.ok(lesson.card.formula.length > 0 && lesson.card.formula.length <= 24, `formula: ${lesson.card.formula.length} > 24 characters`);
+    assert.ok(lesson.card.idea.length > 0 && lesson.card.idea.length <= 110, `idea: ${lesson.card.idea.length} > 110 characters`);
+  });
+
   test(`${lesson.id}: screen ids are unique`, () => {
     assert.equal(new Set(all.map((s) => s.id)).size, all.length);
   });
