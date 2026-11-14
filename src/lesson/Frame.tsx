@@ -11,9 +11,13 @@ import { Glide, Rise, ScreenEnter, useReducedMotionPref } from '@/ui/motion';
 
 export const CONTENT_MAX = 560;
 
-type Props = { children: ReactNode; footer: ReactNode; sheet?: ReactNode; center?: boolean; fig?: ReactNode };
+/**
+ * `figFirst`: when the verdict sheet comes up, keep the figure in view instead of scrolling to the answer cards
+ * (the figure shows what the question hid: a flight that plays, a number on the scales).
+ */
+type Props = { children: ReactNode; footer: ReactNode; sheet?: ReactNode; center?: boolean; fig?: ReactNode; figFirst?: boolean };
 
-export function Frame({ children, footer, sheet, center, fig }: Props) {
+export function Frame({ children, footer, sheet, center, fig, figFirst }: Props) {
   const reduced = useReducedMotionPref();
   const memory = useContext(LessonFigs);
   const shared = useContext(SharedSheet);
@@ -32,9 +36,11 @@ export function Frame({ children, footer, sheet, center, fig }: Props) {
 
   useEffect(() => {
     if (cover <= 0) return;
-    const id = requestAnimationFrame(() => scroll.current?.scrollToEnd({ animated: !reduced }));
+    const id = requestAnimationFrame(() =>
+      figFirst ? scroll.current?.scrollTo({ y: 0, animated: !reduced }) : scroll.current?.scrollToEnd({ animated: !reduced }),
+    );
     return () => cancelAnimationFrame(id);
-  }, [cover, reduced]);
+  }, [cover, reduced, figFirst]);
 
   return (
     <View style={styles.root}>

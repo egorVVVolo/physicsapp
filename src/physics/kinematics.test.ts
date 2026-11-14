@@ -92,3 +92,16 @@ test('motionStop: where a wrong setup stops, never at the real landing time', ()
   close(dip.t, 0.815);
   assert.equal(motionStop({ s0: 20, u: 8, a: G }, 40, top).why, 'offTop'); // passes the ruler top first
 });
+
+test('speedAfter: v² = u² + 2as, the sign of u drops out', async () => {
+  const { speedAfter } = await import('./kinematics.ts');
+  assert.ok(Math.abs(speedAfter(8, -9.81, -12)! - 17.304) < 1e-3);
+  assert.equal(speedAfter(8, -9.81, -12), speedAfter(-8, -9.81, -12));
+  assert.equal(speedAfter(8, -9.81, 5), null); // a ball at 8 m s⁻¹ never rises 5 m
+});
+
+test('riseHeight and gFromGradient', async () => {
+  const { riseHeight, gFromGradient } = await import('./kinematics.ts');
+  assert.ok(Math.abs(riseHeight(8) - 3.262) < 1e-3);
+  assert.equal(gFromGradient(4.87), 9.74);
+});

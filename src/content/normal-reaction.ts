@@ -137,7 +137,7 @@ export const normalReaction: Lesson = {
       kind: 'explore',
       instruction: "Drag the slider to change the lift's acceleration.",
       fig: lift({ forces: ['W', 'N'], showAcc: true, reading: 'shown', values: true }),
-      slider: { min: -3, max: 3, step: 0.1, tick: 0.5, label: 'Acceleration of the lift', unit: 'm s⁻²' },
+      slider: { min: -3, max: 3, step: 0.1, tick: 0.5, label: 'Acceleration of the lift', unit: 'm s⁻²', symbol: 'a', dp: 1, signed: true },
       question: {
         prompt: 'When is N bigger than W?',
         options: [

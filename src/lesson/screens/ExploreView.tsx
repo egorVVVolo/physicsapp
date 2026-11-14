@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import type { ExploreScreen } from '@/content/types';
-import { signed } from '@/physics/format';
+import { fixed, signed } from '@/physics/format';
 import { Sheet } from '@/figures/Sheet';
 import { useTheme } from '@/theme/ThemeContext';
 import { font } from '@/theme/tokens';
@@ -15,7 +15,8 @@ import { Instruction, Prompt } from '../text';
 
 export function ExploreView({ screen, figN, onNext }: { screen: ExploreScreen; figN: number; onNext: () => void }) {
   const { palette: p } = useTheme();
-  const [a, setA] = useState(screen.fig.a);
+  const sl = screen.slider;
+  const [value, setValue] = useState(sl.start ?? (screen.fig.kind === 'lift' ? screen.fig.a : sl.min));
   const [moved, setMoved] = useState(false);
   const [sel, setSel] = useState<string | null>(null);
   const [wrong, setWrong] = useState<string[]>([]);
@@ -24,20 +25,20 @@ export function ExploreView({ screen, figN, onNext }: { screen: ExploreScreen; f
   const hint = sel && !solved ? q.options.find((o) => o.id === sel)?.hint : null;
 
   return (
-    <Frame fig={<Sheet fig={screen.fig} n={figN} a={a} />} footer={<MainButton label="Continue" onPress={onNext} disabled={!solved} />}>
+    <Frame fig={<Sheet fig={screen.fig} n={figN} live={value} />} footer={<MainButton label="Continue" onPress={onNext} disabled={!solved} />}>
       <Prompt>{screen.instruction}</Prompt>
       <Slider
-        value={a}
-        min={screen.slider.min}
-        max={screen.slider.max}
-        step={screen.slider.step}
-        tick={screen.slider.tick}
-        label={screen.slider.label}
-        format={(v) => `a = ${signed(v, 1)} ${screen.slider.unit}`}
-        formatEnd={(v) => signed(v, 0)}
+        value={value}
+        min={sl.min}
+        max={sl.max}
+        step={sl.step}
+        tick={sl.tick}
+        label={sl.label}
+        format={(v) => `${sl.symbol} = ${sl.signed ? signed(v, sl.dp) : fixed(v, sl.dp)} ${sl.unit}`}
+        formatEnd={(v) => (sl.signed ? signed(v, 0) : fixed(v, 1))}
         onChange={(v) => {
-          feedback.step((v - screen.slider.min) / (screen.slider.max - screen.slider.min));
-          setA(v);
+          feedback.step((v - sl.min) / (sl.max - sl.min));
+          setValue(v);
           setMoved(true);
         }}
       />

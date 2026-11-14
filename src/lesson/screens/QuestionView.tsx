@@ -104,6 +104,7 @@ export function QuestionView({ screen, figN, phase, earlierPick, onOutcome, onNe
   return (
     <Frame
       fig={fig}
+      figFirst={revealsAfterCheck(screen.fig)}
       footer={<MainButton label="Check" onPress={check} disabled={!sel || status !== 'answering'} />}
       sheet={verdict ? <VerdictSheet verdict={verdict} button={sheetButton} /> : null}
     >
@@ -136,8 +137,14 @@ export function QuestionView({ screen, figN, phase, earlierPick, onOutcome, onNe
   );
 }
 
+/** True when the figure shows something new once answered (a flight that plays, the number on the scales): keep it in view. */
+function revealsAfterCheck(fig: Fig | undefined): boolean {
+  return (fig?.kind === 'throw' && fig.play === 'afterCheck') || (fig?.kind === 'lift' && fig.reading === 'afterCheck');
+}
+
 /** After the answer the figure shows what the question hid: the real N arrow, the number on the scales. */
 function revealed(fig: Fig): Fig {
+  if (fig.kind === 'throw') return { ...fig, unknownV: undefined, play: fig.play === 'afterCheck' ? true : fig.play };
   if (fig.kind !== 'lift') return fig;
   return { ...fig, unknownN: undefined, reading: fig.reading === 'afterCheck' ? 'shown' : fig.reading };
 }

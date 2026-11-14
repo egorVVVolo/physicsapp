@@ -56,12 +56,47 @@ export type ScalesFig = { kind: 'scales'; m: number };
 /** Two small lifts side by side: at rest, and accelerating at `a`. Used to show the puzzle solved. */
 export type LiftPairFig = { kind: 'liftPair'; m: number; a: number };
 
-export type Fig = LiftFig | PairsFig | VtFig | ScalesFig | LiftPairFig;
+/**
+ * Throws from a balcony: the hand is `h` above the ground; ball A goes straight up at +u, ball B straight down at −u.
+ * Up is positive. Positions and velocities come from s = ut + ½at² with a = −g (src/physics/kinematics).
+ */
+export type ThrowFig = {
+  kind: 'throw';
+  h: number; // height of the hand above the ground, m
+  u: number; // speed of each throw, m s⁻¹
+  balls: ('A' | 'B')[];
+  /** Where ball A is while the figure stands still: just thrown, at the top, or falling back past the hand. */
+  at?: 'hand' | 'top' | 'back';
+  /** Write each velocity next to its arrow (and the speed each ball lands with). */
+  values?: true;
+  /** Make the "up is positive" axis stand out. */
+  signs?: true;
+  /** Draw the acceleration (a double chevron) and write it in the header. */
+  showAcc?: true;
+  /** Hide ball A's velocity: "v = ?" (the question asks about it). */
+  unknownV?: true;
+  /** Three acceleration candidates beside ball A at the top, to tap. Their ids are ACC_IDS. */
+  candidates?: true;
+  /** Faint copies of ball A every 0.1 s along its path so far, like a strobe photo. */
+  trail?: true;
+  /** Play the flights from where they stand down to the ground, again and again. 'afterCheck': still until answered. */
+  play?: true | 'afterCheck';
+};
+
+/** The velocity–time graph of a ball thrown straight up at u, until time tEnd: one straight line through v = 0. */
+export type ThrowVtFig = { kind: 'throwVt'; u: number; tEnd: number };
+
+/** Core Practical 1: height fallen against time squared for a ball dropped from rest; a straight line of this gradient. */
+export type FallGraphFig = { kind: 'fallGraph'; gradient: number };
+
+export type Fig = LiftFig | PairsFig | VtFig | ScalesFig | LiftPairFig | ThrowFig | ThrowVtFig | FallGraphFig;
 
 /** Tap targets drawn by a lift figure with `candidates`. */
 export const CANDIDATE_IDS = ['shorter', 'equal', 'longer'] as const;
 /** Tap targets drawn by the pairs figure. */
 export const PAIR_IDS = ['W', 'P', 'E'] as const;
+/** Tap targets drawn by a throw figure with `candidates`: the acceleration at the top. */
+export const ACC_IDS = ['up', 'zero', 'down'] as const;
 
 // ── Screens ──────────────────────────────────────────────────────────────────────────────
 
@@ -106,13 +141,19 @@ export type ChoiceScreen = Base & {
   revisitOf?: string;
 };
 
-/** Play with the figure through a slider, then a light question (not counted in the tally). */
+/**
+ * Play with the figure through a slider, then a light question (not counted in the tally).
+ * The slider drives the lift's acceleration, or the time since the throw.
+ */
 export type ExploreScreen = Base & {
   kind: 'explore';
   instruction: string; // names the gesture: "Drag …"
-  fig: LiftFig;
-  /** `tick`: gap between the marks on the ruler (defaults to `step`). */
-  slider: { min: number; max: number; step: number; tick?: number; label: string; unit: string };
+  fig: LiftFig | ThrowFig;
+  /**
+   * `tick`: gap between the marks on the ruler (defaults to `step`). `symbol` and `dp` write the bubble ("t = 0.82 s"),
+   * `signed` adds + to positive values. `start`: where the thumb begins (defaults to the lift's a, or `min`).
+   */
+  slider: { min: number; max: number; step: number; tick?: number; label: string; unit: string; symbol: string; dp: number; signed?: true; start?: number };
   question: { prompt: string; options: Option[]; right: string };
 };
 

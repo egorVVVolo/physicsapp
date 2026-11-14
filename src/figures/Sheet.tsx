@@ -13,6 +13,8 @@ import { SCALES_VB, ScalesFigure } from './ScalesFigure';
 import { PAIRS_MAX_H, PAIRS_VB, PairsFigure, pairsTargets } from './PairsFigure';
 import { LessonFigs, SharedSheet, useDrawIn, useFirstShow, useTween } from './anim';
 import { VT_VB, VtFigure, vtTargets } from './VtFigure';
+import { THROW_VB, ThrowFigure, throwParams, throwPlays, throwTargets } from './ThrowFigure';
+import { FALL_VB, FallGraphFigure, THROW_VT_VB, ThrowVtFigure } from './ThrowGraphs';
 
 export type TapTarget = { id: string; x: number; y: number; w: number; h: number; label: string };
 export type TapProps = {
@@ -25,8 +27,8 @@ export type TapProps = {
 type Props = {
   fig: Fig;
   n: number; // the FIG number on the sheet
-  /** Live acceleration of a lift figure (the explore slider); defaults to the figure's own value. */
-  a?: number;
+  /** The explore slider: a lift's acceleration (defaults to the figure's own a), or the time since a throw. */
+  live?: number;
   tap?: TapProps;
   /** Replaces the values in the header (for a figure outside a lesson screen). */
   caption?: string;
@@ -35,9 +37,9 @@ type Props = {
 /** Every figure is drawn at the same size on every screen, so the drawing never jumps between screens. */
 const MAX_H = 270;
 /** The figures that draw themselves the first time their kind appears in a lesson. */
-const DRAWS_ITSELF: Fig['kind'][] = ['scales', 'lift', 'pairs'];
+const DRAWS_ITSELF: Fig['kind'][] = ['scales', 'lift', 'pairs', 'throw', 'throwVt', 'fallGraph'];
 
-export function Sheet({ fig, n, a, tap, caption }: Props) {
+export function Sheet({ fig, n, live, tap, caption }: Props) {
   const { palette: p } = useTheme();
   const memory = useContext(LessonFigs);
   // the screen before showed this kind of figure: the sheet is already drawn at its width and changes from `prev`
@@ -49,8 +51,8 @@ export function Sheet({ fig, n, a, tap, caption }: Props) {
   // the first figure of each kind in a lesson draws itself; the pen starts once the sheet knows its size
   const first = useFirstShow(fig.kind);
   const clock = useDrawIn(first && width > 0 && DRAWS_ITSELF.includes(fig.kind));
-  const vb = { lift: LIFT_VB, pairs: PAIRS_VB, vt: VT_VB, scales: SCALES_VB, liftPair: LIFT_PAIR_VB }[fig.kind];
-  const aNow = fig.kind === 'lift' ? (a ?? fig.a) : 0;
+  const vb = { lift: LIFT_VB, pairs: PAIRS_VB, vt: VT_VB, scales: SCALES_VB, liftPair: LIFT_PAIR_VB, throw: THROW_VB, throwVt: THROW_VT_VB, fallGraph: FALL_VB }[fig.kind];
+  const aNow = fig.kind === 'lift' ? (live ?? fig.a) : 0;
   // a lift with nothing drawn beside it stands in the middle; kept from the screen before, it glides aside to make room
   const shift = useTween(fig.kind === 'lift' ? liftShiftX(fig) : 0, prev?.kind === 'lift' ? liftShiftX(prev) : undefined, motion.screen);
   // tell the lesson what is on the sheet now (the next screen may keep it)
@@ -65,10 +67,10 @@ export function Sheet({ fig, n, a, tap, caption }: Props) {
     w = (h * vb.w) / vb.h;
   }
   const scale = w / vb.w;
-  const animates = !reduced && ((fig.kind === 'lift' && liftMoves(fig, aNow)) || fig.kind === 'scales');
+  const animates = !reduced && ((fig.kind === 'lift' && liftMoves(fig, aNow)) || fig.kind === 'scales' || (fig.kind === 'throw' && throwPlays(fig)));
   const run = playing && !reduced;
-  const targets = !tap ? [] : fig.kind === 'lift' ? liftTargets(fig) : fig.kind === 'pairs' ? pairsTargets() : fig.kind === 'vt' ? vtTargets(fig) : [];
-  const params = caption ?? (fig.kind === 'lift' ? liftParams(fig, aNow, a !== undefined) : fig.kind === 'vt' ? 'lift trip, upward' : `m = ${fig.m} kg`);
+  const targets = !tap ? [] : fig.kind === 'lift' ? liftTargets(fig) : fig.kind === 'pairs' ? pairsTargets() : fig.kind === 'vt' ? vtTargets(fig) : fig.kind === 'throw' ? throwTargets(fig) : [];
+  const params = caption ?? paramsOf(fig, aNow, live !== undefined);
 
   return (
     <View style={[styles.sheet, { backgroundColor: p.paper, borderColor: p.paperLine }]}>
@@ -114,6 +116,9 @@ export function Sheet({ fig, n, a, tap, caption }: Props) {
               {fig.kind === 'liftPair' && <LiftPairFigure fig={fig} playing={!reduced} />}
               {fig.kind === 'pairs' && <PairsFigure fig={fig} tap={tap} clock={clock} kept={prev !== undefined} />}
               {fig.kind === 'vt' && <VtFigure fig={fig} tap={tap} />}
+              {fig.kind === 'throw' && <ThrowFigure fig={fig} live={live} playing={run} tap={tap} clock={clock} />}
+              {fig.kind === 'throwVt' && <ThrowVtFigure fig={fig} clock={clock} />}
+              {fig.kind === 'fallGraph' && <FallGraphFigure fig={fig} clock={clock} />}
             </Svg>
             {fig.kind === 'lift' && <ShaftMarks fig={fig} a={aNow} scale={scale} playing={run} clock={clock} shift={shift} />}
             {targets.map((t) => (
@@ -132,6 +137,24 @@ export function Sheet({ fig, n, a, tap, caption }: Props) {
       </View>
     </View>
   );
+}
+
+/** The given values in the sheet header. On an explore screen the slider's value is on the slider, so it is left out. */
+function paramsOf(fig: Fig, a: number, live: boolean): string {
+  switch (fig.kind) {
+    case 'lift':
+      return liftParams(fig, a, live);
+    case 'vt':
+      return 'lift trip, upward';
+    case 'throw':
+      return throwParams(fig);
+    case 'throwVt':
+      return `ball A, u = +${fig.u.toFixed(1)} m s⁻¹, up is +`;
+    case 'fallGraph':
+      return 'dropped from rest';
+    default:
+      return `m = ${fig.m} kg`;
+  }
 }
 
 const styles = StyleSheet.create({

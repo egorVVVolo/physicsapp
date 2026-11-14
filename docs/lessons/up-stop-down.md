@@ -1,6 +1,6 @@
 # Lesson spec — "Up, stop, down"
 
-15 Nov 2026 · status: **draft, waiting for Egor's review** · format: story + Skill check (`docs/LESSON_FRAMEWORK.md`, 1b) · reference: `src/content/normal-reaction.ts`
+15 Nov 2026 · status: **built 15 Nov** (`src/content/up-stop-down.ts`, checked in the web at 375×667, light and dark); not yet played on a phone · format: story + Skill check (`docs/LESSON_FRAMEWORK.md`, 1b) · reference: `src/content/normal-reaction.ts`
 
 - **id:** `up-stop-down` · level 1 "Motion" (blue) · WPH11 points **1** (SUVAT) and **11** (Core Practical 1) · ~12 min
 - **Idea:** with up as positive, a = −9.81 m s⁻² for the whole flight — on the way up, at the top where v = 0, and on the way down. One sign convention carries the whole motion.

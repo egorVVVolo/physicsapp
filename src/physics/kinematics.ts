@@ -45,6 +45,22 @@ export function timeToReach(target: number, m: Motion): number | null {
   return positive.length ? Math.min(...positive) : null;
 }
 
+/** Speed after a displacement s, from v² = u² + 2as (null if the body never gets that far). */
+export function speedAfter(u: number, a: number, s: number): number | null {
+  const v2 = u * u + 2 * a * s;
+  return v2 < 0 ? null : Math.sqrt(v2);
+}
+
+/** How far a body thrown up at u rises before it stops: 0 = u² + 2as with a = −g gives s = u² / 2g. */
+export function riseHeight(u: number, g = G): number {
+  return (u * u) / (2 * g);
+}
+
+/** Core Practical 1: a body dropped from rest falls h = ½gt², so a graph of h against t² has gradient g/2. */
+export function gFromGradient(gradient: number): number {
+  return 2 * gradient;
+}
+
 /** Solve s = ut + ½at² for u (t ≠ 0). */
 export function initialVelocityFor(s: number, a: number, t: number): number {
   return (s - 0.5 * a * t * t) / t;
