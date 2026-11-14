@@ -1,19 +1,23 @@
 // End of a lesson. One orchestrated moment: the lesson's puck drops in and a ring of force arrows bursts out of it.
 // The stamp hits next to it (gold: every Skill check answer right first try; otherwise the level's colour).
-// Then, quietly: the puzzle solved as a figure (the reading counts up), the honest tally, what you can do now.
-// Every number is real: the tally counts outcomes, the figure comes from src/physics.
+// Then, quietly: the puzzle solved as a figure (the reading counts up), the honest tally, the lesson's card going
+// into the notebook (the first time only), the momentum top (it wobbles up if this is the day's first lesson),
+// what you can do now. Every number is real: the tally counts outcomes, the figure comes from src/physics.
 import { useEffect, useState, type ReactNode } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, { Easing, useAnimatedStyle, useSharedValue, withDelay, withSequence, withSpring, withTiming, type SharedValue } from 'react-native-reanimated';
 import Svg, { Path, Polygon } from 'react-native-svg';
 import { stamp } from '@/art/brand';
+import { object } from '@/art/objects';
 import type { Lesson } from '@/content/types';
 import { countOutcomes, type LessonState } from '@/session/logic';
+import { LessonTile } from '@/figures/LessonIcon';
 import { Puck } from '@/figures/Puck';
 import { Sheet } from '@/figures/Sheet';
 import { useTween } from '@/figures/anim';
 import { useTheme } from '@/theme/ThemeContext';
+import { levelIdOf } from '@/content/course';
 import { colorOfLesson } from '@/theme/levelColor';
 import { courseBlue, font, motion, reward, soonGrey } from '@/theme/tokens';
 import { Art } from '@/ui/Art';
@@ -27,8 +31,15 @@ const BURST = 12; // arrows in the burst
 const STAMP = 84;
 const STAMP_AT = LAND_MS + 420; // the stamp starts falling a beat after the puck lands
 const STAMP_MS = 200;
+const CARD_AT = 1900; // ms: the notebook card tips up after the tally has counted
+const MOMENTUM_AT = 2500; // ms: the momentum row, a beat after the card
 
-export function LessonComplete({ lesson, state, onDone, onReplay }: { lesson: Lesson; state: LessonState; onDone: () => void; onReplay: () => void }) {
+/** What finishing this lesson changed: a new notebook card or not, and the day streak before and after. */
+export type FinishInfo = { firstTime: boolean; runBefore: number; runAfter: number; newDay: boolean };
+
+type Props = { lesson: Lesson; state: LessonState; finish: FinishInfo | null; onNext?: () => void; onDone: () => void; onReplay: () => void };
+
+export function LessonComplete({ lesson, state, finish, onNext, onDone, onReplay }: Props) {
   const { palette: p } = useTheme();
   const c = colorOfLesson(lesson.id);
   const insets = useSafeAreaInsets();
@@ -45,7 +56,7 @@ export function LessonComplete({ lesson, state, onDone, onReplay }: { lesson: Le
 
   return (
     <Animated.View style={[{ flex: 1, paddingTop: insets.top + 8, paddingBottom: insets.bottom, backgroundColor: p.page }, joltStyle]}>
-      <Frame footer={<MainButton label="Back to the map" onPress={onDone} tone="level" color={c} />}>
+      <Frame footer={<MainButton label={onNext ? 'Next lesson' : 'Back to the map'} onPress={onNext ?? onDone} tone="level" color={c} />}>
         {/* the moment: puck + burst */}
         <View style={styles.hero}>
           <Burst reduced={reduced} />
@@ -95,7 +106,15 @@ export function LessonComplete({ lesson, state, onDone, onReplay }: { lesson: Le
           </View>
         </Rise>
 
-        <Rise delay={1050} reduced={reduced}>
+        {finish?.firstTime && <NotebookCard lesson={lesson} reduced={reduced} />}
+        {finish && (
+          <Rise delay={MOMENTUM_AT} reduced={reduced}>
+            <MomentumRow finish={finish} reduced={reduced} />
+          </Rise>
+        )}
+
+        {/* after the card and the top when they are there, so the screen fills from the top down */}
+        <Rise delay={finish ? MOMENTUM_AT + 300 : 1050} reduced={reduced}>
           <View style={{ gap: 10 }}>
             <Text style={[styles.h, { color: p.ink }]}>You can now</Text>
             {lesson.youCanNow.map((s) => (
@@ -108,11 +127,87 @@ export function LessonComplete({ lesson, state, onDone, onReplay }: { lesson: Le
             ))}
           </View>
         </Rise>
+        {onNext && (
+          <Text accessibilityRole="button" onPress={onDone} style={[styles.replay, { color: p.muted }]}>
+            Back to the map
+          </Text>
+        )}
         <Text accessibilityRole="button" onPress={onReplay} style={[styles.replay, { color: p.muted }]}>
           Play the lesson again
         </Text>
       </Frame>
     </Animated.View>
+  );
+}
+
+/** "New in your notebook": the lesson's card tips up towards you (rotateX −70° → 0) with the unlock sound. */
+function NotebookCard({ lesson, reduced }: { lesson: Lesson; reduced: boolean }) {
+  const { palette: p } = useTheme();
+  const k = useSharedValue(reduced ? 1 : 0);
+  useEffect(() => {
+    if (reduced) return;
+    k.set(withDelay(CARD_AT, withTiming(1, { duration: 460, easing: Easing.out(Easing.cubic) })));
+    const id = setTimeout(feedback.unlock, CARD_AT);
+    return () => clearTimeout(id);
+  }, [k, reduced]);
+  const style = useAnimatedStyle(() => ({
+    opacity: Math.min(1, k.get() * 1.6),
+    transform: [{ perspective: 700 }, { rotateX: `${-70 * (1 - k.get())}deg` }, { translateY: 20 * (1 - k.get()) }],
+  }));
+  return (
+    <Animated.View
+      accessible
+      accessibilityLabel={`New in your notebook: ${lesson.card.formula}`}
+      style={[styles.nbCard, { backgroundColor: p.page, borderColor: p.line }, style]}
+    >
+      <LessonTile lessonId={lesson.id} levelId={levelIdOf(lesson.id)} color={colorOfLesson(lesson.id)} size={64} />
+      <View style={{ flex: 1 }}>
+        <Text style={[styles.nbLabel, { color: p.muted }]}>NEW IN YOUR NOTEBOOK</Text>
+        <Text style={[styles.nbFormula, { color: p.ink }]}>{lesson.card.formula}</Text>
+      </View>
+    </Animated.View>
+  );
+}
+
+const daysOf = (n: number) => `${n} ${n === 1 ? 'day' : 'days'} of momentum`;
+
+/**
+ * The momentum top and the run of days. If this was the day's first finished lesson the top wobbles as it
+ * spins up (−9° → 7° → −4° → 2° → 0 in 900 ms) and the number steps from the old run to the new one.
+ */
+function MomentumRow({ finish, reduced }: { finish: FinishInfo; reduced: boolean }) {
+  const { palette: p } = useTheme();
+  const grows = finish.newDay && !reduced;
+  const [shown, setShown] = useState(grows ? finish.runBefore : finish.runAfter);
+  const tilt = useSharedValue(0);
+  const bump = useSharedValue(1);
+  useEffect(() => {
+    if (!grows) return;
+    const spinAt = MOMENTUM_AT + 300;
+    const step = (to: number, ms: number) => withTiming(to, { duration: ms, easing: Easing.out(Easing.cubic) });
+    tilt.set(withDelay(spinAt, withSequence(step(-9, 180), step(7, 200), step(-4, 180), step(2, 170), step(0, 170))));
+    const spin = setTimeout(feedback.spin, spinAt);
+    const count = setTimeout(() => {
+      setShown(finish.runAfter);
+      bump.set(withSequence(withTiming(1.06, { duration: 105 }), withTiming(1, { duration: 195 })));
+    }, spinAt + 460);
+    return () => {
+      clearTimeout(spin);
+      clearTimeout(count);
+    };
+  }, [grows, finish.runAfter, tilt, bump]);
+  const topStyle = useAnimatedStyle(() => ({ transform: [{ rotate: `${tilt.get()}deg` }] }));
+  const textStyle = useAnimatedStyle(() => ({ transform: [{ scale: bump.get() }] }));
+  return (
+    <View style={styles.momentum} accessible accessibilityLabel={daysOf(finish.runAfter)}>
+      <Animated.View style={topStyle}>
+        <Art xml={object('top', courseBlue, reward)} width={54} />
+      </Animated.View>
+      <View style={{ flex: 1 }}>
+        <Animated.Text style={[styles.momentumTitle, { color: p.ink }, textStyle]}>{daysOf(shown)}</Animated.Text>
+        <Text style={[styles.momentumText, { color: p.muted }]}>It stays up while it spins.</Text>
+      </View>
+    </View>
   );
 }
 
@@ -289,4 +384,10 @@ const styles = StyleSheet.create({
   item: { flexDirection: 'row', gap: 10, alignItems: 'flex-start' },
   itemText: { flex: 1, fontFamily: font.body, fontSize: 17, lineHeight: 25 },
   replay: { fontFamily: font.bodyMedium, fontSize: 16, textAlign: 'center', textDecorationLine: 'underline', paddingVertical: 12 },
+  nbCard: { flexDirection: 'row', alignItems: 'center', gap: 14, borderWidth: 2, borderBottomWidth: 4, borderRadius: 16, paddingHorizontal: 16, paddingVertical: 14 },
+  nbLabel: { fontFamily: font.mono, fontSize: 11, letterSpacing: 0.5 },
+  nbFormula: { fontFamily: font.display, fontSize: 22, lineHeight: 28, marginTop: 6 },
+  momentum: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  momentumTitle: { fontFamily: font.display, fontSize: 17, lineHeight: 22, alignSelf: 'flex-start' },
+  momentumText: { fontFamily: font.body, fontSize: 14, lineHeight: 19, marginTop: 2 },
 });

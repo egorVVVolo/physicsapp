@@ -12,7 +12,7 @@ import { course } from '@/content/course';
 import { lessons } from '@/content/lessons';
 import { CONTENT_MAX } from '@/lesson/Frame';
 import { NoteCard } from '@/notebook/NoteCard';
-import { loadProgress } from '@/session/storage';
+import { loadFinishedLessons, loadProgress } from '@/session/storage';
 import { useTheme } from '@/theme/ThemeContext';
 import { courseBlue, font, levelColors, reward, soonGrey } from '@/theme/tokens';
 import { Art } from '@/ui/Art';
@@ -29,8 +29,9 @@ export default function Notebook() {
   useFocusEffect(
     useCallback(() => {
       let alive = true;
-      Promise.all(Object.values(lessons).map(async (l) => [l.id, (await loadProgress(l))?.state.finished === true] as const)).then(
-        (pairs) => alive && setFinished(new Set(pairs.filter(([, done]) => done).map(([id]) => id))),
+      // finished now, or finished once and being replayed: the card stays either way
+      Promise.all([loadFinishedLessons(), ...Object.values(lessons).map(async (l) => [l.id, (await loadProgress(l))?.state.finished === true] as const)]).then(
+        ([ever, ...pairs]) => alive && setFinished(new Set([...ever, ...pairs.filter(([, done]) => done).map(([id]) => id)])),
       );
       return () => {
         alive = false;

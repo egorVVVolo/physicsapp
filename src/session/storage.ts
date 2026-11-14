@@ -52,3 +52,26 @@ export async function recordFinishedDay(now = new Date()): Promise<{ before: Str
   if (after !== before) await saveStreak(after);
   return { before, after };
 }
+
+const FINISHED_KEY = 'finished/v1';
+
+/** Lessons finished at least once. A replay clears the lesson's progress, but its notebook card stays. */
+export async function loadFinishedLessons(): Promise<Set<string>> {
+  try {
+    const raw: unknown = JSON.parse((await AsyncStorage.getItem(FINISHED_KEY)) ?? '[]');
+    return new Set(Array.isArray(raw) ? raw.filter((x): x is string => typeof x === 'string') : []);
+  } catch {
+    return new Set();
+  }
+}
+
+/** Marks a lesson as finished; true if this is the first time ever. */
+export async function addFinishedLesson(lessonId: string): Promise<boolean> {
+  const done = await loadFinishedLessons();
+  if (done.has(lessonId)) return false;
+  done.add(lessonId);
+  try {
+    await AsyncStorage.setItem(FINISHED_KEY, JSON.stringify([...done]));
+  } catch {}
+  return true;
+}
