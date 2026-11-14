@@ -1,6 +1,7 @@
 // Home: the course map. Levels follow the WPH11 specification; each lesson is a puck on a path.
 // The level plate stays pinned and changes as you scroll; the card at the bottom starts the picked
 // lesson; a round button brings you back to the next lesson when it has scrolled away.
+// Coming back from a lesson just finished: its puck pops its check and a ball rolls to the next lesson.
 import { useCallback, useEffect, useMemo, useRef, useState, type ComponentRef } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View, type NativeScrollEvent, type NativeSyntheticEvent } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
@@ -17,11 +18,13 @@ import { CONTENT_MAX } from '@/lesson/Frame';
 import { Dock } from '@/map/Dock';
 import { LevelPlate } from '@/map/LevelPlate';
 import { PuckRow } from '@/map/PuckRow';
+import { RollingBall, type Point } from '@/map/RollingBall';
 import { LEVEL_OBJECT, labelX, levelAt, puckX, puckY, rowLayout } from '@/map/layout';
 import { loadProgress } from '@/session/storage';
 import { useTheme } from '@/theme/ThemeContext';
 import { font, levelColors, reward, soonGrey, soonReward } from '@/theme/tokens';
 import { Art } from '@/ui/Art';
+import { feedback } from '@/ui/feedback';
 
 type Status = 'new' | 'started' | 'done';
 const PAD_TOP = 4;
@@ -40,6 +43,13 @@ export default function CourseMap() {
   /** Picked a puck since the map came into view: then the card shows that lesson even when all are done. */
   const [touched, setTouched] = useState(false);
   const allDone = ready.length > 0 && ready.every((x) => status[x.r.id] === 'done') && !touched;
+  const reduced = useReducedMotion();
+  /** Status as it was the last time the map was shown: tells which lesson has just been finished. */
+  const prevStatus = useRef<Record<string, Status> | null>(null);
+  const [popId, setPopId] = useState(''); // the lesson just finished: its puck pops its check
+  const [arriving, setArriving] = useState(''); // the next lesson, waiting for the ball to reach it
+  const [arrived, setArrived] = useState(''); // the next lesson, just opened by the ball
+  const [roll, setRoll] = useState<{ from: string; to: string } | null>(null); // lesson ids
 
   const [width, setWidth] = useState(0);
   const [viewH, setViewH] = useState(0);
@@ -49,33 +59,88 @@ export default function CourseMap() {
   const sectionY = useRef<number[]>([]);
   const scroll = useRef<ComponentRef<typeof ScrollView>>(null);
   const scrollY = useRef(0);
+  const savedY = useRef(0); // where the map was when a lesson opened (the web hides the map and loses it)
   const placed = useRef(false);
 
   useFocusEffect(
     useCallback(() => {
       let alive = true;
       setTouched(false);
+      setPopId('');
+      setArrived('');
       Promise.all(
         ready.map(async ({ r }) => {
           const saved = await loadProgress(lessons[r.id]);
           return [r.id, !saved ? 'new' : saved.state.finished ? 'done' : 'started'] as const;
         }),
-      ).then((pairs) => alive && setStatus(Object.fromEntries(pairs)));
+      ).then((pairs) => {
+        if (!alive) return;
+        const now: Record<string, Status> = Object.fromEntries(pairs);
+        const before = prevStatus.current;
+        prevStatus.current = now;
+        setStatus(now);
+        // back from a lesson: the web hid the map (display: none) and reset its scroll, so put it back
+        if (placed.current) {
+          scroll.current?.scrollTo({ y: savedY.current, animated: false });
+          scrollY.current = savedY.current;
+        }
+        const just = before && ready.find((x) => before[x.r.id] !== 'done' && now[x.r.id] === 'done');
+        if (!just) return;
+        setPopId(just.r.id);
+        const to = ready.find((x) => now[x.r.id] !== 'done')?.r.id;
+        if (!to) return;
+        if (reduced) setPicked(to);
+        else setArriving(to);
+      });
       return () => {
         alive = false;
+        savedY.current = scrollY.current;
       };
-    }, [ready]),
+    }, [ready, reduced]),
   );
 
-  /** Content y of a lesson's puck centre, or undefined until its level is laid out. */
-  const puckContentY = (id: string): number | undefined => {
+  /** Where a lesson's puck face is inside the list of levels, or undefined until its level is laid out. */
+  const puckAt = (id: string): Point | undefined => {
     const li = course.levels.findIndex((l) => l.lessons.some((r) => r.id === id));
     const top = sectionY.current[li];
     if (li < 0 || top === undefined) return undefined;
     const level = course.levels[li];
     const i = level.lessons.findIndex((r) => r.id === id);
     const rows = rowLayout(level.lessons.length, level.lessons.findIndex((r) => r.id === nextId));
-    return PAD_TOP + top + headOf(li) + puckY(rows.tops[i], rows.heights[i]);
+    return { x: puckX(width, i), y: top + headOf(li) + puckY(rows.tops[i], rows.heights[i]) };
+  };
+
+  /** A lesson was just finished and the next one waits: after a beat, scroll to it if needed, then roll the ball. */
+  useEffect(() => {
+    if (!arriving) return;
+    let roll: ReturnType<typeof setTimeout> | undefined;
+    const beat = setTimeout(() => {
+      const target = puckContentY(arriving);
+      const off = target !== undefined && viewH > 0 && (target < scrollY.current + 30 || target > scrollY.current + viewH - dockH + 10);
+      if (off) bringBack(true);
+      roll = setTimeout(() => {
+        if (puckAt(popId) && puckAt(arriving)) setRoll({ from: popId, to: arriving });
+        else onArrive();
+      }, off ? 450 : 0);
+    }, 260);
+    return () => {
+      clearTimeout(beat);
+      if (roll) clearTimeout(roll);
+    };
+  }, [arriving]);
+
+  const onArrive = () => {
+    feedback.unlock();
+    setArrived(arriving);
+    setPicked(arriving);
+    setArriving('');
+    setTimeout(() => setRoll(null), 200);
+  };
+
+  /** Content y of a lesson's puck centre, or undefined until its level is laid out. */
+  const puckContentY = (id: string): number | undefined => {
+    const at = puckAt(id);
+    return at && PAD_TOP + at.y;
   };
 
   const update = (y: number) => {
@@ -104,12 +169,16 @@ export default function CourseMap() {
     placed.current = true;
     setTimeout(() => bringBack(false), 0);
   });
-  const onSectionLayout = (li: number, y: number) => {
+  const onSectionLayout = (li: number, y: number, h: number) => {
+    if (h === 0) return; // hidden (the web hides the map while a lesson is open): keep the last real layout
     sectionY.current[li] = y;
     if (!placed.current) setLaidOut((n) => n + 1);
   };
   const [, setLaidOut] = useState(0);
 
+  // the ball's ends, measured on every render so a late layout (width, section tops) cannot leave it stale
+  const rollFrom = roll && puckAt(roll.from);
+  const rollTo = roll && puckAt(roll.to);
   const doneCount = Object.values(status).filter((s) => s === 'done').length;
   const plateLevel = course.levels[plateIdx];
   const pickedRef = allRefs.find((x) => x.r.id === picked) ?? allRefs[0];
@@ -147,12 +216,12 @@ export default function CourseMap() {
       <View style={{ flex: 1 }}>
         <ScrollView
           ref={scroll}
-          onLayout={(e) => setViewH(e.nativeEvent.layout.height)}
+          onLayout={(e) => e.nativeEvent.layout.height > 0 && setViewH(e.nativeEvent.layout.height)}
           onScroll={(e: NativeSyntheticEvent<NativeScrollEvent>) => update(e.nativeEvent.contentOffset.y)}
           scrollEventThrottle={16}
           contentContainerStyle={{ paddingTop: PAD_TOP, paddingHorizontal: 20, paddingBottom: dockH + 40 }}
         >
-          <View style={styles.list} onLayout={(e) => setWidth(e.nativeEvent.layout.width)}>
+          <View style={styles.list} onLayout={(e) => e.nativeEvent.layout.width > 0 && setWidth(e.nativeEvent.layout.width)}>
             {width > 0 &&
               course.levels.map((level, li) => (
                 <LevelSection
@@ -163,14 +232,17 @@ export default function CourseMap() {
                   status={status}
                   picked={picked}
                   nextId={nextId}
+                  arriving={arriving}
+                  popIds={[popId, arrived]}
                   firstOrder={(order += level.lessons.length) - level.lessons.length}
                   onPick={(id) => {
                     setPicked(id);
                     setTouched(true);
                   }}
-                  onLayoutY={(y) => onSectionLayout(li, y)}
+                  onLayoutY={(y, h) => onSectionLayout(li, y, h)}
                 />
               ))}
+            {rollFrom && rollTo && <RollingBall from={rollFrom} to={rollTo} onArrive={onArrive} />}
           </View>
         </ScrollView>
         {/* soft edge under the pinned plate */}
@@ -182,7 +254,7 @@ export default function CourseMap() {
           status={status[pickedRef.r.id] ?? 'new'}
           allDone={allDone}
           bottomInset={insets.bottom}
-          onHeight={setDockH}
+          onHeight={(h) => h > 0 && setDockH(h)}
           onStart={() => router.push(`/lesson/${pickedRef.r.id}`)}
         />
         <BackButton side={away} bottom={dockH + 12} onPress={() => bringBack(true)} />
@@ -191,28 +263,32 @@ export default function CourseMap() {
   );
 }
 
-function LevelSection({ level, li, width, status, picked, nextId, firstOrder, onPick, onLayoutY }: {
+function LevelSection({ level, li, width, status, picked, nextId, arriving, popIds, firstOrder, onPick, onLayoutY }: {
   level: Level;
   li: number;
   width: number;
   status: Record<string, Status>;
   picked: string;
   nextId: string;
+  /** The next lesson while the ball is still rolling to it: shown as open until it arrives. */
+  arriving: string;
+  popIds: string[];
   firstOrder: number;
   onPick: (id: string) => void;
-  onLayoutY: (y: number) => void;
+  onLayoutY: (y: number, h: number) => void;
 }) {
   const { palette: p } = useTheme();
   const c = levelColors[level.id];
   const rows = rowLayout(level.lessons.length, level.lessons.findIndex((r) => r.id === nextId));
   const points = level.lessons.map((_, i) => ({ x: puckX(width, i), y: puckY(rows.tops[i], rows.heights[i]) }));
-  const stateOf = (id: string, ready: boolean): PuckState => (!ready ? 'soon' : status[id] === 'done' ? 'done' : id === nextId ? 'current' : 'open');
+  const stateOf = (id: string, ready: boolean): PuckState =>
+    !ready ? 'soon' : status[id] === 'done' ? 'done' : id === nextId && id !== arriving ? 'current' : 'open';
   /** The level's object is earned once every built lesson in it is done; until then it is grey. */
   const built = level.lessons.filter((r) => r.ready);
   const earned = built.length > 0 && built.every((r) => status[r.id] === 'done');
 
   return (
-    <View onLayout={(e) => onLayoutY(e.nativeEvent.layout.y)}>
+    <View onLayout={(e) => onLayoutY(e.nativeEvent.layout.y, e.nativeEvent.layout.height)}>
       {li > 0 && (
         <View style={styles.divider}>
           <View style={[styles.rule, { backgroundColor: p.line }]} />
@@ -232,7 +308,8 @@ function LevelSection({ level, li, width, status, picked, nextId, firstOrder, on
               color={c}
               state={stateOf(r.id, r.ready)}
               picked={picked === r.id}
-              next={nextId === r.id}
+              next={nextId === r.id && r.id !== arriving}
+              pop={popIds.includes(r.id)}
               cx={points[i].x}
               cy={points[i].y - rows.tops[i]}
               labelLeft={labelX(width)}

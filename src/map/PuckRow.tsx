@@ -1,6 +1,7 @@
 // One lesson on the map: the puck (sinks when pressed), its title, a pulsing halo when picked,
-// and for the next lesson to do a tile hovering above the puck.
-import { useEffect } from 'react';
+// and for the next lesson to do a tile hovering above the puck. When a lesson becomes the next one while
+// the map is open (a ball rolled to it), the tile drops into place.
+import { useEffect, useRef } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, {
   Easing,
@@ -20,6 +21,7 @@ import { Puck, PUCK_FACE_Y, PUCK_VB_H, PUCK_VB_W, type LevelColor, type PuckStat
 import { useTheme } from '@/theme/ThemeContext';
 import { font } from '@/theme/tokens';
 import { feedback } from '@/ui/feedback';
+import { Pop } from '@/ui/motion';
 import { PUCK } from './layout';
 
 const K = PUCK / PUCK_VB_W; // puck viewBox → pt
@@ -50,16 +52,20 @@ type Props = {
   cy: number;
   labelLeft: number;
   order: number; // position on the whole map, for the opening stagger
+  /** The puck pops once when this turns true (its check just appeared, or it just opened). */
+  pop?: boolean;
   onPick: () => void;
 };
 
-export function PuckRow({ r, levelId, color, state, picked, next, cx, cy, labelLeft, order, onPick }: Props) {
+export function PuckRow({ r, levelId, color, state, picked, next, cx, cy, labelLeft, order, pop = false, onPick }: Props) {
   const { palette: p } = useTheme();
   const reduced = useReducedMotion();
   const press = useSharedValue(0);
   const appear = useSharedValue(reduced ? 1 : 0);
   const pulse = useSharedValue(0);
   const bob = useSharedValue(0);
+  const tileIn = useSharedValue(1); // the tile dropping in when this lesson becomes the next one
+  const wasNext = useRef(next);
 
   useEffect(() => {
     if (reduced) return;
@@ -73,6 +79,14 @@ export function PuckRow({ r, levelId, color, state, picked, next, cx, cy, labelL
     }
     pulse.set(withRepeat(withSequence(withTiming(1, { duration: 900, easing: Easing.out(Easing.quad) }), withTiming(0, { duration: 900, easing: Easing.in(Easing.quad) })), -1));
   }, [picked, pulse, reduced]);
+
+  useEffect(() => {
+    if (next && !wasNext.current && !reduced) {
+      tileIn.set(0);
+      tileIn.set(withTiming(1, { duration: 300, easing: Easing.out(Easing.cubic) }));
+    }
+    wasNext.current = next;
+  }, [next, reduced, tileIn]);
 
   useEffect(() => {
     if (!next || reduced) return;
@@ -89,10 +103,10 @@ export function PuckRow({ r, levelId, color, state, picked, next, cx, cy, labelL
     transform: [{ scale: 1 + 0.05 * pulse.get() - 0.04 * press.get() }],
   }));
   const tileStyle = useAnimatedStyle(() => ({
-    opacity: appear.get(),
-    transform: [{ translateY: -7 * bob.get() + (1 - appear.get()) * 20 + press.get() * 5 }],
+    opacity: appear.get() * tileIn.get(),
+    transform: [{ translateY: -7 * bob.get() + (1 - appear.get()) * 20 - (1 - tileIn.get()) * 14 + press.get() * 5 }],
   }));
-  const tileShadow = useAnimatedStyle(() => ({ opacity: appear.get() * (0.22 - 0.1 * bob.get()), transform: [{ scale: 1 - 0.18 * bob.get() }] }));
+  const tileShadow = useAnimatedStyle(() => ({ opacity: appear.get() * tileIn.get() * (0.22 - 0.1 * bob.get()), transform: [{ scale: 1 - 0.18 * bob.get() }] }));
 
   const top = cy - FACE_Y;
   const left = cx - PUCK / 2;
@@ -127,7 +141,9 @@ export function PuckRow({ r, levelId, color, state, picked, next, cx, cy, labelL
         style={[styles.abs, { left, top: top - 8, right: 0, height: PUCK_H + 16 }]}
       >
         <Animated.View style={[{ marginTop: 8 }, puckStyle]}>
-          <Puck size={PUCK} state={state} color={color} press={press} />
+          <Pop trigger={pop}>
+            <Puck size={PUCK} state={state} color={color} press={press} />
+          </Pop>
         </Animated.View>
       </Pressable>
 
