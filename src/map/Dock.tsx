@@ -6,7 +6,7 @@ import { useEffect } from 'react';
 import { StyleSheet, Text, View, type LayoutChangeEvent } from 'react-native';
 import Animated, { useAnimatedStyle, useReducedMotion, useSharedValue, withSpring, withTiming } from 'react-native-reanimated';
 import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
-import { illustration } from '@/art/illustrations';
+import { darkNeutral, illustration, lightNeutral } from '@/art/illustrations';
 import type { LessonRef } from '@/content/types';
 import { useTheme } from '@/theme/ThemeContext';
 import { courseBlue, font, reward, type LevelColor } from '@/theme/tokens';
@@ -29,7 +29,8 @@ type Props = {
 const WASH = 120; // how far the colour wash reaches above the card
 
 export function Dock({ r, color, status, allDone = false, bottomInset, onStart, onHeight }: Props) {
-  const { palette: p } = useTheme();
+  const { palette: p, dark, level } = useTheme();
+  const lc = level(color);
   const reduced = useReducedMotion();
   const rise = useSharedValue(reduced ? 1 : 0);
   const swap = useSharedValue(1);
@@ -54,19 +55,19 @@ export function Dock({ r, color, status, allDone = false, bottomInset, onStart, 
       <Svg pointerEvents="none" style={StyleSheet.absoluteFill} width="100%" height="100%" preserveAspectRatio="none">
         <Defs>
           <LinearGradient id="dock-wash" x1="0" y1="0" x2="0" y2="1">
-            <Stop offset="0" stopColor={color.soft} stopOpacity={0} />
-            <Stop offset="1" stopColor={color.soft} stopOpacity={1} />
+            <Stop offset="0" stopColor={lc.soft} stopOpacity={0} />
+            <Stop offset="1" stopColor={lc.soft} stopOpacity={1} />
           </LinearGradient>
         </Defs>
         <Rect x="0" y="0" width="100%" height="100%" fill="url(#dock-wash)" />
       </Svg>
 
       <Animated.View style={[styles.column, { paddingBottom: bottomInset + 16 }, card]}>
-        <View style={[styles.lip, { backgroundColor: '#D5DAE0', bottom: bottomInset + 16 - 5 }]} />
-        <View style={[styles.card, { backgroundColor: p.page, borderColor: '#E3E6EA' }]}>
+        <View style={[styles.lip, { backgroundColor: p.cardLip, bottom: bottomInset + 16 - 5 }]} />
+        <View style={[styles.card, { backgroundColor: p.page, borderColor: p.chipLine }]}>
           {allDone ? (
             <Animated.View style={[styles.done, body]}>
-              <Art xml={illustration('allDone', courseBlue, reward)} width={220} />
+              <Art xml={illustration('allDone', { ...courseBlue, soft: dark ? p.selectBg : courseBlue.soft }, reward, dark ? darkNeutral : lightNeutral)} width={220} />
               <Text style={[styles.title, { color: p.ink }]} accessibilityRole="header" maxFontSizeMultiplier={1.3}>
                 More lessons are on the way
               </Text>

@@ -3,9 +3,11 @@ import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { AccessibilityInfo, Animated, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import Svg, { Path, Rect } from 'react-native-svg';
 import { useTheme } from '@/theme/ThemeContext';
-import { font, LIP, radius, reward, touch } from '@/theme/tokens';
+import { font, LIP, palette as lightPalette, radius, reward, touch } from '@/theme/tokens';
 import { feedback } from './feedback';
 import { Pop, Shake, Sparks, useReducedMotionPref } from './motion';
+
+const lightInk = lightPalette.ink; // ink on the white button, the same in both themes
 
 const nativeDriver = Platform.OS !== 'web';
 
@@ -53,7 +55,8 @@ export function MainButton({ label, onPress, disabled, tone = 'primary', color }
   const { palette: p } = useTheme();
   const main = disabled ? p.disabled : tone === 'white' ? '#FFFFFF' : tone === 'ok' ? p.ok : tone === 'level' && color ? color.main : p.primary;
   const lip = disabled ? p.disabledLip : tone === 'white' ? 'rgba(0,0,0,0.22)' : tone === 'ok' ? p.okLip : tone === 'level' && color ? color.lip : p.primaryLip;
-  const ink = disabled ? p.onDisabled : tone === 'white' ? p.ink : p.onPrimary;
+  // the white button keeps dark ink and a level-coloured one keeps white text in both themes
+  const ink = disabled ? p.onDisabled : tone === 'white' ? lightInk : tone === 'level' && color ? '#FFFFFF' : p.onPrimary;
   return (
     <Pressable accessibilityRole="button" accessibilityState={{ disabled: !!disabled }} disabled={disabled || !onPress} onPress={onPress} style={[styles.buttonWrap, { backgroundColor: lip }]}>
       {({ pressed }) => (
@@ -168,7 +171,7 @@ export function VerdictSheet({ verdict, button }: { verdict: Verdict; button: { 
               setWhyOpen(true);
             }}
             color={p.ink}
-            bg="rgba(0,0,0,0.07)"
+            bg={p.pillBg}
           />
         )}
       </View>

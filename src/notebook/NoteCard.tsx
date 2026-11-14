@@ -28,7 +28,8 @@ type Props = {
 };
 
 export function NoteCard({ lessonId, levelId, title, card, color, onReplay, onFlip }: Props) {
-  const { palette: p } = useTheme();
+  const { palette: p, level } = useTheme();
+  const lc = level(color);
   const reduced = useReducedMotionPref();
   const [flipped, setFlipped] = useState(false);
   const [backH, setBackH] = useState(0); // height of the back's words, so the card is tall enough for both sides
@@ -69,7 +70,7 @@ export function NoteCard({ lessonId, levelId, title, card, color, onReplay, onFl
             </View>
           </View>
         </Animated.View>
-        <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, styles.side, { backgroundColor: color.soft, borderColor: color.main }, back]}>
+        <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, styles.side, { backgroundColor: lc.soft, borderColor: color.main }, back]}>
           <View onLayout={(e) => setBackH(e.nativeEvent.layout.height + BORDER + LIP)}>
             <Text style={[styles.idea, { color: p.ink }]} maxFontSizeMultiplier={1.3}>
               {card.idea}
@@ -81,8 +82,8 @@ export function NoteCard({ lessonId, levelId, title, card, color, onReplay, onFl
       {flipped && (
         <Animated.View style={[styles.replayWrap, replay]}>
           <Pressable accessibilityRole="button" accessibilityLabel={`Replay ${title}`} onPress={onReplay} hitSlop={6} style={styles.replay}>
-            <Art xml={uiIcon('replay')} width={20} color={color.text} />
-            <Text style={[styles.replayText, { color: color.text }]} maxFontSizeMultiplier={1.3}>
+            <Art xml={uiIcon('replay')} width={20} color={lc.text} />
+            <Text style={[styles.replayText, { color: lc.text }]} maxFontSizeMultiplier={1.3}>
               Replay lesson
             </Text>
           </Pressable>

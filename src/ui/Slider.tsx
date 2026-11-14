@@ -65,7 +65,7 @@ export function Slider({ value, min, max, step, tick = step, label, format, form
           {width > 0 && (
             <>
               <View style={[styles.bubble, { backgroundColor: p.ink, left: Math.min(Math.max(x + THUMB / 2 - 75, 0), width - 150) }]} pointerEvents="none">
-                <Text style={styles.bubbleText}>{format(value)}</Text>
+                <Text style={[styles.bubbleText, { color: p.page }]}>{format(value)}</Text>
               </View>
               <View style={[styles.track, { backgroundColor: p.drawFill, left: THUMB / 2, right: THUMB / 2 }]} />
               {ticks.map((t) => (
@@ -90,7 +90,7 @@ export function Slider({ value, min, max, step, tick = step, label, format, form
 const styles = StyleSheet.create({
   area: { height: 76, justifyContent: 'flex-start' },
   bubble: { position: 'absolute', top: 0, width: 150, height: 30, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
-  bubbleText: { color: '#FFFFFF', fontFamily: font.monoBold, fontSize: 14 },
+  bubbleText: { fontFamily: font.monoBold, fontSize: 14 },
   track: { position: 'absolute', top: 54, height: 4, borderRadius: 2 },
   tick: { position: 'absolute', width: 2 },
   thumb: { position: 'absolute', top: 41, width: THUMB, height: THUMB, borderRadius: THUMB / 2, borderWidth: 3, alignItems: 'center', justifyContent: 'center' },

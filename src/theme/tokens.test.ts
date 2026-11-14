@@ -1,5 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { themed } from './themed.ts';
 import { darkPalette as d, levelColors, levelPalette, palette as p, reward } from './tokens.ts';
 
 function luminance(hex: string) {
@@ -68,4 +69,10 @@ test('dark theme passes the same checks as the light one', () => {
   check(d.ok, d.page, 3, 'dark right card border');
   check(d.bad, d.page, 3, 'dark wrong card border');
   for (const [id, c] of Object.entries(levelPalette)) check(c.face, d.page, 3, `${id} puck face on the dark page`);
+  for (const [id, c] of Object.entries(levelPalette)) {
+    const t = themed(c, true);
+    check(t.text, d.page, 4.5, `${id} level text on the dark page`);
+    check(t.text, t.soft, 4.5, `${id} level text on its dark tint`);
+    check(d.ink, t.soft, 4.5, `${id} ink on its dark tint`);
+  }
 });

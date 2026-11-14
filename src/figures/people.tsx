@@ -85,7 +85,7 @@ export function Scales({ x, y, reading, width = 96, clock = STILL, pen = [0, 1] 
       <DrawnShape clock={clock} pen={penPart(pen, 1, 3)} {...rectPath(x - w, top, width, front, 3)} fill={p.scalesFront} stroke={p.draw} strokeWidth={1.8} />
       {reading !== null && (
         <G>
-          <DrawnShape clock={clock} pen={penPart(pen, 2, 3)} {...rectPath(x - 31, top + 4, 62, 15, 3)} fill="#FFFFFF" stroke={p.draw} strokeWidth={1.2} />
+          <DrawnShape clock={clock} pen={penPart(pen, 2, 3)} {...rectPath(x - 31, top + 4, 62, 15, 3)} fill={p.page} stroke={p.draw} strokeWidth={1.2} />
           {/* the reading appears with the fills, never before (a hidden reading stays "- - -") */}
           <DrawnFade clock={clock} from={FILLS[0]} to={FILLS[1]}>
             <MonoLabel x={x} y={top + 15.5} text={reading} color={p.ink} size={11} />

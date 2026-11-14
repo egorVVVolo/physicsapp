@@ -215,11 +215,11 @@ export default function CourseMap() {
             accessibilityRole="button"
             accessibilityLabel="Notebook"
             onPress={() => router.push('/notebook')}
-            style={({ pressed }) => [styles.iconButton, { borderColor: '#E3E6EA', transform: [{ translateY: pressed ? 2 : 0 }] }]}
+            style={({ pressed }) => [styles.iconButton, { borderColor: p.chipLine, backgroundColor: p.page, transform: [{ translateY: pressed ? 2 : 0 }] }]}
           >
             <Art xml={uiIcon('notebook')} width={24} color={p.ink} />
           </Pressable>
-          <View style={[styles.count, { borderColor: '#E3E6EA' }]} accessibilityLabel={`${doneCount} of ${allRefs.length} lessons done`}>
+          <View style={[styles.count, { borderColor: p.chipLine, backgroundColor: p.page }]} accessibilityLabel={`${doneCount} of ${allRefs.length} lessons done`}>
             <Text style={[styles.countText, { color: p.ink }]}>
               {doneCount}/{allRefs.length}
             </Text>
@@ -308,7 +308,7 @@ function LevelSection({ level, li, width, status, picked, nextId, arriving, popI
   onPick: (id: string) => void;
   onLayoutY: (y: number, h: number) => void;
 }) {
-  const { palette: p } = useTheme();
+  const { palette: p, level: themedLevel } = useTheme();
   const c = levelColors[level.id];
   const rows = rowLayout(level.lessons.length, level.lessons.findIndex((r) => r.id === nextId));
   const points = level.lessons.map((_, i) => ({ x: puckX(width, i), y: puckY(rows.tops[i], rows.heights[i]) }));
@@ -324,7 +324,7 @@ function LevelSection({ level, li, width, status, picked, nextId, arriving, popI
         <View style={styles.divider}>
           <View style={[styles.rule, { backgroundColor: p.line }]} />
           <View style={styles.dividerText}>
-            <Text style={[styles.dividerNo, { color: c.text }]}>LEVEL {li + 1}</Text>
+            <Text style={[styles.dividerNo, { color: themedLevel(c).text }]}>LEVEL {li + 1}</Text>
             <Text style={[styles.dividerTitle, { color: p.ink }]}>{level.title}</Text>
           </View>
           <View style={[styles.rule, { backgroundColor: p.line }]} />
@@ -395,9 +395,9 @@ const styles = StyleSheet.create({
   courseHead: { alignItems: 'center', paddingTop: 10, paddingBottom: 2 },
   courseTitle: { fontFamily: font.display, fontSize: 20, lineHeight: 26, letterSpacing: -0.1, textAlign: 'center' },
   courseSub: { fontFamily: font.bodyMedium, fontSize: 14, lineHeight: 19, textAlign: 'center' },
-  count: { alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderBottomWidth: 4, borderRadius: 999, paddingHorizontal: 12, minHeight: 44, backgroundColor: '#FFFFFF' },
+  count: { alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderBottomWidth: 4, borderRadius: 999, paddingHorizontal: 12, minHeight: 44 },
   countText: { fontFamily: font.displaySemi, fontSize: 16 },
-  iconButton: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderBottomWidth: 4, borderRadius: 999, backgroundColor: '#FFFFFF' },
+  iconButton: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderBottomWidth: 4, borderRadius: 999 },
   plateWrap: { paddingBottom: 10, zIndex: 2 },
   list: { width: '100%', maxWidth: CONTENT_MAX, alignSelf: 'center' },
   topFade: { position: 'absolute', top: 0, left: 0, right: 0, height: 6, opacity: 0.9 },

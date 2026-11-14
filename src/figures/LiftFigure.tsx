@@ -105,14 +105,14 @@ export function LiftFigure({ fig, a, tap, clock = STILL }: { fig: LiftFig; a: nu
           ? line(`M${CX},${CAR.y} L${CX},20 L${CX - 4},16 M${CX},20 L${CX + 4},15`, 24, PEN.cable, p.draw, 2, 'round')
           : line(`M${CX},0 V${CAR.y}`, CAR.y, PEN.cable, p.draw, 2)}
         {/* the car: white box, a ceiling strip, the floor indicator and a handrail on the back wall */}
-        <DrawnShape clock={clock} pen={PEN.car} {...rectPath(CAR.x, CAR.y, CAR.w, CAR.h)} fill="#FFFFFF" stroke={p.draw} strokeWidth={2.4} />
+        <DrawnShape clock={clock} pen={PEN.car} {...rectPath(CAR.x, CAR.y, CAR.w, CAR.h)} fill={p.page} stroke={p.draw} strokeWidth={2.4} />
         <DrawnShape clock={clock} pen={PEN.ceiling} {...rectPath(CAR.x, CAR.y, CAR.w, 6)} fill={p.drawFill} stroke={p.draw} strokeWidth={1.2} />
         <DrawnFade clock={clock} from={FILLS[0]} to={FILLS[1]}>
           <Rect x={CX - 14} y={CAR.y + 12} width={28} height={13} rx={3} fill={p.ink} />
           {motionDir ? (
-            <Polygon points={motionDir === 'up' ? `${CX - 5},${CAR.y + 22} ${CX + 5},${CAR.y + 22} ${CX},${CAR.y + 15}` : `${CX - 5},${CAR.y + 15} ${CX + 5},${CAR.y + 15} ${CX},${CAR.y + 22}`} fill="#FFFFFF" />
+            <Polygon points={motionDir === 'up' ? `${CX - 5},${CAR.y + 22} ${CX + 5},${CAR.y + 22} ${CX},${CAR.y + 15}` : `${CX - 5},${CAR.y + 15} ${CX + 5},${CAR.y + 15} ${CX},${CAR.y + 22}`} fill={p.page} />
           ) : (
-            <Line x1={CX - 5} y1={CAR.y + 18.5} x2={CX + 5} y2={CAR.y + 18.5} stroke="#FFFFFF" strokeWidth={2} strokeLinecap="round" />
+            <Line x1={CX - 5} y1={CAR.y + 18.5} x2={CX + 5} y2={CAR.y + 18.5} stroke={p.page} strokeWidth={2} strokeLinecap="round" />
           )}
         </DrawnFade>
         {line(`M${CAR.x + 8},148 H${CAR.x + CAR.w - 8}`, CAR.w - 16, PEN.rail, p.lineStrong, 3, 'round')}
@@ -187,9 +187,9 @@ function NOnPerson({ drawing }: { drawing: boolean }) {
   if (len < 1) return null;
   return (
     <Group>
-      <ForceArrow x1={CX} y1={SOLES} x2={CX} y2={SOLES - len} color="#FFFFFF" width={8} />
+      <ForceArrow x1={CX} y1={SOLES} x2={CX} y2={SOLES - len} color={p.page} width={8} />
       <ForceArrow x1={CX} y1={SOLES} x2={CX} y2={SOLES - len} color={p.force} />
-      <Circle cx={CX} cy={SOLES} r={3.6} fill={p.force} stroke="#FFFFFF" strokeWidth={1.4} />
+      <Circle cx={CX} cy={SOLES} r={3.6} fill={p.force} stroke={p.page} strokeWidth={1.4} />
       <ForceLetter x={CX + 30} y={SOLES - 12} text="N" color={p.forceText} size={15} />
       <Line x1={CX + 24} y1={SOLES - 16} x2={CX + 5} y2={SOLES - 18} stroke={p.forceText} strokeWidth={1.2} />
     </Group>

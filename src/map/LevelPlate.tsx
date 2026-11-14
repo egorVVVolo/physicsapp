@@ -10,7 +10,7 @@ import { font } from '@/theme/tokens';
 type Shown = { index: number; title: string; color: LevelColor; done: number; total: number };
 
 export function LevelPlate({ index, title, color, done, total }: Shown) {
-  const { palette: p } = useTheme();
+  const { palette: p, level } = useTheme();
   const reduced = useReducedMotion();
   const t = useSharedValue(1);
   const prev = useRef<Shown>({ index, title, color, done, total });
@@ -36,9 +36,9 @@ export function LevelPlate({ index, title, color, done, total }: Shown) {
   return (
     <View accessibilityRole="header" accessibilityLabel={`Level ${index + 1}, ${title}. ${done} of ${total} lessons done.`}>
       <Animated.View style={[styles.lip, lip]} />
-      <Animated.View style={[styles.plate, plate]}>
+      <Animated.View style={[styles.plate, { backgroundColor: p.page }, plate]}>
         <Animated.View style={[styles.inner, text]}>
-          <Text style={[styles.no, { color: color.text }]}>LEVEL {index + 1}</Text>
+          <Text style={[styles.no, { color: level(color).text }]}>LEVEL {index + 1}</Text>
           <Text style={[styles.title, { color: p.ink }]} numberOfLines={1}>
             {title}
           </Text>
@@ -50,7 +50,7 @@ export function LevelPlate({ index, title, color, done, total }: Shown) {
 
 const styles = StyleSheet.create({
   lip: { position: 'absolute', left: 0, right: 0, top: 6, bottom: -5, borderRadius: 18 },
-  plate: { borderWidth: 2, borderRadius: 18, overflow: 'hidden', minHeight: 74, justifyContent: 'center', backgroundColor: '#FFFFFF' },
+  plate: { borderWidth: 2, borderRadius: 18, overflow: 'hidden', minHeight: 74, justifyContent: 'center' },
   inner: { alignItems: 'center', paddingVertical: 10, paddingHorizontal: 16 },
   no: { fontFamily: font.displaySemi, fontSize: 15, lineHeight: 19, letterSpacing: 0.3 },
   title: { fontFamily: font.display, fontSize: 24, lineHeight: 30, marginTop: 1 },

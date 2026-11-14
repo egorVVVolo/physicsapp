@@ -110,7 +110,7 @@ export function ScalesFigure({ fig, playing, clock = STILL }: { fig: ScalesFig; 
         <Line x1={CX + 92} y1={plate + 5} x2={262} y2={plate + 5} stroke={p.lineStrong} strokeWidth={1.2} strokeDasharray="3 3" />
         <Line x1={262} y1={plate + 5} x2={262} y2={92} stroke={p.lineStrong} strokeWidth={1.2} strokeDasharray="3 3" />
         <Rect x={226} y={56} width={104} height={36} rx={6} fill={p.ink} />
-        <MonoLabel x={278} y={80} text={`${reading} kg`} color="#FFFFFF" size={15} />
+        <MonoLabel x={278} y={80} text={`${reading} kg`} color={p.page} size={15} />
       </DrawnFade>
       <MonoLabel x={278} y={48} text="DISPLAY" color={p.label} size={9} />
     </Group>

@@ -75,3 +75,31 @@ export async function addFinishedLesson(lessonId: string): Promise<boolean> {
   } catch {}
   return true;
 }
+
+const PREFS_KEY = 'prefs/v1';
+
+/** The learner's settings, kept on the device. */
+export type Prefs = { mode: 'system' | 'light' | 'dark'; sound: boolean; haptics: boolean };
+export const defaultPrefs: Prefs = { mode: 'system', sound: true, haptics: true };
+
+export async function loadPrefs(): Promise<Prefs> {
+  try {
+    const raw = JSON.parse((await AsyncStorage.getItem(PREFS_KEY)) ?? '{}') as Partial<Prefs>;
+    return {
+      mode: raw.mode === 'light' || raw.mode === 'dark' ? raw.mode : 'system',
+      sound: raw.sound !== false,
+      haptics: raw.haptics !== false,
+    };
+  } catch {
+    return defaultPrefs;
+  }
+}
+
+/** Changes some settings and keeps the rest. */
+export async function savePrefs(change: Partial<Prefs>): Promise<Prefs> {
+  const next = { ...(await loadPrefs()), ...change };
+  try {
+    await AsyncStorage.setItem(PREFS_KEY, JSON.stringify(next));
+  } catch {}
+  return next;
+}

@@ -14,8 +14,7 @@ import {
 import { IBMPlexMono_500Medium, IBMPlexMono_600SemiBold } from '@expo-google-fonts/ibm-plex-mono';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { ThemeProvider } from '@/theme/ThemeContext';
-import { palette } from '@/theme/tokens';
+import { ThemeProvider, useTheme } from '@/theme/ThemeContext';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -43,13 +42,23 @@ export default function RootLayout() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
         <ThemeProvider>
-          <StatusBar style="dark" />
-          <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: palette.page } }}>
-            {/* a lesson rises over the map like a card and drops back down; no swipe-to-leave, only × (it asks first) */}
-            <Stack.Screen name="lesson/[id]" options={{ animation: 'slide_from_bottom', gestureEnabled: false }} />
-          </Stack>
+          <Screens />
         </ThemeProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>
+  );
+}
+
+/** The status bar and the screens' background follow the theme. */
+function Screens() {
+  const { palette: p, dark } = useTheme();
+  return (
+    <>
+      <StatusBar style={dark ? 'light' : 'dark'} />
+      <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: p.page } }}>
+        {/* a lesson rises over the map like a card and drops back down; no swipe-to-leave, only × (it asks first) */}
+        <Stack.Screen name="lesson/[id]" options={{ animation: 'slide_from_bottom', gestureEnabled: false }} />
+      </Stack>
+    </>
   );
 }

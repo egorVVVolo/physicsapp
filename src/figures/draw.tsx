@@ -3,6 +3,7 @@
 import type { ReactNode } from 'react';
 import Animated, { useAnimatedProps, type SharedValue } from 'react-native-reanimated';
 import { Circle, G, Line, Path, Polygon, Text as SvgText, type PathProps } from 'react-native-svg';
+import { useTheme } from '@/theme/ThemeContext';
 import { svgLetter, svgMono } from '@/theme/svgFont';
 import { STILL, type DrawClock } from './anim';
 
@@ -147,9 +148,10 @@ export function AccChevrons({ x, y, dir, color }: { x: number; y: number; dir: '
 
 /** The centre-of-gravity mark used on engineering drawings: a ring with a cross. */
 export function CgMark({ x, y, color }: { x: number; y: number; color: string }) {
+  const { palette: p } = useTheme();
   return (
     <G>
-      <Circle cx={x} cy={y} r={5} fill="#FFFFFF" stroke={color} strokeWidth={1.6} />
+      <Circle cx={x} cy={y} r={5} fill={p.page} stroke={color} strokeWidth={1.6} />
       <Path d={`M${x},${y - 5} L${x},${y + 5} M${x - 5},${y} L${x + 5},${y}`} stroke={color} strokeWidth={1.2} />
     </G>
   );

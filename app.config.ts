@@ -8,7 +8,7 @@ const config: ExpoConfig = {
   orientation: 'portrait',
   icon: './assets/images/icon.png',
   scheme: APP_SLUG,
-  userInterfaceStyle: 'light',
+  userInterfaceStyle: 'automatic',
   ios: { icon: { light: './assets/images/icon.png', dark: './assets/images/icon-dark.png' } },
   android: {
     adaptiveIcon: {
@@ -23,7 +23,7 @@ const config: ExpoConfig = {
     'expo-router',
     'expo-font',
     'expo-status-bar',
-    ['expo-splash-screen', { backgroundColor: '#FFFFFF', image: './assets/images/splash-icon.png', imageWidth: 120 }],
+    ['expo-splash-screen', { backgroundColor: '#FFFFFF', image: './assets/images/splash-icon.png', imageWidth: 120, dark: { backgroundColor: '#101419' } }],
   ],
   experiments: { typedRoutes: true, reactCompiler: true },
 };

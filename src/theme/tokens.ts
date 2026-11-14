@@ -11,6 +11,9 @@ export const palette = {
   faint: '#646C79', // hints, axis numbers
   line: '#DADFE5', // card borders
   lineStrong: '#B9C1CB',
+  chipLine: '#E3E6EA', // the round chips of the map's top bar and the bottom card
+  cardLip: '#D5DAE0', // the edge the map's bottom card stands on
+  pillBg: 'rgba(0,0,0,0.07)', // a small secondary pill ("Why?")
   // the main button: dark pill with a bottom lip
   primary: '#1A1E25',
   primaryLip: '#000000',
@@ -132,6 +135,9 @@ export const darkPalette: Palette = {
   faint: '#98A1AE',
   line: '#2A313B',
   lineStrong: '#3A434F',
+  chipLine: '#2A313B',
+  cardLip: '#05070A',
+  pillBg: 'rgba(255,255,255,0.1)',
   primary: '#F1F3F6',
   primaryLip: '#AEB6C2',
   onPrimary: '#1A1E25',

@@ -32,7 +32,7 @@ export function MomentumChip({ streak, onPress }: { streak: Streak; onPress: () 
       accessibilityRole="button"
       accessibilityLabel={paused ? 'Momentum paused' : `${days(count)} of momentum`}
       onPress={onPress}
-      style={({ pressed }) => [styles.chip, { borderColor: '#E3E6EA', transform: [{ translateY: pressed ? 2 : 0 }] }]}
+      style={({ pressed }) => [styles.chip, { borderColor: p.chipLine, backgroundColor: p.page, transform: [{ translateY: pressed ? 2 : 0 }] }]}
     >
       <Art xml={object(paused ? 'topResting' : 'top', courseBlue, reward)} width={28} />
       {!paused && <Text style={[styles.chipText, { color: p.ink }]}>{count}</Text>}
@@ -116,7 +116,7 @@ export function MomentumSheet({ streak, onClose }: { streak: Streak; onClose: ()
 }
 
 const styles = StyleSheet.create({
-  chip: { flexDirection: 'row', alignItems: 'center', gap: 4, minHeight: 44, minWidth: 44, paddingHorizontal: 10, borderWidth: 2, borderBottomWidth: 4, borderRadius: 999, backgroundColor: '#FFFFFF', justifyContent: 'center' },
+  chip: { flexDirection: 'row', alignItems: 'center', gap: 4, minHeight: 44, minWidth: 44, paddingHorizontal: 10, borderWidth: 2, borderBottomWidth: 4, borderRadius: 999, justifyContent: 'center' },
   chipText: { fontFamily: font.displaySemi, fontSize: 16 },
   sheet: { position: 'absolute', left: 0, right: 0, bottom: 0, borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingTop: 20, paddingHorizontal: 20 },
   inner: { width: '100%', maxWidth: CONTENT_MAX, alignSelf: 'center', alignItems: 'center' },

@@ -115,14 +115,14 @@ export function PairsFigure({ fig, tap, clock = STILL }: { fig: PairsFig; tap?: 
         {/* chosen: a soft blue box, like a chosen answer card */}
         {on && <Rect x={b.x} y={b.y} width={b.w} height={b.h} rx={10} fill={p.selectBg} fillOpacity={0.85} stroke={p.select} strokeWidth={1.6} />}
         {/* a white halo keeps the arrow readable over the drawing */}
-        <ForceArrow x1={f.x} y1={f.y} x2={f.x} y2={y2} color="#FFFFFF" width={on ? 8.5 : 7} />
+        <ForceArrow x1={f.x} y1={f.y} x2={f.x} y2={y2} color={p.page} width={on ? 8.5 : 7} />
         <ForceArrow x1={f.x} y1={f.y} x2={f.x} y2={y2} color={c} width={on ? 4.4 : 3.2} />
         {/* the point where the force acts */}
-        <Circle cx={f.x} cy={f.y} r={3.6} fill={c} stroke="#FFFFFF" strokeWidth={1.4} />
+        <Circle cx={f.x} cy={f.y} r={3.6} fill={c} stroke={p.page} strokeWidth={1.4} />
         {k > 0.6 && (
           <Group>
-            <Circle cx={f.bx} cy={f.by} r={10} fill={given ? c : '#FFFFFF'} stroke={c} strokeWidth={1.6} />
-            <SvgText x={f.bx} y={f.by + 5} fontSize={14} fill={given ? '#FFFFFF' : textOf(c)} fontFamily={svgLetter} textAnchor="middle">
+            <Circle cx={f.bx} cy={f.by} r={10} fill={given ? c : p.page} stroke={c} strokeWidth={1.6} />
+            <SvgText x={f.bx} y={f.by + 5} fontSize={14} fill={given ? p.page : textOf(c)} fontFamily={svgLetter} textAnchor="middle">
               {id}
             </SvgText>
           </Group>
@@ -133,7 +133,7 @@ export function PairsFigure({ fig, tap, clock = STILL }: { fig: PairsFig; tap?: 
 
   const zone = (z: (typeof ZONE)[keyof typeof ZONE]) => (
     <Group key={z.tag} opacity={zones}>
-      <DrawnShape clock={explode ? STILL : clock} pen={PEN.zones} {...rectPath(Z_X, z.y, Z_W, z.h, 10)} fill="#FFFFFF" stroke={p.paperLine} strokeWidth={1.2} />
+      <DrawnShape clock={explode ? STILL : clock} pen={PEN.zones} {...rectPath(Z_X, z.y, Z_W, z.h, 10)} fill={p.page} stroke={p.paperLine} strokeWidth={1.2} />
       <MonoLabel x={Z_X + 10} y={z.y + 16} text={z.tag} color={p.label} size={9} anchor="start" />
     </Group>
   );

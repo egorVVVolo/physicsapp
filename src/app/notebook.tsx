@@ -5,7 +5,7 @@ import { useCallback, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { illustration } from '@/art/illustrations';
+import { darkNeutral, illustration, lightNeutral } from '@/art/illustrations';
 import { object } from '@/art/objects';
 import { uiIcon } from '@/art/uiIcons';
 import { course } from '@/content/course';
@@ -21,7 +21,7 @@ import { MainButton } from '@/ui/parts';
 const allRefs = course.levels.flatMap((l) => l.lessons.map((r) => ({ r, levelId: l.id })));
 
 export default function Notebook() {
-  const { palette: p } = useTheme();
+  const { palette: p, dark } = useTheme();
   const insets = useSafeAreaInsets();
   const [finished, setFinished] = useState<Set<string> | null>(null);
   const [turned, setTurned] = useState(false); // a card was turned: the hint goes away
@@ -65,7 +65,7 @@ export default function Notebook() {
       {finished && cards.length === 0 && (
         <View style={[styles.column, styles.empty, { paddingBottom: insets.bottom + 24 }]}>
           <View style={styles.emptyMiddle}>
-            <Art xml={illustration('notebookEmpty', courseBlue, reward)} width={260} />
+            <Art xml={illustration('notebookEmpty', { ...courseBlue, soft: dark ? p.selectBg : courseBlue.soft }, reward, dark ? darkNeutral : lightNeutral)} width={260} />
             <Text style={[styles.emptyText, { color: p.ink }]}>Finish a lesson to get its card.</Text>
           </View>
           <MainButton label="Go to the map" onPress={back} />

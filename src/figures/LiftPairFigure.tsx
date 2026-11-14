@@ -40,7 +40,7 @@ function MiniLift({ x, n, caption, acc }: { x: number; n: number; caption: strin
   return (
     <Group>
       <Line x1={cx} y1={0} x2={cx} y2={TOP} stroke={p.draw} strokeWidth={1.6} />
-      <Rect x={x} y={TOP} width={CAR.w} height={CAR.h} fill="#FFFFFF" stroke={p.draw} strokeWidth={2} />
+      <Rect x={x} y={TOP} width={CAR.w} height={CAR.h} fill={p.page} stroke={p.draw} strokeWidth={2} />
       <Hatch x1={x} x2={x + CAR.w} y={FLOOR} color={p.draw} />
       <Group transform={`translate(${cx} ${FLOOR}) scale(${S}) translate(${-cx} ${-FLOOR})`}>
         <Scales x={cx} y={FLOOR} reading={kg} />

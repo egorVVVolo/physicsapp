@@ -19,6 +19,7 @@ import type { LessonRef } from '@/content/types';
 import { LessonTile } from '@/figures/LessonIcon';
 import { Puck, PUCK_FACE_Y, PUCK_VB_H, PUCK_VB_W, type LevelColor, type PuckState } from '@/figures/Puck';
 import { useTheme } from '@/theme/ThemeContext';
+import { mix } from '@/theme/levelColor';
 import { font } from '@/theme/tokens';
 import { feedback } from '@/ui/feedback';
 import { Pop } from '@/ui/motion';
@@ -31,13 +32,6 @@ const HALO_W = PUCK + 34;
 const HALO_H = PUCK_H + 16;
 const TILE = 60;
 
-/** Mix two #RRGGBB colours (t = 0 gives a, 1 gives b). */
-function mix(a: string, b: string, t: number): string {
-  const pa = parseInt(a.slice(1), 16);
-  const pb = parseInt(b.slice(1), 16);
-  const ch = (shift: number) => Math.round(((pa >> shift) & 255) * (1 - t) + ((pb >> shift) & 255) * t);
-  return `#${((1 << 24) | (ch(16) << 16) | (ch(8) << 8) | ch(0)).toString(16).slice(1)}`;
-}
 const TILE_H = (TILE * 66) / 60;
 
 type Props = {
@@ -58,7 +52,7 @@ type Props = {
 };
 
 export function PuckRow({ r, levelId, color, state, picked, next, cx, cy, labelLeft, order, pop = false, onPick }: Props) {
-  const { palette: p } = useTheme();
+  const { palette: p, level } = useTheme();
   const reduced = useReducedMotion();
   const press = useSharedValue(0);
   const appear = useSharedValue(reduced ? 1 : 0);
@@ -119,7 +113,7 @@ export function PuckRow({ r, levelId, color, state, picked, next, cx, cy, labelL
         <Animated.View pointerEvents="none" style={[styles.abs, { left: cx - HALO_W / 2, top: top + PUCK_H / 2 - HALO_H / 2, width: HALO_W, height: HALO_H }, haloStyle]}>
           {/* a flat ring on the floor around the picked puck */}
           <Svg width={HALO_W} height={HALO_H} viewBox={`0 0 ${HALO_W} ${HALO_H}`}>
-            <Ellipse cx={HALO_W / 2} cy={HALO_H / 2} rx={HALO_W / 2 - 5} ry={HALO_H / 2 - 5} fill="none" stroke={mix(color.face, '#FFFFFF', 0.75)} strokeWidth={8} />
+            <Ellipse cx={HALO_W / 2} cy={HALO_H / 2} rx={HALO_W / 2 - 5} ry={HALO_H / 2 - 5} fill="none" stroke={mix(color.face, p.page, 0.75)} strokeWidth={8} />
           </Svg>
         </Animated.View>
       )}
@@ -152,7 +146,7 @@ export function PuckRow({ r, levelId, color, state, picked, next, cx, cy, labelL
           {r.title}
         </Text>
         {state === 'soon' && <Text style={[styles.soon, { color: p.faint }]}>Soon</Text>}
-        {next && <Text style={[styles.soon, { color: color.text }]}>Up next</Text>}
+        {next && <Text style={[styles.soon, { color: level(color).text }]}>Up next</Text>}
       </Animated.View>
 
       {next && (
