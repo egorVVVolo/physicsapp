@@ -2,7 +2,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { lessons } from './lessons.ts';
-import { ACC_IDS, CANDIDATE_IDS, PAIR_IDS, isQuestion, type Fig, type Screen } from './types.ts';
+import { ACC_IDS, CANDIDATE_IDS, EQUATION_IDS, PAIR_IDS, isQuestion, type Fig, type Screen } from './types.ts';
 
 // **key words** are bold on screen: the stars do not count, but they must come in pairs
 const max = (text: string, n: number, where: string) => {
@@ -15,6 +15,7 @@ function targets(fig: Fig): readonly string[] {
   if (fig.kind === 'pairs') return PAIR_IDS;
   if (fig.kind === 'vt') return fig.phases.map((p) => p.id);
   if (fig.kind === 'throw') return fig.candidates ? ACC_IDS : [];
+  if (fig.kind === 'equations') return EQUATION_IDS;
   if (fig.kind !== 'lift') return [];
   return fig.candidates ? CANDIDATE_IDS : [];
 }

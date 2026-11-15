@@ -105,3 +105,41 @@ test('riseHeight and gFromGradient', async () => {
   assert.ok(Math.abs(riseHeight(8) - 3.262) < 1e-3);
   assert.equal(gFromGradient(4.87), 9.74);
 });
+
+test('braking: 0 = u² + 2as gives the braking distance; twice the speed needs four times the distance', async () => {
+  const { brakingDistance, stoppingTime, brakingPosition, brakingVelocity } = await import('./kinematics.ts');
+  close(brakingDistance(12, -8), 9);
+  close(brakingDistance(24, -8), 36);
+  const car = { u: 24, a: -8, react: 0 };
+  close(stoppingTime(car), 3);
+  close(brakingPosition(1, car), 20);
+  close(brakingPosition(3, car), 36);
+  close(brakingPosition(10, car), 36); // it stays where it stopped
+  close(brakingVelocity(1.5, car), 12);
+  assert.equal(brakingVelocity(10, car), 0);
+});
+
+test('braking with a reaction time: steady speed first, then the brakes', async () => {
+  const { thinkingDistance, stoppingDistance, stoppingTime, brakingPosition, brakingVelocity, brakingTimeAt, speedAfter } = await import('./kinematics.ts');
+  const car = { u: 24, a: -8, react: 0.5 };
+  close(thinkingDistance(car), 12);
+  close(stoppingDistance(car), 48);
+  close(stoppingTime(car), 3.5);
+  close(brakingPosition(0.25, car), 6);
+  assert.equal(brakingVelocity(0.5, car), 24);
+  close(brakingPosition(3.5, car), 48);
+  // a tree 40 m ahead: 28 m of braking are left, the car arrives at √(24² − 2 × 8 × 28) = 11.3 m s⁻¹
+  const tHit = brakingTimeAt(40, car)!;
+  close(brakingPosition(tHit, car), 40);
+  close(brakingVelocity(tHit, car), speedAfter(24, -8, 28)!);
+  close(brakingVelocity(tHit, car), 11.314);
+  assert.equal(brakingTimeAt(50, car), null); // it stops at 48 m
+  close(brakingTimeAt(6, car)!, 0.25); // still thinking
+});
+
+test('each of the four equations leaves out exactly one quantity', async () => {
+  const { leftOut, RELATIONS, QUANTITIES, distanceFromAverage } = await import('./kinematics.ts');
+  assert.deepEqual([leftOut('vuat'), leftOut('sut'), leftOut('v2as'), leftOut('suvt')], ['s', 'v', 't', 'a']);
+  for (const r of Object.values(RELATIONS)) assert.equal(r.has.length, QUANTITIES.length - 1);
+  assert.equal(distanceFromAverage(30, 10, 25), 500);
+});

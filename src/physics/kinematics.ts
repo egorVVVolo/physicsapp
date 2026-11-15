@@ -84,6 +84,66 @@ export function trackVelocity(t: number, tr: Track): number {
   return tr.motion.u + tr.motion.a * tt;
 }
 
+// ── Braking: a car keeps its speed for the driver's reaction time, then slows at a steady rate until it stops ──
+
+/**
+ * u: speed before the brakes come on, m s⁻¹ (forward is positive) · a: acceleration while braking, m s⁻² (negative) ·
+ * react: the driver's reaction time, s (0 if the clock starts when the brakes come on).
+ */
+export type Braking = { u: number; a: number; react: number };
+
+/** Braking distance: 0 = u² + 2as gives s = −u² / 2a. */
+export function brakingDistance(u: number, a: number): number {
+  'worklet';
+  return -(u * u) / (2 * a);
+}
+
+/** Thinking distance: during the reaction time the car keeps its speed (a = 0, so s = ut). */
+export function thinkingDistance(b: Braking): number {
+  'worklet';
+  return b.u * b.react;
+}
+
+/** Stopping distance = thinking distance + braking distance. */
+export function stoppingDistance(b: Braking): number {
+  'worklet';
+  return thinkingDistance(b) + brakingDistance(b.u, b.a);
+}
+
+/** Seconds from the start of the clock until the car stands still: the reaction time, then 0 = u + at. */
+export function stoppingTime(b: Braking): number {
+  'worklet';
+  return b.react - b.u / b.a;
+}
+
+/** Distance travelled t seconds after the clock starts: steady speed, then s = ut + ½at², then at rest. */
+export function brakingPosition(t: number, b: Braking): number {
+  'worklet';
+  if (t <= b.react) return b.u * Math.max(0, t);
+  const tb = Math.min(t, stoppingTime(b)) - b.react;
+  return b.u * b.react + b.u * tb + 0.5 * b.a * tb * tb;
+}
+
+/** Velocity t seconds after the clock starts: u, then v = u + at down to zero. */
+export function brakingVelocity(t: number, b: Braking): number {
+  'worklet';
+  if (t <= b.react) return b.u;
+  return Math.max(0, b.u + b.a * (t - b.react));
+}
+
+/** When the car's front reaches the point `s` metres along the road, or null if it stops before that. */
+export function brakingTimeAt(s: number, b: Braking): number | null {
+  const think = thinkingDistance(b);
+  if (s <= think) return s / b.u;
+  const v = speedAfter(b.u, b.a, s - think);
+  return v === null ? null : b.react + (v - b.u) / b.a;
+}
+
+/** s = ½(u + v)t: the distance covered while the velocity changes steadily from u to v in time t. */
+export function distanceFromAverage(u: number, v: number, t: number): number {
+  return 0.5 * (u + v) * t;
+}
+
 // The four equations of uniformly accelerated motion and the quantities each one contains.
 export type Quantity = 's' | 'u' | 'v' | 'a' | 't';
 export type RelationId = 'vuat' | 'sut' | 'v2as' | 'suvt';
@@ -93,6 +153,13 @@ export const RELATIONS: Record<RelationId, { text: string; has: Quantity[] }> = 
   v2as: { text: 'v² = u² + 2as', has: ['v', 'u', 'a', 's'] },
   suvt: { text: 's = ½(u + v)t', has: ['s', 'u', 'v', 't'] },
 };
+
+export const QUANTITIES: Quantity[] = ['s', 'u', 'v', 'a', 't'];
+
+/** The one quantity an equation leaves out. */
+export function leftOut(id: RelationId): Quantity {
+  return QUANTITIES.find((q) => !RELATIONS[id].has.includes(q))!;
+}
 
 /** True if the equation contains the unknown and every other quantity in it is known. */
 export function relationFits(id: RelationId, known: Quantity[], unknown: Quantity): boolean {

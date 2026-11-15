@@ -5,6 +5,8 @@
 // Every screen has ONE focus: either text (at most two short paragraphs) or a figure with one sentence.
 // Text limits are checked by src/content/rules.test.ts.
 
+import type { Quantity, RelationId } from '../physics/kinematics.ts';
+
 // ── Figures (drawn by src/figures from these numbers; up is positive) ─────────────────────
 
 /** A person standing on bathroom scales inside a lift car. */
@@ -89,7 +91,52 @@ export type ThrowVtFig = { kind: 'throwVt'; u: number; tEnd: number };
 /** Core Practical 1: height fallen against time squared for a ball dropped from rest; a straight line of this gradient. */
 export type FallGraphFig = { kind: 'fallGraph'; gradient: number };
 
-export type Fig = LiftFig | PairsFig | VtFig | ScalesFig | LiftPairFig | ThrowFig | ThrowVtFig | FallGraphFig;
+/**
+ * Cars braking on a straight road, seen from the side. Each car has its own lane; its front is at the 0 m line when
+ * the clock starts (the brakes come on, or with `react` the driver sees the hazard). Forward is positive.
+ * Positions and velocities come from brakingPosition and brakingVelocity (src/physics/kinematics).
+ */
+export type RoadFig = {
+  kind: 'road';
+  a: number; // acceleration while braking, m s⁻² (negative)
+  cars: { id: 'A' | 'B'; u: number }[]; // u: speed before braking, m s⁻¹
+  span: number; // metres of road on the ruler
+  /** The driver's reaction time, s: the car keeps its speed this long before the brakes come on. */
+  react?: number;
+  /** Write each speed above its arrow, and how far each car went once it has stopped. */
+  values?: true;
+  /** Draw the acceleration (a double chevron pointing backward) while a car is braking, and write it in the header. */
+  showAcc?: true;
+  /** Car A has already stopped: it stands where its braking ended, with its distance written. Only car B moves. */
+  parkedA?: true;
+  /** A marker on the road `at` metres along, where the question asks for car B's speed: "v = ?", or the speed once `shown`. */
+  ask?: { at: number; shown?: true };
+  /** A fallen tree across the road, this many metres ahead. The car cannot go past it. */
+  tree?: number;
+  /** Marks where the car's front was at each whole second so far, with the distance covered in each second (explore). */
+  trail?: true;
+  /** Play the braking from the 0 m line, again and again. 'afterCheck': still until answered. */
+  play?: true | 'afterCheck';
+};
+
+/** The v–t lines of cars braking at `a`: one triangle each, the largest cut into copies of the smallest. Distance = area. */
+export type BrakeVtFig = { kind: 'brakeVt'; a: number; cars: { id: 'A' | 'B'; u: number }[] };
+
+/**
+ * The four suvat equations on a sheet, the way you would set a problem out: your list of s, u, v, a, t on the left,
+ * the equations on the right. Tap targets: the equations (EQUATION_IDS).
+ */
+export type EquationsFig = {
+  kind: 'equations';
+  /** The problem's list: each known quantity with its value (as text, with its unit) and the one that is wanted. */
+  list?: { known: Partial<Record<Quantity, string>>; want: Quantity };
+  /** Mark on each equation the quantity it leaves out. 'afterCheck': only once the question is answered. */
+  leftOut?: 'shown' | 'afterCheck';
+  /** The equation the question is about: its row is outlined. */
+  focus?: RelationId;
+};
+
+export type Fig = LiftFig | PairsFig | VtFig | ScalesFig | LiftPairFig | ThrowFig | ThrowVtFig | FallGraphFig | RoadFig | BrakeVtFig | EquationsFig;
 
 /** Tap targets drawn by a lift figure with `candidates`. */
 export const CANDIDATE_IDS = ['shorter', 'equal', 'longer'] as const;
@@ -97,6 +144,8 @@ export const CANDIDATE_IDS = ['shorter', 'equal', 'longer'] as const;
 export const PAIR_IDS = ['W', 'P', 'E'] as const;
 /** Tap targets drawn by a throw figure with `candidates`: the acceleration at the top. */
 export const ACC_IDS = ['up', 'zero', 'down'] as const;
+/** Tap targets drawn by the equations figure: the four suvat equations (ids of RELATIONS in src/physics/kinematics). */
+export const EQUATION_IDS = ['vuat', 'sut', 'v2as', 'suvt'] as const satisfies readonly RelationId[];
 
 // ── Screens ──────────────────────────────────────────────────────────────────────────────
 
@@ -143,12 +192,12 @@ export type ChoiceScreen = Base & {
 
 /**
  * Play with the figure through a slider, then a light question (not counted in the tally).
- * The slider drives the lift's acceleration, or the time since the throw.
+ * The slider drives the lift's acceleration, the time since the throw, or the time since the brakes came on.
  */
 export type ExploreScreen = Base & {
   kind: 'explore';
   instruction: string; // names the gesture: "Drag …"
-  fig: LiftFig | ThrowFig;
+  fig: LiftFig | ThrowFig | RoadFig;
   /**
    * `tick`: gap between the marks on the ruler (defaults to `step`). `symbol` and `dp` write the bubble ("t = 0.82 s"),
    * `signed` adds + to positive values. `start`: where the thumb begins (defaults to the lift's a, or `min`).

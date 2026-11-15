@@ -7,6 +7,7 @@ import type { Fig } from '@/content/types';
 import { useTheme } from '@/theme/ThemeContext';
 import { font, motion, radius } from '@/theme/tokens';
 import { useReducedMotionPref } from '@/ui/parts';
+import { fixed } from '@/physics/format';
 import { LIFT_VB, LiftFigure, liftMoves, liftParams, liftShiftX, liftTargets, ShaftMarks } from './LiftFigure';
 import { LIFT_PAIR_VB, LiftPairFigure } from './LiftPairFigure';
 import { SCALES_VB, ScalesFigure } from './ScalesFigure';
@@ -15,6 +16,9 @@ import { LessonFigs, SharedSheet, useDrawIn, useFirstShow, useTween } from './an
 import { VT_VB, VtFigure, vtTargets } from './VtFigure';
 import { THROW_VB, ThrowFigure, throwParams, throwPlays, throwTargets } from './ThrowFigure';
 import { FALL_VB, FallGraphFigure, THROW_VT_VB, ThrowVtFigure } from './ThrowGraphs';
+import { ROAD_VB, RoadFigure, roadParams, roadPlays } from './RoadFigure';
+import { BRAKE_VT_VB, BrakeVtFigure } from './BrakeGraph';
+import { EQUATIONS_VB, EquationsFigure, equationsTargets } from './EquationsFigure';
 
 export type TapTarget = { id: string; x: number; y: number; w: number; h: number; label: string };
 export type TapProps = {
@@ -27,7 +31,7 @@ export type TapProps = {
 type Props = {
   fig: Fig;
   n: number; // the FIG number on the sheet
-  /** The explore slider: a lift's acceleration (defaults to the figure's own a), or the time since a throw. */
+  /** The explore slider: a lift's acceleration (defaults to the figure's own a), or the time since a throw or since the brakes came on. */
   live?: number;
   tap?: TapProps;
   /** Replaces the values in the header (for a figure outside a lesson screen). */
@@ -37,7 +41,7 @@ type Props = {
 /** Every figure is drawn at the same size on every screen, so the drawing never jumps between screens. */
 const MAX_H = 270;
 /** The figures that draw themselves the first time their kind appears in a lesson. */
-const DRAWS_ITSELF: Fig['kind'][] = ['scales', 'lift', 'pairs', 'throw', 'throwVt', 'fallGraph'];
+const DRAWS_ITSELF: Fig['kind'][] = ['scales', 'lift', 'pairs', 'throw', 'throwVt', 'fallGraph', 'road', 'brakeVt', 'equations'];
 
 export function Sheet({ fig, n, live, tap, caption }: Props) {
   const { palette: p } = useTheme();
@@ -51,7 +55,7 @@ export function Sheet({ fig, n, live, tap, caption }: Props) {
   // the first figure of each kind in a lesson draws itself; the pen starts once the sheet knows its size
   const first = useFirstShow(fig.kind);
   const clock = useDrawIn(first && width > 0 && DRAWS_ITSELF.includes(fig.kind));
-  const vb = { lift: LIFT_VB, pairs: PAIRS_VB, vt: VT_VB, scales: SCALES_VB, liftPair: LIFT_PAIR_VB, throw: THROW_VB, throwVt: THROW_VT_VB, fallGraph: FALL_VB }[fig.kind];
+  const vb = { lift: LIFT_VB, pairs: PAIRS_VB, vt: VT_VB, scales: SCALES_VB, liftPair: LIFT_PAIR_VB, throw: THROW_VB, throwVt: THROW_VT_VB, fallGraph: FALL_VB, road: ROAD_VB, brakeVt: BRAKE_VT_VB, equations: EQUATIONS_VB }[fig.kind];
   const aNow = fig.kind === 'lift' ? (live ?? fig.a) : 0;
   // a lift with nothing drawn beside it stands in the middle; kept from the screen before, it glides aside to make room
   const shift = useTween(fig.kind === 'lift' ? liftShiftX(fig) : 0, prev?.kind === 'lift' ? liftShiftX(prev) : undefined, motion.screen);
@@ -67,9 +71,9 @@ export function Sheet({ fig, n, live, tap, caption }: Props) {
     w = (h * vb.w) / vb.h;
   }
   const scale = w / vb.w;
-  const animates = !reduced && ((fig.kind === 'lift' && liftMoves(fig, aNow)) || fig.kind === 'scales' || (fig.kind === 'throw' && throwPlays(fig)));
+  const animates = !reduced && ((fig.kind === 'lift' && liftMoves(fig, aNow)) || fig.kind === 'scales' || (fig.kind === 'throw' && throwPlays(fig)) || (fig.kind === 'road' && roadPlays(fig)));
   const run = playing && !reduced;
-  const targets = !tap ? [] : fig.kind === 'lift' ? liftTargets(fig) : fig.kind === 'pairs' ? pairsTargets() : fig.kind === 'vt' ? vtTargets(fig) : fig.kind === 'throw' ? throwTargets(fig) : [];
+  const targets = !tap ? [] : fig.kind === 'lift' ? liftTargets(fig) : fig.kind === 'pairs' ? pairsTargets() : fig.kind === 'vt' ? vtTargets(fig) : fig.kind === 'throw' ? throwTargets(fig) : fig.kind === 'equations' ? equationsTargets(fig) : [];
   const params = caption ?? paramsOf(fig, aNow, live !== undefined);
 
   return (
@@ -119,6 +123,9 @@ export function Sheet({ fig, n, live, tap, caption }: Props) {
               {fig.kind === 'throw' && <ThrowFigure fig={fig} live={live} playing={run} tap={tap} clock={clock} />}
               {fig.kind === 'throwVt' && <ThrowVtFigure fig={fig} clock={clock} />}
               {fig.kind === 'fallGraph' && <FallGraphFigure fig={fig} clock={clock} />}
+              {fig.kind === 'road' && <RoadFigure fig={fig} live={live} playing={run} clock={clock} />}
+              {fig.kind === 'brakeVt' && <BrakeVtFigure fig={fig} clock={clock} />}
+              {fig.kind === 'equations' && <EquationsFigure fig={fig} tap={tap} clock={clock} />}
             </Svg>
             {fig.kind === 'lift' && <ShaftMarks fig={fig} a={aNow} scale={scale} playing={run} clock={clock} shift={shift} />}
             {targets.map((t) => (
@@ -152,6 +159,12 @@ function paramsOf(fig: Fig, a: number, live: boolean): string {
       return `ball A, u = +${fig.u.toFixed(1)} m s⁻¹, up is +`;
     case 'fallGraph':
       return 'dropped from rest';
+    case 'road':
+      return roadParams(fig);
+    case 'brakeVt':
+      return `a = ${fixed(fig.a, 1)} m s⁻² for both cars`;
+    case 'equations':
+      return 'constant acceleration';
     default:
       return `m = ${fig.m} kg`;
   }

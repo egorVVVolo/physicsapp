@@ -319,6 +319,9 @@ Every lesson targets at least one id below; every distractor and wrong-answer fe
 | K-SCALAR-VEC | Treats vectors like scalars when adding | 3 + 4 = 7 for perpendicular displacements | Tip-to-tail drag with live resultant |
 | K-RELEASE-REST | A released object starts from rest | Takes u = 0 for a package let go from a moving drone | Ghost dropped from rest next to the real flight |
 | K-ROOT-PICK | Takes the wrong root of a quadratic | Keeps t < 0, or does not say why one root is rejected | The equation offered two times; the negative one is before the release |
+| K-HIDDEN-KNOWN | Misses a value hidden in the words | "Stops", "from rest", "dropped" not read as v = 0 or u = 0 | The list of s, u, v, a, t beside the equations: the hidden one is filled in |
+| K-BRAKE-LINEAR | Braking distance grows in step with speed | "Twice as fast, twice as far to stop" | Two cars braking side by side: 9.0 m and 36.0 m; the v–t triangle cut into four |
+| K-V-DISTANCE | Speed falls evenly with distance | "A quarter of the way, a quarter of the speed gone" | Marks on the road every second: 20 m, 12 m, 4 m |
 
 Sources: [Beichner (1994), kinematics graphs](https://moodle2.units.it/pluginfile.php/732257/mod_resource/content/1/Testing%20student%20understanding%20kinematics%20graphs.pdf); [Planinic et al. (2012)](https://www.bib.irb.hr/452519).
 
