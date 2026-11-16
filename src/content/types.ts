@@ -5,7 +5,7 @@
 // Every screen has ONE focus: either text (at most two short paragraphs) or a figure with one sentence.
 // Text limits are checked by src/content/rules.test.ts.
 
-import type { Quantity, RelationId } from '../physics/kinematics.ts';
+import type { Quantity, RelationId, Trip } from '../physics/kinematics.ts';
 
 // ── Figures (drawn by src/figures from these numbers; up is positive) ─────────────────────
 
@@ -136,7 +136,58 @@ export type EquationsFig = {
   focus?: RelationId;
 };
 
-export type Fig = LiftFig | PairsFig | VtFig | ScalesFig | LiftPairFig | ThrowFig | ThrowVtFig | FallGraphFig | RoadFig | BrakeVtFig | EquationsFig;
+/**
+ * A graph of motion against time: displacement, velocity or acceleration of one or two trips, drawn from the model
+ * (src/physics/kinematics: tripPosition, tripVelocity, tripAcceleration). Everything written on it is computed.
+ */
+export type GraphFig = {
+  kind: 'graph';
+  y: 's' | 'v' | 'a';
+  /** The given values, written in the sheet header. */
+  header: string;
+  /** `id`: the letter written beside the line ('' for a single unnamed line). `until`: where the line ends (defaults to tMax). */
+  lines: { id: string; trip: Trip; until?: number }[];
+  tMax: number;
+  tTick: number;
+  yMin?: number; // defaults to 0
+  yMax: number;
+  yTick: number;
+  /**
+   * Areas between a line and the time axis (hatched where the line is below the axis), each with its size in metres:
+   * shown, or only once the question is answered. `at`: where the number is written, as [t, y] (defaults to the middle).
+   */
+  areas?: { line: string; from: number; to: number; value: 'shown' | 'afterCheck'; at?: [number, number] }[];
+  /** Regions between the first two lines, each labelled with its area (how much one body gains on the other). */
+  between?: { from: number; to: number }[];
+  /** A rise-over-run triangle on a line between two times, with both sides labelled. */
+  gradient?: { line: string; from: number; to: number };
+  /** The tangent to a line at one time. */
+  tangent?: { line: string; at: number };
+  /** A ring around the point of a line at one time (where two lines cross, for example). */
+  ring?: { line: string; at: number };
+  /** Explore: the slider is a time cursor; the area under each line up to the cursor is shaded and written out. */
+  cursor?: true;
+  /** Lettered parts of the time axis, as tap targets. */
+  parts?: { id: string; from: number; to: number }[];
+};
+
+/**
+ * Two cars on the road of the braking figure, each with its own steady acceleration, side by side at the 0 m line
+ * when the clock starts. Positions and velocities come from position and velocity (src/physics/kinematics).
+ */
+export type ChaseFig = {
+  kind: 'chase';
+  cars: { id: 'A' | 'B'; u: number; a: number }[];
+  span: number; // metres of road on the ruler
+  /** The clip runs from 0 to this time, s; its last frame shows the gap between the cars (or that they are level). */
+  until: number;
+  /** Write each speed above its car while the figure stands still. */
+  values?: true;
+  /** Play the clip, again and again. Without it the cars stand at the 0 m line. */
+  play?: true;
+};
+
+export type Fig = LiftFig | PairsFig | VtFig | ScalesFig | LiftPairFig | ThrowFig | ThrowVtFig | FallGraphFig | RoadFig | BrakeVtFig | EquationsFig | GraphFig | ChaseFig;
 
 /** Tap targets drawn by a lift figure with `candidates`. */
 export const CANDIDATE_IDS = ['shorter', 'equal', 'longer'] as const;
@@ -192,12 +243,12 @@ export type ChoiceScreen = Base & {
 
 /**
  * Play with the figure through a slider, then a light question (not counted in the tally).
- * The slider drives the lift's acceleration, the time since the throw, or the time since the brakes came on.
+ * The slider drives the lift's acceleration, the time since the throw or since the brakes came on, or the time cursor of a graph.
  */
 export type ExploreScreen = Base & {
   kind: 'explore';
   instruction: string; // names the gesture: "Drag …"
-  fig: LiftFig | ThrowFig | RoadFig;
+  fig: LiftFig | ThrowFig | RoadFig | GraphFig;
   /**
    * `tick`: gap between the marks on the ruler (defaults to `step`). `symbol` and `dp` write the bubble ("t = 0.82 s"),
    * `signed` adds + to positive values. `start`: where the thumb begins (defaults to the lift's a, or `min`).

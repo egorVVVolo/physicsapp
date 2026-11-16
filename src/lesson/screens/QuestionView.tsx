@@ -111,7 +111,7 @@ export function QuestionView({ screen, figN, phase, earlierPick, onOutcome, onNe
       <Prompt>{screen.prompt}</Prompt>
       {earlierPick && (
         <View style={[styles.earlier, { backgroundColor: p.paper }]}>
-          <Text style={[styles.earlierText, { color: p.muted }]}>You said earlier: {earlierPick.label.toLowerCase()}</Text>
+          <Text style={[styles.earlierText, { color: p.muted }]}>You said earlier: {earlierPick.label.charAt(0).toLowerCase() + earlierPick.label.slice(1)}</Text>
         </View>
       )}
       {screen.kind === 'tapFig' && <Instruction>{screen.instruction}</Instruction>}
@@ -143,7 +143,8 @@ function revealsAfterCheck(fig: Fig | undefined): boolean {
     (fig?.kind === 'throw' && fig.play === 'afterCheck') ||
     (fig?.kind === 'lift' && fig.reading === 'afterCheck') ||
     (fig?.kind === 'road' && fig.play === 'afterCheck') ||
-    (fig?.kind === 'equations' && fig.leftOut === 'afterCheck')
+    (fig?.kind === 'equations' && fig.leftOut === 'afterCheck') ||
+    (fig?.kind === 'graph' && (fig.areas ?? []).some((area) => area.value === 'afterCheck'))
   );
 }
 
@@ -154,6 +155,8 @@ function revealed(fig: Fig): Fig {
   if (fig.kind === 'road') return { ...fig, play: fig.play === 'afterCheck' ? true : fig.play, ask: fig.ask && { ...fig.ask, shown: true } };
   // every equation shows the quantity it leaves out
   if (fig.kind === 'equations') return { ...fig, leftOut: 'shown' };
+  // the size of each area is written in
+  if (fig.kind === 'graph') return { ...fig, areas: fig.areas?.map((area) => ({ ...area, value: 'shown' as const })) };
   if (fig.kind !== 'lift') return fig;
   return { ...fig, unknownN: undefined, reading: fig.reading === 'afterCheck' ? 'shown' : fig.reading };
 }

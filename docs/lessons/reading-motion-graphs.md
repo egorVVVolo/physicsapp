@@ -1,6 +1,6 @@
 # Lesson spec — "Reading motion graphs"
 
-15 Nov 2026 · status: **in progress** (spec written first; built the same day at the owner's request "decide yourself and go") · format: story + Skill check (`docs/LESSON_FRAMEWORK.md`, 1b)
+16 Nov 2026 · status: **built 16 Nov** (`src/content/reading-motion-graphs.ts`, every screen checked in the web at 375×667, light theme; dark theme not looked at yet); not yet played on a phone, **not yet reviewed by the owner** (built at the owner's request "decide yourself and go") · format: story + Skill check (`docs/LESSON_FRAMEWORK.md`, 1b)
 
 - **id:** `motion-graphs` · level 1 "Motion" (blue) · WPH11 points **2** (s–t, v–t, a–t graphs) and **3** (gradients and areas, non-uniform cases) · ~12 min
 - **Idea:** a motion graph is not a picture of the road. Gradient of s–t = velocity, gradient of v–t = acceleration, area under v–t = displacement (negative below the axis).
@@ -53,9 +53,15 @@ All numbers from `src/physics/kinematics.ts` (a `Trip` = phases of constant acce
 
 **Notebook card:** `s = area under v–t` — "Gradient of s–t is v, gradient of v–t is a. Crossing v–t lines mean equal speeds, not side by side."
 
-## To build
+## What was built
 
 1. Physics: `Trip` (phases of constant acceleration) with velocity, position, acceleration, displacement and distance between two times.
 2. Figure "graph" (`src/figures/GraphFigure.tsx`): s–t, v–t or a–t of one or two trips drawn from the model; shaded areas with their values (negative ones hatched), the region between two lines, a gradient triangle, a tangent, a ring at a point, a time cursor for the explore screen with live areas, lettered parts as tap targets.
 3. Figure "chase" (`src/figures/ChaseFigure.tsx`): the road of lesson 3 with two cars that each have their own acceleration; plays to a given time and shows the gap.
 4. Content + test, `ready: true` on the map.
+
+## Open for the owner
+
+- Level and physics: is the chase the right puzzle, and is the ramp question (areas of opposite sign) enough on negative areas?
+- The a–t graph only appears on the rules card (area = change in velocity). If the exam needs more, it gets its own screens.
+- Car B's s–t line is drawn to 9 s, a little past the 100 m mark of the axis.

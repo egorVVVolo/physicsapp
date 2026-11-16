@@ -186,3 +186,13 @@ test('the chase: a steady 10 m s⁻¹ against 2.5 m s⁻² from rest. Equal spee
   // the gap is largest when the speeds are equal
   for (const t of [3.5, 4.5]) assert.ok(tripPosition(t, a) - tripPosition(t, b) < 20);
 });
+
+test('a trip with steps in velocity: the lift goes up at 2 m s⁻¹ for 4 s, then down at 2 m s⁻¹ for 6 s', async () => {
+  const { tripVelocity, tripPosition, tripDistance } = await import('./kinematics.ts');
+  const lift = { u: 2, phases: [{ dt: 4, a: 0 }, { dt: 6, a: 0, v: -2 }] };
+  close(tripVelocity(3, lift), 2);
+  close(tripVelocity(5, lift), -2);
+  close(tripPosition(4, lift), 8);
+  close(tripPosition(10, lift), -4);
+  close(tripDistance(0, 10, lift), 20);
+});

@@ -12,7 +12,7 @@ export const course: Course = {
       title: 'Motion',
       lessons: [
         { id: 'vectors-signs', title: 'Which way is positive?', spec: [4], about: 'Choose a positive direction and keep every sign honest.' },
-        { id: 'motion-graphs', title: 'Reading motion graphs', spec: [2, 3], about: 'Read velocity from a slope and displacement from an area.' },
+        { id: 'motion-graphs', title: 'Reading motion graphs', spec: [2, 3], about: 'Read velocity from a slope and displacement from an area.', ready: true },
         { id: 'suvat', title: 'Picking the equation', spec: [1], about: 'Match what you know and what you want to one equation.', ready: true },
         { id: 'up-stop-down', title: 'Up, stop, down', spec: [1, 11], about: 'A ball thrown up: what happens to v and a at the top.', ready: true },
         { id: 'resolving', title: 'Splitting a vector', spec: [5, 6], about: 'Turn one slanted vector into two that are easy to use.' },

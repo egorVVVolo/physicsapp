@@ -147,7 +147,8 @@ export function distanceFromAverage(u: number, v: number, t: number): number {
 // ── A trip: a journey along a straight line made of phases of constant acceleration (what a v–t graph of
 //    straight segments shows). It starts at s = 0 with velocity u; after the last phase it keeps its velocity. ──
 
-export type Trip = { u: number; phases: { dt: number; a: number }[] };
+/** `v`: the velocity jumps to this value when the phase starts (an idealised corner on an s–t graph, a step on a v–t graph). */
+export type Trip = { u: number; phases: { dt: number; a: number; v?: number }[] };
 
 /** How long the phases last in all, s. */
 export function tripDuration(trip: Trip): number {
@@ -160,6 +161,7 @@ function phaseAt(t: number, trip: Trip): { t0: number; v0: number; s0: number; a
   let v0 = trip.u;
   let s0 = 0;
   for (const ph of trip.phases) {
+    if (ph.v !== undefined) v0 = ph.v;
     if (t <= t0 + ph.dt) return { t0, v0, s0, a: ph.a };
     s0 += v0 * ph.dt + 0.5 * ph.a * ph.dt * ph.dt;
     v0 += ph.a * ph.dt;
@@ -198,6 +200,7 @@ export function tripBreaks(from: number, to: number, trip: Trip): number[] {
   let t0 = 0;
   let v0 = trip.u;
   for (const ph of trip.phases) {
+    if (ph.v !== undefined) v0 = ph.v;
     if (ph.a !== 0) {
       const tZero = t0 - v0 / ph.a;
       if (tZero > t0 + 1e-9 && tZero < t0 + ph.dt - 1e-9) out.push(tZero);

@@ -19,23 +19,26 @@ import { DrawnFade, DrawnPath, DrawnShape, FILLS, ForceLetter, Hatch, MonoLabel,
 
 export const ROAD_VB = { w: 340, h: 230 };
 
-const X0 = 78; // x of the 0 m line
-const X_END = 330;
-const RULER_Y = 210;
-const KV = 1.9; // viewBox units per m s⁻¹ of velocity
-const WHEEL_R = 6.5;
-const CAR_MID = 32; // from the front bumper back to the middle of the car
+export const X0 = 78; // x of the 0 m line
+export const X_END = 330;
+export const RULER_Y = 210;
+export const KV = 1.9; // viewBox units per m s⁻¹ of velocity
+export const WHEEL_R = 6.5;
+export const CAR_MID = 32; // from the front bumper back to the middle of the car
 const HOLD = 1.4; // s the played figure waits on its last frame before it starts again
 
 // heights above (−) and below (+) a lane's road surface
-const ARROW_DY = -40;
-const SPEED_DY = -50;
-const DIM_DY = 17;
+export const ARROW_DY = -40;
+export const SPEED_DY = -50;
+export const DIM_DY = 17;
 
-/** viewBox units per metre of road. */
-const scaleOf = (fig: RoadFig) => (X_END - X0 - 4) / fig.span;
+/** viewBox units per metre of a road that shows `span` metres. */
+export const roadScale = (span: number) => (X_END - X0 - 4) / span;
+const scaleOf = (fig: RoadFig) => roadScale(fig.span);
+/** y of the road surface of each lane when two cars are shown. */
+export const LANES = { A: 84, B: 170 } as const;
 /** y of the road surface of a car's lane: two lanes, or one in the middle when a car is alone. */
-const laneOf = (fig: RoadFig, id: 'A' | 'B') => (fig.cars.length > 1 ? (id === 'A' ? 84 : 170) : 134);
+const laneOf = (fig: RoadFig, id: 'A' | 'B') => (fig.cars.length > 1 ? LANES[id] : 134);
 const brakingOf = (fig: RoadFig, u: number): Braking => ({ u, a: fig.a, react: fig.react ?? 0 });
 
 /** When a car's part of the clip ends: it stands still, or its front reaches the tree. */
@@ -59,7 +62,7 @@ export function roadParams(fig: RoadFig): string {
 }
 
 // when the pen draws each part, as shares of the draw-in
-const PEN = {
+export const PEN = {
   road: [0, 0.3],
   ruler: [0.1, 0.34],
   start: [0.26, 0.4],
@@ -104,7 +107,7 @@ export function RoadFigure({ fig, live, playing, clock = STILL }: Props) {
         <Hatch key={c.id} x1={6} x2={334} y={laneOf(fig, c.id)} color={p.draw} clock={clock} from={PEN.road[0]} to={PEN.road[1]} />
       ))}
 
-      <Ruler fig={fig} clock={clock} />
+      <Ruler span={fig.span} clock={clock} />
 
       {/* where the clock starts: the brakes come on, or the driver first sees the hazard */}
       <DrawnPath clock={clock} len={RULER_Y - top} from={PEN.start[0]} to={PEN.start[1]} d={`M${X0},${top} V${RULER_Y}`} stroke={p.lineStrong} strokeWidth={1.2} strokeDasharray="3 4" fill="none" />
@@ -158,24 +161,30 @@ export function RoadFigure({ fig, live, playing, clock = STILL }: Props) {
   );
 }
 
-/** The axis along the bottom: metres from where the clock starts, forward is positive. A tick every 2 m, a number every 10 m. */
-function Ruler({ fig, clock }: { fig: RoadFig; clock: DrawClock }) {
+/**
+ * The axis along the bottom: metres from where the clock starts, forward is positive.
+ * A short road has a tick every 2 m and a number every 10 m; a long one a tick every 10 m and a number every 20 m.
+ */
+export function Ruler({ span, clock }: { span: number; clock: DrawClock }) {
   const { palette: p } = useTheme();
-  const k = scaleOf(fig);
-  const end = X0 + fig.span * k;
+  const k = roadScale(span);
+  const end = X0 + span * k;
+  const long = span > 60;
+  const tick = long ? 10 : 2;
+  const numbered = long ? 20 : 10;
   const ticks: number[] = [];
-  for (let s = 0; s <= fig.span + 1e-9; s += 2) ticks.push(s);
-  const last = Math.floor(fig.span / 10) * 10;
+  for (let s = 0; s <= span + 1e-9; s += tick) ticks.push(s);
+  const last = Math.floor(span / numbered) * numbered;
   return (
     <Group>
       <DrawnPath clock={clock} len={end + 4 - X0} from={PEN.ruler[0]} to={PEN.ruler[1]} d={`M${X0},${RULER_Y} H${end + 4}`} stroke={p.draw} strokeWidth={1.6} fill="none" />
       <DrawnFade clock={clock} from={FILLS[0]} to={FILLS[1]}>
         <Path d={`M${end + 2},${RULER_Y - 4.5} L${end + 10},${RULER_Y} L${end + 2},${RULER_Y + 4.5} Z`} fill={p.draw} />
         {ticks.map((s) => (
-          <Line key={s} x1={X0 + s * k} y1={RULER_Y} x2={X0 + s * k} y2={RULER_Y - (s % 10 === 0 ? 6 : 3.5)} stroke={p.draw} strokeWidth={1.2} />
+          <Line key={s} x1={X0 + s * k} y1={RULER_Y} x2={X0 + s * k} y2={RULER_Y - (s % numbered === 0 ? 6 : 3.5)} stroke={p.draw} strokeWidth={1.2} />
         ))}
         {ticks
-          .filter((s) => s % 10 === 0)
+          .filter((s) => s % numbered === 0)
           .map((s) => (
             <MonoLabel key={s} x={X0 + s * k} y={RULER_Y + 13} text={s === last ? `${s} m` : String(s)} color={p.label} size={9} />
           ))}
@@ -201,7 +210,7 @@ const WINDOW = 'M-45.5,-22.5 L-28,-22.5 L-19.5,-15.5 L-53,-15.5 Z';
 const WHEELS = [-49, -15];
 
 /** One car with its front bumper at `front`, standing on the road at `y`. `roll`: how far its wheels have turned, rad. */
-function Car({ front, y, id, roll, clock }: { front: number; y: number; id: string; roll: number; clock: DrawClock }) {
+export function Car({ front, y, id, roll, clock }: { front: number; y: number; id: string; roll: number; clock: DrawClock }) {
   const { palette: p } = useTheme();
   const rim = WHEEL_R - 2.6;
   const dx = rim * Math.sin(roll);
@@ -229,7 +238,7 @@ function Car({ front, y, id, roll, clock }: { front: number; y: number; id: stri
 }
 
 /** A hollow arrow pointing forward, its tail at x, its length ∝ v. */
-function VelocityArrow({ x, y, len, color }: { x: number; y: number; len: number; color: string }) {
+export function VelocityArrow({ x, y, len, color }: { x: number; y: number; len: number; color: string }) {
   const tip = x + len;
   const head = Math.min(9, len * 0.55);
   const neck = tip - head;
@@ -237,21 +246,22 @@ function VelocityArrow({ x, y, len, color }: { x: number; y: number; len: number
   return <Path d={d} fill="none" stroke={color} strokeWidth={1.7} strokeLinejoin="round" />;
 }
 
-/** The acceleration while braking: two chevrons pointing backward, their tips left of x. */
-function AccMark({ x, y }: { x: number; y: number }) {
+/** The acceleration: two chevrons, pointing backward while braking (their tips left of x) or forward when `forward`. */
+export function AccMark({ x, y, forward }: { x: number; y: number; forward?: boolean }) {
   const { palette: p } = useTheme();
-  const one = (cx: number) => `M${cx},${y - 6} L${cx - 7},${y} L${cx},${y + 6}`;
+  const d = forward ? 7 : -7;
+  const one = (cx: number) => `M${cx - d},${y - 6} L${cx},${y} L${cx - d},${y + 6}`;
   return (
     <Group>
-      <Path d={one(x)} fill="none" stroke={p.draw} strokeWidth={2.4} strokeLinecap="round" strokeLinejoin="round" />
-      <Path d={one(x - 8)} fill="none" stroke={p.draw} strokeWidth={2.4} strokeLinecap="round" strokeLinejoin="round" />
+      <Path d={one(forward ? x : x - 7)} fill="none" stroke={p.draw} strokeWidth={2.4} strokeLinecap="round" strokeLinejoin="round" />
+      <Path d={one(forward ? x - 8 : x - 15)} fill="none" stroke={p.draw} strokeWidth={2.4} strokeLinecap="round" strokeLinejoin="round" />
       <MonoLabel x={x - 21} y={y + 3.2} text="a" color={p.label} size={9.5} />
     </Group>
   );
 }
 
 /** A dimension line from x1 to x2 with its value on the line (below it when the line is too short to hold it). */
-function Dim({ x1, x2, y, text }: { x1: number; x2: number; y: number; text: string }) {
+export function Dim({ x1, x2, y, text }: { x1: number; x2: number; y: number; text: string }) {
   const { palette: p } = useTheme();
   const mid = (x1 + x2) / 2;
   const w = text.length * 5.4 + 6;
@@ -266,7 +276,7 @@ function Dim({ x1, x2, y, text }: { x1: number; x2: number; y: number; text: str
 }
 
 /** A mono label on a patch of drawing paper, so a line behind it never runs through the text. */
-function Tag({ x, y, text }: { x: number; y: number; text: string }) {
+export function Tag({ x, y, text }: { x: number; y: number; text: string }) {
   const { palette: p } = useTheme();
   const w = text.length * 5.4 + 8;
   return (

@@ -16,6 +16,7 @@ function targets(fig: Fig): readonly string[] {
   if (fig.kind === 'vt') return fig.phases.map((p) => p.id);
   if (fig.kind === 'throw') return fig.candidates ? ACC_IDS : [];
   if (fig.kind === 'equations') return EQUATION_IDS;
+  if (fig.kind === 'graph') return fig.parts?.map((part) => part.id) ?? [];
   if (fig.kind !== 'lift') return [];
   return fig.candidates ? CANDIDATE_IDS : [];
 }
