@@ -144,6 +144,79 @@ export function distanceFromAverage(u: number, v: number, t: number): number {
   return 0.5 * (u + v) * t;
 }
 
+// ── A trip: a journey along a straight line made of phases of constant acceleration (what a v–t graph of
+//    straight segments shows). It starts at s = 0 with velocity u; after the last phase it keeps its velocity. ──
+
+export type Trip = { u: number; phases: { dt: number; a: number }[] };
+
+/** How long the phases last in all, s. */
+export function tripDuration(trip: Trip): number {
+  return trip.phases.reduce((sum, ph) => sum + ph.dt, 0);
+}
+
+/** Time, velocity and displacement at the start of the phase that holds time t (the last one, past the end). */
+function phaseAt(t: number, trip: Trip): { t0: number; v0: number; s0: number; a: number } {
+  let t0 = 0;
+  let v0 = trip.u;
+  let s0 = 0;
+  for (const ph of trip.phases) {
+    if (t <= t0 + ph.dt) return { t0, v0, s0, a: ph.a };
+    s0 += v0 * ph.dt + 0.5 * ph.a * ph.dt * ph.dt;
+    v0 += ph.a * ph.dt;
+    t0 += ph.dt;
+  }
+  return { t0, v0, s0, a: 0 };
+}
+
+/** Acceleration at time t (at a corner: that of the phase just ending). */
+export function tripAcceleration(t: number, trip: Trip): number {
+  return phaseAt(Math.max(0, t), trip).a;
+}
+
+/** Velocity at time t: v = u + at inside each phase. */
+export function tripVelocity(t: number, trip: Trip): number {
+  const ph = phaseAt(Math.max(0, t), trip);
+  return ph.v0 + ph.a * (Math.max(0, t) - ph.t0);
+}
+
+/** Displacement from the start at time t: the signed area under the v–t graph from 0 to t. */
+export function tripPosition(t: number, trip: Trip): number {
+  const tt = Math.max(0, t);
+  const ph = phaseAt(tt, trip);
+  const dt = tt - ph.t0;
+  return ph.s0 + ph.v0 * dt + 0.5 * ph.a * dt * dt;
+}
+
+/** Displacement between two times: the signed area under the v–t graph between them. */
+export function tripDisplacement(from: number, to: number, trip: Trip): number {
+  return tripPosition(to, trip) - tripPosition(from, trip);
+}
+
+/** The times in (from, to) when the trip changes phase or its velocity passes through zero, in order. */
+export function tripBreaks(from: number, to: number, trip: Trip): number[] {
+  const out: number[] = [];
+  let t0 = 0;
+  let v0 = trip.u;
+  for (const ph of trip.phases) {
+    if (ph.a !== 0) {
+      const tZero = t0 - v0 / ph.a;
+      if (tZero > t0 + 1e-9 && tZero < t0 + ph.dt - 1e-9) out.push(tZero);
+    }
+    v0 += ph.a * ph.dt;
+    t0 += ph.dt;
+    out.push(t0);
+  }
+  return out.filter((t) => t > from + 1e-9 && t < to - 1e-9).sort((p, q) => p - q);
+}
+
+/** Distance travelled between two times: every part of the area counted as positive. */
+export function tripDistance(from: number, to: number, trip: Trip): number {
+  const cuts = [from, ...tripBreaks(from, to, trip), to];
+  let d = 0;
+  for (let i = 1; i < cuts.length; i++) d += Math.abs(tripDisplacement(cuts[i - 1], cuts[i], trip));
+  return d;
+}
+
 // The four equations of uniformly accelerated motion and the quantities each one contains.
 export type Quantity = 's' | 'u' | 'v' | 'a' | 't';
 export type RelationId = 'vuat' | 'sut' | 'v2as' | 'suvt';

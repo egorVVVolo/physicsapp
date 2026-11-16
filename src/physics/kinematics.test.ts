@@ -143,3 +143,46 @@ test('each of the four equations leaves out exactly one quantity', async () => {
   for (const r of Object.values(RELATIONS)) assert.equal(r.has.length, QUANTITIES.length - 1);
   assert.equal(distanceFromAverage(30, 10, 25), 500);
 });
+
+test('a trip of phases: the tram goes 0 → 8 m s⁻¹ in 4 s, holds 6 s, stops in 2 s and covers 72 m', async () => {
+  const { tripDuration, tripVelocity, tripPosition, tripAcceleration, tripDisplacement, tripDistance } = await import('./kinematics.ts');
+  const tram = { u: 0, phases: [{ dt: 4, a: 2 }, { dt: 6, a: 0 }, { dt: 2, a: -4 }] };
+  assert.equal(tripDuration(tram), 12);
+  close(tripVelocity(2, tram), 4);
+  close(tripVelocity(7, tram), 8);
+  close(tripVelocity(11, tram), 4);
+  close(tripVelocity(12, tram), 0);
+  close(tripPosition(4, tram), 16);
+  close(tripPosition(10, tram), 64);
+  close(tripPosition(12, tram), 72);
+  close(tripPosition(20, tram), 72); // at rest after the last phase
+  assert.equal(tripAcceleration(1, tram), 2);
+  assert.equal(tripAcceleration(5, tram), 0);
+  assert.equal(tripAcceleration(11, tram), -4);
+  close(tripDisplacement(4, 10, tram), 48);
+  close(tripDistance(0, 12, tram), 72);
+});
+
+test('a trip that turns back: +6 to −4 m s⁻¹ in 5 s is +9 m and −4 m, displacement +5 m, distance 13 m', async () => {
+  const { tripVelocity, tripDisplacement, tripDistance, tripBreaks } = await import('./kinematics.ts');
+  const ball = { u: 6, phases: [{ dt: 5, a: -2 }] };
+  close(tripVelocity(3, ball), 0);
+  close(tripVelocity(5, ball), -4);
+  assert.deepEqual(tripBreaks(0, 5, ball), [3]);
+  close(tripDisplacement(0, 3, ball), 9);
+  close(tripDisplacement(3, 5, ball), -4);
+  close(tripDisplacement(0, 5, ball), 5);
+  close(tripDistance(0, 5, ball), 13);
+});
+
+test('the chase: a steady 10 m s⁻¹ against 2.5 m s⁻² from rest. Equal speeds at 4 s (gap 20 m), level at 8 s', async () => {
+  const { tripVelocity, tripPosition } = await import('./kinematics.ts');
+  const a = { u: 10, phases: [{ dt: 10, a: 0 }] };
+  const b = { u: 0, phases: [{ dt: 10, a: 2.5 }] };
+  close(tripVelocity(4, b), tripVelocity(4, a));
+  close(tripPosition(4, a) - tripPosition(4, b), 20);
+  close(tripPosition(8, a), 80);
+  close(tripPosition(8, b), 80);
+  // the gap is largest when the speeds are equal
+  for (const t of [3.5, 4.5]) assert.ok(tripPosition(t, a) - tripPosition(t, b) < 20);
+});
