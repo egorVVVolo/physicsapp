@@ -341,6 +341,11 @@ Sources: [Beichner (1994), kinematics graphs](https://moodle2.units.it/pluginfil
 | F-STRING-WEIGHT | The string pulls with the whole hanging weight while it accelerates | T = 1.96 N instead of 1.57 N | Forces on the hanging mass: T shorter than W, or it could not speed up |
 | F-PART-MASS | The force accelerates only part of a joined system | 2.45 m s⁻² (trolley only); the tow bar takes the whole drive | The lab: the weight moves 1.00 kg in all |
 | F-WEIGHT-FORGOT | Leaves the weight out of a vertical ΣF | Rocket at lift-off: a = thrust / m | ΣF = thrust − mg |
+| F-SAME-FALL | Everything falls at the same rate, air or not | Four stacked cake cases "also fall at 1.20 m s⁻¹" | Two lanes in still air: the stack's air streams by faster, 2.40 m s⁻¹ |
+| F-DRAG-LINEAR | Drag grows in step with speed | Four times the weight → four times the terminal velocity | Drag ∝ v²: 2² = 4 |
+| F-START-SLOW | At the start of a fall a < g, or a = 0 "because v = 0" | The skydiver's first instant | v = 0, no drag yet: only W, a = g |
+| F-TERMINAL-NO-FORCE | At terminal velocity no forces act, or drag beats the weight | "Nothing acts at a steady 50 m s⁻¹" | W and D drawn equal |
+| F-CHUTE-UP | The parachute lifts her, or the resultant points down because she moves down | Slowing from 50 to 6.0 m s⁻¹ | v–t falls while she still falls: a and ΣF point up |
 
 ## 13. Lesson spec template
 

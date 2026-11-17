@@ -436,7 +436,34 @@ export type ParticleFig = {
   forces: { size: number; angle: number; text: string }[];
 };
 
-export type Fig = LiftFig | PairsFig | VtFig | ScalesFig | LiftPairFig | ThrowFig | ThrowVtFig | FallGraphFig | RoadFig | BrakeVtFig | EquationsFig | GraphFig | ChaseFig | TrackFig | VectorsFig | SledgeFig | HillFig | ResolveFig | BenchFig | KickFig | CrateFig | LadderFig | ParticleFig | PulleyFig;
+/**
+ * Falling through air: drag D = kv² grows with speed until it balances the weight (src/physics/drag). The body stays in
+ * place on the sheet and the air streams up past it at a speed ∝ v; W and D are drawn to one scale from the centre of
+ * gravity. Down is positive.
+ */
+export type FallFig = {
+  kind: 'fall';
+  /** Paper cake cases (one lane per stack: [1] or [1, 4]) or a skydiver. */
+  body: { cases: number[] } | { skydiver: { m: number; chute?: { vt: number; open: number; inflate: number } } };
+  /** Terminal velocity of one case, or of the skydiver before the parachute opens, m s⁻¹. */
+  vt: number;
+  /** The clip's length (and the graph's time axis), s. */
+  tEnd: number;
+  /** Where the figure stands while still, s after letting go (default 0); 'end' = tEnd. */
+  at?: number | 'end';
+  /** The v–t graph on the right, from 0 to the current time. */
+  graph?: true;
+  /** Draw W and D (with one lane of cake cases, or the skydiver). */
+  forces?: true;
+  /** D as a dashed "D ?" stub, for good or until the question is answered. */
+  askD?: 'unknown' | 'afterCheck';
+  /** The steady speed of each lane of cake cases: written, the last lane "?" for good or until the question is answered. */
+  speeds?: 'shown' | 'unknown' | 'afterCheck';
+  /** Play from rest, again and again (cases in real time, a skydive sped up: the sheet says so). */
+  play?: true;
+};
+
+export type Fig = LiftFig | PairsFig | VtFig | ScalesFig | LiftPairFig | ThrowFig | ThrowVtFig | FallGraphFig | RoadFig | BrakeVtFig | EquationsFig | GraphFig | ChaseFig | TrackFig | VectorsFig | SledgeFig | HillFig | ResolveFig | BenchFig | KickFig | CrateFig | LadderFig | ParticleFig | PulleyFig | FallFig;
 
 /** Tap targets drawn by a lift figure with `candidates`. */
 export const CANDIDATE_IDS = ['shorter', 'equal', 'longer'] as const;
@@ -497,12 +524,12 @@ export type ChoiceScreen = Base & {
 /**
  * Play with the figure through a slider, then a light question (not counted in the tally).
  * The slider drives the lift's acceleration, the time since the throw, since the brakes came on or since the runners set off,
- * the time cursor of a graph, the angle of the sledge's rope, the clock of the bench falls, the angle of a kick, the angle of the crate's rope or its pull, or the lab's hanging mass.
+ * the time cursor of a graph, the angle of the sledge's rope, the clock of the bench falls, the angle of a kick, the angle of the crate's rope or its pull, the lab's hanging mass, or the time since the skydiver jumped.
  */
 export type ExploreScreen = Base & {
   kind: 'explore';
   instruction: string; // names the gesture: "Drag …"
-  fig: LiftFig | ThrowFig | RoadFig | GraphFig | TrackFig | SledgeFig | BenchFig | KickFig | CrateFig | PulleyFig;
+  fig: LiftFig | ThrowFig | RoadFig | GraphFig | TrackFig | SledgeFig | BenchFig | KickFig | CrateFig | PulleyFig | FallFig;
   /**
    * `tick`: gap between the marks on the ruler (defaults to `step`). `symbol` and `dp` write the bubble ("t = 0.82 s"),
    * `signed` adds + to positive values. `start`: where the thumb begins (defaults to the lift's a, or `min`).

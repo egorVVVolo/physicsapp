@@ -1,6 +1,7 @@
 // All lessons that can be played, by id. The course map (course.ts) lists the rest as "Soon".
 import { drawingTheForces } from './drawing-the-forces.ts';
 import { forceAndAcceleration } from './force-and-acceleration.ts';
+import { fallingThroughAir } from './falling-through-air.ts';
 import { normalReaction } from './normal-reaction.ts';
 import { pickingTheEquation } from './picking-the-equation.ts';
 import { readingMotionGraphs } from './reading-motion-graphs.ts';
@@ -20,4 +21,5 @@ export const lessons: Record<string, Lesson> = {
   [drawingTheForces.id]: drawingTheForces,
   [forceAndAcceleration.id]: forceAndAcceleration,
   [normalReaction.id]: normalReaction,
+  [fallingThroughAir.id]: fallingThroughAir,
 };

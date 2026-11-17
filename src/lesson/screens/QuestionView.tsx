@@ -152,6 +152,7 @@ function revealsAfterCheck(fig: Fig | undefined): boolean {
     (fig?.kind === 'resolve' && fig.answer === 'afterCheck') ||
     (fig?.kind === 'crate' && ((fig.ask ?? []).some((a) => a.answer === 'afterCheck') || fig.fbdAfterCheck === true || fig.accel === 'afterCheck')) ||
     (fig?.kind === 'pulley' && (fig.play === 'afterCheck' || fig.tension === 'afterCheck' || fig.accel === 'afterCheck')) ||
+    (fig?.kind === 'fall' && (fig.askD === 'afterCheck' || fig.speeds === 'afterCheck')) ||
     (fig?.kind === 'ladder' && fig.askF === 'afterCheck') ||
     (fig?.kind === 'bench' && (fig.play === 'afterCheck' || fig.range === 'afterCheck')) ||
     (fig?.kind === 'kick' && (fig.play === 'afterCheck' || fig.path === 'afterCheck' || fig.range === 'afterCheck' || fig.height === 'afterCheck' || fig.topV === 'afterCheck'))
@@ -175,6 +176,8 @@ function revealed(fig: Fig): Fig {
   if (fig.kind === 'resolve') return { ...fig, answer: fig.answer === 'afterCheck' ? 'shown' : fig.answer };
   // the free-body diagram appears, or the force it asked for grows to its real size
   if (fig.kind === 'crate') return { ...fig, fbdAfterCheck: undefined, ask: fig.ask?.filter((a) => a.answer !== 'afterCheck'), accel: fig.accel === 'afterCheck' ? 'shown' : fig.accel };
+  // the drag grows to its real size, the steady speed of each stack is written in
+  if (fig.kind === 'fall') return { ...fig, askD: fig.askD === 'afterCheck' ? undefined : fig.askD, speeds: fig.speeds === 'afterCheck' ? 'shown' : fig.speeds };
   // the lab plays on from rest, and the tension or acceleration it asked for is written in
   if (fig.kind === 'pulley')
     return {
