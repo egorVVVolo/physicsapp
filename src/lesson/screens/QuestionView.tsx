@@ -111,7 +111,7 @@ export function QuestionView({ screen, figN, phase, earlierPick, onOutcome, onNe
       <Prompt>{screen.prompt}</Prompt>
       {earlierPick && (
         <View style={[styles.earlier, { backgroundColor: p.paper }]}>
-          <Text style={[styles.earlierText, { color: p.muted }]}>You said earlier: {earlierPick.label.charAt(0).toLowerCase() + earlierPick.label.slice(1)}</Text>
+          <Text style={[styles.earlierText, { color: p.muted }]}>You said earlier: {midSentence(earlierPick.label)}</Text>
         </View>
       )}
       {screen.kind === 'tapFig' && <Instruction>{screen.instruction}</Instruction>}
@@ -149,7 +149,9 @@ function revealsAfterCheck(fig: Fig | undefined): boolean {
     (fig?.kind === 'vectors' && (fig.resultant === 'afterCheck' || fig.angle === 'afterCheck')) ||
     (fig?.kind === 'sledge' && (fig.forward === 'afterCheck' || fig.up === 'afterCheck')) ||
     (fig?.kind === 'hill' && (fig.along === 'afterCheck' || fig.into === 'afterCheck')) ||
-    (fig?.kind === 'resolve' && fig.answer === 'afterCheck')
+    (fig?.kind === 'resolve' && fig.answer === 'afterCheck') ||
+    (fig?.kind === 'bench' && (fig.play === 'afterCheck' || fig.range === 'afterCheck')) ||
+    (fig?.kind === 'kick' && (fig.play === 'afterCheck' || fig.path === 'afterCheck' || fig.range === 'afterCheck' || fig.height === 'afterCheck' || fig.topV === 'afterCheck'))
   );
 }
 
@@ -168,8 +170,29 @@ function revealed(fig: Fig): Fig {
   if (fig.kind === 'sledge') return { ...fig, forward: shownAfter(fig.forward), up: shownAfter(fig.up) };
   if (fig.kind === 'hill') return { ...fig, along: shownAfter(fig.along), into: shownAfter(fig.into) };
   if (fig.kind === 'resolve') return { ...fig, answer: fig.answer === 'afterCheck' ? 'shown' : fig.answer };
+  // the falls play (slowed down, with strobe copies) and the landing distance is written in
+  if (fig.kind === 'bench') return { ...fig, play: fig.play === 'afterCheck' ? true : fig.play, at: fig.play === 'afterCheck' ? undefined : fig.at, range: fig.range === 'afterCheck' ? 'shown' : fig.range };
+  // the flights play, the paths appear and every "?" gets its size
+  if (fig.kind === 'kick') {
+    const after = <T,>(x: T | 'afterCheck', to: T): T => (x === 'afterCheck' ? to : x);
+    return {
+      ...fig,
+      play: after(fig.play, true),
+      path: fig.path && after(fig.path, 'shown'),
+      range: fig.range && after(fig.range, 'shown'),
+      height: fig.height && after(fig.height, 'shown'),
+      topV: fig.topV && after(fig.topV, 'shown'),
+    };
+  }
   if (fig.kind !== 'lift') return fig;
   return { ...fig, unknownN: undefined, reading: fig.reading === 'afterCheck' ? 'shown' : fig.reading };
+}
+
+/** An option label continued after "You said earlier:": lower-case first letter, except for "I" and names ("Mia's"). */
+function midSentence(label: string): string {
+  const firstWord = label.split(' ')[0];
+  if (/^I('|$)/.test(firstWord) || /^[A-Z][a-z]*'s\b/.test(firstWord)) return label;
+  return label.charAt(0).toLowerCase() + label.slice(1);
 }
 
 const shownAfter = (label: PartLabel | undefined): PartLabel | undefined => (label === 'afterCheck' ? 'shown' : label);

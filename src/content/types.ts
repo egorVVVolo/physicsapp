@@ -296,7 +296,52 @@ export type ResolveFig = {
   answer: 'unknown' | 'afterCheck' | 'shown';
 };
 
-export type Fig = LiftFig | PairsFig | VtFig | ScalesFig | LiftPairFig | ThrowFig | ThrowVtFig | FallGraphFig | RoadFig | BrakeVtFig | EquationsFig | GraphFig | ChaseFig | TrackFig | VectorsFig | SledgeFig | HillFig | ResolveFig;
+/**
+ * A lab bench `h` metres high, seen from the side. Ball A is dropped from its left end (no sideways speed); the other
+ * balls roll off its right end at their own u. Positions come from projectilePosition (src/physics/projectile).
+ * Played, the falls run at a quarter of real speed (the sheet says so) with a strobe copy of each ball every 0.1 s.
+ */
+export type BenchFig = {
+  kind: 'bench';
+  h: number; // m
+  balls: { id: 'A' | 'B' | 'C'; u: number }[];
+  /** Where the balls are while the figure stands still: on the bench (default) or landed on the floor. */
+  at?: 'start' | 'end';
+  /** Dashed lines joining the strobe copies taken at the same moment (they are always level). */
+  levels?: true;
+  /** Draw each rolling ball's velocity as two outline arrows: sideways and downward (explore). */
+  arrows?: true;
+  /** The landing distance of the fastest ball, as a dimension line on the floor: shown, or only once answered. */
+  range?: 'shown' | 'afterCheck';
+  /** Play the falls (slowed down), again and again. 'afterCheck': still until answered. */
+  play?: true | 'afterCheck';
+};
+
+/**
+ * Balls kicked from one spot on level ground at speed u, each at its own angle (Mia at the lower one, Leo at the
+ * higher one). Positions come from projectilePosition (src/physics/projectile); every number written is the model's.
+ */
+export type KickFig = {
+  kind: 'kick';
+  u: number; // m s⁻¹
+  kicks: { id: 'Mia' | 'Leo'; angle: number }[];
+  /** The launch velocity of each kick as an outline arrow with its angle; 'parts' adds its components with their sizes. */
+  launch?: 'arrow' | 'parts';
+  /** The path as a dashed curve: the whole flight, only up to the top, or the whole flight once answered. */
+  path?: 'shown' | 'toTop' | 'afterCheck';
+  /** Where the balls are while the figure stands still: at the start (default) or at the top of their paths. */
+  at?: 'start' | 'top';
+  /** The velocity at the top: "v = ?", "?" until answered and then an arrow with its size, or shown. */
+  topV?: 'unknown' | 'afterCheck' | 'shown';
+  /** How far away each ball lands, as a dimension line on the ground: "?", "?" until answered, or its size. */
+  range?: 'unknown' | 'afterCheck' | 'shown';
+  /** How high the first ball rises, as a dimension line at the top: "?", "?" until answered, or its size. */
+  height?: 'unknown' | 'afterCheck' | 'shown';
+  /** Play the flights in real time with a clock, again and again. 'afterCheck': still until answered. */
+  play?: true | 'afterCheck';
+};
+
+export type Fig = LiftFig | PairsFig | VtFig | ScalesFig | LiftPairFig | ThrowFig | ThrowVtFig | FallGraphFig | RoadFig | BrakeVtFig | EquationsFig | GraphFig | ChaseFig | TrackFig | VectorsFig | SledgeFig | HillFig | ResolveFig | BenchFig | KickFig;
 
 /** Tap targets drawn by a lift figure with `candidates`. */
 export const CANDIDATE_IDS = ['shorter', 'equal', 'longer'] as const;
@@ -355,12 +400,12 @@ export type ChoiceScreen = Base & {
 /**
  * Play with the figure through a slider, then a light question (not counted in the tally).
  * The slider drives the lift's acceleration, the time since the throw, since the brakes came on or since the runners set off,
- * the time cursor of a graph, or the angle of the sledge's rope.
+ * the time cursor of a graph, the angle of the sledge's rope, the clock of the bench falls or the angle of a kick.
  */
 export type ExploreScreen = Base & {
   kind: 'explore';
   instruction: string; // names the gesture: "Drag …"
-  fig: LiftFig | ThrowFig | RoadFig | GraphFig | TrackFig | SledgeFig;
+  fig: LiftFig | ThrowFig | RoadFig | GraphFig | TrackFig | SledgeFig | BenchFig | KickFig;
   /**
    * `tick`: gap between the marks on the ruler (defaults to `step`). `symbol` and `dp` write the bubble ("t = 0.82 s"),
    * `signed` adds + to positive values. `start`: where the thumb begins (defaults to the lift's a, or `min`).

@@ -3,6 +3,7 @@ import { normalReaction } from './normal-reaction.ts';
 import { pickingTheEquation } from './picking-the-equation.ts';
 import { readingMotionGraphs } from './reading-motion-graphs.ts';
 import { splittingAVector } from './splitting-a-vector.ts';
+import { twoMotionsAtOnce } from './two-motions-at-once.ts';
 import { upStopDown } from './up-stop-down.ts';
 import { whichWayIsPositive } from './which-way-is-positive.ts';
 import type { Lesson } from './types.ts';
@@ -13,5 +14,6 @@ export const lessons: Record<string, Lesson> = {
   [pickingTheEquation.id]: pickingTheEquation,
   [upStopDown.id]: upStopDown,
   [splittingAVector.id]: splittingAVector,
+  [twoMotionsAtOnce.id]: twoMotionsAtOnce,
   [normalReaction.id]: normalReaction,
 };

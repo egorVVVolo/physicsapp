@@ -118,7 +118,7 @@ export function ResolveFigure({ fig, clock = STILL }: { fig: ResolveFig; clock?:
 }
 
 /** An outline arrow from `from` to `to` at any angle: a velocity. */
-function HollowArrow({ from, to, color, thin }: { from: [number, number]; to: [number, number]; color: string; thin?: boolean }) {
+export function HollowArrow({ from, to, color, thin }: { from: [number, number]; to: [number, number]; color: string; thin?: boolean }) {
   const len = Math.hypot(to[0] - from[0], to[1] - from[1]);
   if (len < 1) return null;
   const deg = (Math.atan2(to[1] - from[1], to[0] - from[0]) * 180) / Math.PI;

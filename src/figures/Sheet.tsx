@@ -25,6 +25,8 @@ import { TRACK_VB, TrackFigure, trackParams, trackPlays } from './TrackFigure';
 import { VECTORS_VB, VectorsFigure } from './VectorsFigure';
 import { HILL_VB, HillFigure, hillParams, SLEDGE_VB, SledgeFigure, sledgeParams, sledgeTargets } from './SledgeFigure';
 import { RESOLVE_VB, ResolveFigure } from './ResolveFigure';
+import { BENCH_VB, BenchFigure, benchParams, benchPlays } from './BenchFigure';
+import { KICK_VB, KickFigure, kickParams, kickPlays } from './KickFigure';
 
 export type TapTarget = { id: string; x: number; y: number; w: number; h: number; label: string };
 export type TapProps = {
@@ -47,7 +49,7 @@ type Props = {
 /** Every figure is drawn at the same size on every screen, so the drawing never jumps between screens. */
 const MAX_H = 270;
 /** The figures that draw themselves the first time their kind appears in a lesson. */
-const DRAWS_ITSELF: Fig['kind'][] = ['scales', 'lift', 'pairs', 'throw', 'throwVt', 'fallGraph', 'road', 'brakeVt', 'equations', 'graph', 'chase', 'track', 'vectors', 'sledge', 'hill', 'resolve'];
+const DRAWS_ITSELF: Fig['kind'][] = ['scales', 'lift', 'pairs', 'throw', 'throwVt', 'fallGraph', 'road', 'brakeVt', 'equations', 'graph', 'chase', 'track', 'vectors', 'sledge', 'hill', 'resolve', 'bench', 'kick'];
 
 export function Sheet({ fig, n, live, tap, caption }: Props) {
   const { palette: p } = useTheme();
@@ -61,7 +63,7 @@ export function Sheet({ fig, n, live, tap, caption }: Props) {
   // the first figure of each kind in a lesson draws itself; the pen starts once the sheet knows its size
   const first = useFirstShow(fig.kind);
   const clock = useDrawIn(first && width > 0 && DRAWS_ITSELF.includes(fig.kind));
-  const vb = { lift: LIFT_VB, pairs: PAIRS_VB, vt: VT_VB, scales: SCALES_VB, liftPair: LIFT_PAIR_VB, throw: THROW_VB, throwVt: THROW_VT_VB, fallGraph: FALL_VB, road: ROAD_VB, brakeVt: BRAKE_VT_VB, equations: EQUATIONS_VB, graph: GRAPH_VB, chase: CHASE_VB, track: TRACK_VB, vectors: VECTORS_VB, sledge: SLEDGE_VB, hill: HILL_VB, resolve: RESOLVE_VB }[fig.kind];
+  const vb = { lift: LIFT_VB, pairs: PAIRS_VB, vt: VT_VB, scales: SCALES_VB, liftPair: LIFT_PAIR_VB, throw: THROW_VB, throwVt: THROW_VT_VB, fallGraph: FALL_VB, road: ROAD_VB, brakeVt: BRAKE_VT_VB, equations: EQUATIONS_VB, graph: GRAPH_VB, chase: CHASE_VB, track: TRACK_VB, vectors: VECTORS_VB, sledge: SLEDGE_VB, hill: HILL_VB, resolve: RESOLVE_VB, bench: BENCH_VB, kick: KICK_VB }[fig.kind];
   const aNow = fig.kind === 'lift' ? (live ?? fig.a) : 0;
   // a lift with nothing drawn beside it stands in the middle; kept from the screen before, it glides aside to make room
   const shift = useTween(fig.kind === 'lift' ? liftShiftX(fig) : 0, prev?.kind === 'lift' ? liftShiftX(prev) : undefined, motion.screen);
@@ -77,7 +79,7 @@ export function Sheet({ fig, n, live, tap, caption }: Props) {
     w = (h * vb.w) / vb.h;
   }
   const scale = w / vb.w;
-  const animates = !reduced && ((fig.kind === 'lift' && liftMoves(fig, aNow)) || fig.kind === 'scales' || (fig.kind === 'throw' && throwPlays(fig)) || (fig.kind === 'road' && roadPlays(fig)) || (fig.kind === 'chase' && chasePlays(fig)) || (fig.kind === 'track' && trackPlays(fig) && live === undefined));
+  const animates = !reduced && ((fig.kind === 'lift' && liftMoves(fig, aNow)) || fig.kind === 'scales' || (fig.kind === 'throw' && throwPlays(fig)) || (fig.kind === 'road' && roadPlays(fig)) || (fig.kind === 'chase' && chasePlays(fig)) || (fig.kind === 'track' && trackPlays(fig) && live === undefined) || (fig.kind === 'bench' && benchPlays(fig) && live === undefined) || (fig.kind === 'kick' && kickPlays(fig) && live === undefined));
   const run = playing && !reduced;
   const targets = !tap ? [] : fig.kind === 'lift' ? liftTargets(fig) : fig.kind === 'pairs' ? pairsTargets() : fig.kind === 'vt' ? vtTargets(fig) : fig.kind === 'throw' ? throwTargets(fig) : fig.kind === 'equations' ? equationsTargets(fig) : fig.kind === 'graph' ? graphTargets(fig) : fig.kind === 'sledge' ? sledgeTargets(fig, live) : [];
   const params = caption ?? paramsOf(fig, aNow, live);
@@ -139,6 +141,8 @@ export function Sheet({ fig, n, live, tap, caption }: Props) {
               {fig.kind === 'sledge' && <SledgeFigure fig={fig} live={live} tap={tap} clock={clock} />}
               {fig.kind === 'hill' && <HillFigure fig={fig} clock={clock} />}
               {fig.kind === 'resolve' && <ResolveFigure fig={fig} clock={clock} />}
+              {fig.kind === 'bench' && <BenchFigure fig={fig} live={live} playing={run} clock={clock} />}
+              {fig.kind === 'kick' && <KickFigure fig={fig} live={live} playing={run} clock={clock} />}
             </Svg>
             {fig.kind === 'lift' && <ShaftMarks fig={fig} a={aNow} scale={scale} playing={run} clock={clock} shift={shift} />}
             {targets.map((t) => (
@@ -192,6 +196,10 @@ function paramsOf(fig: Fig, a: number, live: number | undefined): string {
       return hillParams(fig);
     case 'resolve':
       return fig.header;
+    case 'bench':
+      return benchParams(fig, live);
+    case 'kick':
+      return kickParams(fig, live);
     default:
       return `m = ${fig.m} kg`;
   }

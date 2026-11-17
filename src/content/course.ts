@@ -16,8 +16,8 @@ export const course: Course = {
         { id: 'suvat', title: 'Picking the equation', spec: [1], about: 'Match what you know and what you want to one equation.', ready: true },
         { id: 'up-stop-down', title: 'Up, stop, down', spec: [1, 11], about: 'A ball thrown up: what happens to v and a at the top.', ready: true },
         { id: 'resolving', title: 'Splitting a vector', spec: [5, 6], about: 'Turn one slanted vector into two that are easy to use.', ready: true },
-        { id: 'projectiles', title: 'Two motions at once', spec: [7], about: 'Sideways and downwards motion run on the same clock.' },
-      ].map((l) => ({ ready: false, ...l })),
+        { id: 'projectiles', title: 'Two motions at once', spec: [7], about: 'Sideways and downwards motion run on the same clock.', ready: true },
+      ],
     },
     {
       id: 'forces',
