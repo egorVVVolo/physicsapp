@@ -34,8 +34,8 @@ export function ExploreView({ screen, figN, onNext }: { screen: ExploreScreen; f
         step={sl.step}
         tick={sl.tick}
         label={sl.label}
-        format={(v) => `${sl.symbol} = ${sl.signed ? signed(v, sl.dp) : fixed(v, sl.dp)} ${sl.unit}`}
-        formatEnd={(v) => (sl.signed ? signed(v, 0) : fixed(v, 1))}
+        format={(v) => `${sl.symbol} = ${sl.signed ? signed(v, sl.dp) : fixed(v, sl.dp)}${sl.unit === '°' ? '' : ' '}${sl.unit}`}
+        formatEnd={(v) => (sl.signed ? signed(v, 0) : sl.unit === '°' ? `${fixed(v, 0)}°` : fixed(v, 1))}
         onChange={(v) => {
           feedback.step((v - sl.min) / (sl.max - sl.min));
           setValue(v);

@@ -24,3 +24,30 @@ export function chordAround(circumference: number, fraction: number): number {
 export function radiusOf(circumference: number): number {
   return circumference / (2 * Math.PI);
 }
+
+// ── Resolving: one vector split into two components at right angles ──
+
+const RAD = Math.PI / 180;
+
+/**
+ * The two components of a vector of size `size` at `angle` degrees from a chosen line:
+ * the one along that line (next to the angle) is size × cos θ, the one across it (opposite the angle) is size × sin θ.
+ * For a 100 N rope at 60° above the snow: forward 50.0 N, up 86.6 N.
+ */
+export function components(size: number, angle: number): { along: number; across: number } {
+  return { along: size * Math.cos(angle * RAD), across: size * Math.sin(angle * RAD) };
+}
+
+/** The angle from a line, in degrees, at which a vector of size `size` has the component `along` along that line: cos θ = along ÷ size. */
+export function angleForComponent(size: number, along: number): number {
+  return Math.acos(along / size) / RAD;
+}
+
+/**
+ * A weight on a slope of `angle` degrees, split along the slope (down it: W sin θ) and into the slope (W cos θ).
+ * The angle between the weight and the line into the slope is the angle of the slope itself.
+ */
+export function onSlope(weight: number, angle: number): { along: number; into: number } {
+  const c = components(weight, angle);
+  return { along: c.across, into: c.along };
+}

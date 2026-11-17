@@ -3,7 +3,7 @@
 // and after the last allowed miss the right answer is shown with Why? (honest "revealed").
 import { useMemo, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import type { Fig, Option, Question } from '@/content/types';
+import type { Fig, Option, PartLabel, Question } from '@/content/types';
 import { Sheet } from '@/figures/Sheet';
 import { outcomeOf, STORY_TRIES, type Outcome, type Phase } from '@/session/logic';
 import { useTheme } from '@/theme/ThemeContext';
@@ -146,7 +146,10 @@ function revealsAfterCheck(fig: Fig | undefined): boolean {
     (fig?.kind === 'equations' && fig.leftOut === 'afterCheck') ||
     (fig?.kind === 'graph' && (fig.areas ?? []).some((area) => area.value === 'afterCheck')) ||
     (fig?.kind === 'track' && fig.disp === 'afterCheck') ||
-    (fig?.kind === 'vectors' && (fig.resultant === 'afterCheck' || fig.angle === 'afterCheck'))
+    (fig?.kind === 'vectors' && (fig.resultant === 'afterCheck' || fig.angle === 'afterCheck')) ||
+    (fig?.kind === 'sledge' && (fig.forward === 'afterCheck' || fig.up === 'afterCheck')) ||
+    (fig?.kind === 'hill' && (fig.along === 'afterCheck' || fig.into === 'afterCheck')) ||
+    (fig?.kind === 'resolve' && fig.answer === 'afterCheck')
   );
 }
 
@@ -161,9 +164,15 @@ function revealed(fig: Fig): Fig {
   if (fig.kind === 'graph') return { ...fig, areas: fig.areas?.map((area) => ({ ...area, value: 'shown' as const })) };
   if (fig.kind === 'track') return { ...fig, disp: fig.disp === 'afterCheck' ? 'shown' : fig.disp };
   if (fig.kind === 'vectors') return { ...fig, resultant: fig.resultant === 'afterCheck' ? 'shown' : fig.resultant, angle: fig.angle === 'afterCheck' ? 'shown' : fig.angle };
+  // the size of the component the question asked for is written in
+  if (fig.kind === 'sledge') return { ...fig, forward: shownAfter(fig.forward), up: shownAfter(fig.up) };
+  if (fig.kind === 'hill') return { ...fig, along: shownAfter(fig.along), into: shownAfter(fig.into) };
+  if (fig.kind === 'resolve') return { ...fig, answer: fig.answer === 'afterCheck' ? 'shown' : fig.answer };
   if (fig.kind !== 'lift') return fig;
   return { ...fig, unknownN: undefined, reading: fig.reading === 'afterCheck' ? 'shown' : fig.reading };
 }
+
+const shownAfter = (label: PartLabel | undefined): PartLabel | undefined => (label === 'afterCheck' ? 'shown' : label);
 
 const styles = StyleSheet.create({
   earlier: { borderRadius: radius.s, paddingHorizontal: 14, paddingVertical: 10, alignSelf: 'flex-start', marginTop: -6 },

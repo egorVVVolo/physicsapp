@@ -232,7 +232,71 @@ export type VectorsFig = {
   angle?: 'unknown' | 'shown' | 'afterCheck';
 };
 
-export type Fig = LiftFig | PairsFig | VtFig | ScalesFig | LiftPairFig | ThrowFig | ThrowVtFig | FallGraphFig | RoadFig | BrakeVtFig | EquationsFig | GraphFig | ChaseFig | TrackFig | VectorsFig;
+/**
+ * How a component is labelled on a figure: its name only ("forward"), "?" (the question asks for it), "?" until the
+ * question is answered and then its size, or its size. Without a label the component is drawn bare (a tap question).
+ */
+export type PartLabel = 'name' | 'unknown' | 'afterCheck' | 'shown';
+
+/**
+ * Sledges on flat snow, seen from the side. Ana pulls hers with a rope at `angle` degrees above the snow; Ben pushes his
+ * straight forward. Forces are drawn in the force colour from the point where they act; their components come from
+ * `components` in src/physics/vectors, so every size written on the sheet is the model's.
+ */
+export type SledgeFig = {
+  kind: 'sledge';
+  /** Ana's sledge alone, or both (Ben's on the left, Ana's on the right). */
+  who: 'A' | 'AB';
+  pull: number; // Ana's rope force, N
+  angle: number; // the rope's angle above the snow, degrees (on the explore screen: the slider)
+  push: number; // Ben's push, N
+  /**
+   * Ana's pull split into components: both from the hitch with a dashed rectangle ('box'), tip to tail closing on the
+   * pull ('chain'), or only the forward one ('forward', to compare with Ben's push).
+   */
+  split?: 'box' | 'chain' | 'forward';
+  forward?: PartLabel;
+  up?: PartLabel;
+  /** Write the size of the pull (and of Ben's push) next to its arrow. */
+  values?: true;
+  /** Tap targets on the pull and its two components (SLEDGE_IDS). */
+  targets?: true;
+};
+
+/**
+ * A sledge resting on a snowy hill of `angle` degrees. Its weight acts straight down from the centre of gravity and is
+ * split along the slope and into it (`onSlope` in src/physics/vectors); the angle between W and the line into the
+ * slope is marked, equal to the hill's angle.
+ */
+export type HillFig = {
+  kind: 'hill';
+  weight: number; // N
+  angle: number; // degrees
+  along?: PartLabel;
+  into?: PartLabel;
+};
+
+/**
+ * One vector on squared paper, with its angle from the horizontal or from the vertical, split into a horizontal and a
+ * vertical component (both from its tail, with a dashed rectangle). A force is a solid arrow, a velocity an outline one.
+ */
+export type ResolveFig = {
+  kind: 'resolve';
+  header: string;
+  size: number;
+  unit: string; // "N", "m s⁻¹"
+  angle: number; // degrees, measured from `from`
+  from: 'horizontal' | 'vertical';
+  /** A velocity (outline arrow) rather than a force. */
+  velocity?: true;
+  /** The name written beside the vector: "string", "ball". */
+  name: string;
+  /** The component the question asks for, and how it is labelled. The other one is drawn bare. */
+  ask: 'x' | 'y';
+  answer: 'unknown' | 'afterCheck' | 'shown';
+};
+
+export type Fig = LiftFig | PairsFig | VtFig | ScalesFig | LiftPairFig | ThrowFig | ThrowVtFig | FallGraphFig | RoadFig | BrakeVtFig | EquationsFig | GraphFig | ChaseFig | TrackFig | VectorsFig | SledgeFig | HillFig | ResolveFig;
 
 /** Tap targets drawn by a lift figure with `candidates`. */
 export const CANDIDATE_IDS = ['shorter', 'equal', 'longer'] as const;
@@ -241,6 +305,8 @@ export const PAIR_IDS = ['W', 'P', 'E'] as const;
 /** Tap targets drawn by a throw figure with `candidates`: the acceleration at the top. */
 export const ACC_IDS = ['up', 'zero', 'down'] as const;
 /** Tap targets drawn by the equations figure: the four suvat equations (ids of RELATIONS in src/physics/kinematics). */
+/** Tap targets drawn by a sledge figure with `targets`: Ana's pull and its two components. */
+export const SLEDGE_IDS = ['pull', 'forward', 'up'] as const;
 export const EQUATION_IDS = ['vuat', 'sut', 'v2as', 'suvt'] as const satisfies readonly RelationId[];
 
 // ── Screens ──────────────────────────────────────────────────────────────────────────────
@@ -288,12 +354,13 @@ export type ChoiceScreen = Base & {
 
 /**
  * Play with the figure through a slider, then a light question (not counted in the tally).
- * The slider drives the lift's acceleration, the time since the throw, since the brakes came on or since the runners set off, or the time cursor of a graph.
+ * The slider drives the lift's acceleration, the time since the throw, since the brakes came on or since the runners set off,
+ * the time cursor of a graph, or the angle of the sledge's rope.
  */
 export type ExploreScreen = Base & {
   kind: 'explore';
   instruction: string; // names the gesture: "Drag …"
-  fig: LiftFig | ThrowFig | RoadFig | GraphFig | TrackFig;
+  fig: LiftFig | ThrowFig | RoadFig | GraphFig | TrackFig | SledgeFig;
   /**
    * `tick`: gap between the marks on the ruler (defaults to `step`). `symbol` and `dp` write the bubble ("t = 0.82 s"),
    * `signed` adds + to positive values. `start`: where the thumb begins (defaults to the lift's a, or `min`).

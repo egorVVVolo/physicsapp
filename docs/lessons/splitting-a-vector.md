@@ -1,6 +1,6 @@
 # Lesson spec — "Splitting a vector"
 
-17 Nov 2026 · status: **spec, not built**, waiting for the owner's ok · format: story + Skill check (`docs/LESSON_FRAMEWORK.md`, 1b)
+17 Nov 2026 · status: **built 17 Nov** after the owner's ok (`src/content/splitting-a-vector.ts`, checked in the web at 375×667, light and dark theme); not yet played on a phone or by the owner · format: story + Skill check (`docs/LESSON_FRAMEWORK.md`, 1b)
 
 - **id:** `resolving` · level 1 "Motion" (blue) · WPH11 points **5** (resolve a vector into two components at right angles, by drawing and by calculation) and **6** (resultant of two coplanar vectors; here: by adding components) · ~11 min
 - **Idea:** a slanted vector does two jobs at once. Split it into two **components** at right angles: the side next to the angle is F cos θ, the side opposite is F sin θ. The components add tip to tail, never as plain numbers, and each one is smaller than the vector.
@@ -26,7 +26,7 @@ All numbers from `src/physics/` (new functions in `vectors.ts`), re-checked by a
 | # | id | Kind | What happens | Figure |
 |---|---|---|---|---|
 | 1 | intro | intro | Ana pulls with 100 N on a rope at 60°, Ben pushes straight forward with 60 N | sledges: both, forces drawn |
-| 2 | hook | predict | "Which sledge gets the larger forward force?" Ana / Ben / the same / not sure | sledges |
+| 2 | hook | predict | "Which sledge gets the larger forward force?" the one Ana pulls / the one Ben pushes / the same / not sure | sledges |
 | 3 | parts | text + card | Ana's rope does two jobs: it pulls forward and lifts. Card: **components** — two vectors at right angles that add tip to tail to give the original one. Finding them is **resolving** | — |
 | 4 | which-part | tapFig | "Tap the part of Ana's pull that moves the sledge forward" → the horizontal dashed arrow (the vertical one: lifts · the rope: the whole pull, not a part) | sledge A: rope force, a dashed rectangle, both components unlabelled |
 | 5 | forward | choice | forward component, the side next to the 60° angle → **50.0 N** = 100 cos 60° (86.6: sin, the side opposite · 100: all of it goes forward · 200: divided by cos) | sledge A, F_x = ? |
@@ -59,16 +59,18 @@ The last two are new contexts; "tow" asks for a resultant at an angle by adding 
 
 **Notebook card:** `F cos θ, F sin θ` — "The side next to the angle is F cos θ. Components add tip to tail, never as plain numbers."
 
-## What to build
+## What was built
 
-1. Physics, `src/physics/vectors.ts`: `components(F, θ)` → [next to the angle, opposite], `angleForComponent(F, part)` (the 53.1°), `alongSlope(W, θ)` / `intoSlope(W, θ)`, `angleAbove(x, y)`. Test.
-2. Figure "sledges" (`src/figures/SledgeFigure.tsx`): flat snow seen from the side, the shared person from `people.tsx` pulling a sledge on a rope at θ, Ben pushing his; the rope force in course blue from the hitch on the sledge, a dashed rectangle with its two components (unknown "?" / sizes), the angle arc, tap targets (rope, forward, up), live θ on the explore screen (the header reads both parts), the parts tip to tail (screen 8), and a hill mode (slope θ, W from the centre of gravity, its two parts, the angle between W and the line into the slope).
-3. Figure "resolve" (in `VectorsFigure.tsx` or its own file): one vector on squared paper with its angle from the horizontal or the vertical, both components dashed, force (solid) or velocity (outline arrow).
-4. The explore slider learns angles (`unit: '°'`).
-5. Content `src/content/splitting-a-vector.ts` + test, `ready: true` on the map; check in the web at 375×667, light and dark.
+1. Physics, `src/physics/vectors.ts`: `components(size, θ)` → { along (next to the angle), across (opposite) }, `angleForComponent(size, along)` (the 53.1°), `onSlope(W, θ)` → { along, into }; the angle from components reuses `angleFromFirst`. Test.
+2. Figure "sledge" (`src/figures/SledgeFigure.tsx`): flat snow seen from the side; the people are off the drawing, only a gloved hand holds Ana's rope and pushes Ben's sledge (a standing person cannot hold a rope at every angle of the slider). Forces in course blue from a dot where they act; Ana's pull split from the hitch with a dashed rectangle ('box'), tip to tail ('chain') or only the forward part ('forward'); labels by name, "?", "?" until Check, or size; dashed tap boxes on the pull and both parts; on the explore screen the slider tilts the rope and the header reads both parts.
+3. Figure "hill" (same file): the slope runs off the sheet so the forces can be large, hatched underneath; its angle marked against a dashed horizontal; a pale sledge, W from the centre of gravity, its parts along and into the slope, the angle at W marked.
+4. Figure "resolve" (`src/figures/ResolveFigure.tsx`): one vector on squared paper with its angle from the horizontal or the vertical, both components from the tail, force (solid) or velocity (outline arrow), the asked component "?" until Check.
+5. The explore slider shows angles (`unit: '°'`: "θ = 60°", ends 0° and 90°).
+6. Content `src/content/splitting-a-vector.ts` + test, `ready: true` on the map.
 
 ## Open for the owner
 
 - The context: sledges on snow, with a rope at 60° (steep, but it gives the clean "half"). Another option: dragging a suitcase by its handle.
+- Ana and Ben are drawn only as gloved hands, not whole people.
 - Level: screens 3–5 are basic for a strong student, but they lead quickly to the traps (sin/cos from the vertical, 45° is not half, the slope).
 - Point 5 "by drawing" is only told (rules screen), as in lesson 5: a drag-to-draw screen would be a new kind of screen.
