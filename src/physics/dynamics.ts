@@ -57,3 +57,43 @@ export function frictionCoefficient(friction: number, normal: number): number {
   'worklet';
   return friction / normal;
 }
+
+/** Newton's second law for a body of constant mass: a = ΣF / m, in m s⁻² (ΣF is the resultant, with its sign). */
+export function acceleration(sumF: number, m: number): number {
+  'worklet';
+  return sumF / m;
+}
+
+/** Gravitational field strength g = F / m, in N kg⁻¹: the force of gravity on each kilogram. */
+export function fieldStrength(f: number, m: number): number {
+  return f / m;
+}
+
+/**
+ * A trolley of mass `trolley` on a smooth level bench, pulled by a string over a light, smooth pulley to a mass `hanging`.
+ * The weight of the hanging mass accelerates both bodies: a = m g / (M + m), in m s⁻².
+ */
+export function connectedAcceleration(trolley: number, hanging: number, g = G): number {
+  'worklet';
+  return (hanging * g) / (trolley + hanging);
+}
+
+/** The tension in that string, in N: the only horizontal force on the trolley, so T = M a (less than the hanging weight). */
+export function stringTension(trolley: number, hanging: number, g = G): number {
+  'worklet';
+  return trolley * connectedAcceleration(trolley, hanging, g);
+}
+
+/**
+ * Where the trolley of that set-up is `t` seconds after it is let go from rest, and how fast it moves, when the hanging
+ * mass lands on the floor after falling `drop` metres. Until then s = ½at²; after it the string goes slack, no horizontal
+ * force acts and the trolley rolls on at the speed it had (Newton's first law).
+ */
+export function pulleyRun(t: number, trolley: number, hanging: number, drop: number, g = G): { s: number; v: number; landed: boolean } {
+  'worklet';
+  const a = connectedAcceleration(trolley, hanging, g);
+  const tLand = Math.sqrt((2 * drop) / a);
+  if (t <= tLand) return { s: 0.5 * a * t * t, v: a * t, landed: false };
+  const vLand = a * tLand;
+  return { s: drop + vLand * (t - tLand), v: vLand, landed: true };
+}

@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { weight, normalInLift, resultant, scaleKg, normalWithPull, ladderWallPush, frictionCoefficient } from './dynamics.ts';
+import { weight, normalInLift, resultant, scaleKg, normalWithPull, ladderWallPush, frictionCoefficient, acceleration, fieldStrength, connectedAcceleration, stringTension, pulleyRun } from './dynamics.ts';
 import { G } from './kinematics.ts';
 
 const near = (actual: number, expected: number, tol = 0.05) =>
@@ -55,4 +55,32 @@ test('a 12 kg ladder at 65° on a smooth wall: the wall pushes with 27.4 N', () 
 
 test('μ = F / N', () => {
   assert.equal(frictionCoefficient(30, 120), 0.25);
+});
+
+test('ΣF = ma: 50 N on 40 kg gives 1.25 m s⁻²', () => {
+  near(acceleration(50, 40), 1.25, 1e-12);
+});
+
+test('g = F/m: 7.42 N on 2.00 kg gives 3.71 N kg⁻¹', () => {
+  near(fieldStrength(7.42, 2), 3.71, 1e-12);
+});
+
+test('trolley 0.80 kg and hanging 0.20 kg: a = 1.962 m s⁻², T = 1.570 N, less than the hanging weight', () => {
+  near(connectedAcceleration(0.8, 0.2), 1.962, 1e-9);
+  near(stringTension(0.8, 0.2), 1.5696, 1e-9);
+  // the hanging mass: mg − T = ma
+  near(weight(0.2) - stringTension(0.8, 0.2), 0.2 * connectedAcceleration(0.8, 0.2), 1e-9);
+  assert.ok(stringTension(0.8, 0.2) < weight(0.2));
+  assert.ok(connectedAcceleration(0.8, 100) < G);
+});
+
+test('the trolley rolls on at a steady 1.40 m s⁻¹ once the mass has fallen 0.50 m', () => {
+  const before = pulleyRun(0.5, 0.8, 0.2, 0.5);
+  near(before.s, 0.5 * 1.962 * 0.25, 1e-9);
+  assert.equal(before.landed, false);
+  const a = pulleyRun(1.0, 0.8, 0.2, 0.5);
+  const b = pulleyRun(1.2, 0.8, 0.2, 0.5);
+  near(a.v, Math.sqrt(2 * 1.962 * 0.5), 1e-9);
+  near(b.v, a.v, 1e-12);
+  near(b.s - a.s, a.v * 0.2, 1e-9);
 });

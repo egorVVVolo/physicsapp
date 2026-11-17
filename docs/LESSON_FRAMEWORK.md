@@ -335,6 +335,12 @@ Sources: [Beichner (1994), kinematics graphs](https://moodle2.units.it/pluginfil
 | F-FRICTION-WHOLE | Friction at steady speed equals the whole pull, or is zero "because it moves" | 120 N or 0 N instead of 104 N | The rope split: only the forward part balances friction |
 | F-FBD-MOTION | The diagram shows which way a body moves | Resultant to the left, so "it moves left" | Box on ice: the diagram gives the acceleration only |
 | F-SMOOTH-DIR | A smooth surface pushes along the body or at right angles to it | The wall pushes along or across the ladder | Ladder on a smooth wall: the push is at right angles to the wall |
+| F-APPLIED-NOT-RESULTANT | The applied force goes into F = ma | a = 150 / 40 = 3.75 m s⁻² with 100 N of friction | The crate's diagram lists ΣF = 50 N; a = 1.25 m s⁻² |
+| F-PUSH-LINEAR | Twice the push, twice the acceleration, even with friction | 2.50 m s⁻² for the 300 N pull | ΣF goes 50 N → 200 N, a ×4 (the explore slider) |
+| F-MASS-WEIGHT | Divides by the weight, or thinks the mass shrinks on the Moon | 0.127 m s⁻²; 7.57 m s⁻² on the Moon | Same 40 kg on the Moon: same a for the same ΣF |
+| F-STRING-WEIGHT | The string pulls with the whole hanging weight while it accelerates | T = 1.96 N instead of 1.57 N | Forces on the hanging mass: T shorter than W, or it could not speed up |
+| F-PART-MASS | The force accelerates only part of a joined system | 2.45 m s⁻² (trolley only); the tow bar takes the whole drive | The lab: the weight moves 1.00 kg in all |
+| F-WEIGHT-FORGOT | Leaves the weight out of a vertical ΣF | Rocket at lift-off: a = thrust / m | ΣF = thrust − mg |
 
 ## 13. Lesson spec template
 

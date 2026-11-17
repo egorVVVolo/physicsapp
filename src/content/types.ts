@@ -371,6 +371,40 @@ export type CrateFig = {
   floorPush?: true;
   /** Play the motion: the floor slides past at a steady speed, or (let go) the crate slides on and stops. */
   play?: true;
+  /**
+   * A fixed sliding friction, N. Then nothing has to balance: the crate accelerates at (forward pull − friction) / m
+   * (src/physics/dynamics), the list adds ΣF, and played it starts at 2.0 m s⁻¹ and speeds up (or slows to a stop) by the model.
+   */
+  friction?: number;
+  /** The acceleration on the free-body diagram (double chevron): its size, "a = ?", or "?" until the question is answered. */
+  accel?: 'shown' | 'unknown' | 'afterCheck';
+  /** On the explore screen the slider sets the pull (N) instead of the rope's angle. */
+  slider?: 'force';
+};
+
+/**
+ * The lab: a trolley on a smooth level bench, pulled by a string over a pulley at the end of the bench to a hanging mass.
+ * Let go from rest, both move with a = mg / (M + m) (connectedAcceleration in src/physics/dynamics) until the mass lands
+ * after `drop` metres; then the string goes slack and the trolley rolls on at a steady speed (pulleyRun).
+ */
+export type PulleyFig = {
+  kind: 'pulley';
+  trolley: number; // kg
+  hanging: number; // kg (on the explore screen: the slider)
+  drop: number; // m, how far the mass falls before it lands
+  /** Draw the forces along the string (T on the trolley, T and W on the hanging mass). */
+  forces?: true;
+  /** The tension: written ("T = 1.57 N"), "T = ?", or "?" until the question is answered. Without it only the letters. */
+  tension?: 'shown' | 'unknown' | 'afterCheck';
+  /** The acceleration beside the trolley (double chevron): its size, "a = ?", or "?" until the question is answered. */
+  accel?: 'shown' | 'unknown' | 'afterCheck';
+  /** Where the bodies stand while the figure is still: at the start (default) or just after the mass has landed. */
+  at?: 'start' | 'landed';
+  /**
+   * Play from rest (at half speed, the sheet says so), with a strobe mark under the trolley every 0.1 s, again and again.
+   * The clip stops when the mass lands; with `at: 'landed'` it plays on and the trolley rolls on with the string slack.
+   */
+  play?: true | 'afterCheck';
 };
 
 /**
@@ -402,7 +436,7 @@ export type ParticleFig = {
   forces: { size: number; angle: number; text: string }[];
 };
 
-export type Fig = LiftFig | PairsFig | VtFig | ScalesFig | LiftPairFig | ThrowFig | ThrowVtFig | FallGraphFig | RoadFig | BrakeVtFig | EquationsFig | GraphFig | ChaseFig | TrackFig | VectorsFig | SledgeFig | HillFig | ResolveFig | BenchFig | KickFig | CrateFig | LadderFig | ParticleFig;
+export type Fig = LiftFig | PairsFig | VtFig | ScalesFig | LiftPairFig | ThrowFig | ThrowVtFig | FallGraphFig | RoadFig | BrakeVtFig | EquationsFig | GraphFig | ChaseFig | TrackFig | VectorsFig | SledgeFig | HillFig | ResolveFig | BenchFig | KickFig | CrateFig | LadderFig | ParticleFig | PulleyFig;
 
 /** Tap targets drawn by a lift figure with `candidates`. */
 export const CANDIDATE_IDS = ['shorter', 'equal', 'longer'] as const;
@@ -463,12 +497,12 @@ export type ChoiceScreen = Base & {
 /**
  * Play with the figure through a slider, then a light question (not counted in the tally).
  * The slider drives the lift's acceleration, the time since the throw, since the brakes came on or since the runners set off,
- * the time cursor of a graph, the angle of the sledge's rope, the clock of the bench falls, the angle of a kick or the angle of the crate's rope.
+ * the time cursor of a graph, the angle of the sledge's rope, the clock of the bench falls, the angle of a kick, the angle of the crate's rope or its pull, or the lab's hanging mass.
  */
 export type ExploreScreen = Base & {
   kind: 'explore';
   instruction: string; // names the gesture: "Drag …"
-  fig: LiftFig | ThrowFig | RoadFig | GraphFig | TrackFig | SledgeFig | BenchFig | KickFig | CrateFig;
+  fig: LiftFig | ThrowFig | RoadFig | GraphFig | TrackFig | SledgeFig | BenchFig | KickFig | CrateFig | PulleyFig;
   /**
    * `tick`: gap between the marks on the ruler (defaults to `step`). `symbol` and `dp` write the bubble ("t = 0.82 s"),
    * `signed` adds + to positive values. `start`: where the thumb begins (defaults to the lift's a, or `min`).

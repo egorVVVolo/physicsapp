@@ -5,9 +5,9 @@
 // Played, the floor slides past at a steady speed; once Rose lets go the crate slides on and stops (friction μN).
 // A force the question asks about is a dashed "?" stub until Check; arrows grow when they first appear and change
 // smoothly when the sheet is kept for the next screen.
-import type { ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { Circle, G as Group, Line, Path, Rect } from 'react-native-svg';
-import { normalWithPull, weight, frictionCoefficient } from '@/physics/dynamics';
+import { acceleration, normalWithPull, weight, frictionCoefficient } from '@/physics/dynamics';
 import { brakingPosition, G, stoppingTime } from '@/physics/kinematics';
 import { components } from '@/physics/vectors';
 import { fixed } from '@/physics/format';
@@ -30,6 +30,12 @@ const POLE = 64; // from Rose's hand to the crate
 const DOT = { x: 266, y: 124 }; // the crate as a particle
 const DIVIDE = 212; // the dashed line between the scene and the free-body diagram
 const KF = 0.25; // viewBox units per newton on the free-body diagram
+// A flat rope (the crate accelerates, `friction` set): a shorter rope and a narrower scene leave room for a 300 N pull
+const FLAT = { rope: 50, dot: { x: 236, y: 116 }, divide: 182 };
+const ACC_PX_PER_M = 24; // the scene of an accelerating crate: the floor goes by faster, so a smaller scale
+const ACC_U = 2; // m s⁻¹, the crate's speed when an accelerating clip starts
+const ACC_RUN = 2; // s, how long an accelerating clip runs before it starts again
+const ACC_MARK = { x: 292, y: 62 }; // the acceleration chevrons on the free-body diagram (upper right, clear of N and T)
 const LEGEND = { x: 14, y: 26, step: 13 }; // the list of sizes: top left, above the scene
 const PX_PER_M = 60; // the scene: metres of floor to viewBox units
 const STEADY_V = 1; // m s⁻¹, how fast the floor slides past while Rose pulls
@@ -39,32 +45,47 @@ const TICK = 9; // gap between the floor's hatch ticks
 /** Where the back of the crate stands (before the sheet is centred), for each way of moving it. */
 const BACK = { rope: 34, pole: 66, none: 14 };
 
-/** Every force on the crate, from the model. `angle` is the rope's angle (the slider on the explore screen). */
-export function crateForces(fig: CrateFig, angle = fig.angle) {
+/**
+ * Every force on the crate, from the model, and its acceleration. `live` is the explore slider: the rope's angle, or the
+ * pull when `slider: 'force'`.
+ */
+export function crateForces(fig: CrateFig, live?: number) {
+  const angle = fig.slider === 'force' ? fig.angle : (live ?? fig.angle);
+  const force = fig.slider === 'force' ? (live ?? fig.force) : fig.force;
   const w = weight(fig.m);
   const signed = fig.by === 'pole' ? -angle : angle; // a pole pushes down: below the horizontal
-  const c = components(fig.force, angle);
+  const c = components(force, angle);
   if (fig.by === 'none') {
     // Rose has let go: sliding friction is μN, with μ from the steady pull that came before
-    const mu = frictionCoefficient(c.along, normalWithPull(w, fig.force, angle));
-    return { W: w, N: w, F: mu * w, T: 0, forward: 0, up: 0, mu };
+    const mu = frictionCoefficient(c.along, normalWithPull(w, force, angle));
+    return { W: w, N: w, F: mu * w, T: 0, forward: 0, up: 0, mu, sum: -mu * w, a: acceleration(-mu * w, fig.m) };
   }
-  return { W: w, N: normalWithPull(w, fig.force, signed), F: c.along, T: fig.force, forward: c.along, up: c.across, mu: 0 };
+  // a fixed sliding friction: the forces need not balance, the crate accelerates; otherwise friction balances the pull
+  const F = fig.friction ?? c.along;
+  const sum = c.along - F;
+  return { W: w, N: normalWithPull(w, force, signed), F, T: force, forward: c.along, up: c.across, mu: 0, sum, a: acceleration(sum, fig.m) };
 }
 
+/** "1.25 m s⁻²", with a minus sign when the crate slows down. */
+const accText = (a: number) => `${fixed(a, 2)} m s⁻²`;
+
 /** The given values in the sheet header; on the explore screen it reads N and the forward part of the pull. */
-export function crateParams(fig: CrateFig, angle?: number): string {
-  if (angle !== undefined) {
-    const f = crateForces(fig, angle);
+export function crateParams(fig: CrateFig, live?: number): string {
+  if (live !== undefined) {
+    const f = crateForces(fig, live);
+    if (fig.slider === 'force') return `ΣF ${fixed(f.sum, 0)} N · a ${accText(f.a)}`;
     return `N ${fixed(f.N, 0)} N · forward ${fixed(f.forward, 1)} N`;
   }
   const m = `m = ${fig.m} kg`;
+  if (fig.friction !== undefined) return `${m}, T = ${fixed(fig.force, 0)} N, F = ${fixed(fig.friction, 0)} N`;
   if (fig.by === 'rope') return `${m}, pull ${fixed(fig.force, 0)} N at ${fixed(fig.angle, 0)}°`;
   if (fig.by === 'pole') return `${m}, push ${fixed(fig.force, 0)} N at ${fixed(fig.angle, 0)}° down`;
   return `${m}, let go at ${LET_GO_V} m s⁻¹`;
 }
 
 export const cratePlays = (fig: CrateFig): boolean => fig.play === true;
+/** It keeps playing while the explore slider moves (the slider sets the pull, the floor follows). */
+export const cratePlaysLive = (fig: CrateFig): boolean => fig.play === true && fig.slider === 'force';
 
 /** The free-body diagram is drawn (otherwise the scene stands alone, in the middle of the sheet). */
 const hasFbd = (fig: CrateFig) => fig.forces.length > 0 || fig.fbdAfterCheck === true;
@@ -77,8 +98,13 @@ type Props = { fig: CrateFig; live?: number; playing: boolean; clock?: DrawClock
 
 export function CrateFigure({ fig, live, playing, clock = STILL, prev }: Props) {
   const { palette: p } = useTheme();
-  const angle = live ?? fig.angle;
-  const f = crateForces(fig, angle);
+  const angle = fig.slider === 'force' ? fig.angle : (live ?? fig.angle);
+  const f = crateForces(fig, live);
+  const flat = fig.friction !== undefined;
+  const dot = flat ? FLAT.dot : DOT;
+  const divide = flat ? FLAT.divide : DIVIDE;
+  const rope = flat ? FLAT.rope : ROPE;
+  const kf = KF;
   const fbd = hasFbd(fig) && !fig.fbdAfterCheck;
   const asked = (k: CrateForce) => (fig.ask ?? []).some((a) => a.force === k);
   const shown = (k: CrateForce, of: CrateFig) => hasFbd(of) && !of.fbdAfterCheck && of.forces.includes(k) && !(of.ask ?? []).some((a) => a.force === k);
@@ -86,8 +112,8 @@ export function CrateFigure({ fig, live, playing, clock = STILL, prev }: Props) 
 
   // each arrow eases to its length: grows from nothing when it first appears (one after another), follows the slider
   const kept = prev !== undefined;
-  const target = (k: CrateForce) => (shown(k, fig) ? f[k] * KF : 0);
-  const from = (k: CrateForce) => (prev && prevF && shown(k, prev) ? prevF[k] * KF : 0);
+  const target = (k: CrateForce) => (shown(k, fig) ? f[k] * kf : 0);
+  const from = (k: CrateForce) => (prev && prevF && shown(k, prev) ? prevF[k] * kf : 0);
   const ms = live !== undefined ? 160 : 420;
   const wait = (i: number) => (kept ? CHANGE_DELAY : 300 + i * 220);
   const len = {
@@ -99,21 +125,23 @@ export function CrateFigure({ fig, live, playing, clock = STILL, prev }: Props) 
   const split = useTween(fig.split ? 1 : 0, prev?.split ? 1 : 0, 420, kept ? CHANGE_DELAY : 1100);
   const shift = useTween(sceneShift(fig), prev ? sceneShift(prev) : undefined, 420, kept ? CHANGE_DELAY : 0);
   const zoom = useTween(sceneZoom(fig), prev ? sceneZoom(prev) : undefined, 420, kept ? CHANGE_DELAY : 0);
-  const floorEnd = useTween(hasFbd(fig) ? DIVIDE - 8 : 332, prev ? (hasFbd(prev) ? DIVIDE - 8 : 332) : undefined, 420, kept ? CHANGE_DELAY : 0);
+  const floorEnd = useTween(hasFbd(fig) ? divide - 8 : 332, prev ? (hasFbd(prev) ? divide - 8 : 332) : undefined, 420, kept ? CHANGE_DELAY : 0);
 
   // the motion: the floor slides past (steady), or the crate slides on and stops (let go)
   const braking = { u: LET_GO_V, a: -f.mu * G, react: 0 };
   const tStop = fig.by === 'none' ? stoppingTime(braking) : 0;
-  const t = useLoopTime(playing && fig.play === true, fig.by === 'none' ? tStop : TICK / (STEADY_V * PX_PER_M), fig.by, fig.by === 'none' ? 0.9 : 0);
+  const accelerates = fig.friction !== undefined && fig.by !== 'none';
+  const t = useLoopTime(playing && fig.play === true && !accelerates, fig.by === 'none' ? tStop : TICK / (STEADY_V * PX_PER_M), fig.by, fig.by === 'none' ? 0.9 : 0);
+  const run = useAccelerating(playing && fig.play === true && accelerates, f.a);
   const slid = fig.by === 'none' ? brakingPosition(fig.play ? t : 0, braking) * PX_PER_M : 0;
-  const scroll = fig.by === 'none' ? 0 : t * STEADY_V * PX_PER_M;
+  const scroll = accelerates ? run.s * ACC_PX_PER_M : fig.by === 'none' ? 0 : t * STEADY_V * PX_PER_M;
 
   const x0 = shift + slid; // the back of the crate
   const top = FLOOR - BOX.h;
   const cg: [number, number] = [x0 + BOX.w / 2, FLOOR - BOX.h / 2];
   const d: [number, number] = [Math.cos(angle * RAD), (fig.by === 'pole' ? 1 : -1) * Math.sin(angle * RAD)]; // the force's direction
   const hitch: [number, number] = [x0 + BOX.w, FLOOR - BOX.h / 2];
-  const mitten: [number, number] = [hitch[0] + d[0] * ROPE, hitch[1] + d[1] * ROPE];
+  const mitten: [number, number] = [hitch[0] + d[0] * rope, hitch[1] + d[1] * rope];
   const poleEnd: [number, number] = [x0, top + 18];
   const hand: [number, number] = [poleEnd[0] - d[0] * POLE, poleEnd[1] - d[1] * POLE];
   const stage = (pen: readonly [number, number], children: ReactNode) => (
@@ -129,12 +157,12 @@ export function CrateFigure({ fig, live, playing, clock = STILL, prev }: Props) 
 
   // free-body diagram tips
   const tip = {
-    W: [DOT.x, DOT.y + len.W] as const,
-    N: [DOT.x, DOT.y - len.N] as const,
-    F: [DOT.x - len.F, DOT.y] as const,
-    T: [DOT.x + d[0] * len.T, DOT.y + d[1] * len.T] as const,
+    W: [dot.x, dot.y + len.W] as const,
+    N: [dot.x, dot.y - len.N] as const,
+    F: [dot.x - len.F, dot.y] as const,
+    T: [dot.x + d[0] * len.T, dot.y + d[1] * len.T] as const,
   };
-  const fwdTip: [number, number] = [DOT.x + d[0] * len.T, DOT.y];
+  const fwdTip: [number, number] = [dot.x + d[0] * len.T, dot.y];
   const letters = { W: 'W', N: 'N', F: 'F', T: 'T' };
   const legend: string[] = [];
   if (fbd && fig.values) {
@@ -143,7 +171,9 @@ export function CrateFigure({ fig, live, playing, clock = STILL, prev }: Props) 
       legend.push(`${k} ${asked(k) ? '?' : `${fixed(f[k], 0)} N`}`);
     }
     if (fig.split) legend.push(`T forward ${fixed(f.forward, 1)} N`, `T up ${fixed(f.up, 1)} N`);
+    if (fig.friction !== undefined) legend.push(`ΣF ${fixed(f.sum, 0)} N`);
   }
+  const accLabel = fig.accel === 'shown' ? accText(f.a) : fig.accel ? '?' : null;
 
   return (
     <Group>
@@ -196,7 +226,7 @@ export function CrateFigure({ fig, live, playing, clock = STILL, prev }: Props) 
               strokeWidth={1.6}
             />
           )}
-          {fig.play && <MotionTag x={cg[0]} y={top - 20} text={fig.by === 'none' ? 'slowing down' : 'steady speed'} />}
+          {fig.play && <MotionTag x={cg[0]} y={top - 20} text={accelerates ? (run.v === 0 ? 'stopped' : `v = ${fixed(run.v, 1)} m s⁻¹`) : fig.by === 'none' ? 'slowing down' : 'steady speed'} />}
           {fig.floorPush && (
             <Group>
               <ForceArrow x1={cg[0]} y1={FLOOR} x2={cg[0]} y2={FLOOR + 32} color={p.force} width={2.8} />
@@ -213,14 +243,14 @@ export function CrateFigure({ fig, live, playing, clock = STILL, prev }: Props) 
         stage(
           PEN.fbd,
           <Group>
-            <Line x1={DIVIDE} y1={14} x2={DIVIDE} y2={216} stroke={p.paperLine} strokeWidth={1.2} strokeDasharray="4 4" />
-            <MonoLabel x={DIVIDE + 6} y={192} text="CRATE" color={p.label} size={9} anchor="start" />
-            <MonoLabel x={DIVIDE + 6} y={203} text="ALONE" color={p.label} size={9} anchor="start" />
-            <Rect x={DOT.x - 7} y={DOT.y - 7} width={14} height={14} rx={2} fill="none" stroke={p.label} strokeWidth={1} strokeDasharray="3 3" />
-            {!fbd && <MonoLabel x={DOT.x + 18} y={DOT.y - 14} text="?" color={p.ink} size={12} />}
+            <Line x1={divide} y1={14} x2={divide} y2={216} stroke={p.paperLine} strokeWidth={1.2} strokeDasharray="4 4" />
+            <MonoLabel x={flat ? 332 : divide + 6} y={flat ? 200 : 192} text="CRATE" color={p.label} size={9} anchor={flat ? 'end' : 'start'} />
+            <MonoLabel x={flat ? 332 : divide + 6} y={flat ? 211 : 203} text="ALONE" color={p.label} size={9} anchor={flat ? 'end' : 'start'} />
+            <Rect x={dot.x - 7} y={dot.y - 7} width={14} height={14} rx={2} fill="none" stroke={p.label} strokeWidth={1} strokeDasharray="3 3" />
+            {!fbd && <MonoLabel x={dot.x + 18} y={dot.y - 14} text="?" color={p.ink} size={12} />}
             {fig.split && split > 0 && (
               <Path
-                d={`M${tip.T[0]},${tip.T[1]} V${fwdTip[1]} M${tip.T[0]},${tip.T[1]} H${DOT.x}`}
+                d={`M${tip.T[0]},${tip.T[1]} V${fwdTip[1]} M${tip.T[0]},${tip.T[1]} H${dot.x}`}
                 fill="none"
                 stroke={p.label}
                 strokeWidth={1.1}
@@ -229,10 +259,10 @@ export function CrateFigure({ fig, live, playing, clock = STILL, prev }: Props) 
               />
             )}
             {(['W', 'N', 'F', 'T'] as const).map((k) => (
-              <ForceArrow key={k} x1={DOT.x} y1={DOT.y} x2={tip[k][0]} y2={tip[k][1]} color={p.force} width={fig.split && k === 'T' ? 3.6 : 3.2} />
+              <ForceArrow key={k} x1={dot.x} y1={dot.y} x2={tip[k][0]} y2={tip[k][1]} color={p.force} width={fig.split && k === 'T' ? 3.6 : 3.2} />
             ))}
             {fbd && (fig.ask ?? []).map((a) => <AskStub key={a.force} force={a.force} />)}
-            <Circle cx={DOT.x} cy={DOT.y} r={3.6} fill={p.force} />
+            <Circle cx={dot.x} cy={dot.y} r={3.6} fill={p.force} />
           </Group>,
         )}
 
@@ -240,10 +270,17 @@ export function CrateFigure({ fig, live, playing, clock = STILL, prev }: Props) 
         stage(
           PEN.labels,
           <Group>
-            {len.W > 4 && <ForceLetter x={DOT.x - 8} y={tip.W[1] - 2} text={letters.W} color={p.force} size={14} anchor="end" />}
-            {len.N > 4 && <ForceLetter x={DOT.x - 8} y={tip.N[1] + 11} text={letters.N} color={p.force} size={14} anchor="end" />}
-            {len.F > 4 && <ForceLetter x={tip.F[0] - 4} y={DOT.y - 6} text={letters.F} color={p.force} size={14} anchor="end" />}
+            {len.W > 4 && <ForceLetter x={dot.x - 8} y={tip.W[1] - 2} text={letters.W} color={p.force} size={14} anchor="end" />}
+            {len.N > 4 && <ForceLetter x={dot.x - 8} y={tip.N[1] + 11} text={letters.N} color={p.force} size={14} anchor="end" />}
+            {len.F > 4 && <ForceLetter x={tip.F[0] - 4} y={dot.y - 6} text={letters.F} color={p.force} size={14} anchor="end" />}
             {len.T > 4 && <ForceLetter x={tip.T[0] + 5} y={tip.T[1] + (d[1] < 0 ? 2 : 12)} text={letters.T} color={p.force} size={14} anchor="start" />}
+            {accLabel !== null && Math.abs(f.a) > 0.005 && <AccMark x={ACC_MARK.x} y={ACC_MARK.y} back={f.a < 0} />}
+            {accLabel !== null && (
+              <Group>
+                <MonoLabel x={ACC_MARK.x} y={ACC_MARK.y + 24} text={accLabel === '?' ? 'a = ?' : `a = ${fixed(f.a, 2)}`} color={p.ink} size={10} />
+                {accLabel !== '?' && <MonoLabel x={ACC_MARK.x} y={ACC_MARK.y + 36} text="m s⁻²" color={p.label} size={9} />}
+              </Group>
+            )}
             {legend.map((line, i) => (
               <MonoLabel key={line} x={LEGEND.x} y={LEGEND.y + i * LEGEND.step} text={line} color={p.ink} size={9} anchor="start" />
             ))}
@@ -277,4 +314,58 @@ function MotionTag({ x, y, text }: { x: number; y: number; text: string }) {
       <Tag x={x} y={y - 12} text={text} />
     </Group>
   );
+}
+
+/** The acceleration on the free-body diagram: two chevrons pointing forward (or back, when the crate slows down). */
+function AccMark({ x, y, back }: { x: number; y: number; back: boolean }) {
+  const { palette: p } = useTheme();
+  const d = back ? -4 : 4; // half the width of one chevron, signed by its direction
+  const one = (cx: number) => `M${cx - d},${y - 7} L${cx + d},${y} L${cx - d},${y + 7}`;
+  return (
+    <Group>
+      <Path d={one(x - 5)} fill="none" stroke={p.draw} strokeWidth={2.6} strokeLinecap="round" strokeLinejoin="round" />
+      <Path d={one(x + 5)} fill="none" stroke={p.draw} strokeWidth={2.6} strokeLinecap="round" strokeLinejoin="round" />
+    </Group>
+  );
+}
+
+/**
+ * The accelerating crate's clip: it starts at ACC_U and its speed follows v' = a (a from the model, so the slider changes it
+ * smoothly mid-clip); it cannot slide backwards, so a slowing crate stops and stays. After ACC_RUN seconds it starts again.
+ * Returns how far it has slid (m) and its speed.
+ */
+function useAccelerating(running: boolean, a: number): { s: number; v: number } {
+  const [state, setState] = useState({ s: 0, v: ACC_U });
+  const acc = useRef(a);
+  useEffect(() => {
+    acc.current = a;
+  }, [a]);
+  useEffect(() => {
+    if (!running) return;
+    let raf = 0;
+    let last = performance.now();
+    let t = 0;
+    let s = 0;
+    let v = ACC_U;
+    let stopped = -1; // when a slowing crate came to rest: it waits a moment, then the clip starts again
+    const step = (now: number) => {
+      const dt = Math.min(0.05, (now - last) / 1000);
+      last = now;
+      t += dt;
+      if (t > ACC_RUN || (stopped >= 0 && t - stopped > 0.6)) {
+        t = 0;
+        v = ACC_U;
+        stopped = -1;
+      }
+      const v1 = Math.max(0, v + acc.current * dt);
+      s += ((v + v1) / 2) * dt; // exact for a constant a
+      v = v1;
+      if (v === 0 && stopped < 0) stopped = t;
+      setState({ s, v });
+      raf = requestAnimationFrame(step);
+    };
+    raf = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(raf);
+  }, [running]);
+  return state;
 }
