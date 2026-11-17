@@ -325,6 +325,17 @@ Every lesson targets at least one id below; every distractor and wrong-answer fe
 
 Sources: [Beichner (1994), kinematics graphs](https://moodle2.units.it/pluginfile.php/732257/mod_resource/content/1/Testing%20student%20understanding%20kinematics%20graphs.pdf); [Planinic et al. (2012)](https://www.bib.irb.hr/452519).
 
+## 12b. Misconception bank — Forces
+
+| Id | Misconception | How it shows up | Scene that breaks it |
+| --- | --- | --- | --- |
+| F-N-EQUALS-W | The floor always pushes with the weight | N = 392 N for a crate pulled by a rope at 30° | The crate's diagram: N + 60.0 N = 392 N, so N = 332 N |
+| F-MOTION-FORCE | A moving body needs a forward force | "The force of the pull" still on the crate after Rose lets go; "the force of the throw" on a rising ball | Rose lets go: nothing touches the front, the crate slows (friction only) |
+| F-BY-NOT-ON | A force the body exerts is drawn on its own diagram | The crate's push on the floor added to the crate | P drawn on the floor, where it acts |
+| F-FRICTION-WHOLE | Friction at steady speed equals the whole pull, or is zero "because it moves" | 120 N or 0 N instead of 104 N | The rope split: only the forward part balances friction |
+| F-FBD-MOTION | The diagram shows which way a body moves | Resultant to the left, so "it moves left" | Box on ice: the diagram gives the acceleration only |
+| F-SMOOTH-DIR | A smooth surface pushes along the body or at right angles to it | The wall pushes along or across the ladder | Ladder on a smooth wall: the push is at right angles to the wall |
+
 ## 13. Lesson spec template
 
 Every lesson is written in this shape first (reviewable by Egor), then translated 1:1 into typed content in `src/content/`.

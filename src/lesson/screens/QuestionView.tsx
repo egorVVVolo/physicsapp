@@ -150,6 +150,8 @@ function revealsAfterCheck(fig: Fig | undefined): boolean {
     (fig?.kind === 'sledge' && (fig.forward === 'afterCheck' || fig.up === 'afterCheck')) ||
     (fig?.kind === 'hill' && (fig.along === 'afterCheck' || fig.into === 'afterCheck')) ||
     (fig?.kind === 'resolve' && fig.answer === 'afterCheck') ||
+    (fig?.kind === 'crate' && ((fig.ask ?? []).some((a) => a.answer === 'afterCheck') || fig.fbdAfterCheck === true)) ||
+    (fig?.kind === 'ladder' && fig.askF === 'afterCheck') ||
     (fig?.kind === 'bench' && (fig.play === 'afterCheck' || fig.range === 'afterCheck')) ||
     (fig?.kind === 'kick' && (fig.play === 'afterCheck' || fig.path === 'afterCheck' || fig.range === 'afterCheck' || fig.height === 'afterCheck' || fig.topV === 'afterCheck'))
   );
@@ -170,6 +172,9 @@ function revealed(fig: Fig): Fig {
   if (fig.kind === 'sledge') return { ...fig, forward: shownAfter(fig.forward), up: shownAfter(fig.up) };
   if (fig.kind === 'hill') return { ...fig, along: shownAfter(fig.along), into: shownAfter(fig.into) };
   if (fig.kind === 'resolve') return { ...fig, answer: fig.answer === 'afterCheck' ? 'shown' : fig.answer };
+  // the free-body diagram appears, or the force it asked for grows to its real size
+  if (fig.kind === 'crate') return { ...fig, fbdAfterCheck: undefined, ask: fig.ask?.filter((a) => a.answer !== 'afterCheck') };
+  if (fig.kind === 'ladder') return { ...fig, askF: fig.askF === 'afterCheck' ? undefined : fig.askF };
   // the falls play (slowed down, with strobe copies) and the landing distance is written in
   if (fig.kind === 'bench') return { ...fig, play: fig.play === 'afterCheck' ? true : fig.play, at: fig.play === 'afterCheck' ? undefined : fig.at, range: fig.range === 'afterCheck' ? 'shown' : fig.range };
   // the flights play, the paths appear and every "?" gets its size

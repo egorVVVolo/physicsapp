@@ -23,7 +23,7 @@ export const course: Course = {
       id: 'forces',
       title: 'Forces',
       lessons: [
-        { id: 'free-body', title: 'Drawing the forces', spec: [8], ready: false, about: 'Show every force on one body, and nothing else.' },
+        { id: 'free-body', title: 'Drawing the forces', spec: [8], about: 'Show every force on one body, and nothing else.', ready: true },
         { id: 'f-ma', title: 'Force and acceleration', spec: [9, 10], ready: false, about: 'How resultant force, mass and acceleration are tied together.' },
         { id: 'normal-reaction', title: 'The push from the floor', spec: [8, 9, 10, 12], ready: true, about: 'Why a scale reads more or less than your weight in a lift.' },
         { id: 'terminal-velocity', title: 'Falling through air', spec: [9], ready: false, about: 'Drag grows with speed until it balances the weight.' },

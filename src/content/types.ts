@@ -341,7 +341,68 @@ export type KickFig = {
   play?: true | 'afterCheck';
 };
 
-export type Fig = LiftFig | PairsFig | VtFig | ScalesFig | LiftPairFig | ThrowFig | ThrowVtFig | FallGraphFig | RoadFig | BrakeVtFig | EquationsFig | GraphFig | ChaseFig | TrackFig | VectorsFig | SledgeFig | HillFig | ResolveFig | BenchFig | KickFig;
+/** A force on the crate's free-body diagram: weight, normal reaction, friction, and Rose's rope or pole. */
+export type CrateForce = 'W' | 'N' | 'F' | 'T';
+
+/**
+ * Rose moves a crate across a level floor. The scene is on the left; on the right the crate is shrunk to a dot (it slides
+ * without turning) with one arrow per force, all to the same scale. N comes from normalWithPull (src/physics/dynamics):
+ * nothing accelerates up or down. Friction is drawn as what balances the forward push (steady speed), or, once Rose
+ * lets go, as μN with μ from the steady pull.
+ */
+export type CrateFig = {
+  kind: 'crate';
+  m: number; // kg
+  /** A rope pulling at `angle` above the floor, a pole pushing at `angle` below it, or nothing: Rose has let go. */
+  by: 'rope' | 'pole' | 'none';
+  force: number; // N, the pull or push (before letting go, for 'none')
+  angle: number; // degrees (on the explore screen: the slider)
+  /** The forces on the free-body diagram. Empty: the scene alone, in the middle of the sheet. */
+  forces: CrateForce[];
+  /** List each force's size beside the diagram (otherwise the letters only). */
+  values?: true;
+  /** Forces kept hidden: a dashed "?" stub each, for good or until the question is answered (then the real arrow grows). */
+  ask?: { force: 'N' | 'F'; answer: 'unknown' | 'afterCheck' }[];
+  /** The free-body diagram appears only once the question is answered (it would give the answer away). */
+  fbdAfterCheck?: true;
+  /** Split the rope's force into its forward and upward parts, tip to tail, with their sizes. */
+  split?: true;
+  /** Draw P, the crate's push on the floor, on the scene where it acts (on the floor, under the crate). */
+  floorPush?: true;
+  /** Play the motion: the floor slides past at a steady speed, or (let go) the crate slides on and stops. */
+  play?: true;
+};
+
+/**
+ * A uniform ladder leaning on a smooth wall, standing on a rough floor at `angle` degrees: an extended body, so each
+ * force is drawn where it acts. W from the middle, S (the wall's push) at the top, N and F (friction) at the foot.
+ * S comes from ladderWallPush (src/physics/dynamics); F balances S, N balances W.
+ */
+export type LadderFig = {
+  kind: 'ladder';
+  m: number; // kg
+  angle: number; // degrees, to the floor
+  forces: ('W' | 'S' | 'N' | 'F')[];
+  /** Write each force's size next to its letter. */
+  values?: true;
+  /** Three dashed candidates for the wall's push at the top, to tap (LADDER_IDS). */
+  candidates?: true;
+  /** Friction at the foot is asked for: "?" with no arrow, or "?" until answered, then the arrow and its size. */
+  askF?: 'unknown' | 'afterCheck';
+};
+
+/**
+ * One body shrunk to a dot, with its forces as arrows to scale (`scale`: viewBox units per newton).
+ * `angle`: degrees from the positive x direction, anticlockwise (90 = up). `text` is written at the tip.
+ */
+export type ParticleFig = {
+  kind: 'particle';
+  header: string;
+  scale: number;
+  forces: { size: number; angle: number; text: string }[];
+};
+
+export type Fig = LiftFig | PairsFig | VtFig | ScalesFig | LiftPairFig | ThrowFig | ThrowVtFig | FallGraphFig | RoadFig | BrakeVtFig | EquationsFig | GraphFig | ChaseFig | TrackFig | VectorsFig | SledgeFig | HillFig | ResolveFig | BenchFig | KickFig | CrateFig | LadderFig | ParticleFig;
 
 /** Tap targets drawn by a lift figure with `candidates`. */
 export const CANDIDATE_IDS = ['shorter', 'equal', 'longer'] as const;
@@ -352,6 +413,8 @@ export const ACC_IDS = ['up', 'zero', 'down'] as const;
 /** Tap targets drawn by the equations figure: the four suvat equations (ids of RELATIONS in src/physics/kinematics). */
 /** Tap targets drawn by a sledge figure with `targets`: Ana's pull and its two components. */
 export const SLEDGE_IDS = ['pull', 'forward', 'up'] as const;
+/** Tap targets drawn by a ladder figure with `candidates`: which way the wall pushes. */
+export const LADDER_IDS = ['normal', 'perp', 'up'] as const;
 export const EQUATION_IDS = ['vuat', 'sut', 'v2as', 'suvt'] as const satisfies readonly RelationId[];
 
 // ── Screens ──────────────────────────────────────────────────────────────────────────────
@@ -400,12 +463,12 @@ export type ChoiceScreen = Base & {
 /**
  * Play with the figure through a slider, then a light question (not counted in the tally).
  * The slider drives the lift's acceleration, the time since the throw, since the brakes came on or since the runners set off,
- * the time cursor of a graph, the angle of the sledge's rope, the clock of the bench falls or the angle of a kick.
+ * the time cursor of a graph, the angle of the sledge's rope, the clock of the bench falls, the angle of a kick or the angle of the crate's rope.
  */
 export type ExploreScreen = Base & {
   kind: 'explore';
   instruction: string; // names the gesture: "Drag …"
-  fig: LiftFig | ThrowFig | RoadFig | GraphFig | TrackFig | SledgeFig | BenchFig | KickFig;
+  fig: LiftFig | ThrowFig | RoadFig | GraphFig | TrackFig | SledgeFig | BenchFig | KickFig | CrateFig;
   /**
    * `tick`: gap between the marks on the ruler (defaults to `step`). `symbol` and `dp` write the bubble ("t = 0.82 s"),
    * `signed` adds + to positive values. `start`: where the thumb begins (defaults to the lift's a, or `min`).

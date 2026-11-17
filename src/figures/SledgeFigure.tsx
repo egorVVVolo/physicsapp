@@ -205,7 +205,7 @@ export function SledgeFigure({ fig, live, tap, clock = STILL }: Props) {
 }
 
 /** Dashed boxes round the tap targets; the chosen one turns soft blue, a checked one green or red. */
-function TapBoxes({ targets, tap }: { targets: TapTarget[]; tap?: TapProps }) {
+export function TapBoxes({ targets, tap }: { targets: TapTarget[]; tap?: TapProps }) {
   const { palette: p } = useTheme();
   return (
     <Group>
@@ -247,7 +247,7 @@ function Sledge({ x, y, s, flip }: { x: number; y: number; s: number; flip?: boo
 }
 
 /** A gloved hand at (x, y) with the sleeve going off along (dx, dy): the person is off the drawing. */
-function Mitten({ x, y, dx, dy }: { x: number; y: number; dx: number; dy: number }) {
+export function Mitten({ x, y, dx, dy }: { x: number; y: number; dx: number; dy: number }) {
   const { palette: p } = useTheme();
   const [ex, ey] = [x + dx * 18, y + dy * 18];
   return (

@@ -1,6 +1,6 @@
 # Lesson spec — "Drawing the forces"
 
-17 Nov 2026 · status: **draft, waiting for the owner's ok** · format: story + Skill check (`docs/LESSON_FRAMEWORK.md`, 1b)
+17 Nov 2026 · status: **built 17 Nov** after the owner's ok (`src/content/drawing-the-forces.ts`, checked in the web at 375×667, light and dark theme); not yet played on a phone or by the owner · format: story + Skill check (`docs/LESSON_FRAMEWORK.md`, 1b)
 
 - **id:** `free-body` · level 2 "Forces" · WPH11 point **8** (draw and interpret free-body force diagrams for a particle or an extended but rigid body); uses point 9 (balanced forces → steady velocity) and lesson 6 (components) along the way · ~12 min
 - **Idea:** pick **one** body and draw it alone. Its forces are its weight (from the centre of gravity) plus **one force wherever something touches it**: a surface pushes at right angles (N) and rubs along itself (friction), a rope pulls along itself (tension). Nothing the body does to other things, and no "force of motion". Then read the diagram: balanced in each direction means steady velocity (rest is only one case); unbalanced tells you which way it **accelerates**, not which way it moves.
@@ -71,9 +71,17 @@ All four are new contexts; "sign" and "slope" need the components from lesson 6,
 
 **Notebook card:** `ΣF = 0 each way` — "Draw one body alone: its weight, plus one force wherever something touches it. Balanced each way means steady velocity, not only rest."
 
-## What to build
+## Changed while building
 
-1. Physics, `src/physics/dynamics.ts`: `normalWithRope(W, T, θ)` = W − T sin θ (θ above the horizontal, negative for a push downwards); `ladderWallPush(W, α)` = W / (2 tan α) for a uniform ladder on a smooth wall (the wall's value is given in the lesson, moments come later). The cable and slope numbers reuse `components` and `onSlope` from `vectors.ts`. Test.
+- **The crate's diagram is a dot from screen 4 on** (scene on the left, "crate alone" on the right, all arrows to one scale): drawn from where they act, W and N would lie on top of each other on a crate. So screen 3 already says "treat it as a **particle**", and screen 12 contrasts it with the ladder.
+- **Screen 5 is a choice, not a tap:** P is drawn on the scene, on the floor where it acts; "Does P belong on the crate's diagram?" (no: it acts on the floor). A fifth arrow from the dot would sit on top of W.
+- **Screen 13, the third candidate is "at right angles to the ladder"** (instead of "down along the ladder", which lay on top of the ladder and could not be seen); a classic mistake too.
+- **Screen 15 is a box on smooth ice pushed both ways** (120 N right, 200 N left), not a car: forces called "drag" or "braking" would give the motion away.
+- The sizes are listed in the top left of the sheet; the rope's split is drawn as dashed lines with "T forward 103.9 N, T up 60.0 N" in the list.
+
+## What was built
+
+1. Physics, `src/physics/dynamics.ts`: `normalWithPull(W, T, θ)` = W − T sin θ (θ above the horizontal, negative for a push downwards); `ladderWallPush(W, α)` = W / (2 tan α) for a uniform ladder on a smooth wall (the wall's value is given in the lesson, moments come later); `frictionCoefficient` for the crate that slides on after Rose lets go. The cable and slope numbers reuse `components` and `onSlope` from `vectors.ts`. Test.
 2. Figure "crate" (`src/figures/CrateFigure.tsx`): side view, hatched floor, a flat-3D wooden crate with its centre of gravity marked; the gloved hand and rope from `SledgeFigure.tsx` (moved into a shared drawing if needed), or a pole for screen 11. Modes: scene (sliding by the model, floor marks moving past); forces (W, N, F, T grow one by one from where they act, named or "?"); the extra arrow P on the floor for the tap screen; T split with a dashed rectangle; the slider tilts the rope and the header reads N and the forward part; let go (slack rope, the crate slows by the model and stops).
 3. Figure "ladder" (`src/figures/LadderFigure.tsx`): wall and floor hatched, a ladder at 65°, forces at the foot and the top, weight from the middle; three dashed tap candidates at the top for screen 13.
 4. Figure "particle" (`src/figures/ParticleFigure.tsx`, or a mode of the crate figure): a dot with labelled arrows, lengths to scale; used for screens 12 and 15.
