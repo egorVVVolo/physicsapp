@@ -21,6 +21,8 @@ import { BRAKE_VT_VB, BrakeVtFigure } from './BrakeGraph';
 import { EQUATIONS_VB, EquationsFigure, equationsTargets } from './EquationsFigure';
 import { GRAPH_VB, GraphFigure, graphTargets } from './GraphFigure';
 import { CHASE_VB, ChaseFigure, chaseParams, chasePlays } from './ChaseFigure';
+import { TRACK_VB, TrackFigure, trackParams, trackPlays } from './TrackFigure';
+import { VECTORS_VB, VectorsFigure } from './VectorsFigure';
 
 export type TapTarget = { id: string; x: number; y: number; w: number; h: number; label: string };
 export type TapProps = {
@@ -43,7 +45,7 @@ type Props = {
 /** Every figure is drawn at the same size on every screen, so the drawing never jumps between screens. */
 const MAX_H = 270;
 /** The figures that draw themselves the first time their kind appears in a lesson. */
-const DRAWS_ITSELF: Fig['kind'][] = ['scales', 'lift', 'pairs', 'throw', 'throwVt', 'fallGraph', 'road', 'brakeVt', 'equations', 'graph', 'chase'];
+const DRAWS_ITSELF: Fig['kind'][] = ['scales', 'lift', 'pairs', 'throw', 'throwVt', 'fallGraph', 'road', 'brakeVt', 'equations', 'graph', 'chase', 'track', 'vectors'];
 
 export function Sheet({ fig, n, live, tap, caption }: Props) {
   const { palette: p } = useTheme();
@@ -57,7 +59,7 @@ export function Sheet({ fig, n, live, tap, caption }: Props) {
   // the first figure of each kind in a lesson draws itself; the pen starts once the sheet knows its size
   const first = useFirstShow(fig.kind);
   const clock = useDrawIn(first && width > 0 && DRAWS_ITSELF.includes(fig.kind));
-  const vb = { lift: LIFT_VB, pairs: PAIRS_VB, vt: VT_VB, scales: SCALES_VB, liftPair: LIFT_PAIR_VB, throw: THROW_VB, throwVt: THROW_VT_VB, fallGraph: FALL_VB, road: ROAD_VB, brakeVt: BRAKE_VT_VB, equations: EQUATIONS_VB, graph: GRAPH_VB, chase: CHASE_VB }[fig.kind];
+  const vb = { lift: LIFT_VB, pairs: PAIRS_VB, vt: VT_VB, scales: SCALES_VB, liftPair: LIFT_PAIR_VB, throw: THROW_VB, throwVt: THROW_VT_VB, fallGraph: FALL_VB, road: ROAD_VB, brakeVt: BRAKE_VT_VB, equations: EQUATIONS_VB, graph: GRAPH_VB, chase: CHASE_VB, track: TRACK_VB, vectors: VECTORS_VB }[fig.kind];
   const aNow = fig.kind === 'lift' ? (live ?? fig.a) : 0;
   // a lift with nothing drawn beside it stands in the middle; kept from the screen before, it glides aside to make room
   const shift = useTween(fig.kind === 'lift' ? liftShiftX(fig) : 0, prev?.kind === 'lift' ? liftShiftX(prev) : undefined, motion.screen);
@@ -73,10 +75,10 @@ export function Sheet({ fig, n, live, tap, caption }: Props) {
     w = (h * vb.w) / vb.h;
   }
   const scale = w / vb.w;
-  const animates = !reduced && ((fig.kind === 'lift' && liftMoves(fig, aNow)) || fig.kind === 'scales' || (fig.kind === 'throw' && throwPlays(fig)) || (fig.kind === 'road' && roadPlays(fig)) || (fig.kind === 'chase' && chasePlays(fig)));
+  const animates = !reduced && ((fig.kind === 'lift' && liftMoves(fig, aNow)) || fig.kind === 'scales' || (fig.kind === 'throw' && throwPlays(fig)) || (fig.kind === 'road' && roadPlays(fig)) || (fig.kind === 'chase' && chasePlays(fig)) || (fig.kind === 'track' && trackPlays(fig) && live === undefined));
   const run = playing && !reduced;
   const targets = !tap ? [] : fig.kind === 'lift' ? liftTargets(fig) : fig.kind === 'pairs' ? pairsTargets() : fig.kind === 'vt' ? vtTargets(fig) : fig.kind === 'throw' ? throwTargets(fig) : fig.kind === 'equations' ? equationsTargets(fig) : fig.kind === 'graph' ? graphTargets(fig) : [];
-  const params = caption ?? paramsOf(fig, aNow, live !== undefined);
+  const params = caption ?? paramsOf(fig, aNow, live);
 
   return (
     <View style={[styles.sheet, { backgroundColor: p.paper, borderColor: p.paperLine }]}>
@@ -130,6 +132,8 @@ export function Sheet({ fig, n, live, tap, caption }: Props) {
               {fig.kind === 'equations' && <EquationsFigure fig={fig} tap={tap} clock={clock} />}
               {fig.kind === 'graph' && <GraphFigure fig={fig} live={live} tap={tap} clock={clock} />}
               {fig.kind === 'chase' && <ChaseFigure fig={fig} playing={run} clock={clock} />}
+              {fig.kind === 'track' && <TrackFigure fig={fig} live={live} playing={run} clock={clock} />}
+              {fig.kind === 'vectors' && <VectorsFigure fig={fig} clock={clock} />}
             </Svg>
             {fig.kind === 'lift' && <ShaftMarks fig={fig} a={aNow} scale={scale} playing={run} clock={clock} shift={shift} />}
             {targets.map((t) => (
@@ -151,10 +155,10 @@ export function Sheet({ fig, n, live, tap, caption }: Props) {
 }
 
 /** The given values in the sheet header. On an explore screen the slider's value is on the slider, so it is left out. */
-function paramsOf(fig: Fig, a: number, live: boolean): string {
+function paramsOf(fig: Fig, a: number, live: number | undefined): string {
   switch (fig.kind) {
     case 'lift':
-      return liftParams(fig, a, live);
+      return liftParams(fig, a, live !== undefined);
     case 'vt':
       return 'lift trip, upward';
     case 'throw':
@@ -173,6 +177,10 @@ function paramsOf(fig: Fig, a: number, live: boolean): string {
       return fig.header;
     case 'chase':
       return chaseParams(fig);
+    case 'track':
+      return trackParams(fig, live);
+    case 'vectors':
+      return fig.header;
     default:
       return `m = ${fig.m} kg`;
   }

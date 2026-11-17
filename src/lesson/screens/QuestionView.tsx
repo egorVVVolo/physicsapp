@@ -144,7 +144,9 @@ function revealsAfterCheck(fig: Fig | undefined): boolean {
     (fig?.kind === 'lift' && fig.reading === 'afterCheck') ||
     (fig?.kind === 'road' && fig.play === 'afterCheck') ||
     (fig?.kind === 'equations' && fig.leftOut === 'afterCheck') ||
-    (fig?.kind === 'graph' && (fig.areas ?? []).some((area) => area.value === 'afterCheck'))
+    (fig?.kind === 'graph' && (fig.areas ?? []).some((area) => area.value === 'afterCheck')) ||
+    (fig?.kind === 'track' && fig.disp === 'afterCheck') ||
+    (fig?.kind === 'vectors' && (fig.resultant === 'afterCheck' || fig.angle === 'afterCheck'))
   );
 }
 
@@ -157,6 +159,8 @@ function revealed(fig: Fig): Fig {
   if (fig.kind === 'equations') return { ...fig, leftOut: 'shown' };
   // the size of each area is written in
   if (fig.kind === 'graph') return { ...fig, areas: fig.areas?.map((area) => ({ ...area, value: 'shown' as const })) };
+  if (fig.kind === 'track') return { ...fig, disp: fig.disp === 'afterCheck' ? 'shown' : fig.disp };
+  if (fig.kind === 'vectors') return { ...fig, resultant: fig.resultant === 'afterCheck' ? 'shown' : fig.resultant, angle: fig.angle === 'afterCheck' ? 'shown' : fig.angle };
   if (fig.kind !== 'lift') return fig;
   return { ...fig, unknownN: undefined, reading: fig.reading === 'afterCheck' ? 'shown' : fig.reading };
 }

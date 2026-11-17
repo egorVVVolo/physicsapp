@@ -187,7 +187,52 @@ export type ChaseFig = {
   play?: true;
 };
 
-export type Fig = LiftFig | PairsFig | VtFig | ScalesFig | LiftPairFig | ThrowFig | ThrowVtFig | FallGraphFig | RoadFig | BrakeVtFig | EquationsFig | GraphFig | ChaseFig;
+/**
+ * A straight east–west track seen from the side, with a lamp post at 0 m. Each runner has a lane and a run made of
+ * parts of steady velocity (a `Trip`, east positive); positions come from tripPosition (src/physics/kinematics).
+ * Runner A's two legs can be drawn as arrows above its lane, and each runner's displacement as an arrow below it.
+ */
+export type TrackFig = {
+  kind: 'track';
+  runners: { id: 'A' | 'B'; trip: Trip }[];
+  /** How long the runs last, s: the race ends here. */
+  tEnd: number;
+  /** Which way is positive: the + on the ruler, the signs in the header and on the labels. */
+  plus: 'east' | 'west';
+  /** Where the runners stand while the figure is still: at the lamp post, at the finish, or `mid` seconds into the run. */
+  at?: 'start' | 'end' | number;
+  /** Draw runner A's legs (each part of its run) as arrows above its lane, with their lengths. */
+  legs?: true;
+  /** Each runner's displacement as an arrow below its lane: shown, only once the question is answered, or "s = ?". */
+  disp?: 'shown' | 'afterCheck' | 'unknown';
+  /** Write the numbers on the ruler (otherwise only 0 at the lamp post). */
+  numbers?: true;
+  /** Write each runner's velocity, with its sign, above its arrow. */
+  values?: true;
+  /** Play the race from the lamp post to the finish, sped up (the sheet says how much), again and again. */
+  play?: true;
+};
+
+/**
+ * Vectors added tip to tail on squared paper, north (or "across") up the page. Each leg is east and north in the figure's unit.
+ * The resultant runs from the first tail to the last tip; the angle is measured from the first leg.
+ */
+export type VectorsFig = {
+  kind: 'vectors';
+  header: string;
+  unit: string; // written after every size: "km", "m s⁻¹"
+  /** Side of one square of the paper, in the figure's unit. */
+  grid: number;
+  /** Draw a north arrow (the legs are directions on a map). */
+  compass?: true;
+  legs: { east: number; north: number; label: string }[];
+  /** The resultant: dashed with "?", solid with its size, or dashed until the question is answered. */
+  resultant: 'unknown' | 'shown' | 'afterCheck';
+  /** The angle between the first leg and the resultant: "θ = ?", its value, or "?" until answered. */
+  angle?: 'unknown' | 'shown' | 'afterCheck';
+};
+
+export type Fig = LiftFig | PairsFig | VtFig | ScalesFig | LiftPairFig | ThrowFig | ThrowVtFig | FallGraphFig | RoadFig | BrakeVtFig | EquationsFig | GraphFig | ChaseFig | TrackFig | VectorsFig;
 
 /** Tap targets drawn by a lift figure with `candidates`. */
 export const CANDIDATE_IDS = ['shorter', 'equal', 'longer'] as const;
@@ -243,12 +288,12 @@ export type ChoiceScreen = Base & {
 
 /**
  * Play with the figure through a slider, then a light question (not counted in the tally).
- * The slider drives the lift's acceleration, the time since the throw or since the brakes came on, or the time cursor of a graph.
+ * The slider drives the lift's acceleration, the time since the throw, since the brakes came on or since the runners set off, or the time cursor of a graph.
  */
 export type ExploreScreen = Base & {
   kind: 'explore';
   instruction: string; // names the gesture: "Drag …"
-  fig: LiftFig | ThrowFig | RoadFig | GraphFig;
+  fig: LiftFig | ThrowFig | RoadFig | GraphFig | TrackFig;
   /**
    * `tick`: gap between the marks on the ruler (defaults to `step`). `symbol` and `dp` write the bubble ("t = 0.82 s"),
    * `signed` adds + to positive values. `start`: where the thumb begins (defaults to the lift's a, or `min`).
