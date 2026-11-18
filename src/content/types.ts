@@ -502,7 +502,30 @@ export type BodiesFig = {
   total?: 'shown' | 'afterCheck';
 };
 
-export type Fig = LiftFig | PairsFig | VtFig | ScalesFig | LiftPairFig | ThrowFig | ThrowVtFig | FallGraphFig | RoadFig | BrakeVtFig | EquationsFig | GraphFig | ChaseFig | TrackFig | VectorsFig | SledgeFig | HillFig | ResolveFig | BenchFig | KickFig | CrateFig | LadderFig | ParticleFig | PulleyFig | FallFig | WallFig | BodiesFig;
+/**
+ * Two trolleys on one track (right positive): the left one (A, facing right) carries putty (they stick), a spring buffer
+ * (it bounces) or a spring plunger (both at rest, pushed apart). Positions and velocities come from collisionRun
+ * (src/physics/momentum): steady speeds, a short contact, steady speeds again. Velocities are hollow arrows; under the
+ * track an optional momentum line, BEFORE and AFTER rows, each with A's momentum, then B's from its tip, and the total Σp.
+ */
+export type CollideFig = {
+  kind: 'collide';
+  header: string;
+  /** Left body, then right body: name, mass, velocity before (u) and after (v). */
+  bodies: [CollideBody, CollideBody];
+  join: 'stick' | 'bounce' | 'apart';
+  /** 'approach': only up to just before they touch (pushed apart: still at rest); true: the whole clip; 'afterCheck': approach until answered. */
+  play?: 'approach' | true | 'afterCheck';
+  /** Where the trolleys stand while the figure is still: before the hit (default) or after it. */
+  at?: 'after';
+  /** The momentum line: shown, or with "?" in each row until the question is answered. */
+  ledger?: 'shown' | 'afterCheck';
+  /** Explore: the slider sets the right body's mass within this range (it starts at rest, they stick). */
+  massRange?: [number, number];
+};
+export type CollideBody = { id: string; m: number; u: number; v: number };
+
+export type Fig = LiftFig | PairsFig | VtFig | ScalesFig | LiftPairFig | ThrowFig | ThrowVtFig | FallGraphFig | RoadFig | BrakeVtFig | EquationsFig | GraphFig | ChaseFig | TrackFig | VectorsFig | SledgeFig | HillFig | ResolveFig | BenchFig | KickFig | CrateFig | LadderFig | ParticleFig | PulleyFig | FallFig | WallFig | BodiesFig | CollideFig;
 
 /** Tap targets drawn by a lift figure with `candidates`. */
 export const CANDIDATE_IDS = ['shorter', 'equal', 'longer'] as const;
@@ -563,12 +586,12 @@ export type ChoiceScreen = Base & {
 /**
  * Play with the figure through a slider, then a light question (not counted in the tally).
  * The slider drives the lift's acceleration, the time since the throw, since the brakes came on or since the runners set off,
- * the time cursor of a graph, the angle of the sledge's rope, the clock of the bench falls, the angle of a kick, the angle of the crate's rope or its pull, the lab's hanging mass, the time since the skydiver jumped, or the speed a trolley bounces back from a wall.
+ * the time cursor of a graph, the angle of the sledge's rope, the clock of the bench falls, the angle of a kick, the angle of the crate's rope or its pull, the lab's hanging mass, the time since the skydiver jumped, the speed a trolley bounces back from a wall, or the mass of a trolley that is hit.
  */
 export type ExploreScreen = Base & {
   kind: 'explore';
   instruction: string; // names the gesture: "Drag …"
-  fig: LiftFig | ThrowFig | RoadFig | GraphFig | TrackFig | SledgeFig | BenchFig | KickFig | CrateFig | PulleyFig | FallFig | WallFig;
+  fig: LiftFig | ThrowFig | RoadFig | GraphFig | TrackFig | SledgeFig | BenchFig | KickFig | CrateFig | PulleyFig | FallFig | WallFig | CollideFig;
   /**
    * `tick`: gap between the marks on the ruler (defaults to `step`). `symbol` and `dp` write the bubble ("t = 0.82 s"),
    * `signed` adds + to positive values. `start`: where the thumb begins (defaults to the lift's a, or `min`).

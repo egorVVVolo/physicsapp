@@ -156,6 +156,7 @@ function revealsAfterCheck(fig: Fig | undefined): boolean {
     (fig?.kind === 'ladder' && fig.askF === 'afterCheck') ||
     (fig?.kind === 'wall' && (fig.p === 'afterCheck' || fig.ledger === 'afterCheck')) ||
     (fig?.kind === 'bodies' && (fig.p === 'afterCheck' || fig.total === 'afterCheck')) ||
+    (fig?.kind === 'collide' && (fig.play === 'afterCheck' || fig.ledger === 'afterCheck')) ||
     (fig?.kind === 'bench' && (fig.play === 'afterCheck' || fig.range === 'afterCheck')) ||
     (fig?.kind === 'kick' && (fig.play === 'afterCheck' || fig.path === 'afterCheck' || fig.range === 'afterCheck' || fig.height === 'afterCheck' || fig.topV === 'afterCheck'))
   );
@@ -193,6 +194,8 @@ function revealed(fig: Fig): Fig {
   // the momentum arrows grow to their size, the momentum line fills in, the total is written
   if (fig.kind === 'wall') return { ...fig, p: fig.p === 'afterCheck' ? 'shown' : fig.p, ledger: fig.ledger === 'afterCheck' ? 'shown' : fig.ledger };
   if (fig.kind === 'bodies') return { ...fig, p: fig.p === 'afterCheck' ? 'shown' : fig.p, total: fig.total === 'afterCheck' ? 'shown' : fig.total };
+  // the collision plays through, and the momentum line fills in: the total before and after
+  if (fig.kind === 'collide') return { ...fig, play: fig.play === 'afterCheck' ? true : fig.play, ledger: fig.ledger === 'afterCheck' ? 'shown' : fig.ledger };
   // the falls play (slowed down, with strobe copies) and the landing distance is written in
   if (fig.kind === 'bench') return { ...fig, play: fig.play === 'afterCheck' ? true : fig.play, at: fig.play === 'afterCheck' ? undefined : fig.at, range: fig.range === 'afterCheck' ? 'shown' : fig.range };
   // the flights play, the paths appear and every "?" gets its size

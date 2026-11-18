@@ -356,6 +356,11 @@ Sources: [Beichner (1994), kinematics graphs](https://moodle2.units.it/pluginfil
 | P-SPEED-ONLY | The faster body has more momentum | A cricket ball at 35 m s⁻¹ "beats" a bowling ball at 1.2 m s⁻¹ | Momentum arrows to one scale: 5.60 against 6.00 |
 | P-TOTAL-SIZES | A total momentum adds sizes, whatever the directions | Two trolleys heading at each other: 2.40 kg m s⁻¹ | Equal and opposite momentum arrows; Σp = 0 |
 | P-UNIT | Momentum in N, or worked out as m ÷ v | 1.20 N; 0.533 kg m s⁻¹ | The unit card: kg m s⁻¹ |
+| P-WINNER | After a head-on crash the joined pair goes the way of the faster (or the heavier) body | "A is faster, so they move right" | The momentum line: A's +1.20 and C's −1.20 cancel; the stuck pair stops dead |
+| P-SPEED-KEPT | Speed, not momentum, is shared out: the pair keeps the first speed, or the speeds are averaged | 0.25 m s⁻¹ (speeds averaged); C "takes" A's 1.5 m s⁻¹ | Explore: B's mass slider, the speed after changes, Σp stays put |
+| P-ONE-MASS | The total momentum is divided by one body's mass, not by the mass that moves after | 1.50 m s⁻¹ for two stuck trolleys; 0.146 vs 0.150 for the astronaut | The stuck pair labelled with one velocity over both trolleys |
+| P-SAME-SPEED-APART | Bodies pushed apart from rest move off at the same speed | C at 0.90 m s⁻¹ like A | The momentum line after the spring: equal and opposite arrows, and the lighter trolley moves off faster |
+| P-ALWAYS | A single body's momentum is "always conserved", even with an outside force on it | A trolley slowing on a ramp "keeps its momentum" | The external-force card; a falling ball gains momentum from its weight |
 
 ## 13. Lesson spec template
 
