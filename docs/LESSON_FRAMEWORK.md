@@ -347,6 +347,16 @@ Sources: [Beichner (1994), kinematics graphs](https://moodle2.units.it/pluginfil
 | F-TERMINAL-NO-FORCE | At terminal velocity no forces act, or drag beats the weight | "Nothing acts at a steady 50 m s⁻¹" | W and D drawn equal |
 | F-CHUTE-UP | The parachute lifts her, or the resultant points down because she moves down | Slowing from 50 to 6.0 m s⁻¹ | v–t falls while she still falls: a and ΣF point up |
 
+## 12c. Misconception bank — Momentum and moments
+
+| Id | Misconception | How it shows up | Scene that breaks it |
+| --- | --- | --- | --- |
+| P-SCALAR | Momentum treated as a scalar, signs dropped | A bounce from +1.20 to −0.80 gives "Δp = 0.40" | The momentum line: the Δp arrow runs from +1.20 through 0 to −0.80 |
+| P-STOP-MOST | Stopping dead is the biggest change in momentum | "B changed most: it lost all its momentum" | Explore: the bounce speed slider, Δp from −1.20 (stop) to −2.40 (full bounce) |
+| P-SPEED-ONLY | The faster body has more momentum | A cricket ball at 35 m s⁻¹ "beats" a bowling ball at 1.2 m s⁻¹ | Momentum arrows to one scale: 5.60 against 6.00 |
+| P-TOTAL-SIZES | A total momentum adds sizes, whatever the directions | Two trolleys heading at each other: 2.40 kg m s⁻¹ | Equal and opposite momentum arrows; Σp = 0 |
+| P-UNIT | Momentum in N, or worked out as m ÷ v | 1.20 N; 0.533 kg m s⁻¹ | The unit card: kg m s⁻¹ |
+
 ## 13. Lesson spec template
 
 Every lesson is written in this shape first (reviewable by Egor), then translated 1:1 into typed content in `src/content/`.

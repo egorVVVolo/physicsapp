@@ -2,6 +2,7 @@
 import { drawingTheForces } from './drawing-the-forces.ts';
 import { forceAndAcceleration } from './force-and-acceleration.ts';
 import { fallingThroughAir } from './falling-through-air.ts';
+import { momentumLesson } from './momentum.ts';
 import { normalReaction } from './normal-reaction.ts';
 import { pickingTheEquation } from './picking-the-equation.ts';
 import { readingMotionGraphs } from './reading-motion-graphs.ts';
@@ -22,4 +23,5 @@ export const lessons: Record<string, Lesson> = {
   [forceAndAcceleration.id]: forceAndAcceleration,
   [normalReaction.id]: normalReaction,
   [fallingThroughAir.id]: fallingThroughAir,
+  [momentumLesson.id]: momentumLesson,
 };

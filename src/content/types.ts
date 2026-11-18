@@ -463,7 +463,46 @@ export type FallFig = {
   play?: true;
 };
 
-export type Fig = LiftFig | PairsFig | VtFig | ScalesFig | LiftPairFig | ThrowFig | ThrowVtFig | FallGraphFig | RoadFig | BrakeVtFig | EquationsFig | GraphFig | ChaseFig | TrackFig | VectorsFig | SledgeFig | HillFig | ResolveFig | BenchFig | KickFig | CrateFig | LadderFig | ParticleFig | PulleyFig | FallFig;
+/**
+ * Trolleys of mass m roll at u into a wall (towards the wall is positive). Trolley A has a spring buffer and bounces back
+ * at `back`; trolley B has a putty pad and stops dead. Positions and velocities come from wallRun (src/physics/momentum);
+ * each trolley's momentum is a solid ink arrow that shrinks through zero and flips during a bounce.
+ */
+export type WallFig = {
+  kind: 'wall';
+  m: number; // kg, each trolley
+  u: number; // m s⁻¹, towards the wall
+  back: number; // m s⁻¹, A's speed after the bounce (on the explore screen: the slider)
+  trolleys: ('A' | 'B')[];
+  /** Where the trolleys stand while the figure is still: rolling in (default) or after the hit. */
+  at?: 'before' | 'after';
+  /** The momentum written at each arrow: its value, "p = ?", or "?" until the question is answered. */
+  p?: 'shown' | 'unknown' | 'afterCheck';
+  /**
+   * A momentum line under the track, one row per trolley: p before (○), p after (●) and the Δp arrow between them.
+   * 'afterCheck': the rows stay empty ("Δp = ?") until the question is answered.
+   */
+  ledger?: 'shown' | 'afterCheck';
+  /** Play the hit in real time, again and again. */
+  play?: true;
+};
+
+/**
+ * Bodies with their velocities (right positive): one lane each, or all on one track heading at each other (`shared`).
+ * Once revealed, each body's momentum is a solid ink arrow, all to one scale (momentum in src/physics/momentum).
+ */
+export type BodiesFig = {
+  kind: 'bodies';
+  header: string;
+  bodies: { id: string; look: 'cricket' | 'bowling' | 'trolley'; m: number; v: number }[];
+  shared?: true;
+  /** The momentum arrows with their values: shown, or only once the question is answered. */
+  p?: 'shown' | 'afterCheck';
+  /** The total momentum under the track: shown, or "Σp = ?" until the question is answered. */
+  total?: 'shown' | 'afterCheck';
+};
+
+export type Fig = LiftFig | PairsFig | VtFig | ScalesFig | LiftPairFig | ThrowFig | ThrowVtFig | FallGraphFig | RoadFig | BrakeVtFig | EquationsFig | GraphFig | ChaseFig | TrackFig | VectorsFig | SledgeFig | HillFig | ResolveFig | BenchFig | KickFig | CrateFig | LadderFig | ParticleFig | PulleyFig | FallFig | WallFig | BodiesFig;
 
 /** Tap targets drawn by a lift figure with `candidates`. */
 export const CANDIDATE_IDS = ['shorter', 'equal', 'longer'] as const;
@@ -524,12 +563,12 @@ export type ChoiceScreen = Base & {
 /**
  * Play with the figure through a slider, then a light question (not counted in the tally).
  * The slider drives the lift's acceleration, the time since the throw, since the brakes came on or since the runners set off,
- * the time cursor of a graph, the angle of the sledge's rope, the clock of the bench falls, the angle of a kick, the angle of the crate's rope or its pull, the lab's hanging mass, or the time since the skydiver jumped.
+ * the time cursor of a graph, the angle of the sledge's rope, the clock of the bench falls, the angle of a kick, the angle of the crate's rope or its pull, the lab's hanging mass, the time since the skydiver jumped, or the speed a trolley bounces back from a wall.
  */
 export type ExploreScreen = Base & {
   kind: 'explore';
   instruction: string; // names the gesture: "Drag …"
-  fig: LiftFig | ThrowFig | RoadFig | GraphFig | TrackFig | SledgeFig | BenchFig | KickFig | CrateFig | PulleyFig | FallFig;
+  fig: LiftFig | ThrowFig | RoadFig | GraphFig | TrackFig | SledgeFig | BenchFig | KickFig | CrateFig | PulleyFig | FallFig | WallFig;
   /**
    * `tick`: gap between the marks on the ruler (defaults to `step`). `symbol` and `dp` write the bubble ("t = 0.82 s"),
    * `signed` adds + to positive values. `start`: where the thumb begins (defaults to the lift's a, or `min`).
