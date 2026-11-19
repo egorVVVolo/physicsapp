@@ -160,6 +160,8 @@ function revealsAfterCheck(fig: Fig | undefined): boolean {
     (fig?.kind === 'spanner' && (fig.perp === 'afterCheck' || fig.moment === 'afterCheck')) ||
     (fig?.kind === 'pole' && fig.moment === 'afterCheck') ||
     (fig?.kind === 'bar' && fig.moments === 'afterCheck') ||
+    (fig?.kind === 'beam' && fig.answer === 'afterCheck') ||
+    (fig?.kind === 'broom' && fig.pieces === 'afterCheck') ||
     (fig?.kind === 'bench' && (fig.play === 'afterCheck' || fig.range === 'afterCheck')) ||
     (fig?.kind === 'kick' && (fig.play === 'afterCheck' || fig.path === 'afterCheck' || fig.range === 'afterCheck' || fig.height === 'afterCheck' || fig.topV === 'afterCheck'))
   );
@@ -203,6 +205,10 @@ function revealed(fig: Fig): Fig {
   if (fig.kind === 'spanner') return { ...fig, perp: fig.perp === 'afterCheck' ? 'shown' : fig.perp, moment: fig.moment === 'afterCheck' ? 'shown' : fig.moment };
   if (fig.kind === 'pole') return { ...fig, moment: fig.moment === 'afterCheck' ? 'shown' : fig.moment };
   if (fig.kind === 'bar') return { ...fig, moments: fig.moments === 'afterCheck' ? 'shown' : fig.moments };
+  // the asked distance, weight or push gets its size, and the totals of the moments appear
+  if (fig.kind === 'beam') return { ...fig, answer: fig.answer === 'afterCheck' ? 'shown' : fig.answer };
+  // each piece's weight grows to its size
+  if (fig.kind === 'broom') return { ...fig, pieces: fig.pieces === 'afterCheck' ? 'shown' : fig.pieces };
   // the falls play (slowed down, with strobe copies) and the landing distance is written in
   if (fig.kind === 'bench') return { ...fig, play: fig.play === 'afterCheck' ? true : fig.play, at: fig.play === 'afterCheck' ? undefined : fig.at, range: fig.range === 'afterCheck' ? 'shown' : fig.range };
   // the flights play, the paths appear and every "?" gets its size

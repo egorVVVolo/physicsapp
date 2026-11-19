@@ -567,7 +567,59 @@ export type BarFig = {
   moments?: 'shown' | 'afterCheck';
 };
 
-export type Fig = LiftFig | PairsFig | VtFig | ScalesFig | LiftPairFig | ThrowFig | ThrowVtFig | FallGraphFig | RoadFig | BrakeVtFig | EquationsFig | GraphFig | ChaseFig | TrackFig | VectorsFig | SledgeFig | HillFig | ResolveFig | BenchFig | KickFig | CrateFig | LadderFig | ParticleFig | PulleyFig | FallFig | WallFig | BodiesFig | CollideFig | SpannerFig | PoleFig | BarFig;
+/**
+ * A plank resting on one pivot (it can tip) or on two trestles. Positions are metres from its left end.
+ * People and boxes stand on it; each pushes down on the plank where it stands, with its weight. Moments come from
+ * src/physics/moments. On an explore screen the slider sets how far right of the pivot the load with `slide` stands.
+ */
+export type BeamFig = {
+  kind: 'beam';
+  header: string; // the given values in the sheet header
+  L: number; // m
+  supports: number[]; // one: a pivot under the plank; two: a trestle under each of these points
+  /** A uniform plank's weight, N, drawn at its middle with the centre-of-gravity mark. Left out: a light plank. */
+  weight?: number;
+  loads: BeamLoad[];
+  /** The turning arcs about the pivot with the total moment each way. */
+  moments?: true;
+  /** The supports' upward pushes: the ones in `known` carry their size, the one `asked` a "?" until answered. */
+  pushes?: { known: number[]; asked?: number };
+  /**
+   * The asked distance, weight or push: 'shown' gives its size, 'afterCheck' a "?" until answered (the totals of the
+   * moments wait too), left out a "?" for good.
+   */
+  answer?: 'shown' | 'afterCheck';
+  /** Three dashed centre-of-gravity marks to tap (BEAM_IDS): at the pivot, at the middle, at the middle of the long part. */
+  candidates?: true;
+};
+export type BeamLoad = {
+  id: string;
+  look: 'person' | 'box';
+  W: number; // N
+  at: number; // m from the left end
+  name?: string; // written over the person ("ANA")
+  /** The question asks for this: its distance from the pivot, or its weight. */
+  asked?: 'at' | 'W';
+  /** Explore: the slider sets this load's distance to the right of the pivot. */
+  slide?: true;
+};
+
+/**
+ * A broom lying flat, balanced on a fingertip at its centre of gravity. If it is sawn there, the brush piece's weight
+ * acts `brush` metres from the cut and the handle piece's `handle` metres the other way (piecesAtBalance).
+ */
+export type BroomFig = {
+  kind: 'broom';
+  total: number; // N, the whole broom
+  brush: number; // m
+  handle: number; // m
+  /** The saw line through the balance point. */
+  cut?: true;
+  /** Each piece's weight at its centre of gravity, with its distance from the cut: sizes, "?", or "?" until answered. */
+  pieces?: 'shown' | 'unknown' | 'afterCheck';
+};
+
+export type Fig = LiftFig | PairsFig | VtFig | ScalesFig | LiftPairFig | ThrowFig | ThrowVtFig | FallGraphFig | RoadFig | BrakeVtFig | EquationsFig | GraphFig | ChaseFig | TrackFig | VectorsFig | SledgeFig | HillFig | ResolveFig | BenchFig | KickFig | CrateFig | LadderFig | ParticleFig | PulleyFig | FallFig | WallFig | BodiesFig | CollideFig | SpannerFig | PoleFig | BarFig | BeamFig | BroomFig;
 
 /** Tap targets drawn by a lift figure with `candidates`. */
 export const CANDIDATE_IDS = ['shorter', 'equal', 'longer'] as const;
@@ -582,6 +634,8 @@ export const SLEDGE_IDS = ['pull', 'forward', 'up'] as const;
 export const LADDER_IDS = ['normal', 'perp', 'up'] as const;
 /** Tap targets drawn by a pole figure with `candidates`: the distance to multiply the sign's weight by. */
 export const POLE_IDS = ['along', 'height', 'across'] as const;
+/** Tap targets drawn by a beam figure with `candidates`: where the plank's weight acts. */
+export const BEAM_IDS = ['pivot', 'middle', 'long'] as const;
 export const EQUATION_IDS = ['vuat', 'sut', 'v2as', 'suvt'] as const satisfies readonly RelationId[];
 
 // ── Screens ──────────────────────────────────────────────────────────────────────────────
@@ -630,12 +684,12 @@ export type ChoiceScreen = Base & {
 /**
  * Play with the figure through a slider, then a light question (not counted in the tally).
  * The slider drives the lift's acceleration, the time since the throw, since the brakes came on or since the runners set off,
- * the time cursor of a graph, the angle of the sledge's rope, the clock of the bench falls, the angle of a kick, the angle of the crate's rope or its pull, the lab's hanging mass, the time since the skydiver jumped, the speed a trolley bounces back from a wall, the mass of a trolley that is hit, or the angle of a pull on a spanner.
+ * the time cursor of a graph, the angle of the sledge's rope, the clock of the bench falls, the angle of a kick, the angle of the crate's rope or its pull, the lab's hanging mass, the time since the skydiver jumped, the speed a trolley bounces back from a wall, the mass of a trolley that is hit, the angle of a pull on a spanner, or where a person stands on a plank.
  */
 export type ExploreScreen = Base & {
   kind: 'explore';
   instruction: string; // names the gesture: "Drag …"
-  fig: LiftFig | ThrowFig | RoadFig | GraphFig | TrackFig | SledgeFig | BenchFig | KickFig | CrateFig | PulleyFig | FallFig | WallFig | CollideFig | SpannerFig;
+  fig: LiftFig | ThrowFig | RoadFig | GraphFig | TrackFig | SledgeFig | BenchFig | KickFig | CrateFig | PulleyFig | FallFig | WallFig | CollideFig | SpannerFig | BeamFig;
   /**
    * `tick`: gap between the marks on the ruler (defaults to `step`). `symbol` and `dp` write the bubble ("t = 0.82 s"),
    * `signed` adds + to positive values. `start`: where the thumb begins (defaults to the lift's a, or `min`).

@@ -36,7 +36,7 @@ export const course: Course = {
         { id: 'momentum', title: 'Momentum', spec: [13], ready: true, about: 'Mass times velocity, and why its direction matters.' },
         { id: 'collisions', title: 'Collisions', spec: [14], ready: true, about: 'Total momentum before equals total momentum after.' },
         { id: 'moments', title: 'Turning forces', spec: [15], ready: true, about: 'Force times perpendicular distance from the pivot.' },
-        { id: 'balance', title: 'Keeping balance', spec: [16], ready: false, about: 'When clockwise and anticlockwise moments cancel.' },
+        { id: 'balance', title: 'Keeping balance', spec: [16], ready: true, about: 'When clockwise and anticlockwise moments cancel.' },
       ],
     },
     {

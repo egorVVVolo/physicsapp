@@ -368,6 +368,13 @@ Sources: [Beichner (1994), kinematics graphs](https://moodle2.units.it/pluginfil
 | M-BIG-FORCE | The bigger force always has the bigger moment | The bar turns towards the 50 N load | The bar after Check: 15.0 N m against 10.0 N m |
 | M-SENSE | Moments added whatever their sense | 25.0 N m for the bar | Two turning arcs, opposite ways, and "resultant 5.0 N m anticlockwise" |
 | M-CANCEL | Equal and opposite forces cannot turn a body | Two hands on a steering wheel: "zero" | Skill check "wheel": the forces cancel, the moments add |
+| B-EQUAL-WEIGHT | A body that balances has equal weights either side of the support | The broom cut at its balance point: "4.0 N each" | The pieces' weights at their centres of gravity, 0.15 m and 0.45 m from the cut: 6.0 N and 2.0 N |
+| B-INVERSE | The ratio turned upside down: the heavier person sits further out | Ben "at 2.1 m"; Zoe "1200 N" | Explore: Ben's distance slider, the plank tips his way past 1.2 m |
+| B-SAME-SIDE | A second load on the same side is forgotten, or its moment subtracted | Ben at 1.20 m or 1.05 m with Ana's box down | The two anticlockwise moments added in the totals: 540 N m |
+| B-SELF-WEIGHT | The beam's own weight is ignored, put at the support, or at the middle of the longer part | The right trestle 150 N, the left 350 N | Tap the centre of gravity: the beam's weight from its middle, with the mark |
+| B-END | Distances measured from the end of the beam, not from the pivot | Zoe 900 N (1.5 m from the end) | Dimensions drawn from the pivot |
+| B-SHARED | Two supports share a load equally wherever it stands | Each trestle 400 N | The pushes as arrows: 550 N and 250 N |
+| B-ONE-POINT | Moments balance only about the real pivot | "Moments about a point where no force acts: nothing useful" | Skill check "any": the resultant moment is zero about every point |
 
 ## 13. Lesson spec template
 
