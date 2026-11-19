@@ -525,7 +525,49 @@ export type CollideFig = {
 };
 export type CollideBody = { id: string; m: number; u: number; v: number };
 
-export type Fig = LiftFig | PairsFig | VtFig | ScalesFig | LiftPairFig | ThrowFig | ThrowVtFig | FallGraphFig | RoadFig | BrakeVtFig | EquationsFig | GraphFig | ChaseFig | TrackFig | VectorsFig | SledgeFig | HillFig | ResolveFig | BenchFig | KickFig | CrateFig | LadderFig | ParticleFig | PulleyFig | FallFig | WallFig | BodiesFig | CollideFig;
+/**
+ * A stuck nut and a spanner lying along +x, in one panel per pull (MIA / LEO). Each pull has the same size F, acts a
+ * distance r from the nut and points at `angle` degrees to the handle, upwards and back towards the nut (90 = at right
+ * angles), so every pull turns the nut anticlockwise. Moments come from src/physics/moments.
+ * On an explore screen the slider sets the angle of the first pull.
+ */
+export type SpannerFig = {
+  kind: 'spanner';
+  F: number; // N, every pull
+  length: number; // m, the spanner from the nut's centre to its end
+  pulls: SpannerPull[];
+  /** The line of action, dashed, and the perpendicular from the nut with x written on it: shown, or once answered. */
+  perp?: 'shown' | 'afterCheck';
+  /** The turning arc around the nut with the moment: its value, "M = ?", or "M = ?" until answered. */
+  moment?: 'shown' | 'unknown' | 'afterCheck';
+};
+export type SpannerPull = { who: 'MIA' | 'LEO'; r: number; angle: number };
+
+/**
+ * A pole fixed to a wall, rising at `angle` degrees above the horizontal, with a sign of weight W hanging from its end.
+ * The weight's line of action is vertical, so the distance that counts is the horizontal one, L cos θ.
+ */
+export type PoleFig = {
+  kind: 'pole';
+  L: number; // m
+  angle: number; // degrees above the horizontal
+  W: number; // N
+  /** Three dashed distances to tap (POLE_IDS): along the pole, the height of its end, the horizontal. */
+  candidates?: true;
+  /** The horizontal distance with its size and the turning arc with the moment: shown, "M = ?", or once answered. */
+  moment?: 'shown' | 'unknown' | 'afterCheck';
+};
+
+/** A bar on a pivot at its middle, loads hanging from it at signed distances (right of the pivot +). */
+export type BarFig = {
+  kind: 'bar';
+  half: number; // m, half the bar's length
+  loads: { at: number; W: number }[];
+  /** The turning arc of each load with its moment, and the resultant: shown, or once answered. */
+  moments?: 'shown' | 'afterCheck';
+};
+
+export type Fig = LiftFig | PairsFig | VtFig | ScalesFig | LiftPairFig | ThrowFig | ThrowVtFig | FallGraphFig | RoadFig | BrakeVtFig | EquationsFig | GraphFig | ChaseFig | TrackFig | VectorsFig | SledgeFig | HillFig | ResolveFig | BenchFig | KickFig | CrateFig | LadderFig | ParticleFig | PulleyFig | FallFig | WallFig | BodiesFig | CollideFig | SpannerFig | PoleFig | BarFig;
 
 /** Tap targets drawn by a lift figure with `candidates`. */
 export const CANDIDATE_IDS = ['shorter', 'equal', 'longer'] as const;
@@ -538,6 +580,8 @@ export const ACC_IDS = ['up', 'zero', 'down'] as const;
 export const SLEDGE_IDS = ['pull', 'forward', 'up'] as const;
 /** Tap targets drawn by a ladder figure with `candidates`: which way the wall pushes. */
 export const LADDER_IDS = ['normal', 'perp', 'up'] as const;
+/** Tap targets drawn by a pole figure with `candidates`: the distance to multiply the sign's weight by. */
+export const POLE_IDS = ['along', 'height', 'across'] as const;
 export const EQUATION_IDS = ['vuat', 'sut', 'v2as', 'suvt'] as const satisfies readonly RelationId[];
 
 // ── Screens ──────────────────────────────────────────────────────────────────────────────
@@ -586,12 +630,12 @@ export type ChoiceScreen = Base & {
 /**
  * Play with the figure through a slider, then a light question (not counted in the tally).
  * The slider drives the lift's acceleration, the time since the throw, since the brakes came on or since the runners set off,
- * the time cursor of a graph, the angle of the sledge's rope, the clock of the bench falls, the angle of a kick, the angle of the crate's rope or its pull, the lab's hanging mass, the time since the skydiver jumped, the speed a trolley bounces back from a wall, or the mass of a trolley that is hit.
+ * the time cursor of a graph, the angle of the sledge's rope, the clock of the bench falls, the angle of a kick, the angle of the crate's rope or its pull, the lab's hanging mass, the time since the skydiver jumped, the speed a trolley bounces back from a wall, the mass of a trolley that is hit, or the angle of a pull on a spanner.
  */
 export type ExploreScreen = Base & {
   kind: 'explore';
   instruction: string; // names the gesture: "Drag …"
-  fig: LiftFig | ThrowFig | RoadFig | GraphFig | TrackFig | SledgeFig | BenchFig | KickFig | CrateFig | PulleyFig | FallFig | WallFig | CollideFig;
+  fig: LiftFig | ThrowFig | RoadFig | GraphFig | TrackFig | SledgeFig | BenchFig | KickFig | CrateFig | PulleyFig | FallFig | WallFig | CollideFig | SpannerFig;
   /**
    * `tick`: gap between the marks on the ruler (defaults to `step`). `symbol` and `dp` write the bubble ("t = 0.82 s"),
    * `signed` adds + to positive values. `start`: where the thumb begins (defaults to the lift's a, or `min`).

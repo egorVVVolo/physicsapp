@@ -8,6 +8,7 @@ import { normalReaction } from './normal-reaction.ts';
 import { pickingTheEquation } from './picking-the-equation.ts';
 import { readingMotionGraphs } from './reading-motion-graphs.ts';
 import { splittingAVector } from './splitting-a-vector.ts';
+import { turningForces } from './turning-forces.ts';
 import { twoMotionsAtOnce } from './two-motions-at-once.ts';
 import { upStopDown } from './up-stop-down.ts';
 import { whichWayIsPositive } from './which-way-is-positive.ts';
@@ -26,4 +27,5 @@ export const lessons: Record<string, Lesson> = {
   [fallingThroughAir.id]: fallingThroughAir,
   [momentumLesson.id]: momentumLesson,
   [collisions.id]: collisions,
+  [turningForces.id]: turningForces,
 };

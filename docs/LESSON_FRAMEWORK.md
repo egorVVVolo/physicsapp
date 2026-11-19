@@ -361,6 +361,13 @@ Sources: [Beichner (1994), kinematics graphs](https://moodle2.units.it/pluginfil
 | P-ONE-MASS | The total momentum is divided by one body's mass, not by the mass that moves after | 1.50 m s⁻¹ for two stuck trolleys; 0.146 vs 0.150 for the astronaut | The stuck pair labelled with one velocity over both trolleys |
 | P-SAME-SPEED-APART | Bodies pushed apart from rest move off at the same speed | C at 0.90 m s⁻¹ like A | The momentum line after the spring: equal and opposite arrows, and the lighter trolley moves off faster |
 | P-ALWAYS | A single body's momentum is "always conserved", even with an outside force on it | A trolley slowing on a ramp "keeps its momentum" | The external-force card; a falling ball gains momentum from its weight |
+| M-POINT | The distance to the point where the force acts, not the perpendicular distance to its line of action | Mia's angled pull at the end of a 0.30 m spanner: 12.0 N m; the sign on a 2.0 m pole: 100 N m | The line of action, dashed, and the perpendicular from the pivot with a right-angle mark: x = 15 cm |
+| M-TRIG | The wrong side of the triangle: cos for sin, or the height for the horizontal | 10.4 N m for Mia; 50.0 N m for the sign | Explore: the angle slider, x = 0.30 sin θ from 0 to 30 cm |
+| M-THROUGH | A force along the lever "pulls hardest"; a force through the pivot has a moment | "At 0° all 40 N works on the spanner" | Explore at 0°: the line of action runs through the nut, "x = 0" |
+| M-UNIT | Distance left in cm, force ÷ distance, or the unit N (or J) | 800 N m, 200 N m, 8.0 N for Leo | The moment card: force × distance in metres, unit N m |
+| M-BIG-FORCE | The bigger force always has the bigger moment | The bar turns towards the 50 N load | The bar after Check: 15.0 N m against 10.0 N m |
+| M-SENSE | Moments added whatever their sense | 25.0 N m for the bar | Two turning arcs, opposite ways, and "resultant 5.0 N m anticlockwise" |
+| M-CANCEL | Equal and opposite forces cannot turn a body | Two hands on a steering wheel: "zero" | Skill check "wheel": the forces cancel, the moments add |
 
 ## 13. Lesson spec template
 
