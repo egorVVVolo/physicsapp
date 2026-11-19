@@ -8,7 +8,7 @@ import { tripDisplacement, tripDistance, tripPosition, tripVelocity, type Trip }
 import { fixed } from '../physics/format.ts';
 import type { ChaseFig, GraphFig, Lesson } from './types.ts';
 
-const NB = ' '; // numbers never break from their units
+const NB = '\u00A0'; // numbers never break from their units
 /** "10.0 m s⁻¹" */
 const speed = (v: number) => `${fixed(v, 1)}${NB}m${NB}s⁻¹`;
 /** "20.0 m" */

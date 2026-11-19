@@ -10,7 +10,7 @@ const all = [...L.story, ...L.skillCheck];
 const q = (id: string) => all.find((s) => s.id === id) as Question;
 const label = (id: string, opt: string) => q(id).options.find((o) => o.id === opt)!.label;
 const right = (id: string) => q(id).options.find((o) => o.correct)!.id;
-const NB = ' ';
+const NB = '\u00A0';
 const A = `${NB}m${NB}s⁻²`;
 const g = 9.81;
 const near = (a: number, b: number, tol = 1e-9) => assert.ok(Math.abs(a - b) <= tol, `expected ${b}, got ${a}`);
@@ -93,6 +93,6 @@ test('every option label is different within a question', () => {
 });
 
 test('the lesson is playable from the map', () => {
-  assert.equal(lessons[L.id], L);
+  assert.equal(lessons[L.id]?.id, L.id);
   assert.ok(course.levels.flatMap((lv) => lv.lessons).some((l) => l.id === L.id && l.ready));
 });

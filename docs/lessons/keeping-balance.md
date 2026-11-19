@@ -71,7 +71,7 @@ All numbers come from `src/physics/moments.ts` and are re-checked by a test. Pos
 
 - The plank with a load at its end became a 600 N beam with Zoe (300 N) standing on its end: a box cannot stand centred on the very end of a plank.
 - The balance plank sits on a low pivot, so it tips only about 5° before its end rests on the ground: the totals at the top stay true (cos 5° ≈ 1). All distances are drawn level, under the ground.
-- A number and its unit are joined by a real no-break space in this lesson (in the older lessons it is an ordinary space, so "0.60" and "m" can part at a line end).
+- A number and its unit could part at a line end in every lesson ("0.60" / "m"). Fixed for all lessons: every string passes through `keepUnitsIn` (`src/content/units.ts`) when the lessons are collected.
 
 ## Open for the owner
 

@@ -7,7 +7,7 @@ import { distanceForMoment, loadMoment, moment, momentAtAngle, perpendicularDist
 import { fixed } from '../physics/format.ts';
 import type { BarFig, Lesson, PoleFig, SpannerFig } from './types.ts';
 
-const NB = ' ';
+const NB = '\u00A0';
 const RAD = Math.PI / 180;
 const Nm = (x: number, dp = 1): string => `${fixed(x, dp)}${NB}N${NB}m`;
 const m = (x: number, dp = 2): string => `${fixed(x, dp)}${NB}m`;

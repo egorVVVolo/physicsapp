@@ -8,7 +8,7 @@ import { dragConstantFor, fallFromRest, peakDragRatio, skydiveSamples, terminalV
 import { fixed } from '../physics/format.ts';
 import type { FallFig, Lesson } from './types.ts';
 
-const NB = ' ';
+const NB = '\u00A0';
 /** "2.40 m s⁻¹". */
 export const ms = (x: number, dp = 2): string => `${fixed(x, dp)}${NB}m${NB}s⁻¹`;
 /** "39.2 m s⁻²". */

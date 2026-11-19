@@ -7,7 +7,7 @@ import { momentum, momentumChange, speedFromMomentum, totalMomentum } from '../p
 import { fixed, signed } from '../physics/format.ts';
 import type { BodiesFig, Lesson, WallFig } from './types.ts';
 
-const NB = ' ';
+const NB = '\u00A0';
 const UNIT = `${NB}kg${NB}m${NB}s⁻¹`;
 /** "1.20 kg m s⁻¹". */
 export const kgms = (x: number, dp = 2): string => `${fixed(x, dp)}${UNIT}`;

@@ -6,7 +6,7 @@ import { balancingLoad, balancingPosition, piecesAtBalance, senseTotals, support
 import { fixed } from '../physics/format.ts';
 import type { BeamFig, BeamLoad, BroomFig, Lesson } from './types.ts';
 
-const NB = ' '; // a no-break space: a number never parts from its unit
+const NB = '\u00A0'; // a no-break space: a number never parts from its unit
 const N = (x: number, dp = 0): string => `${fixed(x, dp)}${NB}N`;
 const m = (x: number, dp = 2): string => `${fixed(x, dp)}${NB}m`;
 

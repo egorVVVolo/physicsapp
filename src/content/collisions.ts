@@ -6,7 +6,7 @@ import { momentum, stickVelocity, totalMomentum, velocityAfter } from '../physic
 import { fixed, signed } from '../physics/format.ts';
 import type { CollideBody, CollideFig, Lesson } from './types.ts';
 
-const NB = ' ';
+const NB = '\u00A0';
 const ms = (x: number, dp = 2): string => `${fixed(x, dp)}${NB}m${NB}s⁻¹`;
 const kgms = (x: number, dp = 2): string => `${fixed(x, dp)}${NB}kg${NB}m${NB}s⁻¹`;
 /** "0.50 m s⁻¹ to the right" / "… to the left" from a signed velocity. */

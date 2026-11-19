@@ -19,7 +19,7 @@ import {
 import { fixed } from '../physics/format.ts';
 import { EQUATION_IDS, type Lesson, type Option, type RoadFig } from './types.ts';
 
-const NB = ' '; // numbers never break from their units
+const NB = '\u00A0'; // numbers never break from their units
 /** "24.0 m s⁻¹" */
 const speed = (v: number) => `${fixed(v, 1)}${NB}m${NB}s⁻¹`;
 /** "36.0 m" */

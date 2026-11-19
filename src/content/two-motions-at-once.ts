@@ -11,7 +11,7 @@ import { flightTime, landingSpeed, launchParts, projectileRange, projectileVeloc
 import { fixed } from '../physics/format.ts';
 import type { BenchFig, KickFig, Lesson } from './types.ts';
 
-const NB = ' '; // numbers never break from their units
+const NB = '\u00A0'; // numbers never break from their units
 /** "1.01 m" */
 const m = (x: number, dp = 1) => `${fixed(x, dp)}${NB}m`;
 /** "17.3 m s⁻¹" */

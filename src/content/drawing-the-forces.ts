@@ -8,7 +8,7 @@ import { components, onSlope } from '../physics/vectors.ts';
 import { fixed } from '../physics/format.ts';
 import type { CrateFig, LadderFig, Lesson } from './types.ts';
 
-const NB = ' ';
+const NB = '\u00A0';
 /** "392 N": a force to the newton. */
 export const n0 = (x: number): string => `${fixed(x, 0)}${NB}N`;
 /** "60.0 N": a force to 0.1 N. */

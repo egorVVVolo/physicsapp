@@ -1,4 +1,5 @@
 // All lessons that can be played, by id. The course map (course.ts) lists the rest as "Soon".
+// Every string passes through keepUnitsIn, so a number never parts from its unit at a line end (units.ts).
 import { collisions } from './collisions.ts';
 import { drawingTheForces } from './drawing-the-forces.ts';
 import { forceAndAcceleration } from './force-and-acceleration.ts';
@@ -14,20 +15,21 @@ import { twoMotionsAtOnce } from './two-motions-at-once.ts';
 import { upStopDown } from './up-stop-down.ts';
 import { whichWayIsPositive } from './which-way-is-positive.ts';
 import type { Lesson } from './types.ts';
+import { keepUnitsIn } from './units.ts';
 
 export const lessons: Record<string, Lesson> = {
-  [whichWayIsPositive.id]: whichWayIsPositive,
-  [readingMotionGraphs.id]: readingMotionGraphs,
-  [pickingTheEquation.id]: pickingTheEquation,
-  [upStopDown.id]: upStopDown,
-  [splittingAVector.id]: splittingAVector,
-  [twoMotionsAtOnce.id]: twoMotionsAtOnce,
-  [drawingTheForces.id]: drawingTheForces,
-  [forceAndAcceleration.id]: forceAndAcceleration,
-  [normalReaction.id]: normalReaction,
-  [fallingThroughAir.id]: fallingThroughAir,
-  [momentumLesson.id]: momentumLesson,
-  [collisions.id]: collisions,
-  [turningForces.id]: turningForces,
-  [keepingBalance.id]: keepingBalance,
+  [whichWayIsPositive.id]: keepUnitsIn(whichWayIsPositive),
+  [readingMotionGraphs.id]: keepUnitsIn(readingMotionGraphs),
+  [pickingTheEquation.id]: keepUnitsIn(pickingTheEquation),
+  [upStopDown.id]: keepUnitsIn(upStopDown),
+  [splittingAVector.id]: keepUnitsIn(splittingAVector),
+  [twoMotionsAtOnce.id]: keepUnitsIn(twoMotionsAtOnce),
+  [drawingTheForces.id]: keepUnitsIn(drawingTheForces),
+  [forceAndAcceleration.id]: keepUnitsIn(forceAndAcceleration),
+  [normalReaction.id]: keepUnitsIn(normalReaction),
+  [fallingThroughAir.id]: keepUnitsIn(fallingThroughAir),
+  [momentumLesson.id]: keepUnitsIn(momentumLesson),
+  [collisions.id]: keepUnitsIn(collisions),
+  [turningForces.id]: keepUnitsIn(turningForces),
+  [keepingBalance.id]: keepUnitsIn(keepingBalance),
 };

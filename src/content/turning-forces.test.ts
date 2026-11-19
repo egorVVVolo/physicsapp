@@ -10,7 +10,7 @@ const all = [...L.story, ...L.skillCheck];
 const q = (id: string) => all.find((s) => s.id === id) as Question;
 const label = (id: string, opt: string) => q(id).options.find((o) => o.id === opt)!.label;
 const right = (id: string) => q(id).options.find((o) => o.correct)!.id;
-const NB = ' ';
+const NB = '\u00A0';
 const NM = `${NB}N${NB}m`;
 const near = (a: number, b: number, tol = 1e-9) => assert.ok(Math.abs(a - b) <= tol, `expected ${b}, got ${a}`);
 const RAD = Math.PI / 180;
@@ -76,7 +76,7 @@ test('Skill check: pedal 25.5, wheel 7.2, bolt 0.42 m', () => {
 });
 
 test('the lesson is on the map and playable', () => {
-  assert.equal(lessons[L.id], L);
+  assert.equal(lessons[L.id]?.id, L.id);
   const ref = course.levels.flatMap((l) => l.lessons).find((r) => r.id === L.id);
   assert.ok(ref?.ready);
   assert.deepEqual(ref?.spec, L.spec);

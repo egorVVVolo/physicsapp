@@ -10,7 +10,7 @@ const all = [...L.story, ...L.skillCheck];
 const q = (id: string) => all.find((s) => s.id === id) as Question;
 const label = (id: string, opt: string) => q(id).options.find((o) => o.id === opt)!.label;
 const right = (id: string) => q(id).options.find((o) => o.correct)!.id;
-const NB = ' '; // a no-break space: a number never parts from its unit
+const NB = '\u00A0'; // a no-break space: a number never parts from its unit
 const near = (a: number, b: number, tol = 1e-9) => assert.ok(Math.abs(a - b) <= tol, `expected ${b}, got ${a}`);
 
 test('explore: Ben balances Ana at 1.2 m, 480 N m each way', () => {
@@ -84,7 +84,7 @@ test('Skill check: rule 1.50 N, barrow 133 N, pole 130 N', () => {
 });
 
 test('the lesson is on the map and playable', () => {
-  assert.equal(lessons[L.id], L);
+  assert.equal(lessons[L.id]?.id, L.id);
   const ref = course.levels.flatMap((l) => l.lessons).find((r) => r.id === L.id);
   assert.ok(ref?.ready);
   assert.deepEqual(ref?.spec, L.spec);

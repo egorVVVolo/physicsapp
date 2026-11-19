@@ -7,7 +7,7 @@ import { G, gFromGradient, riseHeight, speedAfter, timeAtRest, timesForDisplacem
 import { fixed, signed } from '../physics/format.ts';
 import type { Lesson, ThrowFig } from './types.ts';
 
-const NB = ' '; // numbers never break from their units
+const NB = '\u00A0'; // numbers never break from their units
 /** "8.0 m s⁻¹" */
 const speed = (v: number) => `${fixed(v, 1)}${NB}m${NB}s⁻¹`;
 /** "+8.0 m s⁻¹", "−8.0 m s⁻¹" */

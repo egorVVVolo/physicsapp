@@ -10,7 +10,7 @@ import { weight } from '../physics/dynamics.ts';
 import { fixed } from '../physics/format.ts';
 import type { HillFig, Lesson, ResolveFig, SledgeFig } from './types.ts';
 
-const NB = ' '; // numbers never break from their units
+const NB = '\u00A0'; // numbers never break from their units
 /** "50.0 N" (or "100 N" with dp 0) */
 const N = (x: number, dp = 1) => `${fixed(x, dp)}${NB}N`;
 /** "11.6 m s⁻¹" */

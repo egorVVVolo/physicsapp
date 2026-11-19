@@ -7,7 +7,7 @@ import { acceleration, connectedAcceleration, fieldStrength, pulleyRun, stringTe
 import { fixed } from '../physics/format.ts';
 import type { CrateFig, Lesson, PulleyFig } from './types.ts';
 
-const NB = ' ';
+const NB = '\u00A0';
 /** "1.25 m s⁻²": an acceleration to 3 significant figures. */
 export const ms2 = (x: number, dp = 2): string => `${fixed(x, dp)}${NB}m${NB}s⁻²`;
 /** "1.57 N", "750 N". */

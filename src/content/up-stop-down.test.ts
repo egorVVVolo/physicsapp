@@ -9,7 +9,7 @@ const all = [...L.story, ...L.skillCheck];
 const q = (id: string) => all.find((s) => s.id === id) as Question;
 const label = (id: string, opt: string) => q(id).options.find((o) => o.id === opt)!.label;
 const right = (id: string) => q(id).options.find((o) => o.correct)!.id;
-const NB = ' ';
+const NB = '\u00A0';
 const near = (a: number, b: number, tol = 1e-3) => assert.ok(Math.abs(a - b) <= tol, `expected ${b}, got ${a}`);
 
 test('ball A: top after u/g = 0.82 s, 3.26 m above the hand, back at the hand after 1.63 s moving at −8.0 m s⁻¹', () => {
