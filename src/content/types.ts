@@ -666,7 +666,39 @@ export type RampFig = {
   work?: true;
 };
 
-export type Fig = LiftFig | PairsFig | VtFig | ScalesFig | LiftPairFig | ThrowFig | ThrowVtFig | FallGraphFig | RoadFig | BrakeVtFig | EquationsFig | GraphFig | ChaseFig | TrackFig | VectorsFig | SledgeFig | HillFig | ResolveFig | BenchFig | KickFig | CrateFig | LadderFig | ParticleFig | PulleyFig | FallFig | WallFig | BodiesFig | CollideFig | SpannerFig | PoleFig | BarFig | BeamFig | BroomFig | PlatformFig | RampFig;
+/**
+ * An electric car on a level road, seen from the side; the road slides past at its speed. Played, it speeds up from
+ * rest to `v` by the model and holds. With `square`, the road moves up and the kinetic energy is drawn under it as a
+ * square of side v, one cell per 2 m s⁻¹ (src/physics/energy: Ek = ½mv²). With `stages` [u, v], the square of side u
+ * and the band around it up to v carry their own energies. On the explore screen the slider sets the speed.
+ */
+export type KineticFig = {
+  kind: 'kinetic';
+  m: number; // kg
+  v: number; // m s⁻¹, the car's speed
+  play?: true;
+  /** Draw the energy square: always, or once the question is answered. */
+  square?: 'shown' | 'afterCheck';
+  /** Two speeds: the square of the first and the band around it up to the second. */
+  stages?: [number, number];
+  /** The kinetic energy by the car (without the square): its size, or "Ek = ?" until the question is answered. */
+  energy?: 'shown' | 'afterCheck';
+};
+
+/**
+ * A tower crane holds a car `h` metres over the road, by a height ruler. Two bars to one scale: the car's gain in
+ * gravitational potential energy (mgh, src/physics/energy) and, with `match`, its kinetic energy at that speed.
+ * On the explore screen the slider sets the height.
+ */
+export type HeightFig = {
+  kind: 'height';
+  m: number; // kg
+  h: number; // m
+  /** A speed, m s⁻¹: its kinetic energy is the second bar. */
+  match?: number;
+};
+
+export type Fig = LiftFig | PairsFig | VtFig | ScalesFig | LiftPairFig | ThrowFig | ThrowVtFig | FallGraphFig | RoadFig | BrakeVtFig | EquationsFig | GraphFig | ChaseFig | TrackFig | VectorsFig | SledgeFig | HillFig | ResolveFig | BenchFig | KickFig | CrateFig | LadderFig | ParticleFig | PulleyFig | FallFig | WallFig | BodiesFig | CollideFig | SpannerFig | PoleFig | BarFig | BeamFig | BroomFig | PlatformFig | RampFig | KineticFig | HeightFig;
 
 /** Tap targets drawn by a lift figure with `candidates`. */
 export const CANDIDATE_IDS = ['shorter', 'equal', 'longer'] as const;
@@ -736,7 +768,7 @@ export type ChoiceScreen = Base & {
 export type ExploreScreen = Base & {
   kind: 'explore';
   instruction: string; // names the gesture: "Drag …"
-  fig: LiftFig | ThrowFig | RoadFig | GraphFig | TrackFig | SledgeFig | BenchFig | KickFig | CrateFig | PulleyFig | FallFig | WallFig | CollideFig | SpannerFig | BeamFig | PlatformFig | RampFig;
+  fig: LiftFig | ThrowFig | RoadFig | GraphFig | TrackFig | SledgeFig | BenchFig | KickFig | CrateFig | PulleyFig | FallFig | WallFig | CollideFig | SpannerFig | BeamFig | PlatformFig | RampFig | KineticFig | HeightFig;
   /**
    * `tick`: gap between the marks on the ruler (defaults to `step`). `symbol` and `dp` write the bubble ("t = 0.82 s"),
    * `signed` adds + to positive values. `start`: where the thumb begins (defaults to the lift's a, or `min`).

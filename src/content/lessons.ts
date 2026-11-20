@@ -5,6 +5,7 @@ import { drawingTheForces } from './drawing-the-forces.ts';
 import { forceAndAcceleration } from './force-and-acceleration.ts';
 import { fallingThroughAir } from './falling-through-air.ts';
 import { keepingBalance } from './keeping-balance.ts';
+import { kineticAndPotentialEnergy } from './kinetic-and-potential-energy.ts';
 import { momentumLesson } from './momentum.ts';
 import { normalReaction } from './normal-reaction.ts';
 import { pickingTheEquation } from './picking-the-equation.ts';
@@ -34,4 +35,5 @@ export const lessons: Record<string, Lesson> = {
   [turningForces.id]: keepUnitsIn(turningForces),
   [keepingBalance.id]: keepUnitsIn(keepingBalance),
   [workDoneLesson.id]: keepUnitsIn(workDoneLesson),
+  [kineticAndPotentialEnergy.id]: keepUnitsIn(kineticAndPotentialEnergy),
 };

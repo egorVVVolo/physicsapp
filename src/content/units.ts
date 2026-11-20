@@ -4,7 +4,7 @@
 // units ("N m", "m s⁻¹", "kg m s⁻¹").
 
 const NBSP = ' ';
-const UNIT = '(?:kg|g|N|m|s|cm|km|J|W|Pa|h|min)';
+const UNIT = '(?:kg|g|N|m|s|cm|km|kJ|J|W|Pa|h|min)';
 /** A number, a space, a unit not followed by another letter ("3 m" but not "3 more"). */
 const AFTER_NUMBER = new RegExp(`(\\d) (?=${UNIT}(?![A-Za-z]))`, 'g');
 /** Inside a compound unit that follows a number: "N m", "kg m", "m s⁻¹", "m s⁻²". */

@@ -388,6 +388,12 @@ Sources: [Beichner (1994), kinematics graphs](https://moodle2.units.it/pluginfil
 | W-RAMP | A longer ramp, with its smaller push, needs less work | "the 4.0 m ramp is easier: less work" | Explore: the ramp's length, push × length stays 471 J, the same as the lift |
 | W-UNIT | Force ÷ distance, or the mass for the weight | The mover 25.0 J; the stairs 198 J | ΔW = FΔs in newtons and metres: joules |
 | W-STORED | Work done against friction is stored in the body | "60 J stored in the box" | The energy card: work done is energy transferred, here by heating the box and the floor |
+| E-LINEAR | Kinetic energy grows in step with speed: every 10 m s⁻¹ costs the same | The car: "60.0 kJ, then 60.0 kJ" | Explore: the energy square of side v; doubling the side makes four squares |
+| E-FINAL | The energy for a stage is the kinetic energy at its end, not the change | The car's second stage: 240 kJ | The square at 20 m s⁻¹: the 60.0 kJ square inside, the 180 kJ band around it |
+| E-HALF | The ½ forgotten in ½mv², or put into mgΔh | The car at 10 m s⁻¹: 120 kJ; the car park 53.0 kJ | Where ½mv² comes from: FΔs with v² = 2aΔs |
+| E-MOMENTUM | mv used for the kinetic energy; equal energies give speeds in the inverse ratio of the masses | 12.0 kJ for the car; trolley B at 0.960 m s⁻¹ | Ek = ½mv²: the speed is squared, the mass is not |
+| E-ROOT | The square root forgotten when finding a speed from Ek | The tennis ball at 2410 m s⁻¹ | v = √(2Ek ÷ m) |
+| E-MASS-HEIGHT | A heavier body at the same speed needs a different height to hold the same energy | The van "10.2 m" or "40.8 m" | mgh = ½mv²: m on both sides, h = v² ÷ 2g = 20.4 m for any mass |
 
 ## 13. Lesson spec template
 
