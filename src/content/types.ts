@@ -698,7 +698,42 @@ export type HeightFig = {
   match?: number;
 };
 
-export type Fig = LiftFig | PairsFig | VtFig | ScalesFig | LiftPairFig | ThrowFig | ThrowVtFig | FallGraphFig | RoadFig | BrakeVtFig | EquationsFig | GraphFig | ChaseFig | TrackFig | VectorsFig | SledgeFig | HillFig | ResolveFig | BenchFig | KickFig | CrateFig | LadderFig | ParticleFig | PulleyFig | FallFig | WallFig | BodiesFig | CollideFig | SpannerFig | PoleFig | BarFig | BeamFig | BroomFig | PlatformFig | RampFig | KineticFig | HeightFig;
+/**
+ * Stones thrown from the top of a sea cliff `h` metres high, all at speed u, each at its own angle (negative = down).
+ * Paths by projectilePosition (src/physics/projectile). Played, they fly together and splash. With `landing`, each
+ * stone's velocity at the sea and a table of their speeds ("?" until answered; the arrows only once shown). With
+ * `follow`, the explore: that stone at the slider's time with its velocity, and a column of its Ep and Ek above the sea.
+ */
+export type CliffFig = {
+  kind: 'cliff';
+  h: number; // m
+  u: number; // m s⁻¹ (0: dropped from rest)
+  m: number; // kg, for the energies
+  stones: { id: string; angle: number }[];
+  play?: true;
+  follow?: string;
+  landing?: 'shown' | 'afterCheck';
+};
+
+/**
+ * A child of mass m slides from rest down a playground slide of height h and length L against a steady friction force
+ * F (src/physics/energy: ½mv² = mgh − FL). Two bars: the GPE given up, and the kinetic energy at the foot with, once
+ * shown, the work done against friction (heating). On the explore screen the slider sets L at the same h and F.
+ */
+export type SlideFig = {
+  kind: 'slide';
+  m: number; // kg
+  h: number; // m
+  L: number; // m
+  F: number; // N
+  play?: true;
+  /** The energy friction took, in the bottom bar: shown, or left out until the question is answered. */
+  heat?: 'shown' | 'afterCheck';
+  /** The friction force up the chute: its size, or "F = ?" until the question is answered. */
+  friction?: 'shown' | 'afterCheck';
+};
+
+export type Fig = LiftFig | PairsFig | VtFig | ScalesFig | LiftPairFig | ThrowFig | ThrowVtFig | FallGraphFig | RoadFig | BrakeVtFig | EquationsFig | GraphFig | ChaseFig | TrackFig | VectorsFig | SledgeFig | HillFig | ResolveFig | BenchFig | KickFig | CrateFig | LadderFig | ParticleFig | PulleyFig | FallFig | WallFig | BodiesFig | CollideFig | SpannerFig | PoleFig | BarFig | BeamFig | BroomFig | PlatformFig | RampFig | KineticFig | HeightFig | CliffFig | SlideFig;
 
 /** Tap targets drawn by a lift figure with `candidates`. */
 export const CANDIDATE_IDS = ['shorter', 'equal', 'longer'] as const;
@@ -763,12 +798,12 @@ export type ChoiceScreen = Base & {
 /**
  * Play with the figure through a slider, then a light question (not counted in the tally).
  * The slider drives the lift's acceleration, the time since the throw, since the brakes came on or since the runners set off,
- * the time cursor of a graph, the angle of the sledge's rope, the clock of the bench falls, the angle of a kick, the angle of the crate's rope or its pull, the lab's hanging mass, the time since the skydiver jumped, the speed a trolley bounces back from a wall, the mass of a trolley that is hit, the angle of a pull on a spanner, where a person stands on a plank, the angle of a suitcase's handle, or the length of a ramp.
+ * the time cursor of a graph, the angle of the sledge's rope, the clock of the bench falls, the angle of a kick, the angle of the crate's rope or its pull, the lab's hanging mass, the time since the skydiver jumped, the speed a trolley bounces back from a wall, the mass of a trolley that is hit, the angle of a pull on a spanner, where a person stands on a plank, the angle of a suitcase's handle, the length of a ramp, the time since stones were thrown from a cliff, or the length of a slide.
  */
 export type ExploreScreen = Base & {
   kind: 'explore';
   instruction: string; // names the gesture: "Drag …"
-  fig: LiftFig | ThrowFig | RoadFig | GraphFig | TrackFig | SledgeFig | BenchFig | KickFig | CrateFig | PulleyFig | FallFig | WallFig | CollideFig | SpannerFig | BeamFig | PlatformFig | RampFig | KineticFig | HeightFig;
+  fig: LiftFig | ThrowFig | RoadFig | GraphFig | TrackFig | SledgeFig | BenchFig | KickFig | CrateFig | PulleyFig | FallFig | WallFig | CollideFig | SpannerFig | BeamFig | PlatformFig | RampFig | KineticFig | HeightFig | CliffFig | SlideFig;
   /**
    * `tick`: gap between the marks on the ruler (defaults to `step`). `symbol` and `dp` write the bubble ("t = 0.82 s"),
    * `signed` adds + to positive values. `start`: where the thumb begins (defaults to the lift's a, or `min`).

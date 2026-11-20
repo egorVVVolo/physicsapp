@@ -165,6 +165,8 @@ function revealsAfterCheck(fig: Fig | undefined): boolean {
     (fig?.kind === 'platform' && fig.work === 'afterCheck') ||
     (fig?.kind === 'ramp' && fig.push === 'afterCheck') ||
     (fig?.kind === 'kinetic' && (fig.square === 'afterCheck' || fig.energy === 'afterCheck')) ||
+    (fig?.kind === 'cliff' && fig.landing === 'afterCheck') ||
+    (fig?.kind === 'slide' && (fig.heat === 'afterCheck' || fig.friction === 'afterCheck')) ||
     (fig?.kind === 'bench' && (fig.play === 'afterCheck' || fig.range === 'afterCheck')) ||
     (fig?.kind === 'kick' && (fig.play === 'afterCheck' || fig.path === 'afterCheck' || fig.range === 'afterCheck' || fig.height === 'afterCheck' || fig.topV === 'afterCheck'))
   );
@@ -218,6 +220,10 @@ function revealed(fig: Fig): Fig {
   if (fig.kind === 'ramp') return { ...fig, push: fig.push === 'afterCheck' ? 'shown' : fig.push };
   // the kinetic energy is written in, or the energy square is drawn under the car
   if (fig.kind === 'kinetic') return { ...fig, square: fig.square === 'afterCheck' ? 'shown' : fig.square, energy: fig.energy === 'afterCheck' ? 'shown' : fig.energy };
+  // the stones' velocities at the sea appear and their speeds are written in
+  if (fig.kind === 'cliff') return { ...fig, landing: fig.landing === 'afterCheck' ? 'shown' : fig.landing };
+  // the energy friction took fills the bottom bar, or the friction force grows to its size
+  if (fig.kind === 'slide') return { ...fig, heat: fig.heat === 'afterCheck' ? 'shown' : fig.heat, friction: fig.friction === 'afterCheck' ? 'shown' : fig.friction };
   // the falls play (slowed down, with strobe copies) and the landing distance is written in
   if (fig.kind === 'bench') return { ...fig, play: fig.play === 'afterCheck' ? true : fig.play, at: fig.play === 'afterCheck' ? undefined : fig.at, range: fig.range === 'afterCheck' ? 'shown' : fig.range };
   // the flights play, the paths appear and every "?" gets its size

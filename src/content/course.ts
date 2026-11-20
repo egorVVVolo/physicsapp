@@ -45,7 +45,7 @@ export const course: Course = {
       lessons: [
         { id: 'work', title: 'Work done', spec: [17], ready: true, about: 'Force times distance moved in the direction of the force.' },
         { id: 'ke-gpe', title: 'Kinetic and potential energy', spec: [18, 19], ready: true, about: 'Energy of motion and energy of height, and how to compute them.' },
-        { id: 'conservation', title: 'Where the energy goes', spec: [20], ready: false, about: 'Follow energy as it changes form, losses included.' },
+        { id: 'conservation', title: 'Where the energy goes', spec: [20], ready: true, about: 'Follow energy as it changes form, losses included.' },
         { id: 'power', title: 'Power and efficiency', spec: [21, 22], ready: false, about: 'How fast work is done, and how much of it is useful.' },
       ],
     },

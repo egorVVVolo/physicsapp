@@ -394,6 +394,13 @@ Sources: [Beichner (1994), kinematics graphs](https://moodle2.units.it/pluginfil
 | E-MOMENTUM | mv used for the kinetic energy; equal energies give speeds in the inverse ratio of the masses | 12.0 kJ for the car; trolley B at 0.960 m s⁻¹ | Ek = ½mv²: the speed is squared, the mass is not |
 | E-ROOT | The square root forgotten when finding a speed from Ek | The tennis ball at 2410 m s⁻¹ | v = √(2Ek ÷ m) |
 | E-MASS-HEIGHT | A heavier body at the same speed needs a different height to hold the same energy | The van "10.2 m" or "40.8 m" | mgh = ½mv²: m on both sides, h = v² ÷ 2g = 20.4 m for any mass |
+| C-DIRECTION | The direction of a throw changes the landing speed: down is fastest, up "uses up" energy | The cliff: "C fastest, A slowest" | The three stones at the sea: three equal arrows, A's and C's the same; Ek = ½mv² has no direction |
+| C-ADD-SPEED | Speeds added instead of energies | The cliff: 12 + 19.8 = 31.8 m s⁻¹ | ½mv² = ½mu² + mgΔh: energies add, so v² = u² + 2gΔh |
+| C-START | The starting kinetic energy left out | The cliff 19.8 m s⁻¹; the cyclist 2.66 kJ | The energy column of stone A starts with Ek on top of Ep |
+| C-TOTAL | The total energy changes during a flight: biggest at the top, or falling as the body slows | The explore question on stone A | Explore: the column's top stays on the 107 J line all the way |
+| C-LOST | The energy taken by friction is Ek, Ep or their sum, not their difference | The slide: 200 J, 613 J or 813 J | The two bars: Ep lost on top, Ek and heating below, the same length |
+| C-HEIGHT-DIST | Work against friction divided by the height, not the distance moved along the slide | The slide: 165 N | Friction acts along the chute; the length is drawn along it |
+| C-PATH | With friction the path still does not matter | "The same speed: only the height counts" on a longer slide | Explore: the slide's length; the heating part grows, Ek shrinks |
 
 ## 13. Lesson spec template
 
