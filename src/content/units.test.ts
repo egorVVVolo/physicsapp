@@ -12,6 +12,7 @@ test('a number and its unit are joined, compound units too', () => {
   assert.equal(keepUnits('at 1.5 m s⁻¹ and 9.81 m s⁻²'), `at 1.5${NB}m${NB}s⁻¹ and 9.81${NB}m${NB}s⁻²`);
   assert.equal(keepUnits('6.00 kg m s⁻¹'), `6.00${NB}kg${NB}m${NB}s⁻¹`);
   assert.equal(keepUnits('a 600 N painter'), `a 600${NB}N painter`);
+  assert.equal(keepUnits('takes 1.20 kW, pulls 1.20 kN'), `takes 1.20${NB}kW, pulls 1.20${NB}kN`);
 });
 
 test('words that only start like a unit are left alone', () => {
@@ -26,5 +27,5 @@ test('lesson data is copied with every string fixed, ids untouched', () => {
 
 test('no screen of any lesson leaves a number apart from its unit', () => {
   const text = JSON.stringify(Object.values(lessons));
-  assert.equal(text.match(/\d (kg|N|m|s|cm)\b(?![A-Za-z])/g), null);
+  assert.equal(text.match(/\d (kg|kN|N|m|s|cm|kW|W)\b(?![A-Za-z])/g), null);
 });

@@ -167,6 +167,8 @@ function revealsAfterCheck(fig: Fig | undefined): boolean {
     (fig?.kind === 'kinetic' && (fig.square === 'afterCheck' || fig.energy === 'afterCheck')) ||
     (fig?.kind === 'cliff' && fig.landing === 'afterCheck') ||
     (fig?.kind === 'slide' && (fig.heat === 'afterCheck' || fig.friction === 'afterCheck')) ||
+    (fig?.kind === 'ride' && fig.power === 'afterCheck') ||
+    (fig?.kind === 'winch' && (fig.useful === 'afterCheck' || fig.efficiency === 'afterCheck')) ||
     (fig?.kind === 'bench' && (fig.play === 'afterCheck' || fig.range === 'afterCheck')) ||
     (fig?.kind === 'kick' && (fig.play === 'afterCheck' || fig.path === 'afterCheck' || fig.range === 'afterCheck' || fig.height === 'afterCheck' || fig.topV === 'afterCheck'))
   );
@@ -224,6 +226,10 @@ function revealed(fig: Fig): Fig {
   if (fig.kind === 'cliff') return { ...fig, landing: fig.landing === 'afterCheck' ? 'shown' : fig.landing };
   // the energy friction took fills the bottom bar, or the friction force grows to its size
   if (fig.kind === 'slide') return { ...fig, heat: fig.heat === 'afterCheck' ? 'shown' : fig.heat, friction: fig.friction === 'afterCheck' ? 'shown' : fig.friction };
+  // the cyclist's power is written in
+  if (fig.kind === 'ride') return { ...fig, power: fig.power === 'afterCheck' ? 'shown' : fig.power };
+  // the power flow splits into useful and heating, or the efficiency is written in
+  if (fig.kind === 'winch') return { ...fig, useful: fig.useful === 'afterCheck' ? 'shown' : fig.useful, efficiency: fig.efficiency === 'afterCheck' ? 'shown' : fig.efficiency };
   // the falls play (slowed down, with strobe copies) and the landing distance is written in
   if (fig.kind === 'bench') return { ...fig, play: fig.play === 'afterCheck' ? true : fig.play, at: fig.play === 'afterCheck' ? undefined : fig.at, range: fig.range === 'afterCheck' ? 'shown' : fig.range };
   // the flights play, the paths appear and every "?" gets its size

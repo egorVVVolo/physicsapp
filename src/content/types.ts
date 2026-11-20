@@ -733,7 +733,44 @@ export type SlideFig = {
   friction?: 'shown' | 'afterCheck';
 };
 
-export type Fig = LiftFig | PairsFig | VtFig | ScalesFig | LiftPairFig | ThrowFig | ThrowVtFig | FallGraphFig | RoadFig | BrakeVtFig | EquationsFig | GraphFig | ChaseFig | TrackFig | VectorsFig | SledgeFig | HillFig | ResolveFig | BenchFig | KickFig | CrateFig | LadderFig | ParticleFig | PulleyFig | FallFig | WallFig | BodiesFig | CollideFig | SpannerFig | PoleFig | BarFig | BeamFig | BroomFig | PlatformFig | RampFig | KineticFig | HeightFig | CliffFig | SlideFig;
+/**
+ * A cyclist on a level road, seen from the side, riding at a steady speed v. She stays put while the road, its posts
+ * and the air stream past at her speed. Air resistance D = kv² (src/physics/drag) acts back from her centre of gravity;
+ * at a steady speed the road pushes her forward at the back wheel with F = D. On the explore screen the slider sets v.
+ */
+export type RideFig = {
+  kind: 'ride';
+  k: number; // the drag constant, N s² m⁻²
+  v: number; // m s⁻¹
+  /** A second lane below at this speed (the recap): both riders with their forces and power. */
+  compare?: number;
+  /** The roadside posts stand v × 1 s apart, with the distance between two written: she passes one each second. */
+  perSecond?: true;
+  /** Her power, P = Dv: written in, or "P = ?" until the question is answered. */
+  power?: 'shown' | 'afterCheck';
+};
+
+/**
+ * An electric winch on top of a scaffold lifts a pallet of bricks of mass m through h metres in t seconds at a steady
+ * speed. Beside it, the power flow of the motor: the input from the mains, the useful power (mgh ÷ t, src/physics/power)
+ * and the rest, which heats the motor. On the explore screen the slider sets the load; the useful power stays the
+ * same, so the speed follows v = P ÷ mg, with the cable's pull T and v drawn on the pallet.
+ */
+export type WinchFig = {
+  kind: 'winch';
+  m: number; // kg
+  h: number; // m
+  t: number; // s
+  input: number; // W, from the mains
+  /** The pallet rises again and again. */
+  play?: true;
+  /** The useful power and the heating part of the flow: written in, or "?" until the question is answered. */
+  useful?: 'shown' | 'afterCheck';
+  /** The motor's efficiency: written in, or "?" until the question is answered. */
+  efficiency?: 'shown' | 'afterCheck';
+};
+
+export type Fig = LiftFig | PairsFig | VtFig | ScalesFig | LiftPairFig | ThrowFig | ThrowVtFig | FallGraphFig | RoadFig | BrakeVtFig | EquationsFig | GraphFig | ChaseFig | TrackFig | VectorsFig | SledgeFig | HillFig | ResolveFig | BenchFig | KickFig | CrateFig | LadderFig | ParticleFig | PulleyFig | FallFig | WallFig | BodiesFig | CollideFig | SpannerFig | PoleFig | BarFig | BeamFig | BroomFig | PlatformFig | RampFig | KineticFig | HeightFig | CliffFig | SlideFig | RideFig | WinchFig;
 
 /** Tap targets drawn by a lift figure with `candidates`. */
 export const CANDIDATE_IDS = ['shorter', 'equal', 'longer'] as const;
@@ -798,12 +835,12 @@ export type ChoiceScreen = Base & {
 /**
  * Play with the figure through a slider, then a light question (not counted in the tally).
  * The slider drives the lift's acceleration, the time since the throw, since the brakes came on or since the runners set off,
- * the time cursor of a graph, the angle of the sledge's rope, the clock of the bench falls, the angle of a kick, the angle of the crate's rope or its pull, the lab's hanging mass, the time since the skydiver jumped, the speed a trolley bounces back from a wall, the mass of a trolley that is hit, the angle of a pull on a spanner, where a person stands on a plank, the angle of a suitcase's handle, the length of a ramp, the time since stones were thrown from a cliff, or the length of a slide.
+ * the time cursor of a graph, the angle of the sledge's rope, the clock of the bench falls, the angle of a kick, the angle of the crate's rope or its pull, the lab's hanging mass, the time since the skydiver jumped, the speed a trolley bounces back from a wall, the mass of a trolley that is hit, the angle of a pull on a spanner, where a person stands on a plank, the angle of a suitcase's handle, the length of a ramp, the time since stones were thrown from a cliff, the length of a slide, a cyclist's speed, or the load on a winch.
  */
 export type ExploreScreen = Base & {
   kind: 'explore';
   instruction: string; // names the gesture: "Drag …"
-  fig: LiftFig | ThrowFig | RoadFig | GraphFig | TrackFig | SledgeFig | BenchFig | KickFig | CrateFig | PulleyFig | FallFig | WallFig | CollideFig | SpannerFig | BeamFig | PlatformFig | RampFig | KineticFig | HeightFig | CliffFig | SlideFig;
+  fig: LiftFig | ThrowFig | RoadFig | GraphFig | TrackFig | SledgeFig | BenchFig | KickFig | CrateFig | PulleyFig | FallFig | WallFig | CollideFig | SpannerFig | BeamFig | PlatformFig | RampFig | KineticFig | HeightFig | CliffFig | SlideFig | RideFig | WinchFig;
   /**
    * `tick`: gap between the marks on the ruler (defaults to `step`). `symbol` and `dp` write the bubble ("t = 0.82 s"),
    * `signed` adds + to positive values. `start`: where the thumb begins (defaults to the lift's a, or `min`).

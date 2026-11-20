@@ -8,6 +8,7 @@ import { keepingBalance } from './keeping-balance.ts';
 import { kineticAndPotentialEnergy } from './kinetic-and-potential-energy.ts';
 import { momentumLesson } from './momentum.ts';
 import { normalReaction } from './normal-reaction.ts';
+import { powerAndEfficiency } from './power-and-efficiency.ts';
 import { pickingTheEquation } from './picking-the-equation.ts';
 import { readingMotionGraphs } from './reading-motion-graphs.ts';
 import { splittingAVector } from './splitting-a-vector.ts';
@@ -38,4 +39,5 @@ export const lessons: Record<string, Lesson> = {
   [workDoneLesson.id]: keepUnitsIn(workDoneLesson),
   [kineticAndPotentialEnergy.id]: keepUnitsIn(kineticAndPotentialEnergy),
   [whereTheEnergyGoes.id]: keepUnitsIn(whereTheEnergyGoes),
+  [powerAndEfficiency.id]: keepUnitsIn(powerAndEfficiency),
 };

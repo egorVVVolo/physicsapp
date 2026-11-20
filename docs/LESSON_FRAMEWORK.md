@@ -401,6 +401,13 @@ Sources: [Beichner (1994), kinematics graphs](https://moodle2.units.it/pluginfil
 | C-LOST | The energy taken by friction is Ek, Ep or their sum, not their difference | The slide: 200 J, 613 J or 813 J | The two bars: Ep lost on top, Ek and heating below, the same length |
 | C-HEIGHT-DIST | Work against friction divided by the height, not the distance moved along the slide | The slide: 165 N | Friction acts along the chute; the length is drawn along it |
 | C-PATH | With friction the path still does not matter | "The same speed: only the height counts" on a longer slide | Explore: the slide's length; the heating part grows, Ek shrinks |
+| P-NOT-RATE | The work or energy given as the power, not divided by the time, or multiplied by it | The winch 9.42 kW or 113 kW; the stairs 2.74 kW | Power is energy per second: the winch's 9420 J spread over 12 s |
+| P-STEADY | At a steady speed there is no resultant force, so no work and no power is needed | Kira: 0 J each second; "the same 54.0 W at 12 m s⁻¹"; the car's resistance 0 N | The ride: D and F balance, yet the posts go by: her push moves 6.0 m every second |
+| P-ONE-FACTOR | When the speed doubles only one factor of P = Dv is changed | Kira at 12 m s⁻¹: 108 W (speed only) or 216 W (force only) | Explore: the speed slider, D grows as v²; the posts come twice as fast |
+| P-F-V | Force and speed divided or multiplied the wrong way | 1.50 J each second; the car 750 kN; the e-bike 1.92 kN | P = Fv: the work done in one second, force × distance per second |
+| EFF-UPSIDE | Efficiency upside down: input ÷ useful output, more than 100 % | The winch 153 % | The power flow: the useful band is narrower than the input band |
+| EFF-WASTED | The wasted share given as the efficiency | The winch 34.6 % | The power flow: heating bends away, useful goes on to the load |
+| EFF-DIRECTION | Multiplying by the efficiency where the input is wanted, or dividing where the output is | The motor 589 J; the e-bike 37.5 N or 46.9 N | Input is always the biggest number: useful = efficiency × input |
 
 ## 13. Lesson spec template
 
