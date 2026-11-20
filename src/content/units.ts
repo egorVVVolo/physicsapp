@@ -4,13 +4,15 @@
 // units ("N m", "m s⁻¹", "kg m s⁻¹").
 
 const NBSP = ' ';
-const UNIT = '(?:kg|g|kN|N|m|s|cm|km|kJ|J|kW|W|Pa|h|min)';
+const UNIT = '(?:kg|g|kN|N|mm|m|s|cm|km|kJ|J|kW|W|Pa|h|min|°C)';
 /** A number, a space, a unit not followed by another letter ("3 m" but not "3 more"). */
 const AFTER_NUMBER = new RegExp(`([\\d⁰¹²³⁴⁵⁶⁷⁸⁹]) (?=${UNIT}(?![A-Za-z]))`, 'g');
 /** Standard form stays in one piece: "1.00 × 10⁻⁴". */
 const STANDARD_FORM = /(\d) × 10(?=[⁻⁰¹²³⁴⁵⁶⁷⁸⁹])/g;
-/** Inside a compound unit that follows a number: "N m", "kg m", "m s⁻¹", "m s⁻²". */
-const IN_UNIT = /(\d (?:kg|N|m)(?: (?:m))?) (?=(?:m|s⁻[¹²])(?![A-Za-z]))/g;
+/** Inside a compound unit that follows a number: "N m", "kg m", "m s⁻¹", "cm s⁻¹", "m s⁻²". */
+const IN_UNIT = /(\d (?:kg|N|cm|m)(?: (?:m))?) (?=(?:m|s⁻[¹²])(?![A-Za-z]))/g;
+/** The unit of viscosity: "1.41 Pa s". */
+const PA_S = /(\d Pa) (?=s(?![A-Za-z⁻]))/g;
 
 /** The text with no-break spaces between each number and its unit. */
 export function keepUnits(text: string): string {
@@ -18,7 +20,7 @@ export function keepUnits(text: string): string {
   // twice, for "kg m s⁻¹" (two spaces inside one unit)
   out = out.replace(IN_UNIT, `$1${NBSP}`);
   out = out.replace(IN_UNIT, `$1${NBSP}`);
-  return out;
+  return out.replace(PA_S, `$1${NBSP}`);
 }
 
 /** A deep copy of lesson data with keepUnits applied to every string in it. */

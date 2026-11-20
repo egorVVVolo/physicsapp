@@ -816,7 +816,36 @@ export type DunkFig = {
   forces?: true;
 };
 
-export type Fig = LiftFig | PairsFig | VtFig | ScalesFig | LiftPairFig | ThrowFig | ThrowVtFig | FallGraphFig | RoadFig | BrakeVtFig | EquationsFig | GraphFig | ChaseFig | TrackFig | VectorsFig | SledgeFig | HillFig | ResolveFig | BenchFig | KickFig | CrateFig | LadderFig | ParticleFig | PulleyFig | FallFig | WallFig | BodiesFig | CollideFig | SpannerFig | PoleFig | BarFig | BeamFig | BroomFig | PlatformFig | RampFig | KineticFig | HeightFig | CliffFig | SlideFig | RideFig | WinchFig | TankFig | DunkFig;
+/**
+ * Steel balls dropped into a tall tube of glycerol, with two rubber bands 10.0 cm apart and a cm ruler
+ * (src/physics/viscosity). Each ball falls by stokesFall from the surface, at its terminal velocity within milliseconds.
+ * The balls are drawn five times too large (the sheet says so). On the right a panel: the speeds, the small ball
+ * magnified with W, U and the viscous drag F to one scale, the two balls side by side with their weights, a stopwatch
+ * for the timing between the bands, or (on the explore screen, the slider = temperature) a thermometer with η and v.
+ */
+export type TubeFig = {
+  kind: 'tube';
+  /** The balls' radii, m: one ball, or a small and a big one. */
+  balls: number[];
+  rho: number; // the balls' density, kg m⁻³
+  T: number; // the glycerol's temperature, °C (the slider's value on the explore screen)
+  /** Let go at the surface and fall in real time, again and again; 'afterCheck': only once the question is answered. */
+  play?: 'afterCheck' | true;
+  /** While still: seconds after the drop (default 0, at the surface). */
+  at?: number;
+  panel: 'speeds' | 'forces' | 'weights' | 'timing' | 'warm';
+  /** The asked value "?" (the last ball's speed, the drag F, the big ball's weight): for good or until the question is answered. */
+  ask?: 'unknown' | 'afterCheck';
+};
+
+/**
+ * One small steel ball seen from itself, in two liquids side by side: glycerol (laminar flow, the streamlines of Stokes
+ * flow from src/physics/viscosity, dashes streaming along them) and water (it drops fast; behind it the flow breaks into
+ * eddies). The two panels are tap targets (FLOW_IDS).
+ */
+export type FlowFig = { kind: 'flow'; r: number; rho: number; T: number };
+
+export type Fig = LiftFig | PairsFig | VtFig | ScalesFig | LiftPairFig | ThrowFig | ThrowVtFig | FallGraphFig | RoadFig | BrakeVtFig | EquationsFig | GraphFig | ChaseFig | TrackFig | VectorsFig | SledgeFig | HillFig | ResolveFig | BenchFig | KickFig | CrateFig | LadderFig | ParticleFig | PulleyFig | FallFig | WallFig | BodiesFig | CollideFig | SpannerFig | PoleFig | BarFig | BeamFig | BroomFig | PlatformFig | RampFig | KineticFig | HeightFig | CliffFig | SlideFig | RideFig | WinchFig | TankFig | DunkFig | TubeFig | FlowFig;
 
 /** Tap targets drawn by a lift figure with `candidates`. */
 export const CANDIDATE_IDS = ['shorter', 'equal', 'longer'] as const;
@@ -833,6 +862,8 @@ export const LADDER_IDS = ['normal', 'perp', 'up'] as const;
 export const POLE_IDS = ['along', 'height', 'across'] as const;
 /** Tap targets drawn by a beam figure with `candidates`: where the plank's weight acts. */
 export const BEAM_IDS = ['pivot', 'middle', 'long'] as const;
+/** Tap targets drawn by the flow figure: its two panels. */
+export const FLOW_IDS = ['glycerol', 'water'] as const;
 export const EQUATION_IDS = ['vuat', 'sut', 'v2as', 'suvt'] as const satisfies readonly RelationId[];
 
 // ── Screens ──────────────────────────────────────────────────────────────────────────────
@@ -881,12 +912,12 @@ export type ChoiceScreen = Base & {
 /**
  * Play with the figure through a slider, then a light question (not counted in the tally).
  * The slider drives the lift's acceleration, the time since the throw, since the brakes came on or since the runners set off,
- * the time cursor of a graph, the angle of the sledge's rope, the clock of the bench falls, the angle of a kick, the angle of the crate's rope or its pull, the lab's hanging mass, the time since the skydiver jumped, the speed a trolley bounces back from a wall, the mass of a trolley that is hit, the angle of a pull on a spanner, where a person stands on a plank, the angle of a suitcase's handle, the length of a ramp, the time since stones were thrown from a cliff, the length of a slide, a cyclist's speed, the load on a winch, the density of a block sunk in a tank, or how deep a block hangs in water.
+ * the time cursor of a graph, the angle of the sledge's rope, the clock of the bench falls, the angle of a kick, the angle of the crate's rope or its pull, the lab's hanging mass, the time since the skydiver jumped, the speed a trolley bounces back from a wall, the mass of a trolley that is hit, the angle of a pull on a spanner, where a person stands on a plank, the angle of a suitcase's handle, the length of a ramp, the time since stones were thrown from a cliff, the length of a slide, a cyclist's speed, the load on a winch, the density of a block sunk in a tank, how deep a block hangs in water, or the temperature of glycerol a ball sinks through.
  */
 export type ExploreScreen = Base & {
   kind: 'explore';
   instruction: string; // names the gesture: "Drag …"
-  fig: LiftFig | ThrowFig | RoadFig | GraphFig | TrackFig | SledgeFig | BenchFig | KickFig | CrateFig | PulleyFig | FallFig | WallFig | CollideFig | SpannerFig | BeamFig | PlatformFig | RampFig | KineticFig | HeightFig | CliffFig | SlideFig | RideFig | WinchFig | TankFig | DunkFig;
+  fig: LiftFig | ThrowFig | RoadFig | GraphFig | TrackFig | SledgeFig | BenchFig | KickFig | CrateFig | PulleyFig | FallFig | WallFig | CollideFig | SpannerFig | BeamFig | PlatformFig | RampFig | KineticFig | HeightFig | CliffFig | SlideFig | RideFig | WinchFig | TankFig | DunkFig | TubeFig;
   /**
    * `tick`: gap between the marks on the ruler (defaults to `step`). `symbol` and `dp` write the bubble ("t = 0.82 s"),
    * `signed` adds + to positive values. `start`: where the thumb begins (defaults to the lift's a, or `min`).

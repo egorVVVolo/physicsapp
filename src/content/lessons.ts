@@ -16,6 +16,7 @@ import { splittingAVector } from './splitting-a-vector.ts';
 import { turningForces } from './turning-forces.ts';
 import { twoMotionsAtOnce } from './two-motions-at-once.ts';
 import { upStopDown } from './up-stop-down.ts';
+import { viscousDrag } from './viscous-drag.ts';
 import { whichWayIsPositive } from './which-way-is-positive.ts';
 import { whereTheEnergyGoes } from './where-the-energy-goes.ts';
 import { workDoneLesson } from './work-done.ts';
@@ -42,4 +43,5 @@ export const lessons: Record<string, Lesson> = {
   [whereTheEnergyGoes.id]: keepUnitsIn(whereTheEnergyGoes),
   [powerAndEfficiency.id]: keepUnitsIn(powerAndEfficiency),
   [densityAndUpthrust.id]: keepUnitsIn(densityAndUpthrust),
+  [viscousDrag.id]: keepUnitsIn(viscousDrag),
 };

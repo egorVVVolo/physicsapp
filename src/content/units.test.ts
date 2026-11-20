@@ -15,6 +15,7 @@ test('a number and its unit are joined, compound units too', () => {
   assert.equal(keepUnits('takes 1.20 kW, pulls 1.20 kN'), `takes 1.20${NB}kW, pulls 1.20${NB}kN`);
   assert.equal(keepUnits('steel, 7800 kg m⁻³'), `steel, 7800${NB}kg${NB}m⁻³`);
   assert.equal(keepUnits('is 1.00 × 10⁻⁴ m³ of water'), `is 1.00${NB}×${NB}10⁻⁴${NB}m³ of water`);
+  assert.equal(keepUnits('η is 1.41 Pa s at 20 °C, r 1.0 mm, v 1.01 cm s⁻¹'), `η is 1.41${NB}Pa${NB}s at 20${NB}°C, r 1.0${NB}mm, v 1.01${NB}cm${NB}s⁻¹`);
 });
 
 test('words that only start like a unit are left alone', () => {

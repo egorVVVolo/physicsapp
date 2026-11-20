@@ -422,6 +422,14 @@ Sources: [Beichner (1994), kinematics graphs](https://moodle2.units.it/pluginfil
 | F-SAME | The same things are in the tank, so the level stays the same | The puzzle: "it stays the same" | The drop played by the model: the boat rises, the level falls 1.36 cm |
 | F-FULL | Upthrust = weight means a floating body is fully under the surface | The ice 1.00 × 10⁻³ m³ | The boat: most of it stands above the water once the block is off |
 | W-READING | The reading in water used as the body's weight | The stone 1500 kg m⁻³ | The newtonmeter: 7.65 N in air, 6.67 N in water; the difference is the upthrust |
+| V-SIZE-LINEAR | Twice as wide, twice as fast (or twice as heavy) | The big ball 2.02 cm s⁻¹; "twice as heavy" | The two balls magnified: volume ∝ r³, 8 times the weight |
+| V-DRAG-SIZE | The drag at a given speed does not depend on the size of the ball | The big ball 8.09 cm s⁻¹ | F = 6πηrv: twice the r, twice the drag at the same speed, so 4 times the speed is enough |
+| V-NO-UPTHRUST | The upthrust left out of the balance at terminal velocity | η 1.68 Pa s; the glass bead 0.324 cm s⁻¹; castor oil 1.13 Pa s | The magnified ball: U and F stacked, together as long as W |
+| V-DIAMETER | The diameter put in for r | η 0.705 Pa s; castor oil 3.95 Pa s | The Stokes' law card: r is the radius |
+| V-UNITS | cm s⁻¹ or mm left unconverted | η 0.0141 Pa s | v = 0.100 m ÷ 9.89 s |
+| V-ANY | Stokes' law used for any body at any speed | A 2.0 cm ball in water | The flow figure: in water the ball leaves eddies behind it |
+| V-FIXED | Viscosity is fixed for a liquid, or warming makes it thicker | "No change at 30 °C" | Explore: the temperature slider, η 3.90 → 0.284 Pa s, the ball speeds up |
+| V-DRAG-UP | Drag always acts upwards | The rising bubble: W = U + F | The drag acts against the motion: down on a rising bubble |
 
 ## 13. Lesson spec template
 
