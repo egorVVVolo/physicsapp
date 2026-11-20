@@ -22,6 +22,7 @@ function targets(fig: Fig): readonly string[] {
   if (fig.kind === 'pole') return fig.candidates ? POLE_IDS : [];
   if (fig.kind === 'beam') return fig.candidates ? BEAM_IDS : [];
   if (fig.kind === 'flow') return FLOW_IDS;
+  if (fig.kind === 'spring') return fig.view === 'lines' ? (fig.lines ?? []).map((l) => l.id) : [];
   if (fig.kind !== 'lift') return [];
   return fig.candidates ? CANDIDATE_IDS : [];
 }

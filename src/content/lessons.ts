@@ -5,6 +5,7 @@ import { densityAndUpthrust } from './density-and-upthrust.ts';
 import { drawingTheForces } from './drawing-the-forces.ts';
 import { forceAndAcceleration } from './force-and-acceleration.ts';
 import { fallingThroughAir } from './falling-through-air.ts';
+import { hookesLaw } from './hookes-law.ts';
 import { keepingBalance } from './keeping-balance.ts';
 import { kineticAndPotentialEnergy } from './kinetic-and-potential-energy.ts';
 import { momentumLesson } from './momentum.ts';
@@ -44,4 +45,5 @@ export const lessons: Record<string, Lesson> = {
   [powerAndEfficiency.id]: keepUnitsIn(powerAndEfficiency),
   [densityAndUpthrust.id]: keepUnitsIn(densityAndUpthrust),
   [viscousDrag.id]: keepUnitsIn(viscousDrag),
+  [hookesLaw.id]: keepUnitsIn(hookesLaw),
 };

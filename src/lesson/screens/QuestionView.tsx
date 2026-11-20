@@ -172,6 +172,7 @@ function revealsAfterCheck(fig: Fig | undefined): boolean {
     (fig?.kind === 'tank' && (fig.drop === 'afterCheck' || fig.pushed === 'afterCheck')) ||
     (fig?.kind === 'dunk' && (fig.reading === 'afterCheck' || fig.overflow === 'afterCheck')) ||
     (fig?.kind === 'tube' && (fig.play === 'afterCheck' || fig.ask === 'afterCheck')) ||
+    (fig?.kind === 'spring' && (fig.ask?.hide === 'afterCheck' || fig.springs.some((s) => s.hung === 'afterCheck' || s.pull === 'afterCheck'))) ||
     (fig?.kind === 'bench' && (fig.play === 'afterCheck' || fig.range === 'afterCheck')) ||
     (fig?.kind === 'kick' && (fig.play === 'afterCheck' || fig.path === 'afterCheck' || fig.range === 'afterCheck' || fig.height === 'afterCheck' || fig.topV === 'afterCheck'))
   );
@@ -238,6 +239,13 @@ function revealed(fig: Fig): Fig {
   // the newtonmeter's reading, or the overflow's volume, is written in
   if (fig.kind === 'dunk') return { ...fig, reading: fig.reading === 'afterCheck' ? 'shown' : fig.reading, overflow: fig.overflow === 'afterCheck' ? 'shown' : fig.overflow };
   // the balls are let go and fall by the model, and the asked speed, drag or weight is written in
+  // the weight is hung and bobs by the model, the pull grows to its size, the asked reading is written in
+  if (fig.kind === 'spring')
+    return {
+      ...fig,
+      ask: fig.ask?.hide === 'afterCheck' ? undefined : fig.ask,
+      springs: fig.springs.map((s) => ({ ...s, hung: s.hung === 'afterCheck' ? true : s.hung, pull: s.pull === 'afterCheck' ? 'shown' : s.pull })),
+    };
   if (fig.kind === 'tube') return { ...fig, play: fig.play === 'afterCheck' ? true : fig.play, ask: fig.ask === 'afterCheck' ? undefined : fig.ask };
   // the falls play (slowed down, with strobe copies) and the landing distance is written in
   if (fig.kind === 'bench') return { ...fig, play: fig.play === 'afterCheck' ? true : fig.play, at: fig.play === 'afterCheck' ? undefined : fig.at, range: fig.range === 'afterCheck' ? 'shown' : fig.range };

@@ -845,7 +845,42 @@ export type TubeFig = {
  */
 export type FlowFig = { kind: 'flow'; r: number; rho: number; T: number };
 
-export type Fig = LiftFig | PairsFig | VtFig | ScalesFig | LiftPairFig | ThrowFig | ThrowVtFig | FallGraphFig | RoadFig | BrakeVtFig | EquationsFig | GraphFig | ChaseFig | TrackFig | VectorsFig | SledgeFig | HillFig | ResolveFig | BenchFig | KickFig | CrateFig | LadderFig | ParticleFig | PulleyFig | FallFig | WallFig | BodiesFig | CollideFig | SpannerFig | PoleFig | BarFig | BeamFig | BroomFig | PlatformFig | RampFig | KineticFig | HeightFig | CliffFig | SlideFig | RideFig | WinchFig | TankFig | DunkFig | TubeFig | FlowFig;
+/**
+ * A spring hanging from a clamp stand beside a cm ruler (src/physics/springs), or two springs side by side: the whole
+ * spring and one half of it (cut from the same spring). A weight hangs on each, or waits on the bench under it; when it
+ * is hung the spring stretches and the weight bobs and settles by the model (damped). On the right: the readings (one
+ * column per spring), the halves (a paint mark on the middle coil, read on the ruler unloaded and loaded), or a
+ * force–extension graph that the explore's point (the slider = the load) traces. `view: 'lines'`: only a large
+ * force–extension graph with one line per stiffness, the line ends are tap targets (their ids).
+ */
+export type SpringFig = {
+  kind: 'spring';
+  L0: number; // the whole spring's natural length, m
+  k: number; // the whole spring's stiffness, N m⁻¹
+  view?: 'hang' | 'lines';
+  springs: SpringHang[];
+  panel: 'readings' | 'halves' | 'graph';
+  /** The rows of the readings, in order. */
+  rows?: ('load' | 'length' | 'ext' | 'k')[];
+  /** The asked value: a reading (row, column), or the bottom half's extension ('half'); "?" for good or until answered. */
+  ask?: { row: 'length' | 'ext' | 'k' | 'half'; col: number; hide: 'unknown' | 'afterCheck' };
+  /** `view: 'lines'`: the lines drawn, A, B, C… */
+  lines?: { id: string; k: number }[];
+};
+
+export type SpringHang = {
+  part: number; // 1: the whole spring; 0.5: one half of it
+  load: number; // the weight, N (on the explore screen the slider's value)
+  name: string; // the column head and the tag under it
+  /** The weight hangs on it; 'afterCheck': it is hung (and bobs) once the question is answered. Absent: on the bench. */
+  hung?: true | 'afterCheck';
+  /** A paint mark on the middle coil, with dashed lines where the mark and the end were with no load. */
+  mark?: true;
+  /** The pull T of the top half on the bottom half, at the mark, and the weight W on the weight: "T ?" until shown. */
+  pull?: 'unknown' | 'afterCheck' | 'shown';
+};
+
+export type Fig = LiftFig | PairsFig | VtFig | ScalesFig | LiftPairFig | ThrowFig | ThrowVtFig | FallGraphFig | RoadFig | BrakeVtFig | EquationsFig | GraphFig | ChaseFig | TrackFig | VectorsFig | SledgeFig | HillFig | ResolveFig | BenchFig | KickFig | CrateFig | LadderFig | ParticleFig | PulleyFig | FallFig | WallFig | BodiesFig | CollideFig | SpannerFig | PoleFig | BarFig | BeamFig | BroomFig | PlatformFig | RampFig | KineticFig | HeightFig | CliffFig | SlideFig | RideFig | WinchFig | TankFig | DunkFig | TubeFig | FlowFig | SpringFig;
 
 /** Tap targets drawn by a lift figure with `candidates`. */
 export const CANDIDATE_IDS = ['shorter', 'equal', 'longer'] as const;
@@ -912,12 +947,12 @@ export type ChoiceScreen = Base & {
 /**
  * Play with the figure through a slider, then a light question (not counted in the tally).
  * The slider drives the lift's acceleration, the time since the throw, since the brakes came on or since the runners set off,
- * the time cursor of a graph, the angle of the sledge's rope, the clock of the bench falls, the angle of a kick, the angle of the crate's rope or its pull, the lab's hanging mass, the time since the skydiver jumped, the speed a trolley bounces back from a wall, the mass of a trolley that is hit, the angle of a pull on a spanner, where a person stands on a plank, the angle of a suitcase's handle, the length of a ramp, the time since stones were thrown from a cliff, the length of a slide, a cyclist's speed, the load on a winch, the density of a block sunk in a tank, how deep a block hangs in water, or the temperature of glycerol a ball sinks through.
+ * the time cursor of a graph, the angle of the sledge's rope, the clock of the bench falls, the angle of a kick, the angle of the crate's rope or its pull, the lab's hanging mass, the time since the skydiver jumped, the speed a trolley bounces back from a wall, the mass of a trolley that is hit, the angle of a pull on a spanner, where a person stands on a plank, the angle of a suitcase's handle, the length of a ramp, the time since stones were thrown from a cliff, the length of a slide, a cyclist's speed, the load on a winch, the density of a block sunk in a tank, how deep a block hangs in water, the temperature of glycerol a ball sinks through, or the load on a spring.
  */
 export type ExploreScreen = Base & {
   kind: 'explore';
   instruction: string; // names the gesture: "Drag …"
-  fig: LiftFig | ThrowFig | RoadFig | GraphFig | TrackFig | SledgeFig | BenchFig | KickFig | CrateFig | PulleyFig | FallFig | WallFig | CollideFig | SpannerFig | BeamFig | PlatformFig | RampFig | KineticFig | HeightFig | CliffFig | SlideFig | RideFig | WinchFig | TankFig | DunkFig | TubeFig;
+  fig: LiftFig | ThrowFig | RoadFig | GraphFig | TrackFig | SledgeFig | BenchFig | KickFig | CrateFig | PulleyFig | FallFig | WallFig | CollideFig | SpannerFig | BeamFig | PlatformFig | RampFig | KineticFig | HeightFig | CliffFig | SlideFig | RideFig | WinchFig | TankFig | DunkFig | TubeFig | SpringFig;
   /**
    * `tick`: gap between the marks on the ruler (defaults to `step`). `symbol` and `dp` write the bubble ("t = 0.82 s"),
    * `signed` adds + to positive values. `start`: where the thumb begins (defaults to the lift's a, or `min`).

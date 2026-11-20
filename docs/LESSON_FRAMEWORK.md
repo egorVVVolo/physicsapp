@@ -431,6 +431,18 @@ Sources: [Beichner (1994), kinematics graphs](https://moodle2.units.it/pluginfil
 | V-FIXED | Viscosity is fixed for a liquid, or warming makes it thicker | "No change at 30 °C" | Explore: the temperature slider, η 3.90 → 0.284 Pa s, the ball speeds up |
 | V-DRAG-UP | Drag always acts upwards | The rising bubble: W = U + F | The drag acts against the motion: down on a rising bubble |
 
+## 12f. Misconception bank — Materials
+
+| Id | Misconception | How it shows up | Scene that breaks it |
+| --- | --- | --- | --- |
+| H-LENGTH | The length used for Δx instead of the extension | k 18.8 N m⁻¹ (3.0 ÷ 0.160); the launcher 20.0 N; two readings 22.2 N m⁻¹ | The ruler: the dashed line where the end was with no load, Δx from there |
+| H-CM | Δx left in cm, so k comes out 100 times too small (or F too big) | k 0.500 N m⁻¹; the launcher 1200 N | The law card: k in N m⁻¹, Δx in metres |
+| H-UPSIDE | k = Δx ÷ F | k 0.0200 N m⁻¹ | The graph: k is the gradient, force per metre |
+| H-ONE-LOAD | One load ÷ the change in length, instead of ΔF ÷ ΔL | Two readings 66.7 N m⁻¹ | ΔF = kΔx: both changes |
+| H-MATERIAL | Stiffness belongs to the material: the same steel, the same k | The half "50 N m⁻¹"; P and Q "equally stiff" | The paint mark: each half carries 3.0 N and stretches 3.0 cm |
+| H-SHARE | The load is shared along a hanging spring, each half carries half | The pull 1.5 N; the half stretches 1.5 cm | The bottom half and the weight at rest: T = W = 3.0 N |
+| H-SOFTER | A shorter spring is less stiff (or stretches more) | The half 25.0 N m⁻¹ or 12.0 cm; line D | Line B: twice as steep as C |
+
 ## 13. Lesson spec template
 
 Every lesson is written in this shape first (reviewable by Egor), then translated 1:1 into typed content in `src/content/`.
