@@ -619,7 +619,54 @@ export type BroomFig = {
   pieces?: 'shown' | 'unknown' | 'afterCheck';
 };
 
-export type Fig = LiftFig | PairsFig | VtFig | ScalesFig | LiftPairFig | ThrowFig | ThrowVtFig | FallGraphFig | RoadFig | BrakeVtFig | EquationsFig | GraphFig | ChaseFig | TrackFig | VectorsFig | SledgeFig | HillFig | ResolveFig | BenchFig | KickFig | CrateFig | LadderFig | ParticleFig | PulleyFig | FallFig | WallFig | BodiesFig | CollideFig | SpannerFig | PoleFig | BarFig | BeamFig | BroomFig;
+/**
+ * Loads moved along a level floor by a hand: carried by the handle (the hand holds it up), pulled on its wheels by a
+ * handle at `angle` above the floor, or pushed from behind. One panel, or two side by side. Each hand's force is drawn
+ * from where the hand acts, all to one scale per figure; the motion is an outline arrow under the floor with Δs.
+ * The work each hand's force does comes from workDone (src/physics/work). On an explore screen the slider sets the
+ * angle of the first lane's force.
+ */
+export type PlatformFig = {
+  kind: 'platform';
+  header: string; // the given values in the sheet header
+  lanes: PlatformLane[]; // one panel, or two side by side
+  dist: number; // m, how far each load moves
+  /** Draw each hand's force with its size. */
+  forces?: true;
+  /** Split an angled force into its parts along and across the motion, with their sizes and the angle. */
+  split?: true;
+  /** The work each hand's force does, at the top of its panel: its size, "?", or "?" until the question is answered. */
+  work?: 'shown' | 'unknown' | 'afterCheck';
+  /** The floor slides past at a steady speed. */
+  play?: true;
+};
+export type PlatformLane = {
+  name: string; // over the hand: "NADIA"
+  how: 'carry' | 'pull' | 'push';
+  load: 'suitcase' | 'box';
+  F: number; // N, the hand's force
+  angle: number; // degrees between the force and the motion (carry: 90, push: 0)
+  /** Friction on the load, N, drawn backwards along the floor. */
+  friction?: number;
+};
+
+/**
+ * Movers raise a washing machine `h` metres into a van: pushed at a steady speed up a smooth ramp of length L, or lifted
+ * straight up (dashed, by the van). The push along the ramp is rampPush (mg h ÷ L); the work is the same either way
+ * (src/physics/work). On the explore screen the slider sets L.
+ */
+export type RampFig = {
+  kind: 'ramp';
+  m: number; // kg
+  h: number; // m
+  L: number; // m
+  /** The push along the ramp: its size, "F = ?", or "?" until the question is answered. */
+  push: 'shown' | 'unknown' | 'afterCheck';
+  /** The two sums at the top: up the ramp and straight up. */
+  work?: true;
+};
+
+export type Fig = LiftFig | PairsFig | VtFig | ScalesFig | LiftPairFig | ThrowFig | ThrowVtFig | FallGraphFig | RoadFig | BrakeVtFig | EquationsFig | GraphFig | ChaseFig | TrackFig | VectorsFig | SledgeFig | HillFig | ResolveFig | BenchFig | KickFig | CrateFig | LadderFig | ParticleFig | PulleyFig | FallFig | WallFig | BodiesFig | CollideFig | SpannerFig | PoleFig | BarFig | BeamFig | BroomFig | PlatformFig | RampFig;
 
 /** Tap targets drawn by a lift figure with `candidates`. */
 export const CANDIDATE_IDS = ['shorter', 'equal', 'longer'] as const;
@@ -684,12 +731,12 @@ export type ChoiceScreen = Base & {
 /**
  * Play with the figure through a slider, then a light question (not counted in the tally).
  * The slider drives the lift's acceleration, the time since the throw, since the brakes came on or since the runners set off,
- * the time cursor of a graph, the angle of the sledge's rope, the clock of the bench falls, the angle of a kick, the angle of the crate's rope or its pull, the lab's hanging mass, the time since the skydiver jumped, the speed a trolley bounces back from a wall, the mass of a trolley that is hit, the angle of a pull on a spanner, or where a person stands on a plank.
+ * the time cursor of a graph, the angle of the sledge's rope, the clock of the bench falls, the angle of a kick, the angle of the crate's rope or its pull, the lab's hanging mass, the time since the skydiver jumped, the speed a trolley bounces back from a wall, the mass of a trolley that is hit, the angle of a pull on a spanner, where a person stands on a plank, the angle of a suitcase's handle, or the length of a ramp.
  */
 export type ExploreScreen = Base & {
   kind: 'explore';
   instruction: string; // names the gesture: "Drag …"
-  fig: LiftFig | ThrowFig | RoadFig | GraphFig | TrackFig | SledgeFig | BenchFig | KickFig | CrateFig | PulleyFig | FallFig | WallFig | CollideFig | SpannerFig | BeamFig;
+  fig: LiftFig | ThrowFig | RoadFig | GraphFig | TrackFig | SledgeFig | BenchFig | KickFig | CrateFig | PulleyFig | FallFig | WallFig | CollideFig | SpannerFig | BeamFig | PlatformFig | RampFig;
   /**
    * `tick`: gap between the marks on the ruler (defaults to `step`). `symbol` and `dp` write the bubble ("t = 0.82 s"),
    * `signed` adds + to positive values. `start`: where the thumb begins (defaults to the lift's a, or `min`).

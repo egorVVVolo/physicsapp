@@ -14,6 +14,7 @@ import { turningForces } from './turning-forces.ts';
 import { twoMotionsAtOnce } from './two-motions-at-once.ts';
 import { upStopDown } from './up-stop-down.ts';
 import { whichWayIsPositive } from './which-way-is-positive.ts';
+import { workDoneLesson } from './work-done.ts';
 import type { Lesson } from './types.ts';
 import { keepUnitsIn } from './units.ts';
 
@@ -32,4 +33,5 @@ export const lessons: Record<string, Lesson> = {
   [collisions.id]: keepUnitsIn(collisions),
   [turningForces.id]: keepUnitsIn(turningForces),
   [keepingBalance.id]: keepUnitsIn(keepingBalance),
+  [workDoneLesson.id]: keepUnitsIn(workDoneLesson),
 };

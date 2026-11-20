@@ -40,6 +40,8 @@ import { POLE_VB, PoleFigure, poleParams, poleTargets } from './PoleFigure';
 import { BAR_VB, BarFigure, barParams } from './BarFigure';
 import { BEAM_VB, BeamFigure, beamTargets } from './BeamFigure';
 import { BROOM_VB, BroomFigure, broomParams } from './BroomFigure';
+import { PLATFORM_VB, PlatformFigure, platformParams, platformPlays } from './PlatformFigure';
+import { RAMP_VB, RampFigure, rampParams } from './RampFigure';
 
 export type TapTarget = { id: string; x: number; y: number; w: number; h: number; label: string };
 export type TapProps = {
@@ -62,7 +64,7 @@ type Props = {
 /** Every figure is drawn at the same size on every screen, so the drawing never jumps between screens. */
 const MAX_H = 270;
 /** The figures that draw themselves the first time their kind appears in a lesson. */
-const DRAWS_ITSELF: Fig['kind'][] = ['scales', 'lift', 'pairs', 'throw', 'throwVt', 'fallGraph', 'road', 'brakeVt', 'equations', 'graph', 'chase', 'track', 'vectors', 'sledge', 'hill', 'resolve', 'bench', 'kick', 'crate', 'ladder', 'particle', 'pulley', 'fall', 'wall', 'bodies', 'collide', 'spanner', 'pole', 'bar', 'beam', 'broom'];
+const DRAWS_ITSELF: Fig['kind'][] = ['scales', 'lift', 'pairs', 'throw', 'throwVt', 'fallGraph', 'road', 'brakeVt', 'equations', 'graph', 'chase', 'track', 'vectors', 'sledge', 'hill', 'resolve', 'bench', 'kick', 'crate', 'ladder', 'particle', 'pulley', 'fall', 'wall', 'bodies', 'collide', 'spanner', 'pole', 'bar', 'beam', 'broom', 'platform', 'ramp'];
 
 export function Sheet({ fig, n, live, tap, caption }: Props) {
   const { palette: p } = useTheme();
@@ -76,7 +78,7 @@ export function Sheet({ fig, n, live, tap, caption }: Props) {
   // the first figure of each kind in a lesson draws itself; the pen starts once the sheet knows its size
   const first = useFirstShow(fig.kind);
   const clock = useDrawIn(first && width > 0 && DRAWS_ITSELF.includes(fig.kind));
-  const vb = { lift: LIFT_VB, pairs: PAIRS_VB, vt: VT_VB, scales: SCALES_VB, liftPair: LIFT_PAIR_VB, throw: THROW_VB, throwVt: THROW_VT_VB, fallGraph: FALL_VB, road: ROAD_VB, brakeVt: BRAKE_VT_VB, equations: EQUATIONS_VB, graph: GRAPH_VB, chase: CHASE_VB, track: TRACK_VB, vectors: VECTORS_VB, sledge: SLEDGE_VB, hill: HILL_VB, resolve: RESOLVE_VB, bench: BENCH_VB, kick: KICK_VB, crate: CRATE_VB, ladder: LADDER_VB, particle: PARTICLE_VB, pulley: PULLEY_VB, fall: AIR_FALL_VB, wall: WALL_VB, bodies: BODIES_VB, collide: COLLIDE_VB, spanner: SPANNER_VB, pole: POLE_VB, bar: BAR_VB, beam: BEAM_VB, broom: BROOM_VB }[fig.kind];
+  const vb = { lift: LIFT_VB, pairs: PAIRS_VB, vt: VT_VB, scales: SCALES_VB, liftPair: LIFT_PAIR_VB, throw: THROW_VB, throwVt: THROW_VT_VB, fallGraph: FALL_VB, road: ROAD_VB, brakeVt: BRAKE_VT_VB, equations: EQUATIONS_VB, graph: GRAPH_VB, chase: CHASE_VB, track: TRACK_VB, vectors: VECTORS_VB, sledge: SLEDGE_VB, hill: HILL_VB, resolve: RESOLVE_VB, bench: BENCH_VB, kick: KICK_VB, crate: CRATE_VB, ladder: LADDER_VB, particle: PARTICLE_VB, pulley: PULLEY_VB, fall: AIR_FALL_VB, wall: WALL_VB, bodies: BODIES_VB, collide: COLLIDE_VB, spanner: SPANNER_VB, pole: POLE_VB, bar: BAR_VB, beam: BEAM_VB, broom: BROOM_VB, platform: PLATFORM_VB, ramp: RAMP_VB }[fig.kind];
   const aNow = fig.kind === 'lift' ? (live ?? fig.a) : 0;
   // a lift with nothing drawn beside it stands in the middle; kept from the screen before, it glides aside to make room
   const shift = useTween(fig.kind === 'lift' ? liftShiftX(fig) : 0, prev?.kind === 'lift' ? liftShiftX(prev) : undefined, motion.screen);
@@ -92,7 +94,7 @@ export function Sheet({ fig, n, live, tap, caption }: Props) {
     w = (h * vb.w) / vb.h;
   }
   const scale = w / vb.w;
-  const animates = !reduced && ((fig.kind === 'lift' && liftMoves(fig, aNow)) || fig.kind === 'scales' || (fig.kind === 'throw' && throwPlays(fig)) || (fig.kind === 'road' && roadPlays(fig)) || (fig.kind === 'chase' && chasePlays(fig)) || (fig.kind === 'track' && trackPlays(fig) && live === undefined) || (fig.kind === 'bench' && benchPlays(fig) && live === undefined) || (fig.kind === 'kick' && kickPlays(fig) && live === undefined) || (fig.kind === 'crate' && cratePlays(fig) && (live === undefined || cratePlaysLive(fig))) || (fig.kind === 'pulley' && pulleyPlays(fig)) || (fig.kind === 'fall' && fallPlays(fig) && live === undefined) || (fig.kind === 'wall' && wallPlays(fig)) || (fig.kind === 'collide' && collidePlays(fig)));
+  const animates = !reduced && ((fig.kind === 'lift' && liftMoves(fig, aNow)) || fig.kind === 'scales' || (fig.kind === 'throw' && throwPlays(fig)) || (fig.kind === 'road' && roadPlays(fig)) || (fig.kind === 'chase' && chasePlays(fig)) || (fig.kind === 'track' && trackPlays(fig) && live === undefined) || (fig.kind === 'bench' && benchPlays(fig) && live === undefined) || (fig.kind === 'kick' && kickPlays(fig) && live === undefined) || (fig.kind === 'crate' && cratePlays(fig) && (live === undefined || cratePlaysLive(fig))) || (fig.kind === 'pulley' && pulleyPlays(fig)) || (fig.kind === 'fall' && fallPlays(fig) && live === undefined) || (fig.kind === 'wall' && wallPlays(fig)) || (fig.kind === 'collide' && collidePlays(fig)) || (fig.kind === 'platform' && platformPlays(fig) && live === undefined));
   const run = playing && !reduced;
   const targets = !tap ? [] : fig.kind === 'lift' ? liftTargets(fig) : fig.kind === 'pairs' ? pairsTargets() : fig.kind === 'vt' ? vtTargets(fig) : fig.kind === 'throw' ? throwTargets(fig) : fig.kind === 'equations' ? equationsTargets(fig) : fig.kind === 'graph' ? graphTargets(fig) : fig.kind === 'sledge' ? sledgeTargets(fig, live) : fig.kind === 'ladder' ? ladderTargets(fig) : fig.kind === 'pole' ? poleTargets(fig) : fig.kind === 'beam' ? beamTargets(fig) : [];
   const params = caption ?? paramsOf(fig, aNow, live);
@@ -169,6 +171,8 @@ export function Sheet({ fig, n, live, tap, caption }: Props) {
               {fig.kind === 'bar' && <BarFigure fig={fig} clock={clock} />}
               {fig.kind === 'beam' && <BeamFigure fig={fig} live={live} tap={tap} clock={clock} />}
               {fig.kind === 'broom' && <BroomFigure fig={fig} clock={clock} />}
+              {fig.kind === 'platform' && <PlatformFigure fig={fig} live={live} playing={run} clock={clock} />}
+              {fig.kind === 'ramp' && <RampFigure fig={fig} live={live} clock={clock} />}
             </Svg>
             {fig.kind === 'lift' && <ShaftMarks fig={fig} a={aNow} scale={scale} playing={run} clock={clock} shift={shift} />}
             {targets.map((t) => (
@@ -252,6 +256,10 @@ function paramsOf(fig: Fig, a: number, live: number | undefined): string {
       return fig.header;
     case 'broom':
       return broomParams(fig);
+    case 'platform':
+      return platformParams(fig, live);
+    case 'ramp':
+      return rampParams(fig, live);
     default:
       return `m = ${fig.m} kg`;
   }

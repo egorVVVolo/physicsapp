@@ -376,6 +376,19 @@ Sources: [Beichner (1994), kinematics graphs](https://moodle2.units.it/pluginfil
 | B-SHARED | Two supports share a load equally wherever it stands | Each trestle 400 N | The pushes as arrows: 550 N and 250 N |
 | B-ONE-POINT | Moments balance only about the real pivot | "Moments about a point where no force acts: nothing useful" | Skill check "any": the resultant moment is zero about every point |
 
+## 12d. Misconception bank — Energy
+
+| Id | Misconception | How it shows up | Scene that breaks it |
+| --- | --- | --- | --- |
+| W-EFFORT | Holding or carrying a load is work, because it is tiring | Nadia carrying her suitcase 30 m: 4410 J | The platform: her force straight up, a right-angle mark against the motion, ΔW = 0 J |
+| W-RESULTANT | At a steady speed (no resultant force) no work is done | The mover's push: 0 J | The mover: her push and the friction balance, and her push still moves the box 6.0 m: 900 J |
+| W-WHOLE | The whole force is used, not its part along the motion | Omar 1200 J; the mower 1500 J | Explore: the handle's angle, the forward part shrinks, ΔW = 40 × 30 × cos θ |
+| W-TRIG | sin for cos | The mower 964 J; the ramp push 360 N (mg cos θ) | The split force: the part along the motion is next to the angle |
+| W-WEIGHT | The weight times any distance: sideways, or along a slope | The mover 2350 J; the stairs 2590 J or 3240 J | Gravity acts straight down: only the height counts |
+| W-RAMP | A longer ramp, with its smaller push, needs less work | "the 4.0 m ramp is easier: less work" | Explore: the ramp's length, push × length stays 471 J, the same as the lift |
+| W-UNIT | Force ÷ distance, or the mass for the weight | The mover 25.0 J; the stairs 198 J | ΔW = FΔs in newtons and metres: joules |
+| W-STORED | Work done against friction is stored in the body | "60 J stored in the box" | The energy card: work done is energy transferred, here by heating the box and the floor |
+
 ## 13. Lesson spec template
 
 Every lesson is written in this shape first (reviewable by Egor), then translated 1:1 into typed content in `src/content/`.

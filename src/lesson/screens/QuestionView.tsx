@@ -162,6 +162,8 @@ function revealsAfterCheck(fig: Fig | undefined): boolean {
     (fig?.kind === 'bar' && fig.moments === 'afterCheck') ||
     (fig?.kind === 'beam' && fig.answer === 'afterCheck') ||
     (fig?.kind === 'broom' && fig.pieces === 'afterCheck') ||
+    (fig?.kind === 'platform' && fig.work === 'afterCheck') ||
+    (fig?.kind === 'ramp' && fig.push === 'afterCheck') ||
     (fig?.kind === 'bench' && (fig.play === 'afterCheck' || fig.range === 'afterCheck')) ||
     (fig?.kind === 'kick' && (fig.play === 'afterCheck' || fig.path === 'afterCheck' || fig.range === 'afterCheck' || fig.height === 'afterCheck' || fig.topV === 'afterCheck'))
   );
@@ -209,6 +211,10 @@ function revealed(fig: Fig): Fig {
   if (fig.kind === 'beam') return { ...fig, answer: fig.answer === 'afterCheck' ? 'shown' : fig.answer };
   // each piece's weight grows to its size
   if (fig.kind === 'broom') return { ...fig, pieces: fig.pieces === 'afterCheck' ? 'shown' : fig.pieces };
+  // the work each hand's force does is written in
+  if (fig.kind === 'platform') return { ...fig, work: fig.work === 'afterCheck' ? 'shown' : fig.work };
+  // the push along the ramp grows to its size, and the work up the ramp is written in
+  if (fig.kind === 'ramp') return { ...fig, push: fig.push === 'afterCheck' ? 'shown' : fig.push };
   // the falls play (slowed down, with strobe copies) and the landing distance is written in
   if (fig.kind === 'bench') return { ...fig, play: fig.play === 'afterCheck' ? true : fig.play, at: fig.play === 'afterCheck' ? undefined : fig.at, range: fig.range === 'afterCheck' ? 'shown' : fig.range };
   // the flights play, the paths appear and every "?" gets its size
@@ -227,10 +233,13 @@ function revealed(fig: Fig): Fig {
   return { ...fig, unknownN: undefined, reading: fig.reading === 'afterCheck' ? 'shown' : fig.reading };
 }
 
+/** The people in the lessons' stories: an option that starts with one keeps its capital ("Omar: his pull…"). */
+const NAMES = new Set(['Mia', 'Leo', 'Ana', 'Ben', 'Zoe', 'Kai', 'Rose', 'Nadia', 'Omar', 'Ella']);
+
 /** An option label continued after "You said earlier:": lower-case first letter, except for "I" and names ("Mia's"). */
 function midSentence(label: string): string {
   const firstWord = label.split(' ')[0];
-  if (/^I('|$)/.test(firstWord) || /^[A-Z][a-z]*'s\b/.test(firstWord)) return label;
+  if (/^I('|$)/.test(firstWord) || /^[A-Z][a-z]*'s\b/.test(firstWord) || NAMES.has(firstWord.replace(/[:,]$/, ''))) return label;
   return label.charAt(0).toLowerCase() + label.slice(1);
 }
 
