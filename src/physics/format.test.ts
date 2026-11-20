@@ -25,3 +25,12 @@ test('three significant figures, never in e-notation', () => {
   assert.equal(sig(600), '600');
   assert.equal(sig(-964.2), '−964');
 });
+
+test('standard form: three significant figures, a proper superscript power', async () => {
+  const { sci } = await import('./format.ts');
+  assert.equal(sci(1.0e-4), '1.00 × 10⁻⁴');
+  assert.equal(sci(7.8e-4), '7.80 × 10⁻⁴');
+  assert.equal(sci(0.00765179), '7.65 × 10⁻³');
+  assert.equal(sci(10000), '1.00 × 10⁴');
+  assert.equal(sci(9.996e-4), '1.00 × 10⁻³');
+});

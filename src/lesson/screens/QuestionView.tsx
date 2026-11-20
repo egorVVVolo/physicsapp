@@ -169,6 +169,8 @@ function revealsAfterCheck(fig: Fig | undefined): boolean {
     (fig?.kind === 'slide' && (fig.heat === 'afterCheck' || fig.friction === 'afterCheck')) ||
     (fig?.kind === 'ride' && fig.power === 'afterCheck') ||
     (fig?.kind === 'winch' && (fig.useful === 'afterCheck' || fig.efficiency === 'afterCheck')) ||
+    (fig?.kind === 'tank' && (fig.drop === 'afterCheck' || fig.pushed === 'afterCheck')) ||
+    (fig?.kind === 'dunk' && (fig.reading === 'afterCheck' || fig.overflow === 'afterCheck')) ||
     (fig?.kind === 'bench' && (fig.play === 'afterCheck' || fig.range === 'afterCheck')) ||
     (fig?.kind === 'kick' && (fig.play === 'afterCheck' || fig.path === 'afterCheck' || fig.range === 'afterCheck' || fig.height === 'afterCheck' || fig.topV === 'afterCheck'))
   );
@@ -230,6 +232,10 @@ function revealed(fig: Fig): Fig {
   if (fig.kind === 'ride') return { ...fig, power: fig.power === 'afterCheck' ? 'shown' : fig.power };
   // the power flow splits into useful and heating, or the efficiency is written in
   if (fig.kind === 'winch') return { ...fig, useful: fig.useful === 'afterCheck' ? 'shown' : fig.useful, efficiency: fig.efficiency === 'afterCheck' ? 'shown' : fig.efficiency };
+  // the block goes over the side and the level falls by the model, or the block's share of the water displaced is written
+  if (fig.kind === 'tank') return { ...fig, drop: fig.drop === 'afterCheck' ? true : fig.drop, pushed: fig.pushed === 'afterCheck' ? 'shown' : fig.pushed };
+  // the newtonmeter's reading, or the overflow's volume, is written in
+  if (fig.kind === 'dunk') return { ...fig, reading: fig.reading === 'afterCheck' ? 'shown' : fig.reading, overflow: fig.overflow === 'afterCheck' ? 'shown' : fig.overflow };
   // the falls play (slowed down, with strobe copies) and the landing distance is written in
   if (fig.kind === 'bench') return { ...fig, play: fig.play === 'afterCheck' ? true : fig.play, at: fig.play === 'afterCheck' ? undefined : fig.at, range: fig.range === 'afterCheck' ? 'shown' : fig.range };
   // the flights play, the paths appear and every "?" gets its size

@@ -53,7 +53,7 @@ export const course: Course = {
       id: 'fluids',
       title: 'Fluids',
       lessons: [
-        { id: 'density-upthrust', title: 'Density and upthrust', spec: [23, 24], ready: false, about: 'Why things float: the weight of the fluid pushed aside.' },
+        { id: 'density-upthrust', title: 'Density and upthrust', spec: [23, 24], ready: true, about: 'Why things float: the weight of the fluid pushed aside.' },
         { id: 'viscosity', title: 'Viscous drag', spec: [25, 26], ready: false, about: "Stokes' law and the drag on a small sphere in a fluid." },
       ],
     },

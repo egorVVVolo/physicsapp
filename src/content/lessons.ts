@@ -1,6 +1,7 @@
 // All lessons that can be played, by id. The course map (course.ts) lists the rest as "Soon".
 // Every string passes through keepUnitsIn, so a number never parts from its unit at a line end (units.ts).
 import { collisions } from './collisions.ts';
+import { densityAndUpthrust } from './density-and-upthrust.ts';
 import { drawingTheForces } from './drawing-the-forces.ts';
 import { forceAndAcceleration } from './force-and-acceleration.ts';
 import { fallingThroughAir } from './falling-through-air.ts';
@@ -40,4 +41,5 @@ export const lessons: Record<string, Lesson> = {
   [kineticAndPotentialEnergy.id]: keepUnitsIn(kineticAndPotentialEnergy),
   [whereTheEnergyGoes.id]: keepUnitsIn(whereTheEnergyGoes),
   [powerAndEfficiency.id]: keepUnitsIn(powerAndEfficiency),
+  [densityAndUpthrust.id]: keepUnitsIn(densityAndUpthrust),
 };

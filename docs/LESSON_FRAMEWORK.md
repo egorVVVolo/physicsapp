@@ -409,6 +409,20 @@ Sources: [Beichner (1994), kinematics graphs](https://moodle2.units.it/pluginfil
 | EFF-WASTED | The wasted share given as the efficiency | The winch 34.6 % | The power flow: heating bends away, useful goes on to the load |
 | EFF-DIRECTION | Multiplying by the efficiency where the input is wanted, or dividing where the output is | The motor 589 J; the e-bike 37.5 N or 46.9 N | Input is always the biggest number: useful = efficiency × input |
 
+## 12e. Misconception bank — Fluids
+
+| Id | Misconception | How it shows up | Scene that breaks it |
+| --- | --- | --- | --- |
+| D-UPSIDE | ρ = m ÷ V turned the wrong way round | The steel block 6080 m³ (m × ρ) or 1.00 × 10⁴ m³ (ρ ÷ m); the classroom's air 120 kg or 0.00833 kg | The displacement can: 0.78 kg of steel pushes out only 100 cm³ |
+| D-UNITS | g cm⁻³ mixed with kg and m³, or 1 kg m⁻³ for water | The block 0.100 m³; the boat 0.780 m³ | The density card: 1 g cm⁻³ = 1000 kg m⁻³, 1 cm³ = 10⁻⁶ m³ |
+| U-BODY | The body's own weight or density used for the upthrust | The block 7.65 N; the balloon 0.0212 N (helium) | The overflow in the cylinder: the upthrust is the weight of that water |
+| U-MASS | The mass of the fluid displaced given as the upthrust | The block 0.100 N; the balloon 0.0144 N | 100 cm³ of water is 0.100 kg, weighing 0.981 N |
+| U-DEPTH | A body fully under the surface gets more upthrust the deeper it goes | "the reading keeps falling" | Explore: the depth slider; once the block is under, no more water comes out and the reading stays 6.67 N |
+| F-VOLUME | A floating body (or its load) displaces its own volume, not its own weight of fluid | The block on board: 100 cm³; the level "rises 0.20 cm" | The boat sits lower by 780 cm³: it must hold up 0.78 kg more |
+| F-SAME | The same things are in the tank, so the level stays the same | The puzzle: "it stays the same" | The drop played by the model: the boat rises, the level falls 1.36 cm |
+| F-FULL | Upthrust = weight means a floating body is fully under the surface | The ice 1.00 × 10⁻³ m³ | The boat: most of it stands above the water once the block is off |
+| W-READING | The reading in water used as the body's weight | The stone 1500 kg m⁻³ | The newtonmeter: 7.65 N in air, 6.67 N in water; the difference is the upthrust |
+
 ## 13. Lesson spec template
 
 Every lesson is written in this shape first (reviewable by Egor), then translated 1:1 into typed content in `src/content/`.

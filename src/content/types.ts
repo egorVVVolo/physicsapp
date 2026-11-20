@@ -770,7 +770,53 @@ export type WinchFig = {
   efficiency?: 'shown' | 'afterCheck';
 };
 
-export type Fig = LiftFig | PairsFig | VtFig | ScalesFig | LiftPairFig | ThrowFig | ThrowVtFig | FallGraphFig | RoadFig | BrakeVtFig | EquationsFig | GraphFig | ChaseFig | TrackFig | VectorsFig | SledgeFig | HillFig | ResolveFig | BenchFig | KickFig | CrateFig | LadderFig | ParticleFig | PulleyFig | FallFig | WallFig | BodiesFig | CollideFig | SpannerFig | PoleFig | BarFig | BeamFig | BroomFig | PlatformFig | RampFig | KineticFig | HeightFig | CliffFig | SlideFig | RideFig | WinchFig;
+/**
+ * A glass tank of water seen from the side, with a toy boat floating in it and a steel block (src/physics/fluids). The
+ * boat's draft follows the water it displaces (its own mass plus the block's while the block is on board, ÷ ρ(water));
+ * the level follows the water plus everything displaced, ÷ the tank's base. Up is positive.
+ */
+export type TankFig = {
+  kind: 'tank';
+  block: { m: number; rho: number }; // kg, kg m⁻³
+  boat: number; // the boat's mass, kg
+  area: number; // the tank's base, m²
+  water: number; // the volume of water in it, m³
+  /** Where the block is: on board, or on the bottom (its density from the explore slider, if any). */
+  at: 'boat' | 'bottom';
+  /** The block goes over the side and sinks; the boat rises and the level falls by the model. 'afterCheck': only once the question is answered. */
+  drop?: 'afterCheck' | true;
+  /** The water the boat displaces, boat + block, written beside: the block's share "?" until the question is answered. */
+  pushed?: 'afterCheck' | 'shown';
+  /** On the bottom: the level while the block was on board, dashed, and the fall written. */
+  levels?: true;
+  /** The recap: two tanks side by side, the block on board and on the bottom. */
+  compare?: true;
+};
+
+/**
+ * A block of mass m and density ρ (an upright block with a square base, `h` tall) hangs from a newtonmeter on a stand,
+ * lowered into a displacement can filled to its spout; the water it pushes out runs into a measuring cylinder.
+ * The reading is W − U, the upthrust U is the weight of the water displaced (src/physics/fluids). On the explore screen
+ * the slider sets how deep the block's bottom is below the surface (cm), and the reading, the overflow and U follow.
+ */
+export type DunkFig = {
+  kind: 'dunk';
+  m: number; // kg
+  rho: number; // kg m⁻³
+  h: number; // the block's height, m
+  /** How deep the block's bottom is below the surface, m (without a slider). */
+  depth: number;
+  /** The newtonmeter's reading: written, "?" until the question is answered, or hidden. */
+  reading?: 'shown' | 'afterCheck';
+  /** The volume in the measuring cylinder: written, or "?" until the question is answered. */
+  overflow?: 'shown' | 'afterCheck';
+  /** The reading in air written beside (the block's weight). */
+  inAir?: true;
+  /** W, U and T drawn on the block. */
+  forces?: true;
+};
+
+export type Fig = LiftFig | PairsFig | VtFig | ScalesFig | LiftPairFig | ThrowFig | ThrowVtFig | FallGraphFig | RoadFig | BrakeVtFig | EquationsFig | GraphFig | ChaseFig | TrackFig | VectorsFig | SledgeFig | HillFig | ResolveFig | BenchFig | KickFig | CrateFig | LadderFig | ParticleFig | PulleyFig | FallFig | WallFig | BodiesFig | CollideFig | SpannerFig | PoleFig | BarFig | BeamFig | BroomFig | PlatformFig | RampFig | KineticFig | HeightFig | CliffFig | SlideFig | RideFig | WinchFig | TankFig | DunkFig;
 
 /** Tap targets drawn by a lift figure with `candidates`. */
 export const CANDIDATE_IDS = ['shorter', 'equal', 'longer'] as const;
@@ -835,12 +881,12 @@ export type ChoiceScreen = Base & {
 /**
  * Play with the figure through a slider, then a light question (not counted in the tally).
  * The slider drives the lift's acceleration, the time since the throw, since the brakes came on or since the runners set off,
- * the time cursor of a graph, the angle of the sledge's rope, the clock of the bench falls, the angle of a kick, the angle of the crate's rope or its pull, the lab's hanging mass, the time since the skydiver jumped, the speed a trolley bounces back from a wall, the mass of a trolley that is hit, the angle of a pull on a spanner, where a person stands on a plank, the angle of a suitcase's handle, the length of a ramp, the time since stones were thrown from a cliff, the length of a slide, a cyclist's speed, or the load on a winch.
+ * the time cursor of a graph, the angle of the sledge's rope, the clock of the bench falls, the angle of a kick, the angle of the crate's rope or its pull, the lab's hanging mass, the time since the skydiver jumped, the speed a trolley bounces back from a wall, the mass of a trolley that is hit, the angle of a pull on a spanner, where a person stands on a plank, the angle of a suitcase's handle, the length of a ramp, the time since stones were thrown from a cliff, the length of a slide, a cyclist's speed, the load on a winch, the density of a block sunk in a tank, or how deep a block hangs in water.
  */
 export type ExploreScreen = Base & {
   kind: 'explore';
   instruction: string; // names the gesture: "Drag …"
-  fig: LiftFig | ThrowFig | RoadFig | GraphFig | TrackFig | SledgeFig | BenchFig | KickFig | CrateFig | PulleyFig | FallFig | WallFig | CollideFig | SpannerFig | BeamFig | PlatformFig | RampFig | KineticFig | HeightFig | CliffFig | SlideFig | RideFig | WinchFig;
+  fig: LiftFig | ThrowFig | RoadFig | GraphFig | TrackFig | SledgeFig | BenchFig | KickFig | CrateFig | PulleyFig | FallFig | WallFig | CollideFig | SpannerFig | BeamFig | PlatformFig | RampFig | KineticFig | HeightFig | CliffFig | SlideFig | RideFig | WinchFig | TankFig | DunkFig;
   /**
    * `tick`: gap between the marks on the ruler (defaults to `step`). `symbol` and `dp` write the bubble ("t = 0.82 s"),
    * `signed` adds + to positive values. `start`: where the thumb begins (defaults to the lift's a, or `min`).

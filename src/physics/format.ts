@@ -25,3 +25,18 @@ export function sig(x: number, n = 3): string {
   const step = 10 ** (digits - n);
   return fixed(Math.round(x / step) * step, 0);
 }
+
+const SUPER: Record<string, string> = { '-': '⁻', '0': '⁰', '1': '¹', '2': '²', '3': '³', '4': '⁴', '5': '⁵', '6': '⁶', '7': '⁷', '8': '⁸', '9': '⁹' };
+
+/** Standard form with three (or n) significant figures: sci(0.0001) → "1.00 × 10⁻⁴", sci(7.8e-4) → "7.80 × 10⁻⁴". */
+export function sci(x: number, n = 3): string {
+  if (x === 0) return '0';
+  let e = Math.floor(Math.log10(Math.abs(x)));
+  let m = Number((x / 10 ** e).toFixed(n - 1));
+  if (Math.abs(m) >= 10) {
+    m /= 10;
+    e += 1;
+  }
+  const power = String(e).split('').map((c) => SUPER[c]).join('');
+  return `${fixed(m, n - 1)} × 10${power}`;
+}
