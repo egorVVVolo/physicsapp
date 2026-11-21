@@ -912,7 +912,27 @@ export type WireSpec = {
   d: number; // its diameter, m
 };
 
-export type Fig = LiftFig | PairsFig | VtFig | ScalesFig | LiftPairFig | ThrowFig | ThrowVtFig | FallGraphFig | RoadFig | BrakeVtFig | EquationsFig | GraphFig | ChaseFig | TrackFig | VectorsFig | SledgeFig | HillFig | ResolveFig | BenchFig | KickFig | CrateFig | LadderFig | ParticleFig | PulleyFig | FallFig | WallFig | BodiesFig | CollideFig | SpannerFig | PoleFig | BarFig | BeamFig | BroomFig | PlatformFig | RampFig | KineticFig | HeightFig | CliffFig | SlideFig | RideFig | WinchFig | TankFig | DunkFig | TubeFig | FlowFig | SpringFig | WireFig;
+/**
+ * A stress–strain graph of a ductile wire (src/physics/materials), three views.
+ * 'loop': the copper wire zoomed to a real scale (strain in 10⁻³, stress in MPa): the loading curve to the strain
+ * reached (`reach`, 10⁻³; on the explore screen the slider's value), and the load taken off along a line parallel to the
+ * straight part, with brackets for the part that springs back and the permanent strain left.
+ * 'sketch': the whole curve of a ductile metal, not to scale, with the points P E Y U B (SKETCH_IDS): a legend names
+ * them, or, with `targets`, they are tap targets and the legend is hidden.
+ * 'compare': three sketched curves A B C (COMPARE_IDS), tap targets.
+ */
+export type MaterialFig = {
+  kind: 'material';
+  view: 'loop' | 'sketch' | 'compare';
+  E: number; // the Young modulus, Pa (the slope of the unloading line)
+  reach?: number; // loop: the strain reached on loading, 10⁻³ (default 5.0)
+  /** loop: the load is taken off; 'afterCheck': once the question is answered. */
+  unload?: true | 'afterCheck';
+  /** sketch: the letters are tap targets (and the legend is hidden). */
+  targets?: true;
+};
+
+export type Fig = LiftFig | PairsFig | VtFig | ScalesFig | LiftPairFig | ThrowFig | ThrowVtFig | FallGraphFig | RoadFig | BrakeVtFig | EquationsFig | GraphFig | ChaseFig | TrackFig | VectorsFig | SledgeFig | HillFig | ResolveFig | BenchFig | KickFig | CrateFig | LadderFig | ParticleFig | PulleyFig | FallFig | WallFig | BodiesFig | CollideFig | SpannerFig | PoleFig | BarFig | BeamFig | BroomFig | PlatformFig | RampFig | KineticFig | HeightFig | CliffFig | SlideFig | RideFig | WinchFig | TankFig | DunkFig | TubeFig | FlowFig | SpringFig | WireFig | MaterialFig;
 
 /** Tap targets drawn by a lift figure with `candidates`. */
 export const CANDIDATE_IDS = ['shorter', 'equal', 'longer'] as const;
@@ -931,6 +951,10 @@ export const POLE_IDS = ['along', 'height', 'across'] as const;
 export const BEAM_IDS = ['pivot', 'middle', 'long'] as const;
 /** Tap targets drawn by the flow figure: its two panels. */
 export const FLOW_IDS = ['glycerol', 'water'] as const;
+/** Tap targets drawn by a material sketch with `targets`: the limit of proportionality, elastic limit, yield point, ultimate tensile stress, break. */
+export const SKETCH_IDS = ['P', 'E', 'Y', 'U', 'B'] as const;
+/** Tap targets drawn by the compare view: three curves. */
+export const COMPARE_IDS = ['A', 'B', 'C'] as const;
 export const EQUATION_IDS = ['vuat', 'sut', 'v2as', 'suvt'] as const satisfies readonly RelationId[];
 
 // ── Screens ──────────────────────────────────────────────────────────────────────────────
@@ -979,12 +1003,12 @@ export type ChoiceScreen = Base & {
 /**
  * Play with the figure through a slider, then a light question (not counted in the tally).
  * The slider drives the lift's acceleration, the time since the throw, since the brakes came on or since the runners set off,
- * the time cursor of a graph, the angle of the sledge's rope, the clock of the bench falls, the angle of a kick, the angle of the crate's rope or its pull, the lab's hanging mass, the time since the skydiver jumped, the speed a trolley bounces back from a wall, the mass of a trolley that is hit, the angle of a pull on a spanner, where a person stands on a plank, the angle of a suitcase's handle, the length of a ramp, the time since stones were thrown from a cliff, the length of a slide, a cyclist's speed, the load on a winch, the density of a block sunk in a tank, how deep a block hangs in water, the temperature of glycerol a ball sinks through, or the load on a spring or a wire.
+ * the time cursor of a graph, the angle of the sledge's rope, the clock of the bench falls, the angle of a kick, the angle of the crate's rope or its pull, the lab's hanging mass, the time since the skydiver jumped, the speed a trolley bounces back from a wall, the mass of a trolley that is hit, the angle of a pull on a spanner, where a person stands on a plank, the angle of a suitcase's handle, the length of a ramp, the time since stones were thrown from a cliff, the length of a slide, a cyclist's speed, the load on a winch, the density of a block sunk in a tank, how deep a block hangs in water, the temperature of glycerol a ball sinks through, the load on a spring or a wire, or the strain a wire is loaded to before it is released.
  */
 export type ExploreScreen = Base & {
   kind: 'explore';
   instruction: string; // names the gesture: "Drag …"
-  fig: LiftFig | ThrowFig | RoadFig | GraphFig | TrackFig | SledgeFig | BenchFig | KickFig | CrateFig | PulleyFig | FallFig | WallFig | CollideFig | SpannerFig | BeamFig | PlatformFig | RampFig | KineticFig | HeightFig | CliffFig | SlideFig | RideFig | WinchFig | TankFig | DunkFig | TubeFig | SpringFig | WireFig;
+  fig: LiftFig | ThrowFig | RoadFig | GraphFig | TrackFig | SledgeFig | BenchFig | KickFig | CrateFig | PulleyFig | FallFig | WallFig | CollideFig | SpannerFig | BeamFig | PlatformFig | RampFig | KineticFig | HeightFig | CliffFig | SlideFig | RideFig | WinchFig | TankFig | DunkFig | TubeFig | SpringFig | WireFig | MaterialFig;
   /**
    * `tick`: gap between the marks on the ruler (defaults to `step`). `symbol` and `dp` write the bubble ("t = 0.82 s"),
    * `signed` adds + to positive values. `start`: where the thumb begins (defaults to the lift's a, or `min`).

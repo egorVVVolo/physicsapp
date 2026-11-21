@@ -2,7 +2,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { lessons } from './lessons.ts';
-import { ACC_IDS, BEAM_IDS, CANDIDATE_IDS, EQUATION_IDS, FLOW_IDS, LADDER_IDS, PAIR_IDS, POLE_IDS, SLEDGE_IDS, isQuestion, type Fig, type Screen } from './types.ts';
+import { ACC_IDS, BEAM_IDS, CANDIDATE_IDS, COMPARE_IDS, SKETCH_IDS, EQUATION_IDS, FLOW_IDS, LADDER_IDS, PAIR_IDS, POLE_IDS, SLEDGE_IDS, isQuestion, type Fig, type Screen } from './types.ts';
 
 // **key words** are bold on screen: the stars do not count, but they must come in pairs
 const max = (text: string, n: number, where: string) => {
@@ -22,6 +22,7 @@ function targets(fig: Fig): readonly string[] {
   if (fig.kind === 'pole') return fig.candidates ? POLE_IDS : [];
   if (fig.kind === 'beam') return fig.candidates ? BEAM_IDS : [];
   if (fig.kind === 'flow') return FLOW_IDS;
+  if (fig.kind === 'material') return fig.view === 'compare' ? COMPARE_IDS : fig.view === 'sketch' && fig.targets ? SKETCH_IDS : [];
   if (fig.kind === 'spring') return fig.view === 'lines' ? (fig.lines ?? []).map((l) => l.id) : [];
   if (fig.kind !== 'lift') return [];
   return fig.candidates ? CANDIDATE_IDS : [];

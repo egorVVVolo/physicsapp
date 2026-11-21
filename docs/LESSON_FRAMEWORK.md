@@ -453,6 +453,14 @@ Sources: [Beichner (1994), kinematics graphs](https://moodle2.units.it/pluginfil
 | Y-NO-LENGTH | The length left out of FL ÷ (AE), or of E = kL ÷ A, or divided | The lab 1.27 × 10¹¹ Pa; the rod 2.38 mm or 1.59 mm | The force–extension plot: k = EA ÷ L |
 | Y-D-SQUARED | A diameter error counts once, not twice, in E | 2 % too small instead of 4 % | A ∝ d² |
 | Y-UNIT | E in N m⁻¹ (or N) | The rod 7.00 × 10¹⁰ N m⁻¹ | σ = F ÷ A in N m⁻² = Pa; strain has no unit |
+| G-RETURN | Past the elastic limit the wire still springs back to its original length | The puzzle: "none left"; the explore | The unloading line ends on the axis at the permanent strain, not at 0 |
+| G-RETRACE | The wire comes back along the same curve | The explore: "back along the same curve" | The dashed unloading line, parallel to the straight part, slope E |
+| G-WHOLE | All the strain stays, or the springy part is the permanent part | 5.0 × 10⁻³ or 2.0 × 10⁻³ left; 7.50 mm or 3.00 mm longer; the Skill check 8.0 mm or 5.0 mm | The brackets under the axis: σ ÷ E springs back, the rest stays |
+| G-LP-EL | The limit of proportionality and the elastic limit are the same point, or the yield point is the elastic limit | Tap P or Y for the elastic limit | P: the line stops being straight; E: the last point it springs back from; Y: the wire gives |
+| G-UTS-BREAK | The ultimate tensile stress is the breaking point, or the stress where it yields | Tap B or Y for the greatest stress | The stress peaks at U and falls before B |
+| G-BRITTLE-WEAK | Brittle means weak, or "breaks soon after the elastic limit" is ductile | The Skill check ductile question; curve C tapped as brittle | Curve B: straight almost to the break, no plastic region |
+| G-FORCE-STRESS | The breaking force is the same for a thicker wire of the same material | P 170 N, Q "170 N" | The same breaking stress, 4 times the area: 680 N |
+| G-MM-SLIP | d for r, no π, or mm² unconverted in the largest load | 684 N; 218 N; 1.71 × 10⁸ N | A = πd² ÷ 4, in m² |
 
 ## 13. Lesson spec template
 

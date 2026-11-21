@@ -14,6 +14,7 @@ import { powerAndEfficiency } from './power-and-efficiency.ts';
 import { pickingTheEquation } from './picking-the-equation.ts';
 import { readingMotionGraphs } from './reading-motion-graphs.ts';
 import { stressStrainYoung } from './stress-strain-young.ts';
+import { readingMaterialGraphs } from './reading-material-graphs.ts';
 import { splittingAVector } from './splitting-a-vector.ts';
 import { turningForces } from './turning-forces.ts';
 import { twoMotionsAtOnce } from './two-motions-at-once.ts';
@@ -48,4 +49,5 @@ export const lessons: Record<string, Lesson> = {
   [viscousDrag.id]: keepUnitsIn(viscousDrag),
   [hookesLaw.id]: keepUnitsIn(hookesLaw),
   [stressStrainYoung.id]: keepUnitsIn(stressStrainYoung),
+  [readingMaterialGraphs.id]: keepUnitsIn(readingMaterialGraphs),
 };
