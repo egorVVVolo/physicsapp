@@ -442,6 +442,17 @@ Sources: [Beichner (1994), kinematics graphs](https://moodle2.units.it/pluginfil
 | H-MATERIAL | Stiffness belongs to the material: the same steel, the same k | The half "50 N m⁻¹"; P and Q "equally stiff" | The paint mark: each half carries 3.0 N and stretches 3.0 cm |
 | H-SHARE | The load is shared along a hanging spring, each half carries half | The pull 1.5 N; the half stretches 1.5 cm | The bottom half and the weight at rest: T = W = 3.0 N |
 | H-SOFTER | A shorter spring is less stiff (or stretches more) | The half 25.0 N m⁻¹ or 12.0 cm; line D | Line B: twice as steep as C |
+| Y-RADIUS | The diameter put in for the radius in A = πr² | Stress in A 7.64 × 10⁷ Pa; the lab wire 5.09 × 10¹⁰ Pa | The cross-section to scale: d across, r = d ÷ 2 |
+| Y-PI | The π forgotten in the area | Stress 9.60 × 10⁸ Pa | A = πd² ÷ 4 under the cross-sections |
+| Y-MM | mm² (or MPa) left unconverted | 306 Pa; the lab 2.04 × 10⁵ Pa; 3.57 μm; E 2.10 × 10⁵ Pa | 1 mm² = 10⁻⁶ m², 1 MPa = 10⁶ Pa |
+| Y-STRAIN-DX | Strain is the extension, or mixes mm with m, or is turned upside down | 2.18 × 10⁻³; 1.46; 687 | The strain card: ε = Δx ÷ L, every metre stretches 1.46 mm |
+| Y-INVERT | E turned upside down or multiplied | 4.76 × 10⁻¹² Pa; 4.45 × 10⁵ Pa; the rod 1.43 × 10⁻¹¹ Pa | The stress–strain graph: E is the gradient, stress per strain |
+| Y-WIDTH | Width and length cancel, or only one of them counts | B "the same" (2.18 mm); B 4.37 mm (length only); 0.55 mm | The cross-sections to scale: twice as wide, 4 times the area |
+| Y-MATERIAL-K | The stiffness k belongs to the material, or E changes with the size | The cut wire: "the extension and k stay the same"; explore "k" | The stress–strain graph gradient is E; k = EA ÷ L changes with the wire |
+| Y-LONG-THIN | A long thin wire has a smaller E, or needs no strain measurement | The lab question | The rig: Δx = FL ÷ (AE), a long thin wire stretches more per newton |
+| Y-NO-LENGTH | The length left out of FL ÷ (AE), or of E = kL ÷ A, or divided | The lab 1.27 × 10¹¹ Pa; the rod 2.38 mm or 1.59 mm | The force–extension plot: k = EA ÷ L |
+| Y-D-SQUARED | A diameter error counts once, not twice, in E | 2 % too small instead of 4 % | A ∝ d² |
+| Y-UNIT | E in N m⁻¹ (or N) | The rod 7.00 × 10¹⁰ N m⁻¹ | σ = F ÷ A in N m⁻² = Pa; strain has no unit |
 
 ## 13. Lesson spec template
 

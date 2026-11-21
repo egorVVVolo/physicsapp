@@ -62,7 +62,7 @@ export const course: Course = {
       title: 'Materials',
       lessons: [
         { id: 'hooke', title: "Hooke's law", spec: [27], ready: true, about: 'Extension grows in step with force, up to a limit.' },
-        { id: 'young', title: 'Stress, strain, Young modulus', spec: [28, 31], ready: false, about: 'Compare materials, not just one wire or spring.' },
+        { id: 'young', title: 'Stress, strain, Young modulus', spec: [28, 31], ready: true, about: 'Compare materials, not just one wire or spring.' },
         { id: 'material-graphs', title: 'Reading material graphs', spec: [29, 30], ready: false, about: 'Elastic, plastic and breaking points on a stress–strain graph.' },
         { id: 'strain-energy', title: 'Elastic strain energy', spec: [32], ready: false, about: 'The energy stored in a stretched material: area under the graph.' },
       ],

@@ -4,7 +4,7 @@
 // units ("N m", "m s⁻¹", "kg m s⁻¹").
 
 const NBSP = ' ';
-const UNIT = '(?:kg|g|kN|N|mm|m|s|cm|km|kJ|J|kW|W|Pa|h|min|°C)';
+const UNIT = '(?:kg|g|kN|N|mm|μm|m|s|cm|km|kJ|J|kW|W|Pa|h|min|°C)';
 /** A number, a space, a unit not followed by another letter ("3 m" but not "3 more"). */
 const AFTER_NUMBER = new RegExp(`([\\d⁰¹²³⁴⁵⁶⁷⁸⁹]) (?=${UNIT}(?![A-Za-z]))`, 'g');
 /** Standard form stays in one piece: "1.00 × 10⁻⁴". */

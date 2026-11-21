@@ -13,6 +13,7 @@ import { normalReaction } from './normal-reaction.ts';
 import { powerAndEfficiency } from './power-and-efficiency.ts';
 import { pickingTheEquation } from './picking-the-equation.ts';
 import { readingMotionGraphs } from './reading-motion-graphs.ts';
+import { stressStrainYoung } from './stress-strain-young.ts';
 import { splittingAVector } from './splitting-a-vector.ts';
 import { turningForces } from './turning-forces.ts';
 import { twoMotionsAtOnce } from './two-motions-at-once.ts';
@@ -46,4 +47,5 @@ export const lessons: Record<string, Lesson> = {
   [densityAndUpthrust.id]: keepUnitsIn(densityAndUpthrust),
   [viscousDrag.id]: keepUnitsIn(viscousDrag),
   [hookesLaw.id]: keepUnitsIn(hookesLaw),
+  [stressStrainYoung.id]: keepUnitsIn(stressStrainYoung),
 };

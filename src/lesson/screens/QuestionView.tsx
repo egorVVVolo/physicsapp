@@ -172,6 +172,7 @@ function revealsAfterCheck(fig: Fig | undefined): boolean {
     (fig?.kind === 'tank' && (fig.drop === 'afterCheck' || fig.pushed === 'afterCheck')) ||
     (fig?.kind === 'dunk' && (fig.reading === 'afterCheck' || fig.overflow === 'afterCheck')) ||
     (fig?.kind === 'tube' && (fig.play === 'afterCheck' || fig.ask === 'afterCheck')) ||
+    (fig?.kind === 'wire' && (fig.ask?.hide === 'afterCheck' || fig.stretch === 'afterCheck')) ||
     (fig?.kind === 'spring' && (fig.ask?.hide === 'afterCheck' || fig.springs.some((s) => s.hung === 'afterCheck' || s.pull === 'afterCheck'))) ||
     (fig?.kind === 'bench' && (fig.play === 'afterCheck' || fig.range === 'afterCheck')) ||
     (fig?.kind === 'kick' && (fig.play === 'afterCheck' || fig.path === 'afterCheck' || fig.range === 'afterCheck' || fig.height === 'afterCheck' || fig.topV === 'afterCheck'))
@@ -240,6 +241,8 @@ function revealed(fig: Fig): Fig {
   if (fig.kind === 'dunk') return { ...fig, reading: fig.reading === 'afterCheck' ? 'shown' : fig.reading, overflow: fig.overflow === 'afterCheck' ? 'shown' : fig.overflow };
   // the balls are let go and fall by the model, and the asked speed, drag or weight is written in
   // the weight is hung and bobs by the model, the pull grows to its size, the asked reading is written in
+  // the wires stretch, and the asked reading is written in
+  if (fig.kind === 'wire') return { ...fig, ask: fig.ask?.hide === 'afterCheck' ? undefined : fig.ask, stretch: fig.stretch === 'afterCheck' ? undefined : fig.stretch };
   if (fig.kind === 'spring')
     return {
       ...fig,

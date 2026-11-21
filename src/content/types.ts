@@ -880,7 +880,39 @@ export type SpringHang = {
   pull?: 'unknown' | 'afterCheck' | 'shown';
 };
 
-export type Fig = LiftFig | PairsFig | VtFig | ScalesFig | LiftPairFig | ThrowFig | ThrowVtFig | FallGraphFig | RoadFig | BrakeVtFig | EquationsFig | GraphFig | ChaseFig | TrackFig | VectorsFig | SledgeFig | HillFig | ResolveFig | BenchFig | KickFig | CrateFig | LadderFig | ParticleFig | PulleyFig | FallFig | WallFig | BodiesFig | CollideFig | SpannerFig | PoleFig | BarFig | BeamFig | BroomFig | PlatformFig | RampFig | KineticFig | HeightFig | CliffFig | SlideFig | RideFig | WinchFig | TankFig | DunkFig | TubeFig | FlowFig | SpringFig;
+
+/**
+ * Steel wires hanging from a beam under a load (src/physics/young), Young modulus. One wire, or two side by side
+ * (the same steel): the wire's length is drawn to scale, its stretch magnified ×300 (the sheet says so), a dashed line
+ * where the end was with no load. The load hangs on each as a weight. On the right: the cross-sections to scale, the
+ * readings (one column per wire), or a stress–strain graph traced by the explore's point (the slider = the load).
+ * `view: 'rig'`: the lab (Core Practical 2): a long thin wire from a clamp, a marker against a mm scale, a micrometer, weights.
+ * `view: 'plot'`: the lab's force–extension plot with a gradient triangle, gradient `k`.
+ */
+export type WireFig = {
+  kind: 'wire';
+  view?: 'hang' | 'rig' | 'plot';
+  E: number; // the Young modulus of the steel, Pa
+  F: number; // the load on each wire, N (on the explore screen the slider's value)
+  wires: WireSpec[];
+  panel: 'section' | 'readings' | 'graph';
+  /** The rows of the readings, in order. */
+  rows?: ('L' | 'd' | 'A' | 'stress' | 'strain' | 'ext' | 'E')[];
+  /** The asked value: a reading (row, column); "?" for good or until the question is answered. */
+  ask?: { row: 'stress' | 'strain' | 'ext' | 'E'; col: number; hide: 'unknown' | 'afterCheck' };
+  /** The wires hang at their natural length: 'afterCheck' until the question is answered, 'hidden' for good (the stretch would give the puzzle away). */
+  stretch?: 'afterCheck' | 'hidden';
+  /** `view: 'plot'`: the gradient of the force–extension graph, N m⁻¹. */
+  k?: number;
+};
+
+export type WireSpec = {
+  name: string; // the column head and the tag at the wire
+  L: number; // its length, m
+  d: number; // its diameter, m
+};
+
+export type Fig = LiftFig | PairsFig | VtFig | ScalesFig | LiftPairFig | ThrowFig | ThrowVtFig | FallGraphFig | RoadFig | BrakeVtFig | EquationsFig | GraphFig | ChaseFig | TrackFig | VectorsFig | SledgeFig | HillFig | ResolveFig | BenchFig | KickFig | CrateFig | LadderFig | ParticleFig | PulleyFig | FallFig | WallFig | BodiesFig | CollideFig | SpannerFig | PoleFig | BarFig | BeamFig | BroomFig | PlatformFig | RampFig | KineticFig | HeightFig | CliffFig | SlideFig | RideFig | WinchFig | TankFig | DunkFig | TubeFig | FlowFig | SpringFig | WireFig;
 
 /** Tap targets drawn by a lift figure with `candidates`. */
 export const CANDIDATE_IDS = ['shorter', 'equal', 'longer'] as const;
@@ -947,12 +979,12 @@ export type ChoiceScreen = Base & {
 /**
  * Play with the figure through a slider, then a light question (not counted in the tally).
  * The slider drives the lift's acceleration, the time since the throw, since the brakes came on or since the runners set off,
- * the time cursor of a graph, the angle of the sledge's rope, the clock of the bench falls, the angle of a kick, the angle of the crate's rope or its pull, the lab's hanging mass, the time since the skydiver jumped, the speed a trolley bounces back from a wall, the mass of a trolley that is hit, the angle of a pull on a spanner, where a person stands on a plank, the angle of a suitcase's handle, the length of a ramp, the time since stones were thrown from a cliff, the length of a slide, a cyclist's speed, the load on a winch, the density of a block sunk in a tank, how deep a block hangs in water, the temperature of glycerol a ball sinks through, or the load on a spring.
+ * the time cursor of a graph, the angle of the sledge's rope, the clock of the bench falls, the angle of a kick, the angle of the crate's rope or its pull, the lab's hanging mass, the time since the skydiver jumped, the speed a trolley bounces back from a wall, the mass of a trolley that is hit, the angle of a pull on a spanner, where a person stands on a plank, the angle of a suitcase's handle, the length of a ramp, the time since stones were thrown from a cliff, the length of a slide, a cyclist's speed, the load on a winch, the density of a block sunk in a tank, how deep a block hangs in water, the temperature of glycerol a ball sinks through, or the load on a spring or a wire.
  */
 export type ExploreScreen = Base & {
   kind: 'explore';
   instruction: string; // names the gesture: "Drag …"
-  fig: LiftFig | ThrowFig | RoadFig | GraphFig | TrackFig | SledgeFig | BenchFig | KickFig | CrateFig | PulleyFig | FallFig | WallFig | CollideFig | SpannerFig | BeamFig | PlatformFig | RampFig | KineticFig | HeightFig | CliffFig | SlideFig | RideFig | WinchFig | TankFig | DunkFig | TubeFig | SpringFig;
+  fig: LiftFig | ThrowFig | RoadFig | GraphFig | TrackFig | SledgeFig | BenchFig | KickFig | CrateFig | PulleyFig | FallFig | WallFig | CollideFig | SpannerFig | BeamFig | PlatformFig | RampFig | KineticFig | HeightFig | CliffFig | SlideFig | RideFig | WinchFig | TankFig | DunkFig | TubeFig | SpringFig | WireFig;
   /**
    * `tick`: gap between the marks on the ruler (defaults to `step`). `symbol` and `dp` write the bubble ("t = 0.82 s"),
    * `signed` adds + to positive values. `start`: where the thumb begins (defaults to the lift's a, or `min`).
