@@ -1,10 +1,11 @@
 // Screens without a graded answer: intro, text, prediction and the Skill check splash.
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import Animated, { Easing, useAnimatedStyle, useSharedValue, withDelay, withTiming } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { IntroScreen, PredictScreen, TextScreen } from '@/content/types';
 import { Sheet } from '@/figures/Sheet';
+import { shuffled } from '@/session/shuffle';
 import { font, motion, type LevelColor } from '@/theme/tokens';
 import { CloseIcon, MainButton, OptionCard, OptionList } from '@/ui/parts';
 import { Rise, useReducedMotionPref } from '@/ui/motion';
@@ -36,11 +37,12 @@ export function TextView({ screen, figN, onNext }: { screen: TextScreen; figN: n
  * The pick is kept and shown again when the story comes back to it. */
 export function PredictView({ screen, figN, picked, onPick, onNext }: { screen: PredictScreen; figN: number; picked?: string; onPick: (id: string) => void; onNext: () => void }) {
   const [sel, setSel] = useState<string | null>(picked ?? null);
+  const options = useMemo(() => shuffled(screen.options, screen.id), [screen]);
   return (
     <Frame fig={screen.fig && <Sheet fig={screen.fig} n={figN} />} footer={<MainButton label={sel ? screen.after : 'Continue'} onPress={onNext} disabled={!sel} />}>
       <Prompt>{screen.prompt}</Prompt>
       <OptionList grid>
-        {screen.options.map((o) => (
+        {options.map((o) => (
           <View key={o.id} style={styles.half}>
             <OptionCard
               compact

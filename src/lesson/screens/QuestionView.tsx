@@ -5,6 +5,7 @@ import { useMemo, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import type { Fig, Option, PartLabel, Question } from '@/content/types';
 import { Sheet } from '@/figures/Sheet';
+import { shuffled } from '@/session/shuffle';
 import { outcomeOf, STORY_TRIES, type Outcome, type Phase } from '@/session/logic';
 import { useTheme } from '@/theme/ThemeContext';
 import { font, radius } from '@/theme/tokens';
@@ -31,6 +32,8 @@ export function QuestionView({ screen, figN, phase, earlierPick, onOutcome, onNe
   const [wrong, setWrong] = useState<string[]>([]); // ids missed so far
   const [status, setStatus] = useState<Status>('answering');
   const right = useMemo(() => screen.options.find((o) => o.correct)!, [screen]);
+  // Choice cards in a fixed per-screen order; tapFig options are places on the figure, so they keep theirs.
+  const shown = useMemo(() => (screen.kind === 'choice' ? shuffled(screen.options, screen.id) : screen.options), [screen]);
   const tries = phase === 'check' ? 1 : STORY_TRIES;
   const locked = status === 'right' || status === 'revealed';
 
@@ -117,7 +120,7 @@ export function QuestionView({ screen, figN, phase, earlierPick, onOutcome, onNe
       {screen.kind === 'tapFig' && <Instruction>{screen.instruction}</Instruction>}
       {screen.kind === 'choice' ? (
         <OptionList>
-          {screen.options.map((o) => (
+          {shown.map((o) => (
             <OptionCard
               key={o.id}
               label={o.label}

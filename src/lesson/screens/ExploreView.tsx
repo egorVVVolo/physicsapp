@@ -1,10 +1,11 @@
 // Explore: drag the slider, the figure follows the model at once; then a light question with inline
 // feedback ("That's right."). Not counted in the honest tally: it is part of learning, not a test.
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import type { ExploreScreen } from '@/content/types';
 import { fixed, signed } from '@/physics/format';
 import { Sheet } from '@/figures/Sheet';
+import { shuffled } from '@/session/shuffle';
 import { useTheme } from '@/theme/ThemeContext';
 import { font } from '@/theme/tokens';
 import { Mark, MainButton, OptionCard, OptionList } from '@/ui/parts';
@@ -21,6 +22,7 @@ export function ExploreView({ screen, figN, onNext }: { screen: ExploreScreen; f
   const [sel, setSel] = useState<string | null>(null);
   const [wrong, setWrong] = useState<string[]>([]);
   const q = screen.question;
+  const options = useMemo(() => shuffled(screen.question.options, screen.id), [screen]);
   const solved = sel !== null && q.options.find((o) => o.id === sel)?.correct === true;
   const hint = sel && !solved ? q.options.find((o) => o.id === sel)?.hint : null;
 
@@ -47,7 +49,7 @@ export function ExploreView({ screen, figN, onNext }: { screen: ExploreScreen; f
           <Prompt>{q.prompt}</Prompt>
           <Instruction>Tap an answer. You can keep moving the slider.</Instruction>
           <OptionList>
-            {q.options.map((o) => (
+            {options.map((o) => (
               <OptionCard
                 key={o.id}
                 label={o.label}
