@@ -1,7 +1,10 @@
 // Text styles of the lesson: reading text is large and calm, titles are Space Grotesk.
 import { StyleSheet, Text, View, type TextProps } from 'react-native';
 import { useTheme } from '@/theme/ThemeContext';
-import { font } from '@/theme/tokens';
+import { font, radius } from '@/theme/tokens';
+import { splitFormula } from './formula';
+
+export { splitFormula };
 
 export function Title({ children }: { children: string }) {
   const { palette: p } = useTheme();
@@ -30,13 +33,17 @@ export function Instruction({ children }: { children: string }) {
   return <Text style={[t.instruction, { color: p.muted }]}>{children}</Text>;
 }
 
-/** A definition or formula worth keeping: a framed card on drafting paper. */
+/** A definition worth keeping, as a callout on a drawing: drafting paper, a line-art bar on the left, a DEFINITION label.
+ * A formula at the start of the text gets a line of its own. */
 export function TermCard({ term, text }: { term: string; text: string }) {
   const { palette: p } = useTheme();
+  const { formula, rest } = splitFormula(text);
   return (
-    <View style={[t.card, { borderColor: p.paperLine, backgroundColor: p.paper }]}>
+    <View style={[t.card, { backgroundColor: p.paper, borderLeftColor: p.draw }]}>
+      <Text style={[t.cardLabel, { color: p.label }]}>DEFINITION</Text>
       <Text style={[t.term, { color: p.ink }]}>{term}</Text>
-      <Text style={[t.cardText, { color: p.ink }]}>{text}</Text>
+      {formula && <Text style={[t.formula, { color: p.ink }]}>{formula}</Text>}
+      {rest !== '' && <Text style={[t.cardText, { color: p.ink }]}>{rest}</Text>}
     </View>
   );
 }
@@ -47,7 +54,9 @@ const t = StyleSheet.create({
   prompt: { fontFamily: font.displaySemi, fontSize: 21, lineHeight: 28, letterSpacing: -0.1 },
   key: { fontFamily: font.bodyBold },
   instruction: { fontFamily: font.bodyMedium, fontSize: 15, lineHeight: 21, marginTop: -8 },
-  card: { borderWidth: 1, borderRadius: 14, paddingHorizontal: 18, paddingVertical: 16, gap: 6 },
-  term: { fontFamily: font.display, fontSize: 19 },
-  cardText: { fontFamily: font.body, fontSize: 17, lineHeight: 25 },
+  card: { borderLeftWidth: 3, borderTopRightRadius: radius.m, borderBottomRightRadius: radius.m, paddingHorizontal: 18, paddingVertical: 14, gap: 6 },
+  cardLabel: { fontFamily: font.mono, fontSize: 11, letterSpacing: 1.2 },
+  term: { fontFamily: font.display, fontSize: 20, lineHeight: 26 },
+  formula: { fontFamily: font.display, fontSize: 22, lineHeight: 30 },
+  cardText: { fontFamily: font.body, fontSize: 15, lineHeight: 22 },
 });

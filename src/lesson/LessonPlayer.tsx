@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from 'react';
 import { BackHandler, Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { Fig, Lesson } from '@/content/types';
-import { chapterOf, figNumbers, figOf, itemsOf, next, progressOf, recordOutcome, recordPick, recordWrong, type LessonState } from '@/session/logic';
+import { carriedFig, chapterOf, figNumbers, figOf, itemsOf, next, progressOf, recordOutcome, recordPick, recordWrong, type LessonState } from '@/session/logic';
 import { LessonFigs, SharedSheet, type FigMemory, type SharedFig } from '@/figures/anim';
 import { useTheme } from '@/theme/ThemeContext';
 import { colorOfLesson } from '@/theme/levelColor';
@@ -85,7 +85,7 @@ export function LessonPlayer({ lesson, state, onChange, onClose }: Props) {
     const s = item.screen;
     const n = figs[s.id] ?? 0;
     if (s.kind === 'intro') body = <IntroView screen={s} figN={n} onNext={go} />;
-    if (s.kind === 'text') body = <TextView screen={s} figN={n} onNext={go} />;
+    if (s.kind === 'text') body = <TextView screen={s} figN={n} carried={carriedFig(lesson, state.index)} onNext={go} />;
     if (s.kind === 'predict') body = <PredictView screen={s} figN={n} picked={state.picks[s.id]} onPick={(id) => change((st) => recordPick(st, s.id, id))} onNext={go} />;
     if (s.kind === 'explore') body = <ExploreView screen={s} figN={n} onNext={go} />;
     if (s.kind === 'choice' || s.kind === 'tapFig') {

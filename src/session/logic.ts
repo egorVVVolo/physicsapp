@@ -1,5 +1,6 @@
 // Pure lesson logic: which screen is on, the honest outcome of each question, what is saved. No React.
 import { isQuestion, type Fig, type Lesson, type Screen } from '../content/types.ts';
+import { revealed } from './reveal.ts';
 
 /** independent: right first time · assisted: right after a hint · revealed: the answer was shown. */
 export type Outcome = 'independent' | 'assisted' | 'revealed';
@@ -32,6 +33,26 @@ export function figOf(item: Item | undefined): Fig | undefined {
 }
 
 /**
+ * The figure a text screen without its own figure carries over: the last one shown in the story before it,
+ * as it was left (a question's figure with its answer shown). Undefined for every other screen.
+ */
+export function carriedFig(lesson: Lesson, index: number): Fig | undefined {
+  const here = lesson.story[index];
+  if (!here || here.kind !== 'text' || here.fig) return undefined;
+  for (let j = index - 1; j >= 0; j--) {
+    const s = lesson.story[j];
+    if (!('fig' in s) || !s.fig) continue;
+    return s.kind === 'choice' || s.kind === 'tapFig' ? revealed(s.fig) : s.fig;
+  }
+  return undefined;
+}
+
+/** The figure on an item's screen: its own, or the one a text screen carries over. */
+export function shownFigOf(lesson: Lesson, index: number): Fig | undefined {
+  return figOf(itemsOf(lesson)[index]) ?? carriedFig(lesson, index);
+}
+
+/**
  * FIG numbers, in order of appearance. Neighbouring screens with the same kind of figure show one figure
  * changing state (its sheet stays in place), so they keep one number. `count` is the last number used.
  */
@@ -39,8 +60,8 @@ export function figNumbers(lesson: Lesson): { of: Record<string, number>; count:
   const of: Record<string, number> = {};
   let n = 0;
   let last: Fig['kind'] | undefined;
-  for (const item of itemsOf(lesson)) {
-    const fig = figOf(item);
+  for (const [i, item] of itemsOf(lesson).entries()) {
+    const fig = figOf(item) ?? carriedFig(lesson, i); // a carried figure keeps the number it had
     if (fig && fig.kind !== last) n += 1;
     if (fig && item.kind === 'screen') of[item.screen.id] = n;
     last = fig?.kind;

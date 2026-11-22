@@ -15,9 +15,20 @@ export const CONTENT_MAX = 560;
  * `figFirst`: when the verdict sheet comes up, keep the figure in view instead of scrolling to the answer cards
  * (the figure shows what the question hid: a flight that plays, a number on the scales).
  */
-type Props = { children: ReactNode; footer: ReactNode; sheet?: ReactNode; center?: boolean; fig?: ReactNode; figFirst?: boolean };
+type Props = {
+  children: ReactNode;
+  footer: ReactNode;
+  sheet?: ReactNode;
+  center?: boolean;
+  fig?: ReactNode;
+  figFirst?: boolean;
+  /** The figure was already on screen (a text screen carrying it): it is simply there, it does not rise in. */
+  figStill?: boolean;
+  /** Each time this changes (a paragraph is added), the content scrolls to its end so the new part is in view. */
+  follow?: number;
+};
 
-export function Frame({ children, footer, sheet, center, fig, figFirst }: Props) {
+export function Frame({ children, footer, sheet, center, fig, figFirst, figStill, follow }: Props) {
   const reduced = useReducedMotionPref();
   const memory = useContext(LessonFigs);
   const shared = useContext(SharedSheet);
@@ -33,6 +44,15 @@ export function Frame({ children, footer, sheet, center, fig, figFirst }: Props)
   useEffect(() => {
     if (memory) memory.scrollY = 0;
   }, [memory]);
+
+  const [followed] = useState(() => ({ last: follow }));
+  useEffect(() => {
+    if (follow === followed.last) return;
+    followed.last = follow;
+    // wait for the new block to be laid out, then bring it into view
+    const id = setTimeout(() => scroll.current?.scrollToEnd({ animated: !reduced }), 120);
+    return () => clearTimeout(id);
+  }, [follow, followed, reduced]);
 
   useEffect(() => {
     if (cover <= 0) return;
@@ -55,7 +75,7 @@ export function Frame({ children, footer, sheet, center, fig, figFirst }: Props)
         }}
       >
         <View style={styles.column}>
-          {fig ? kept ? <Glide fromY={shared?.fromY ?? 0}>{fig}</Glide> : <Rise delay={90}>{fig}</Rise> : null}
+          {fig ? kept ? <Glide fromY={shared?.fromY ?? 0}>{fig}</Glide> : figStill ? fig : <Rise delay={90}>{fig}</Rise> : null}
           {/* the blocks of a screen rise in one after another (a block added later rises when it appears) */}
           <ScreenEnter still={!kept} style={styles.blocks}>
             {Children.map(children, (child, i) => (child ? <Rise delay={90 + (i + first) * 80}>{child}</Rise> : null))}

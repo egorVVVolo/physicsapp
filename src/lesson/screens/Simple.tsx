@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import Animated, { Easing, useAnimatedStyle, useSharedValue, withDelay, withTiming } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import type { IntroScreen, PredictScreen, TextScreen } from '@/content/types';
+import type { Fig, IntroScreen, PredictScreen, TextScreen } from '@/content/types';
 import { Sheet } from '@/figures/Sheet';
 import { shuffled } from '@/session/shuffle';
 import { font, motion, type LevelColor } from '@/theme/tokens';
@@ -22,13 +22,25 @@ export function IntroView({ screen, figN, onNext }: { screen: IntroScreen; figN:
   );
 }
 
-export function TextView({ screen, figN, onNext }: { screen: TextScreen; figN: number; onNext: () => void }) {
+/**
+ * Reading text. Two paragraphs come one at a time: Continue first shows the second, then moves on.
+ * Without a figure of its own, the screen shows the last figure (`carried`) small and still at the top.
+ */
+export function TextView({ screen, figN, carried, onNext }: { screen: TextScreen; figN: number; carried?: Fig; onNext: () => void }) {
+  const total = screen.body.length;
+  const [shown, setShown] = useState(total === 2 ? 1 : total);
+  const sheet = screen.fig ? <Sheet fig={screen.fig} n={figN} /> : carried ? <Sheet fig={carried} n={figN} compact /> : undefined;
+  const more = () => {
+    if (shown >= total) return onNext();
+    feedback.step(shown / total);
+    setShown(shown + 1);
+  };
   return (
-    <Frame fig={screen.fig && <Sheet fig={screen.fig} n={figN} />} footer={<MainButton label="Continue" onPress={onNext} />}>
-      {screen.body.map((para, i) => (
+    <Frame fig={sheet} figStill={!screen.fig && !!carried} follow={shown} footer={<MainButton label="Continue" onPress={more} />}>
+      {screen.body.slice(0, shown).map((para, i) => (
         <Body key={i}>{para}</Body>
       ))}
-      {screen.card && <TermCard term={screen.card.term} text={screen.card.text} />}
+      {screen.card && shown >= total && <TermCard key="card" term={screen.card.term} text={screen.card.text} />}
     </Frame>
   );
 }

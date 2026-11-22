@@ -1,7 +1,9 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { chapterOf, countOutcomes, figNumbers, figOf, itemsOf, MAX_GAP_MS, next, outcomeOf, parseProgress, progressOf, recordOutcome, recordPick, recordWrong, runOf, startState, tick } from './logic.ts';
+import { carriedFig, chapterOf, countOutcomes, figNumbers, figOf, shownFigOf, itemsOf, MAX_GAP_MS, next, outcomeOf, parseProgress, progressOf, recordOutcome, recordPick, recordWrong, runOf, startState, tick } from './logic.ts';
 import { normalReaction as L } from '../content/normal-reaction.ts';
+import { workDoneLesson as W } from '../content/work-done.ts';
+import { revealed } from './reveal.ts';
 
 test('story questions: right first time, after a hint, or shown', () => {
   assert.equal(outcomeOf(0, 'story'), 'independent');
@@ -49,8 +51,8 @@ test('FIG numbers: one number per run of neighbouring screens with the same kind
   const items = itemsOf(L);
   let expected = 0;
   for (let i = 0; i < items.length; i++) {
-    const fig = figOf(items[i]);
-    const before = figOf(items[i - 1]);
+    const fig = shownFigOf(L, i);
+    const before = i > 0 ? shownFigOf(L, i - 1) : undefined;
     if (!fig) continue;
     if (fig.kind !== before?.kind) expected += 1;
     const item = items[i];
@@ -124,4 +126,21 @@ test('chapters: which one a story screen is in, and how full each is', () => {
   assert.ok(mid[1] > 0 && mid[1] < 1 && mid[2] === 0);
   assert.deepEqual(shares(L.story.length), [1, 1, 1]);
   assert.deepEqual(progressOf(startState, { ...L, chapters: undefined }).chapters, []);
+});
+
+test('a text screen without a figure carries the last one, answered, under the same FIG number', () => {
+  for (const lesson of [L, W]) {
+    const nums = figNumbers(lesson).of;
+    lesson.story.forEach((s, i) => {
+      const carried = carriedFig(lesson, i);
+      if (s.kind !== 'text' || s.fig) return assert.equal(carried, undefined, `${s.id}: only text screens without a figure carry one`);
+      let j = i - 1;
+      while (j >= 0 && !('fig' in lesson.story[j] && lesson.story[j].fig)) j--;
+      if (j < 0) return assert.equal(carried, undefined);
+      const src = lesson.story[j];
+      const fig = 'fig' in src ? src.fig! : undefined;
+      assert.deepEqual(carried, src.kind === 'choice' || src.kind === 'tapFig' ? revealed(fig!) : fig, `${s.id} carries ${src.id}`);
+      assert.equal(nums[s.id], nums[src.id], `${s.id}: same FIG number as ${src.id}`);
+    });
+  }
 });
