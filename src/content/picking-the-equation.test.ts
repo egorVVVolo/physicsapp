@@ -3,10 +3,10 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { pickingTheEquation as L, ANSWERS as X, A, CYCLIST, REACT, TRAIN, TREE, UA, UB, WET_A } from './picking-the-equation.ts';
 import { RELATIONS, brakingPosition, brakingVelocity, leftOut, relationFits, velocity, type Quantity, type RelationId } from '../physics/kinematics.ts';
-import { EQUATION_IDS, type Question } from './types.ts';
+import { EQUATION_IDS, type OptionQuestion } from './types.ts';
 
 const all = [...L.story, ...L.skillCheck];
-const q = (id: string) => all.find((s) => s.id === id) as Question;
+const q = (id: string) => all.find((s) => s.id === id) as OptionQuestion;
 const label = (id: string, opt: string) => q(id).options.find((o) => o.id === opt)!.label;
 const right = (id: string) => q(id).options.find((o) => o.correct)!.id;
 const NB = '\u00A0';

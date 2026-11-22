@@ -3,7 +3,7 @@
 // and after the last allowed miss the right answer is shown with Why? (honest "revealed").
 import { useMemo, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import type { Fig, Option, Question } from '@/content/types';
+import type { Fig, Option, OptionQuestion } from '@/content/types';
 import { Sheet } from '@/figures/Sheet';
 import { revealed } from '@/session/reveal';
 import { shuffled } from '@/session/shuffle';
@@ -16,7 +16,7 @@ import { Frame } from '../Frame';
 import { Instruction, Prompt } from '../text';
 
 type Props = {
-  screen: Question;
+  screen: OptionQuestion;
   figN: number;
   phase: Phase;
   /** For a revisit: what the learner predicted earlier. */

@@ -1054,8 +1054,33 @@ export type TapFigScreen = Base & {
   why: string;
 };
 
-export type Screen = IntroScreen | TextScreen | PredictScreen | ChoiceScreen | ExploreScreen | TapFigScreen;
-export type Question = ChoiceScreen | TapFigScreen;
+/** A value to place into the equation. Wrong chips carry the mistake they stand for. */
+export type Chip = { id: string; label: string; hint?: string };
+
+/**
+ * Build the solution: (optionally) pick the equation, then fill its boxes with chips; the app does the arithmetic.
+ * `equation` is written with boxes in braces: "W = {F} × {s} × cos {θ}". Each box name is a key of `boxes`.
+ */
+export type BuildScreen = Base & {
+  kind: 'build';
+  prompt: string;
+  fig?: Fig;
+  /** Equations as text; one correct; the wrong ones have a hint. */
+  choose?: { prompt: string; options: Option[] };
+  equation: string;
+  /** Box name → id of the right chip. */
+  boxes: Record<string, string>;
+  /** The right values, plus 1–3 distractors (wrong sign, wrong unit, wrong quantity). */
+  chips: Chip[];
+  /** The value comes from src/physics; it is shown with sig(value, sf ?? 3). */
+  result: { symbol: string; value: number; unit: string; sf?: number };
+  why: string;
+};
+
+export type Screen = IntroScreen | TextScreen | PredictScreen | ChoiceScreen | ExploreScreen | TapFigScreen | BuildScreen;
+/** A graded question answered by picking one option (cards or places on the figure). */
+export type OptionQuestion = ChoiceScreen | TapFigScreen;
+export type Question = OptionQuestion | BuildScreen;
 
 export type Lesson = {
   id: string;
@@ -1081,4 +1106,4 @@ export type LessonRef = { id: string; title: string; spec: number[]; ready: bool
 export type Level = { id: string; title: string; lessons: LessonRef[] };
 export type Course = { title: string; subtitle: string; levels: Level[] };
 
-export const isQuestion = (s: Screen): s is Question => s.kind === 'choice' || s.kind === 'tapFig';
+export const isQuestion = (s: Screen): s is Question => s.kind === 'choice' || s.kind === 'tapFig' || s.kind === 'build';

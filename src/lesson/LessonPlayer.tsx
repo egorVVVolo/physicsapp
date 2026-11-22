@@ -15,6 +15,7 @@ import Animated, { Easing, useAnimatedStyle, useSharedValue, withSequence, withS
 import { ChapterBanner } from './ChapterBanner';
 import { CONTENT_MAX } from './Frame';
 import { LEAVE_SHEET_OUT, LeaveSheet } from './LeaveSheet';
+import { BuildView } from './screens/BuildView';
 import { ExploreView } from './screens/ExploreView';
 import { QuestionView } from './screens/QuestionView';
 import { CheckIntroView, IntroView, PredictView, TextView } from './screens/Simple';
@@ -88,6 +89,8 @@ export function LessonPlayer({ lesson, state, onChange, onClose }: Props) {
     if (s.kind === 'text') body = <TextView screen={s} figN={n} carried={carriedFig(lesson, state.index)} onNext={go} />;
     if (s.kind === 'predict') body = <PredictView screen={s} figN={n} picked={state.picks[s.id]} onPick={(id) => change((st) => recordPick(st, s.id, id))} onNext={go} />;
     if (s.kind === 'explore') body = <ExploreView screen={s} figN={n} onNext={go} />;
+    if (s.kind === 'build')
+      body = <BuildView screen={s} figN={n} phase={item.phase} onOutcome={(o) => change((st) => recordOutcome(st, s.id, o))} onWrong={(o) => change((st) => recordWrong(st, s.id, o))} onNext={go} />;
     if (s.kind === 'choice' || s.kind === 'tapFig') {
       const earlier = s.kind === 'choice' && s.revisitOf ? lesson.story.find((x) => x.id === s.revisitOf) : undefined;
       const earlierPick = earlier?.kind === 'predict' ? earlier.options.find((o) => o.id === state.picks[earlier.id]) : undefined;

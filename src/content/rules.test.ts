@@ -2,7 +2,9 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { lessons } from './lessons.ts';
-import { ACC_IDS, BEAM_IDS, CANDIDATE_IDS, COMPARE_IDS, SKETCH_IDS, EQUATION_IDS, FLOW_IDS, LADDER_IDS, PAIR_IDS, POLE_IDS, SLEDGE_IDS, isQuestion, type Fig, type Screen } from './types.ts';
+import { samples } from './samples.ts';
+import { boxesOf } from '../session/build.ts';
+import { ACC_IDS, BEAM_IDS, CANDIDATE_IDS, COMPARE_IDS, SKETCH_IDS, EQUATION_IDS, FLOW_IDS, LADDER_IDS, PAIR_IDS, POLE_IDS, SLEDGE_IDS, isQuestion, type BuildScreen, type Fig, type Screen } from './types.ts';
 
 // **key words** are bold on screen: the stars do not count, but they must come in pairs
 const max = (text: string, n: number, where: string) => {
@@ -10,6 +12,32 @@ const max = (text: string, n: number, where: string) => {
   const shown = text.replaceAll('**', '');
   assert.ok(shown.length <= n, `${where}: ${shown.length} > ${n} characters: "${shown}"`);
 };
+
+/** A build step: every box has a right chip that exists, every wrong chip says what it gets wrong, 3–7 chips. */
+function checkBuildScreen(s: BuildScreen) {
+  const boxes = boxesOf(s.equation);
+  assert.ok(boxes.length > 0, `${s.id}: the equation has boxes`);
+  assert.deepEqual([...boxes].sort(), Object.keys(s.boxes).sort(), `${s.id}: every box of the equation, and only those, has a right chip`);
+  const right = new Set(Object.values(s.boxes));
+  for (const id of right) assert.ok(s.chips.some((c) => c.id === id), `${s.id}: chip ${id} exists`);
+  assert.equal(new Set(s.chips.map((c) => c.id)).size, s.chips.length, `${s.id}: chip ids are unique`);
+  for (const c of s.chips) {
+    if (!right.has(c.id)) assert.ok(c.hint, `${s.id}/${c.id}: a wrong chip needs a hint`);
+    if (c.hint) max(c.hint, 80, `${s.id}/${c.id} hint`);
+    max(c.label, 14, `${s.id}/${c.id} label`);
+  }
+  assert.ok(s.chips.length >= 3 && s.chips.length <= 7, `${s.id}: 3–7 chips`);
+  assert.ok(Number.isFinite(s.result.value) && s.result.unit !== '', `${s.id}: a result with a unit`);
+  max(s.why, 170, `${s.id} why`);
+  if (s.choose) {
+    assert.equal(s.choose.options.filter((o) => o.correct).length, 1, `${s.id}: one right equation`);
+    for (const o of s.choose.options) if (!o.correct) assert.ok(o.hint, `${s.id}/${o.id}: a wrong equation needs a hint`);
+  }
+}
+
+test('sample steps of the gallery fit together', () => {
+  for (const { screen } of samples) if (screen.kind === 'build') checkBuildScreen(screen);
+});
 
 function targets(fig: Fig): readonly string[] {
   if (fig.kind === 'pairs') return PAIR_IDS;
@@ -94,7 +122,7 @@ for (const lesson of Object.values(lessons)) {
         }
       }
     }
-    for (const s of lesson.skillCheck) assert.ok(s.options.every((o) => !o.hint), `${s.id}: no hints in the Skill check`);
+    for (const s of lesson.skillCheck) if (s.kind !== 'build') assert.ok(s.options.every((o) => !o.hint), `${s.id}: no hints in the Skill check`);
   });
 
   test(`${lesson.id}: gestures are named, tap targets match the figure`, () => {
@@ -105,6 +133,10 @@ for (const lesson of Object.values(lessons)) {
         assert.deepEqual([...s.options.map((o) => o.id)].sort(), [...targets(s.fig)].sort(), `${s.id}: options = tap targets`);
       }
     }
+  });
+
+  test(`${lesson.id}: build steps fit together`, () => {
+    for (const s of all) if (s.kind === 'build') checkBuildScreen(s);
   });
 
   test(`${lesson.id}: chapters, if any, are three and follow the story in order`, () => {

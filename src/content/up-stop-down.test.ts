@@ -3,10 +3,10 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { upStopDown as L, ANSWERS as X, CLIFF, DRONE_V, GRADIENT, H, U } from './up-stop-down.ts';
 import { G, position, velocity } from '../physics/kinematics.ts';
-import type { Question } from './types.ts';
+import type { OptionQuestion } from './types.ts';
 
 const all = [...L.story, ...L.skillCheck];
-const q = (id: string) => all.find((s) => s.id === id) as Question;
+const q = (id: string) => all.find((s) => s.id === id) as OptionQuestion;
 const label = (id: string, opt: string) => q(id).options.find((o) => o.id === opt)!.label;
 const right = (id: string) => q(id).options.find((o) => o.correct)!.id;
 const NB = '\u00A0';

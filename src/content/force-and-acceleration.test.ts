@@ -4,10 +4,10 @@ import assert from 'node:assert/strict';
 import { forceAndAcceleration as L, ANSWERS as X, CAR, FRICTION, LAB, M, MARS, MOON_G, PULL, PULL2, ROCKET, TOW } from './force-and-acceleration.ts';
 import { lessons } from './lessons.ts';
 import { course } from './course.ts';
-import type { Question } from './types.ts';
+import type { OptionQuestion } from './types.ts';
 
 const all = [...L.story, ...L.skillCheck];
-const q = (id: string) => all.find((s) => s.id === id) as Question;
+const q = (id: string) => all.find((s) => s.id === id) as OptionQuestion;
 const label = (id: string, opt: string) => q(id).options.find((o) => o.id === opt)!.label;
 const right = (id: string) => q(id).options.find((o) => o.correct)!.id;
 const NB = '\u00A0';

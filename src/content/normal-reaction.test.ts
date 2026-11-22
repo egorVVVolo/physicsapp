@@ -4,9 +4,9 @@ import assert from 'node:assert/strict';
 import { normalReaction as L, ANSWERS, CALC, DOWN_SLOW, M, PUZZLE, SLOW, TRIP, newtons } from './normal-reaction.ts';
 import { timeAtRest } from '../physics/kinematics.ts';
 import { G } from '../physics/kinematics.ts';
-import type { Question } from './types.ts';
+import type { OptionQuestion } from './types.ts';
 
-const q = (id: string) => [...L.story, ...L.skillCheck].find((s) => s.id === id) as Question;
+const q = (id: string) => [...L.story, ...L.skillCheck].find((s) => s.id === id) as OptionQuestion;
 const label = (id: string, opt: string) => q(id).options.find((o) => o.id === opt)!.label;
 const right = (id: string) => q(id).options.find((o) => o.correct)!.id;
 
