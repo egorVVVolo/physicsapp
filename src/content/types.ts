@@ -1063,6 +1063,8 @@ export type Lesson = {
   spec: number[]; // WPH11 specification points covered
   minutes: number;
   story: Screen[];
+  /** Three chapters of the story; `from` is the id of a chapter's first screen (the first chapter starts at the intro). */
+  chapters?: { title: string; from: string }[];
   /** Exam-level questions at the end: one try each, "Why?" only after the answer. */
   skillCheck: Question[];
   youCanNow: string[];

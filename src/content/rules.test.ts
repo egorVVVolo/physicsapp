@@ -107,6 +107,19 @@ for (const lesson of Object.values(lessons)) {
     }
   });
 
+  test(`${lesson.id}: chapters, if any, are three and follow the story in order`, () => {
+    if (!lesson.chapters) return;
+    assert.equal(lesson.chapters.length, 3, 'three chapters');
+    assert.equal(lesson.chapters[0].from, lesson.story[0].id, 'the first chapter starts at the intro');
+    assert.equal(lesson.story[0].kind, 'intro');
+    const at = lesson.chapters.map((c) => lesson.story.findIndex((x) => x.id === c.from));
+    at.forEach((i, k) => {
+      assert.ok(i >= 0, `chapter "${lesson.chapters![k].title}": from must name a story screen`);
+      if (k > 0) assert.ok(i > at[k - 1], 'chapters in story order, none empty');
+    });
+    lesson.chapters.forEach((c) => max(c.title, 24, 'chapter title'));
+  });
+
   test(`${lesson.id}: a revisit points back to an earlier prediction`, () => {
     all.forEach((s, i) => {
       if (s.kind === 'choice' && s.revisitOf) {

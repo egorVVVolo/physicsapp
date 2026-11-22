@@ -5,13 +5,14 @@ import { useEffect, useRef, useState } from 'react';
 import { BackHandler, Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { Fig, Lesson } from '@/content/types';
-import { figNumbers, figOf, itemsOf, next, progressOf, recordOutcome, recordPick, recordWrong, type LessonState } from '@/session/logic';
+import { chapterOf, figNumbers, figOf, itemsOf, next, progressOf, recordOutcome, recordPick, recordWrong, type LessonState } from '@/session/logic';
 import { LessonFigs, SharedSheet, type FigMemory, type SharedFig } from '@/figures/anim';
 import { useTheme } from '@/theme/ThemeContext';
 import { colorOfLesson } from '@/theme/levelColor';
 import { CloseIcon } from '@/ui/parts';
 import { ScreenEnter, useReducedMotionPref } from '@/ui/motion';
 import Animated, { Easing, useAnimatedStyle, useSharedValue, withSequence, withSpring, withTiming } from 'react-native-reanimated';
+import { ChapterBanner } from './ChapterBanner';
 import { CONTENT_MAX } from './Frame';
 import { LEAVE_SHEET_OUT, LeaveSheet } from './LeaveSheet';
 import { ExploreView } from './screens/ExploreView';
@@ -50,6 +51,10 @@ export function LessonPlayer({ lesson, state, onChange, onClose }: Props) {
   const fig = figOf(item);
   const shared: SharedFig | null =
     left && left.index === state.index - 1 && left.fig && fig && left.fig.kind === fig.kind && left.width > 0 ? { prev: left.fig, width: left.width, fromY: left.scrollY } : null;
+
+  // moving forward into a new chapter (not on a resume, not the first): the chapter plate slides in
+  const chapter = chapterOf(lesson, state.index);
+  const newChapter = left !== null && left.index === state.index - 1 && chapter !== null && chapter > 0 && chapter !== chapterOf(lesson, left.index) ? chapter : null;
 
   // × asks "Leave the lesson?" — except on the very first screen, where there is nothing to lose.
   const [leave, setLeave] = useState<'closed' | 'open' | 'closing'>('closed');
@@ -96,9 +101,20 @@ export function LessonPlayer({ lesson, state, onChange, onClose }: Props) {
         <Pressable accessibilityRole="button" accessibilityLabel="Close the lesson" onPress={askToLeave} hitSlop={8} style={styles.close}>
           <CloseIcon color={p.muted} size={20} />
         </Pressable>
-        <View style={[styles.track, { backgroundColor: p.disabled }]} accessible accessibilityRole="progressbar" accessibilityValue={{ min: 0, max: 100, now: Math.round(prog.story * 100) }}>
-          <ProgressFill share={Math.max(0.03, prog.story)} color={c.main} />
-        </View>
+        {prog.chapters.length > 0 ? (
+          // one segment per chapter
+          <View style={styles.segments} accessible accessibilityRole="progressbar" accessibilityValue={{ min: 0, max: 100, now: Math.round(prog.story * 100) }}>
+            {prog.chapters.map((ch, i) => (
+              <View key={i} style={[styles.track, { backgroundColor: p.disabled }]}>
+                <ProgressFill share={i === 0 ? Math.max(0.03, ch.share) : ch.share} color={c.main} />
+              </View>
+            ))}
+          </View>
+        ) : (
+          <View style={[styles.track, { backgroundColor: p.disabled }]} accessible accessibilityRole="progressbar" accessibilityValue={{ min: 0, max: 100, now: Math.round(prog.story * 100) }}>
+            <ProgressFill share={Math.max(0.03, prog.story)} color={c.main} />
+          </View>
+        )}
         <View style={styles.dots} accessible accessibilityLabel={`Skill check: ${prog.checkDone} of ${prog.checkTotal} answered`}>
           {Array.from({ length: prog.checkTotal }, (_, i) => (
             <CheckDot key={i} done={i < prog.checkDone} color={c.main} />
@@ -112,6 +128,7 @@ export function LessonPlayer({ lesson, state, onChange, onClose }: Props) {
             <ScreenEnter still={shared !== null}>{body}</ScreenEnter>
           </SharedSheet.Provider>
         </LessonFigs.Provider>
+        {newChapter !== null && lesson.chapters && <ChapterBanner n={newChapter} title={lesson.chapters[newChapter].title} color={c} />}
       </View>
       {/* the Skill check splash floods the whole player, the top bar included */}
       {item?.kind === 'checkIntro' && (
@@ -152,6 +169,7 @@ const styles = StyleSheet.create({
   bar: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 12, width: '100%', maxWidth: CONTENT_MAX + 40, alignSelf: 'center' },
   close: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   track: { flex: 1, height: 12, borderRadius: 6, overflow: 'hidden' },
+  segments: { flex: 1, flexDirection: 'row', gap: 4 },
   fill: { height: '100%', borderRadius: 6 },
   dots: { flexDirection: 'row', gap: 6, paddingRight: 8 },
   dot: { width: 12, height: 12, borderRadius: 6 },

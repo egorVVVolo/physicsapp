@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { countOutcomes, figNumbers, figOf, itemsOf, MAX_GAP_MS, next, outcomeOf, parseProgress, progressOf, recordOutcome, recordPick, recordWrong, runOf, startState, tick } from './logic.ts';
+import { chapterOf, countOutcomes, figNumbers, figOf, itemsOf, MAX_GAP_MS, next, outcomeOf, parseProgress, progressOf, recordOutcome, recordPick, recordWrong, runOf, startState, tick } from './logic.ts';
 import { normalReaction as L } from '../content/normal-reaction.ts';
 
 test('story questions: right first time, after a hint, or shown', () => {
@@ -105,4 +105,23 @@ test('a run keeps the time, outcomes, wrong picks and whether the prediction was
   });
   assert.equal(runOf(L, recordPick(s, 'hook', 'less'), 0).prediction?.right, false);
   assert.equal(runOf(L, startState, 0).prediction, null);
+});
+
+test('chapters: which one a story screen is in, and how full each is', () => {
+  const at = (id: string) => L.story.findIndex((x) => x.id === id);
+  assert.equal(chapterOf(L, 0), 0);
+  assert.equal(chapterOf(L, at('weight') - 1), 0);
+  assert.equal(chapterOf(L, at('weight')), 1);
+  assert.equal(chapterOf(L, at('slider')), 2);
+  assert.equal(chapterOf(L, L.story.length - 1), 2);
+  assert.equal(chapterOf(L, L.story.length), null); // the Skill check splash
+  assert.equal(chapterOf({ ...L, chapters: undefined }, 0), null);
+
+  const shares = (index: number) => progressOf({ ...startState, index }, L).chapters.map((c) => c.share);
+  assert.deepEqual(shares(0), [0, 0, 0]);
+  assert.deepEqual(shares(at('weight')), [1, 0, 0]);
+  const mid = shares(at('weight') + 1);
+  assert.ok(mid[1] > 0 && mid[1] < 1 && mid[2] === 0);
+  assert.deepEqual(shares(L.story.length), [1, 1, 1]);
+  assert.deepEqual(progressOf(startState, { ...L, chapters: undefined }).chapters, []);
 });

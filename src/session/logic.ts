@@ -94,12 +94,27 @@ export function countOutcomes(s: LessonState): Record<Outcome, number> {
   return n;
 }
 
-/** Progress bar: share of the story done, and how many Skill check questions are answered. */
-export function progressOf(s: LessonState, lesson: Lesson): { story: number; checkDone: number; checkTotal: number } {
+/** Where each chapter starts and ends in the story (end exclusive). Empty without chapters. */
+function chapterSpans(lesson: Lesson): { start: number; end: number }[] {
+  const starts = (lesson.chapters ?? []).map((c) => lesson.story.findIndex((x) => x.id === c.from));
+  return starts.map((start, i) => ({ start, end: starts[i + 1] ?? lesson.story.length }));
+}
+
+/** The chapter (0, 1, 2…) a story item belongs to; null in the Skill check or for a lesson without chapters. */
+export function chapterOf(lesson: Lesson, index: number): number | null {
+  if (index >= lesson.story.length) return null;
+  const spans = chapterSpans(lesson);
+  const i = spans.findIndex((c) => index >= c.start && index < c.end);
+  return i < 0 ? null : i;
+}
+
+/** Progress bar: share of the story done (and of each chapter), and how many Skill check questions are answered. */
+export function progressOf(s: LessonState, lesson: Lesson): { story: number; chapters: { share: number }[]; checkDone: number; checkTotal: number } {
   const n = lesson.story.length;
   const story = Math.min(1, s.index / n);
+  const chapters = chapterSpans(lesson).map((c) => ({ share: Math.min(1, Math.max(0, (s.index - c.start) / (c.end - c.start))) }));
   const checkDone = lesson.skillCheck.filter((q) => s.outcomes[q.id] !== undefined).length;
-  return { story, checkDone, checkTotal: lesson.skillCheck.length };
+  return { story, chapters, checkDone, checkTotal: lesson.skillCheck.length };
 }
 
 // ── A finished run ───────────────────────────────────────────────────────────────────────

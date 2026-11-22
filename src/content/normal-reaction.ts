@@ -69,6 +69,11 @@ export const normalReaction: Lesson = {
   title: 'The push from the floor',
   spec: [8, 9, 10, 12],
   minutes: 12,
+  chapters: [
+    { title: 'The puzzle', from: 'intro' },
+    { title: 'Weight and the push', from: 'weight' },
+    { title: 'Back to the lift', from: 'slider' },
+  ],
   story: [
     {
       id: 'intro',
