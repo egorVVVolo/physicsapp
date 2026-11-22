@@ -6,6 +6,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { samples } from '@/content/samples';
 import type { Screen } from '@/content/types';
 import { BuildView } from '@/lesson/screens/BuildView';
+import { OrderView } from '@/lesson/screens/OrderView';
+import { SpotErrorView } from '@/lesson/screens/SpotErrorView';
 import { useTheme } from '@/theme/ThemeContext';
 import { font, radius, touch } from '@/theme/tokens';
 
@@ -38,7 +40,7 @@ export default function StepGallery() {
           </Pressable>
         ))}
       </ScrollView>
-      <Text style={[styles.log, { color: p.muted }]}>{log.length ? log.join(' · ') : 'story phase · 2 tries'}</Text>
+      <Text style={[styles.log, { color: p.muted, backgroundColor: p.page }]}>{log.length ? log.join(' · ') : 'story phase · 2 tries'}</Text>
       <View style={styles.screen} key={`${at}-${run}`}>
         <Live screen={sample.screen} onLog={(line) => setLog((l) => [...l, line])} onNext={restart} />
       </View>
@@ -47,7 +49,10 @@ export default function StepGallery() {
 }
 
 function Live({ screen, onLog, onNext }: { screen: Screen; onLog: (line: string) => void; onNext: () => void }) {
-  if (screen.kind === 'build') return <BuildView screen={screen} figN={1} phase="story" onOutcome={(o) => onLog(`outcome: ${o}`)} onWrong={(id) => onLog(`wrong: ${id}`)} onNext={onNext} />;
+  const graded = { figN: 1, phase: 'story' as const, onOutcome: (o: string) => onLog(`outcome: ${o}`), onWrong: (id: string) => onLog(`wrong: ${id}`), onNext };
+  if (screen.kind === 'build') return <BuildView screen={screen} {...graded} />;
+  if (screen.kind === 'order') return <OrderView screen={screen} {...graded} />;
+  if (screen.kind === 'spotError') return <SpotErrorView screen={screen} {...graded} />;
   return null;
 }
 
@@ -57,6 +62,6 @@ const styles = StyleSheet.create({
   tabs: { gap: 8, paddingHorizontal: 16, paddingVertical: 4 },
   tab: { minHeight: touch, borderWidth: 2, borderRadius: radius.pill, paddingHorizontal: 14, justifyContent: 'center' },
   tabText: { fontFamily: font.bodyMedium, fontSize: 14 },
-  log: { fontFamily: font.mono, fontSize: 11, paddingHorizontal: 16, paddingTop: 6 },
+  log: { fontFamily: font.mono, fontSize: 11, paddingHorizontal: 16, paddingVertical: 6, zIndex: 1 },
   screen: { flex: 1, overflow: 'hidden' },
 });

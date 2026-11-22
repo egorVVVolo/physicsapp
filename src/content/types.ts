@@ -1077,10 +1077,32 @@ export type BuildScreen = Base & {
   why: string;
 };
 
-export type Screen = IntroScreen | TextScreen | PredictScreen | ChoiceScreen | ExploreScreen | TapFigScreen | BuildScreen;
+/** Tap statements into the right sequence (an explanation, a chain of reasoning, the order of a practical). */
+export type OrderScreen = Base & {
+  kind: 'order';
+  prompt: string;
+  fig?: Fig;
+  /** In the RIGHT order; shown shuffled (key = screen id). */
+  steps: { id: string; text: string }[];
+  /** Shown after a wrong try. */
+  hint: string;
+  why: string;
+};
+
+/** A worked solution with one wrong line: tap it. */
+export type SpotErrorScreen = Base & {
+  kind: 'spotError';
+  prompt: string; // "Sam's working has one mistake. Tap the wrong line."
+  fig?: Fig;
+  /** Exactly one wrong line (with its fix); a right line picked by mistake has a hint. */
+  lines: { id: string; text: string; wrong?: true; fix?: string; hint?: string }[];
+  why: string;
+};
+
+export type Screen = IntroScreen | TextScreen | PredictScreen | ChoiceScreen | ExploreScreen | TapFigScreen | BuildScreen | OrderScreen | SpotErrorScreen;
 /** A graded question answered by picking one option (cards or places on the figure). */
 export type OptionQuestion = ChoiceScreen | TapFigScreen;
-export type Question = OptionQuestion | BuildScreen;
+export type Question = OptionQuestion | BuildScreen | OrderScreen | SpotErrorScreen;
 
 export type Lesson = {
   id: string;
@@ -1106,4 +1128,4 @@ export type LessonRef = { id: string; title: string; spec: number[]; ready: bool
 export type Level = { id: string; title: string; lessons: LessonRef[] };
 export type Course = { title: string; subtitle: string; levels: Level[] };
 
-export const isQuestion = (s: Screen): s is Question => s.kind === 'choice' || s.kind === 'tapFig' || s.kind === 'build';
+export const isQuestion = (s: Screen): s is Question => s.kind === 'choice' || s.kind === 'tapFig' || s.kind === 'build' || s.kind === 'order' || s.kind === 'spotError';

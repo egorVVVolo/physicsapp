@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from 'react';
 import { BackHandler, Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { Fig, Lesson } from '@/content/types';
-import { carriedFig, chapterOf, figNumbers, figOf, itemsOf, next, progressOf, recordOutcome, recordPick, recordWrong, type LessonState } from '@/session/logic';
+import { carriedFig, chapterOf, figNumbers, figOf, itemsOf, next, progressOf, recordOutcome, recordPick, recordWrong, type LessonState, type Outcome } from '@/session/logic';
 import { LessonFigs, SharedSheet, type FigMemory, type SharedFig } from '@/figures/anim';
 import { useTheme } from '@/theme/ThemeContext';
 import { colorOfLesson } from '@/theme/levelColor';
@@ -17,6 +17,8 @@ import { CONTENT_MAX } from './Frame';
 import { LEAVE_SHEET_OUT, LeaveSheet } from './LeaveSheet';
 import { BuildView } from './screens/BuildView';
 import { ExploreView } from './screens/ExploreView';
+import { OrderView } from './screens/OrderView';
+import { SpotErrorView } from './screens/SpotErrorView';
 import { QuestionView } from './screens/QuestionView';
 import { CheckIntroView, IntroView, PredictView, TextView } from './screens/Simple';
 
@@ -89,8 +91,12 @@ export function LessonPlayer({ lesson, state, onChange, onClose }: Props) {
     if (s.kind === 'text') body = <TextView screen={s} figN={n} carried={carriedFig(lesson, state.index)} onNext={go} />;
     if (s.kind === 'predict') body = <PredictView screen={s} figN={n} picked={state.picks[s.id]} onPick={(id) => change((st) => recordPick(st, s.id, id))} onNext={go} />;
     if (s.kind === 'explore') body = <ExploreView screen={s} figN={n} onNext={go} />;
-    if (s.kind === 'build')
-      body = <BuildView screen={s} figN={n} phase={item.phase} onOutcome={(o) => change((st) => recordOutcome(st, s.id, o))} onWrong={(o) => change((st) => recordWrong(st, s.id, o))} onNext={go} />;
+    if (s.kind === 'build' || s.kind === 'order' || s.kind === 'spotError') {
+      const graded = { figN: n, phase: item.phase, onOutcome: (o: Outcome) => change((st) => recordOutcome(st, s.id, o)), onWrong: (o: string) => change((st) => recordWrong(st, s.id, o)), onNext: go };
+      if (s.kind === 'build') body = <BuildView screen={s} {...graded} />;
+      if (s.kind === 'order') body = <OrderView screen={s} {...graded} />;
+      if (s.kind === 'spotError') body = <SpotErrorView screen={s} {...graded} />;
+    }
     if (s.kind === 'choice' || s.kind === 'tapFig') {
       const earlier = s.kind === 'choice' && s.revisitOf ? lesson.story.find((x) => x.id === s.revisitOf) : undefined;
       const earlierPick = earlier?.kind === 'predict' ? earlier.options.find((o) => o.id === state.picks[earlier.id]) : undefined;

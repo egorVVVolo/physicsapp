@@ -1,12 +1,13 @@
 // Sample content for the hidden step gallery (/gallery/steps): one live example of every kind of step.
 // Built on the "Work done" lesson; every number comes from src/physics.
 import { weight } from '../physics/dynamics.ts';
-import { sig } from '../physics/format.ts';
-import { workDone } from '../physics/work.ts';
+import { fixed, sig } from '../physics/format.ts';
+import { liftWork, rampPush, workDone } from '../physics/work.ts';
 import type { Screen } from './types.ts';
-import { OMAR, TRIP } from './work-done.ts';
+import { OMAR, TRIP, VAN } from './work-done.ts';
 
 const NB = ' '; // a no-break space: a number never parts from its unit
+const push = rampPush(VAN.m, VAN.h, VAN.L);
 
 export const samples: { title: string; screen: Screen }[] = [
   {
@@ -34,6 +35,37 @@ export const samples: { title: string; screen: Screen }[] = [
       ],
       result: { symbol: 'W', value: workDone(OMAR.F, TRIP.s, OMAR.angle), unit: 'J' },
       why: `Only the part of the pull along the floor, ${OMAR.F} cos ${OMAR.angle}° = ${sig(OMAR.F * Math.cos((OMAR.angle * Math.PI) / 180))}${NB}N, moves the suitcase. Times ${TRIP.s}${NB}m gives the work.`,
+    },
+  },
+  {
+    title: 'order · In order',
+    screen: {
+      id: 'sample-order',
+      kind: 'order',
+      prompt: 'Why does Nadia do no work on her suitcase? Put the reasons in order.',
+      steps: [
+        { id: 'force', text: `Nadia's force on the suitcase is upward: she holds up its ${sig(weight(TRIP.m))}${NB}N weight.` },
+        { id: 'motion', text: 'The suitcase moves horizontally, along the platform.' },
+        { id: 'angle', text: 'So her force is at 90° to the motion.' },
+        { id: 'zero', text: 'cos 90° = 0, so W = F × s × cos 90° = 0.' },
+      ],
+      hint: 'Start with the force, then the motion, then the angle between them.',
+      why: 'Work needs movement along the force. Nadia pushes up while the suitcase moves sideways, so none of her force does work.',
+    },
+  },
+  {
+    title: 'spotError · Find the mistake',
+    screen: {
+      id: 'sample-spot',
+      kind: 'spotError',
+      prompt: `Sam pushes a ${VAN.m}${NB}kg washing machine up a ${fixed(VAN.L, 1)}${NB}m ramp into a van, ${fixed(VAN.h, 1)}${NB}m high. His working has one mistake. Which line?`,
+      lines: [
+        { id: 'push', text: `Push along the ramp: F = ${sig(push)}${NB}N`, hint: `That line is right: F = mg sin θ = ${sig(push)}${NB}N.` },
+        { id: 'data', text: `The ramp is ${fixed(VAN.L, 1)}${NB}m long and ${fixed(VAN.h, 1)}${NB}m high.`, hint: 'That line only copies the data.' },
+        { id: 'work', text: `W = F × h = ${sig(push)} × ${fixed(VAN.h, 1)} = ${sig(push * VAN.h)}${NB}J`, wrong: true, fix: `W = F × L = ${sig(push)} × ${fixed(VAN.L, 1)} = ${sig(liftWork(VAN.m, VAN.h))}${NB}J` },
+        { id: 'end', text: `So the push does ${sig(push * VAN.h)}${NB}J of work.`, hint: `This follows from the line above. Where did ${sig(push * VAN.h)} come from?` },
+      ],
+      why: `Work is force × distance along the force. The push acts along the ramp, so use its ${fixed(VAN.L, 1)}${NB}m length, not the height. ${sig(liftWork(VAN.m, VAN.h))}${NB}J = mgh, as it must be.`,
     },
   },
 ];

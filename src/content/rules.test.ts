@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import { lessons } from './lessons.ts';
 import { samples } from './samples.ts';
 import { boxesOf } from '../session/build.ts';
-import { ACC_IDS, BEAM_IDS, CANDIDATE_IDS, COMPARE_IDS, SKETCH_IDS, EQUATION_IDS, FLOW_IDS, LADDER_IDS, PAIR_IDS, POLE_IDS, SLEDGE_IDS, isQuestion, type BuildScreen, type Fig, type Screen } from './types.ts';
+import { ACC_IDS, BEAM_IDS, CANDIDATE_IDS, COMPARE_IDS, SKETCH_IDS, EQUATION_IDS, FLOW_IDS, LADDER_IDS, PAIR_IDS, POLE_IDS, SLEDGE_IDS, isQuestion, type BuildScreen, type Fig, type OrderScreen, type Screen, type SpotErrorScreen } from './types.ts';
 
 // **key words** are bold on screen: the stars do not count, but they must come in pairs
 const max = (text: string, n: number, where: string) => {
@@ -35,8 +35,36 @@ function checkBuildScreen(s: BuildScreen) {
   }
 }
 
+/** An order step: 3–5 statements of at most 90 characters, a hint, unique ids. */
+function checkOrderScreen(s: OrderScreen) {
+  assert.ok(s.steps.length >= 3 && s.steps.length <= 5, `${s.id}: 3–5 statements`);
+  assert.equal(new Set(s.steps.map((x) => x.id)).size, s.steps.length, `${s.id}: statement ids are unique`);
+  s.steps.forEach((x) => max(x.text, 90, `${s.id}/${x.id}`));
+  max(s.hint, 80, `${s.id} hint`);
+  max(s.why, 170, `${s.id} why`);
+}
+
+/** A spot-the-error step: 3–5 lines of at most 70 characters, exactly one wrong (with its fix), hints on the others. */
+function checkSpotErrorScreen(s: SpotErrorScreen) {
+  assert.ok(s.lines.length >= 3 && s.lines.length <= 5, `${s.id}: 3–5 lines`);
+  const wrong = s.lines.filter((l) => l.wrong);
+  assert.equal(wrong.length, 1, `${s.id}: exactly one wrong line`);
+  assert.ok(wrong[0].fix, `${s.id}: the wrong line has its fix`);
+  for (const l of s.lines) {
+    max(l.text, 70, `${s.id}/${l.id}`);
+    if (l.fix) max(l.fix, 70, `${s.id}/${l.id} fix`);
+    if (!l.wrong) assert.ok(l.hint, `${s.id}/${l.id}: a right line needs a hint (in case it is picked)`);
+    if (l.hint) max(l.hint, 80, `${s.id}/${l.id} hint`);
+  }
+  max(s.why, 170, `${s.id} why`);
+}
+
 test('sample steps of the gallery fit together', () => {
-  for (const { screen } of samples) if (screen.kind === 'build') checkBuildScreen(screen);
+  for (const { screen } of samples) {
+    if (screen.kind === 'build') checkBuildScreen(screen);
+    if (screen.kind === 'order') checkOrderScreen(screen);
+    if (screen.kind === 'spotError') checkSpotErrorScreen(screen);
+  }
 });
 
 function targets(fig: Fig): readonly string[] {
@@ -122,7 +150,7 @@ for (const lesson of Object.values(lessons)) {
         }
       }
     }
-    for (const s of lesson.skillCheck) if (s.kind !== 'build') assert.ok(s.options.every((o) => !o.hint), `${s.id}: no hints in the Skill check`);
+    for (const s of lesson.skillCheck) if (s.kind === 'choice' || s.kind === 'tapFig') assert.ok(s.options.every((o) => !o.hint), `${s.id}: no hints in the Skill check`);
   });
 
   test(`${lesson.id}: gestures are named, tap targets match the figure`, () => {
@@ -136,7 +164,11 @@ for (const lesson of Object.values(lessons)) {
   });
 
   test(`${lesson.id}: build steps fit together`, () => {
-    for (const s of all) if (s.kind === 'build') checkBuildScreen(s);
+    for (const s of all) {
+      if (s.kind === 'build') checkBuildScreen(s);
+      if (s.kind === 'order') checkOrderScreen(s);
+      if (s.kind === 'spotError') checkSpotErrorScreen(s);
+    }
   });
 
   test(`${lesson.id}: chapters, if any, are three and follow the story in order`, () => {
