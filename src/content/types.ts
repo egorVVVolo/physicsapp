@@ -932,7 +932,33 @@ export type MaterialFig = {
   targets?: true;
 };
 
-export type Fig = LiftFig | PairsFig | VtFig | ScalesFig | LiftPairFig | ThrowFig | ThrowVtFig | FallGraphFig | RoadFig | BrakeVtFig | EquationsFig | GraphFig | ChaseFig | TrackFig | VectorsFig | SledgeFig | HillFig | ResolveFig | BenchFig | KickFig | CrateFig | LadderFig | ParticleFig | PulleyFig | FallFig | WallFig | BodiesFig | CollideFig | SpannerFig | PoleFig | BarFig | BeamFig | BroomFig | PlatformFig | RampFig | KineticFig | HeightFig | CliffFig | SlideFig | RideFig | WinchFig | TankFig | DunkFig | TubeFig | FlowFig | SpringFig | WireFig | MaterialFig;
+/**
+ * A toy launcher (src/physics/elastic), elastic strain energy: a tube on a bench, a spring squashed by Δx behind a plunger,
+ * a ball in front held by a push F (a blue arrow). Once `speed` is shown the spring is released and the ball leaves with
+ * the speed ½mv² = ½kΔx² gives. On the right: the readings, or a force–squash graph with the energy shaded as the
+ * triangle under the line (the explore's slider = the squash, in cm), or `panel: 'pair'`: two launchers, A (k) and B (k2),
+ * held by the same force, with their two triangles. `view: 'curve'`: a rubber band's curved force–extension graph on
+ * squared paper, the area under it shaded.
+ */
+export type LauncherFig = {
+  kind: 'launcher';
+  view?: 'launcher' | 'curve';
+  k: number; // the spring's stiffness, N m⁻¹
+  x: number; // the squash, m (on the explore screen the slider's value, in cm)
+  m: number; // the ball, kg
+  panel: 'readings' | 'graph' | 'pair';
+  rows?: ('x' | 'F' | 'E')[];
+  /** The energy "?" (and, in the pair, the shading) for good or until the question is answered. */
+  ask?: 'unknown' | 'afterCheck';
+  /** The spring is released and the ball's speed drawn; 'afterCheck': once the question is answered. */
+  speed?: true | 'afterCheck';
+  /** pair: the stiffer spring B, held by the same force as A. */
+  k2?: number;
+  /** graph: a second, smaller squash (m), its triangle drawn in outline inside the first. */
+  inner?: number;
+};
+
+export type Fig = LiftFig | PairsFig | VtFig | ScalesFig | LiftPairFig | ThrowFig | ThrowVtFig | FallGraphFig | RoadFig | BrakeVtFig | EquationsFig | GraphFig | ChaseFig | TrackFig | VectorsFig | SledgeFig | HillFig | ResolveFig | BenchFig | KickFig | CrateFig | LadderFig | ParticleFig | PulleyFig | FallFig | WallFig | BodiesFig | CollideFig | SpannerFig | PoleFig | BarFig | BeamFig | BroomFig | PlatformFig | RampFig | KineticFig | HeightFig | CliffFig | SlideFig | RideFig | WinchFig | TankFig | DunkFig | TubeFig | FlowFig | SpringFig | WireFig | MaterialFig | LauncherFig;
 
 /** Tap targets drawn by a lift figure with `candidates`. */
 export const CANDIDATE_IDS = ['shorter', 'equal', 'longer'] as const;
@@ -1003,12 +1029,12 @@ export type ChoiceScreen = Base & {
 /**
  * Play with the figure through a slider, then a light question (not counted in the tally).
  * The slider drives the lift's acceleration, the time since the throw, since the brakes came on or since the runners set off,
- * the time cursor of a graph, the angle of the sledge's rope, the clock of the bench falls, the angle of a kick, the angle of the crate's rope or its pull, the lab's hanging mass, the time since the skydiver jumped, the speed a trolley bounces back from a wall, the mass of a trolley that is hit, the angle of a pull on a spanner, where a person stands on a plank, the angle of a suitcase's handle, the length of a ramp, the time since stones were thrown from a cliff, the length of a slide, a cyclist's speed, the load on a winch, the density of a block sunk in a tank, how deep a block hangs in water, the temperature of glycerol a ball sinks through, the load on a spring or a wire, or the strain a wire is loaded to before it is released.
+ * the time cursor of a graph, the angle of the sledge's rope, the clock of the bench falls, the angle of a kick, the angle of the crate's rope or its pull, the lab's hanging mass, the time since the skydiver jumped, the speed a trolley bounces back from a wall, the mass of a trolley that is hit, the angle of a pull on a spanner, where a person stands on a plank, the angle of a suitcase's handle, the length of a ramp, the time since stones were thrown from a cliff, the length of a slide, a cyclist's speed, the load on a winch, the density of a block sunk in a tank, how deep a block hangs in water, the temperature of glycerol a ball sinks through, the load on a spring or a wire, the strain a wire is loaded to before it is released, or the squash of a launcher's spring.
  */
 export type ExploreScreen = Base & {
   kind: 'explore';
   instruction: string; // names the gesture: "Drag …"
-  fig: LiftFig | ThrowFig | RoadFig | GraphFig | TrackFig | SledgeFig | BenchFig | KickFig | CrateFig | PulleyFig | FallFig | WallFig | CollideFig | SpannerFig | BeamFig | PlatformFig | RampFig | KineticFig | HeightFig | CliffFig | SlideFig | RideFig | WinchFig | TankFig | DunkFig | TubeFig | SpringFig | WireFig | MaterialFig;
+  fig: LiftFig | ThrowFig | RoadFig | GraphFig | TrackFig | SledgeFig | BenchFig | KickFig | CrateFig | PulleyFig | FallFig | WallFig | CollideFig | SpannerFig | BeamFig | PlatformFig | RampFig | KineticFig | HeightFig | CliffFig | SlideFig | RideFig | WinchFig | TankFig | DunkFig | TubeFig | SpringFig | WireFig | MaterialFig | LauncherFig;
   /**
    * `tick`: gap between the marks on the ruler (defaults to `step`). `symbol` and `dp` write the bubble ("t = 0.82 s"),
    * `signed` adds + to positive values. `start`: where the thumb begins (defaults to the lift's a, or `min`).

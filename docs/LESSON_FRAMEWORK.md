@@ -461,6 +461,13 @@ Sources: [Beichner (1994), kinematics graphs](https://moodle2.units.it/pluginfil
 | G-BRITTLE-WEAK | Brittle means weak, or "breaks soon after the elastic limit" is ductile | The Skill check ductile question; curve C tapped as brittle | Curve B: straight almost to the break, no plastic region |
 | G-FORCE-STRESS | The breaking force is the same for a thicker wire of the same material | P 170 N, Q "170 N" | The same breaking stress, 4 times the area: 680 N |
 | G-MM-SLIP | d for r, no π, or mm² unconverted in the largest load | 684 N; 218 N; 1.71 × 10⁸ N | A = πd² ÷ 4, in m² |
+| S-LINEAR | Stored energy grows in step with the extension | The launcher at 6.0 cm: "twice as much", 0.36 J; the second 2.0 cm "the same" | The explore: the triangle twice as wide and twice as tall |
+| S-NO-HALF | The full force times the extension, as if the force were F all the way | 0.36 J; 1.4 J; the wire 0.13 J | The force grows from 0: the area is a triangle, ½FΔx |
+| S-CM | Δx left in cm or mm | 18 J; 900 J; the wire 66 J | The energy card: Δx in metres |
+| S-NO-SQUARE | ½kΔx with the extension not squared | The 50 N m⁻¹ spring 1.5 J | ½kΔx² = ½FΔx with F = kΔx |
+| S-FINAL | The energy added by a stretch is the energy at its end, or the same for every centimetre | The second 2.0 cm "4 times" or "the same" | Energy ∝ Δx²: 4 − 1 = 3 |
+| S-STIFF-MORE | The stiffer spring always stores more | Same 12 N on A and B: "B" | Two triangles: B half as wide, A stores 0.18 J against 0.090 J |
+| S-TRIANGLE-ANY | ½FΔx used for a curved graph, or the gradient taken for the energy | The rubber band | The shaded area under the curve on squared paper |
 
 ## 13. Lesson spec template
 

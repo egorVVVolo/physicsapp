@@ -173,6 +173,7 @@ function revealsAfterCheck(fig: Fig | undefined): boolean {
     (fig?.kind === 'dunk' && (fig.reading === 'afterCheck' || fig.overflow === 'afterCheck')) ||
     (fig?.kind === 'tube' && (fig.play === 'afterCheck' || fig.ask === 'afterCheck')) ||
     (fig?.kind === 'material' && fig.unload === 'afterCheck') ||
+    (fig?.kind === 'launcher' && (fig.ask === 'afterCheck' || fig.speed === 'afterCheck')) ||
     (fig?.kind === 'wire' && (fig.ask?.hide === 'afterCheck' || fig.stretch === 'afterCheck')) ||
     (fig?.kind === 'spring' && (fig.ask?.hide === 'afterCheck' || fig.springs.some((s) => s.hung === 'afterCheck' || s.pull === 'afterCheck'))) ||
     (fig?.kind === 'bench' && (fig.play === 'afterCheck' || fig.range === 'afterCheck')) ||
@@ -244,6 +245,8 @@ function revealed(fig: Fig): Fig {
   // the weight is hung and bobs by the model, the pull grows to its size, the asked reading is written in
   // the wires stretch, and the asked reading is written in
   // the load is taken off, and the unloading line is drawn
+  // the energy is written in (and the triangles shaded), the spring is released and the ball's speed drawn
+  if (fig.kind === 'launcher') return { ...fig, ask: fig.ask === 'afterCheck' ? undefined : fig.ask, speed: fig.speed === 'afterCheck' ? true : fig.speed };
   if (fig.kind === 'material') return { ...fig, unload: fig.unload === 'afterCheck' ? true : fig.unload };
   if (fig.kind === 'wire') return { ...fig, ask: fig.ask?.hide === 'afterCheck' ? undefined : fig.ask, stretch: fig.stretch === 'afterCheck' ? undefined : fig.stretch };
   if (fig.kind === 'spring')
