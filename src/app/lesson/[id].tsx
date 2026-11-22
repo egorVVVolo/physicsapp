@@ -9,6 +9,7 @@ import { addFinishedLesson, clearProgress, loadProgress, recordFinishedDay, save
 import { currentRun, dayKey } from '@/session/streak';
 import { LessonPlayer } from '@/lesson/LessonPlayer';
 import { LessonComplete, type FinishInfo } from '@/lesson/LessonComplete';
+import { LessonCover } from '@/lesson/LessonCover';
 import { useTheme } from '@/theme/ThemeContext';
 
 export default function LessonRoute() {
@@ -17,9 +18,11 @@ export default function LessonRoute() {
   const { palette: p } = useTheme();
   const [state, setState] = useState<LessonState | null>(null);
   const [finish, setFinish] = useState<FinishInfo | null>(null); // filled in once the finish is recorded
+  const [started, setStarted] = useState(false); // the cover comes first on every visit, until Start
 
   useEffect(() => {
     if (!lesson) return;
+    setStarted(false);
     // timing starts now: time away from the app since the last save does not count
     loadProgress(lesson).then((saved) => setState({ ...(saved && !saved.state.finished ? saved.state : startState), lastAt: Date.now() }));
   }, [lesson]);
@@ -54,6 +57,20 @@ export default function LessonRoute() {
     setState(s);
     saveProgress(lesson.id, s);
   };
+
+  if (!started && !state.finished) {
+    return (
+      <LessonCover
+        lesson={lesson}
+        index={state.index}
+        onClose={back}
+        onStart={() => {
+          setState({ ...state, lastAt: Date.now() }); // time on the cover does not count
+          setStarted(true);
+        }}
+      />
+    );
+  }
 
   if (state.finished) {
     // the next lesson in course order that can be played, if any
