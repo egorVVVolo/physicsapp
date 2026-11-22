@@ -75,7 +75,12 @@ for (const lesson of Object.values(lessons)) {
         assert.ok(s.question.prompt.endsWith('?'));
         assert.equal(s.question.options.filter((o) => o.correct).length, 1, `${s.id}: one right option`);
       }
-      if (s.kind === 'predict') assert.ok(s.prompt.endsWith('?') && !s.options.some((o) => o.correct));
+      if (s.kind === 'predict') {
+        assert.ok(s.prompt.endsWith('?'));
+        // the right prediction is marked (for the lesson's run record), never on "I'm not sure"
+        assert.equal(s.options.filter((o) => o.correct).length, 1, `${s.id}: one right prediction`);
+        assert.ok(!s.options.some((o) => o.correct && o.id === 'unsure'), `${s.id}: "I'm not sure" is never right`);
+      }
     }
   });
 

@@ -97,7 +97,7 @@ export const drawingTheForces: Lesson = {
       options: [
         { id: 'bigger', label: 'It is bigger than the weight' },
         { id: 'equal', label: 'It is equal to the weight' },
-        { id: 'smaller', label: 'It is smaller than the weight' },
+        { id: 'smaller', label: 'It is smaller than the weight', correct: true },
         { id: 'unsure', label: "I'm not sure" },
       ],
       after: "Let's find out",

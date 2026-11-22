@@ -69,7 +69,7 @@ export const workDoneLesson: Lesson = {
       fig: platform({ forces: true }),
       options: [
         { id: 'nadia', label: `Nadia: she holds up all ${N(caseWeight)}` },
-        { id: 'omar', label: 'Omar: his pull moves the suitcase along' },
+        { id: 'omar', label: 'Omar: his pull moves the suitcase along', correct: true },
         { id: 'same', label: `The same: both suitcases go ${TRIP.s}${NB}m` },
         { id: 'unsure', label: "I'm not sure" },
       ],

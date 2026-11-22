@@ -78,7 +78,7 @@ export const hookesLaw: Lesson = {
       fig: spring({ springs: [whole({ name: 'WHOLE' }), half({ hung: 'afterCheck' })], rows: ['load', 'ext'] }),
       options: [
         { id: 'quarter', label: '1.5 cm' },
-        { id: 'half', label: '3.0 cm' },
+        { id: 'half', label: '3.0 cm', correct: true },
         { id: 'same', label: '6.0 cm, the same' },
         { id: 'double', label: '12.0 cm' },
       ],

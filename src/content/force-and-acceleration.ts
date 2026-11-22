@@ -92,7 +92,7 @@ export const forceAndAcceleration: Lesson = {
       fig: crate({ play: true }),
       options: [
         { id: 'twice', label: 'It doubles' },
-        { id: 'more', label: 'It more than doubles' },
+        { id: 'more', label: 'It more than doubles', correct: true },
         { id: 'less', label: 'It less than doubles' },
         { id: 'same', label: 'It stays the same: only the speed is bigger' },
         { id: 'unsure', label: "I'm not sure" },

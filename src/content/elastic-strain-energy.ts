@@ -65,7 +65,7 @@ export const elasticStrainEnergy: Lesson = {
       options: [
         { id: 'same', label: 'The same' },
         { id: 'twice', label: 'Twice as much' },
-        { id: 'four', label: '4 times as much' },
+        { id: 'four', label: '4 times as much', correct: true },
         { id: 'eight', label: '8 times as much' },
       ],
       after: "Let's find out",

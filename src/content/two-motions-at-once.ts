@@ -143,7 +143,7 @@ export const twoMotionsAtOnce: Lesson = {
       options: [
         { id: 'mia', label: "Mia's, the lower kick" },
         { id: 'leo', label: "Leo's, the higher kick" },
-        { id: 'same', label: 'They land at the same spot' },
+        { id: 'same', label: 'They land at the same spot', correct: true },
         { id: 'unsure', label: "I'm not sure" },
       ],
       after: "Let's find out",

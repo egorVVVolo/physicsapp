@@ -130,7 +130,7 @@ export const splittingAVector: Lesson = {
       fig: both(),
       options: [
         { id: 'ana', label: 'The one Ana pulls' },
-        { id: 'ben', label: 'The one Ben pushes' },
+        { id: 'ben', label: 'The one Ben pushes', correct: true },
         { id: 'same', label: 'They get the same' },
         { id: 'unsure', label: "I'm not sure" },
       ],

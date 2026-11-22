@@ -53,9 +53,15 @@ export type LessonState = {
   outcomes: Record<string, Outcome>; // question id → first honest outcome
   picks: Record<string, string>; // predict screen id → the option the learner picked
   finished: boolean;
+  wrong: Record<string, string[]>; // question id → option ids picked wrongly, in order
+  activeMs: number; // time on screens, each gap capped at 3 minutes
+  lastAt: number | null; // when the last screen was opened
 };
 
-export const startState: LessonState = { index: 0, outcomes: {}, picks: {}, finished: false };
+export const startState: LessonState = { index: 0, outcomes: {}, picks: {}, finished: false, wrong: {}, activeMs: 0, lastAt: null };
+
+/** Longest stretch on one screen that still counts as working (longer means the learner was away). */
+export const MAX_GAP_MS = 180_000;
 
 /** The first outcome of a question stays, even if it is replayed after a resume. */
 export function recordOutcome(s: LessonState, id: string, outcome: Outcome): LessonState {
@@ -67,9 +73,19 @@ export function recordPick(s: LessonState, predictId: string, optionId: string):
   return { ...s, picks: { ...s.picks, [predictId]: optionId } };
 }
 
-export function next(s: LessonState, lesson: Lesson): LessonState {
+export function recordWrong(s: LessonState, questionId: string, optionId: string): LessonState {
+  return { ...s, wrong: { ...s.wrong, [questionId]: [...(s.wrong[questionId] ?? []), optionId] } };
+}
+
+/** Counts the time since the last screen was opened (at most MAX_GAP_MS) and starts timing from now. */
+export function tick(s: LessonState, now: number): LessonState {
+  const gap = s.lastAt === null ? 0 : Math.min(Math.max(0, now - s.lastAt), MAX_GAP_MS);
+  return { ...s, activeMs: s.activeMs + gap, lastAt: now };
+}
+
+export function next(s: LessonState, lesson: Lesson, now = Date.now()): LessonState {
   const index = s.index + 1;
-  return { ...s, index, finished: index >= itemsOf(lesson).length };
+  return { ...tick(s, now), index, finished: index >= itemsOf(lesson).length };
 }
 
 export function countOutcomes(s: LessonState): Record<Outcome, number> {
@@ -84,6 +100,32 @@ export function progressOf(s: LessonState, lesson: Lesson): { story: number; che
   const story = Math.min(1, s.index / n);
   const checkDone = lesson.skillCheck.filter((q) => s.outcomes[q.id] !== undefined).length;
   return { story, checkDone, checkTotal: lesson.skillCheck.length };
+}
+
+// ── A finished run ───────────────────────────────────────────────────────────────────────
+
+/** One finished pass through a lesson, kept for the lesson-end breakdown and for review. */
+export type Run = {
+  at: number;
+  ms: number;
+  outcomes: Record<string, Outcome>;
+  wrong: Record<string, string[]>;
+  /** The lesson's first prediction: what was picked and whether the puzzle bore it out. */
+  prediction: { id: string; pick: string; right: boolean } | null;
+  feel: 'easy' | 'right' | 'hard' | null;
+};
+
+export function runOf(lesson: Lesson, s: LessonState, now: number): Run {
+  const predict = lesson.story.find((x) => x.kind === 'predict');
+  const pick = predict ? s.picks[predict.id] : undefined;
+  return {
+    at: now,
+    ms: s.activeMs,
+    outcomes: s.outcomes,
+    wrong: s.wrong,
+    prediction: predict && pick ? { id: predict.id, pick, right: predict.options.some((o) => o.id === pick && o.correct === true) } : null,
+    feel: null,
+  };
 }
 
 // ── What is saved on the device ──────────────────────────────────────────────────────────
@@ -104,7 +146,18 @@ export function parseProgress(json: string | null, lesson: Lesson): SavedProgres
     const picksOk = Object.keys(st.picks).every((id) => predicts.has(id));
     const total = itemsOf(lesson).length;
     if (!outcomesOk || !picksOk || !Number.isInteger(st.index) || st.index < 0 || st.index > total) return null;
-    return { ...p, state: { index: st.index, outcomes: st.outcomes, picks: st.picks, finished: st.finished === true } };
+    // saves from before the run record have no wrong / activeMs / lastAt: start those afresh
+    const wrongOk = st.wrong && typeof st.wrong === 'object' && Object.values(st.wrong).every((v) => Array.isArray(v) && v.every((x) => typeof x === 'string'));
+    const state: LessonState = {
+      index: st.index,
+      outcomes: st.outcomes,
+      picks: st.picks,
+      finished: st.finished === true,
+      wrong: wrongOk ? st.wrong : {},
+      activeMs: Number.isFinite(st.activeMs) && st.activeMs >= 0 ? st.activeMs : 0,
+      lastAt: Number.isFinite(st.lastAt) ? st.lastAt : null,
+    };
+    return { ...p, state };
   } catch {
     return null;
   }

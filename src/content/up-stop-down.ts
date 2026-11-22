@@ -89,7 +89,7 @@ export const upStopDown: Lesson = {
       options: [
         { id: 'a', label: 'Ball A, thrown up' },
         { id: 'b', label: 'Ball B, thrown down' },
-        { id: 'same', label: 'Both the same' },
+        { id: 'same', label: 'Both the same', correct: true },
         { id: 'unsure', label: "I'm not sure" },
       ],
       after: "Let's find out",

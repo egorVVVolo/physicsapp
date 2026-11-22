@@ -79,7 +79,7 @@ export const fallingThroughAir: Lesson = {
       fig: both({ speeds: 'unknown' }),
       options: [
         { id: 'same', label: 'The same speed' },
-        { id: 'twice', label: 'Twice as fast' },
+        { id: 'twice', label: 'Twice as fast', correct: true },
         { id: 'four', label: `${STACK} times as fast` },
         { id: 'slower', label: 'Slower than one case' },
         { id: 'unsure', label: "I'm not sure" },

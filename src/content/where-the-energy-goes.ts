@@ -89,7 +89,7 @@ export const whereTheEnergyGoes: Lesson = {
       options: [
         { id: 'A', label: 'A: it goes up first, so it falls from higher' },
         { id: 'C', label: 'C: it is thrown straight at the sea' },
-        { id: 'same', label: 'All three at the same speed' },
+        { id: 'same', label: 'All three at the same speed', correct: true },
         { id: 'unsure', label: "I'm not sure" },
       ],
       after: "Let's find out",

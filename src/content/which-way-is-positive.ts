@@ -134,7 +134,7 @@ export const whichWayIsPositive: Lesson = {
       options: [
         { id: 'A', label: "Runner A's" },
         { id: 'B', label: "Runner B's" },
-        { id: 'same', label: 'They are the same' },
+        { id: 'same', label: 'They are the same', correct: true },
         { id: 'unsure', label: "I'm not sure" },
       ],
       after: "Let's find out",

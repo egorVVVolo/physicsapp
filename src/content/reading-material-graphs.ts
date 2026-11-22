@@ -66,7 +66,7 @@ export const readingMaterialGraphs: Lesson = {
       options: [
         { id: 'none', label: 'None: it returns to its original length' },
         { id: 'springy', label: EPS(X.hook.springy) },
-        { id: 'right', label: EPS(X.hook.right) },
+        { id: 'right', label: EPS(X.hook.right), correct: true },
         { id: 'all', label: `${EPS(X.hook.all)}, all of it` },
       ],
       after: "Let's find out",

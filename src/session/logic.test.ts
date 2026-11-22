@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { countOutcomes, figNumbers, figOf, itemsOf, next, outcomeOf, parseProgress, progressOf, recordOutcome, recordPick, startState } from './logic.ts';
+import { countOutcomes, figNumbers, figOf, itemsOf, MAX_GAP_MS, next, outcomeOf, parseProgress, progressOf, recordOutcome, recordPick, recordWrong, runOf, startState, tick } from './logic.ts';
 import { normalReaction as L } from '../content/normal-reaction.ts';
 
 test('story questions: right first time, after a hint, or shown', () => {
@@ -60,4 +60,49 @@ test('FIG numbers: one number per run of neighbouring screens with the same kind
   // the opening lift and the prediction about it are one figure
   assert.equal(of[L.story[0].id], 1);
   assert.equal(of[L.story[1].id], 1);
+});
+
+test('saves from before the run record load with an empty record', () => {
+  const old = { index: 3, outcomes: { 'at-rest': 'independent' }, picks: { hook: 'more' }, finished: false };
+  const st = parseProgress(JSON.stringify({ v: 2, lessonId: L.id, state: old, updatedAt: 1 }), L)?.state;
+  assert.deepEqual(st, { ...old, wrong: {}, activeMs: 0, lastAt: null });
+});
+
+test('wrong picks are kept per question, in order', () => {
+  let s = recordWrong(startState, 'calc', 'home');
+  s = recordWrong(s, 'calc', 'added-to-kg');
+  s = recordWrong(s, 'at-rest', 'less');
+  assert.deepEqual(s.wrong, { calc: ['home', 'added-to-kg'], 'at-rest': ['less'] });
+  assert.deepEqual(startState.wrong, {});
+});
+
+test('active time adds the gaps between screens, each at most 3 minutes', () => {
+  let s = tick(startState, 1_000); // the first screen opens: nothing to count yet
+  assert.deepEqual([s.activeMs, s.lastAt], [0, 1_000]);
+  s = tick(s, 31_000);
+  assert.deepEqual([s.activeMs, s.lastAt], [30_000, 31_000]);
+  s = tick(s, 31_000 + 60 * 60_000); // an hour away counts as 3 minutes
+  assert.equal(s.activeMs, 30_000 + MAX_GAP_MS);
+  s = next(s, L, s.lastAt! + 5_000); // moving on counts the screen just left
+  assert.equal(s.activeMs, 35_000 + MAX_GAP_MS);
+  assert.equal(s.index, 1);
+});
+
+test('a run keeps the time, outcomes, wrong picks and whether the prediction was right', () => {
+  let s = { ...tick(startState, 0), activeMs: 0 };
+  s = recordPick(s, 'hook', 'more');
+  s = recordWrong(s, 'calc', 'home');
+  s = recordOutcome(s, 'calc', 'assisted');
+  s = next(s, L, 42_000);
+  const run = runOf(L, s, 50_000);
+  assert.deepEqual(run, {
+    at: 50_000,
+    ms: 42_000,
+    outcomes: { calc: 'assisted' },
+    wrong: { calc: ['home'] },
+    prediction: { id: 'hook', pick: 'more', right: true },
+    feel: null,
+  });
+  assert.equal(runOf(L, recordPick(s, 'hook', 'less'), 0).prediction?.right, false);
+  assert.equal(runOf(L, startState, 0).prediction, null);
 });

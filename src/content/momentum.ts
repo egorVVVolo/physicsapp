@@ -107,7 +107,7 @@ export const momentumLesson: Lesson = {
       prompt: `A bounces back at ${ms(BACK)}. B stops dead. Which trolley has the bigger change in momentum?`,
       fig: wall({ trolleys: ['A', 'B'], play: true }),
       options: [
-        { id: 'A', label: 'Trolley A, which bounces back' },
+        { id: 'A', label: 'Trolley A, which bounces back', correct: true },
         { id: 'B', label: 'Trolley B, which stops dead' },
         { id: 'same', label: 'Both the same' },
         { id: 'unsure', label: "I'm not sure" },

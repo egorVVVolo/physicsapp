@@ -91,7 +91,7 @@ export const turningForces: Lesson = {
       fig: nut({}),
       options: [
         { id: 'mia', label: "Mia's: she pulls further from the nut" },
-        { id: 'leo', label: "Leo's: he pulls at right angles" },
+        { id: 'leo', label: "Leo's: he pulls at right angles", correct: true },
         { id: 'same', label: 'The same: same force, same spanner' },
         { id: 'unsure', label: "I'm not sure" },
       ],

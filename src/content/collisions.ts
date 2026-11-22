@@ -115,7 +115,7 @@ export const collisions: Lesson = {
       options: [
         { id: 'right', label: "Right, A's way: A is faster" },
         { id: 'left', label: "Left, C's way: C is heavier" },
-        { id: 'stop', label: 'Neither: they stop dead' },
+        { id: 'stop', label: 'Neither: they stop dead', correct: true },
         { id: 'unsure', label: "I'm not sure" },
       ],
       after: "Let's find out",

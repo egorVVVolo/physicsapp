@@ -75,7 +75,7 @@ export const kineticAndPotentialEnergy: Lesson = {
       options: [
         { id: 'first', label: `0 to ${CAR.v1}: getting going is the hard part` },
         { id: 'same', label: `The same: each stage adds ${CAR.v1}${NB}m s⁻¹` },
-        { id: 'second', label: `${CAR.v1} to ${CAR.v2}: it is already going fast` },
+        { id: 'second', label: `${CAR.v1} to ${CAR.v2}: it is already going fast`, correct: true },
         { id: 'unsure', label: "I'm not sure" },
       ],
       after: "Let's find out",

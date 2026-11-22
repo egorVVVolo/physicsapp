@@ -115,7 +115,7 @@ export const keepingBalance: Lesson = {
       prompt: 'Which of the two pieces is heavier?',
       fig: broom({ cut: true }),
       options: [
-        { id: 'brush', label: 'The short piece with the brush' },
+        { id: 'brush', label: 'The short piece with the brush', correct: true },
         { id: 'handle', label: 'The long handle piece' },
         { id: 'same', label: 'Neither: it balanced, so they weigh the same' },
         { id: 'unsure', label: "I'm not sure" },

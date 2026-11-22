@@ -130,7 +130,7 @@ export const readingMotionGraphs: Lesson = {
       fig: vt({ ring: { line: 'B', at: x.tCross } }),
       options: [
         { id: 'catches', label: 'Car B catches car A' },
-        { id: 'behind', label: 'Car B is still behind' },
+        { id: 'behind', label: 'Car B is still behind', correct: true },
         { id: 'ahead', label: 'Car B is already ahead' },
         { id: 'unsure', label: "I'm not sure" },
       ],

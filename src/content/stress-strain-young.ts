@@ -86,7 +86,7 @@ export const stressStrainYoung: Lesson = {
       fig: wireFig({ panel: 'section', stretch: 'afterCheck' }),
       options: [
         { id: 'quarter', label: 'A quarter as far' },
-        { id: 'half', label: 'Half as far' },
+        { id: 'half', label: 'Half as far', correct: true },
         { id: 'same', label: 'The same' },
         { id: 'double', label: 'Twice as far' },
       ],

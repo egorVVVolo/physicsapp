@@ -55,7 +55,7 @@ export const ANSWERS = {
 const lift = (over: Partial<LiftFig>): LiftFig => ({ kind: 'lift', m: M, a: 0, forces: [], ...over });
 
 const hookOptions: Option[] = [
-  { id: 'more', label: 'It goes up' },
+  { id: 'more', label: 'It goes up', correct: true },
   { id: 'less', label: 'It goes down' },
   { id: 'same', label: 'It stays the same' },
 ];

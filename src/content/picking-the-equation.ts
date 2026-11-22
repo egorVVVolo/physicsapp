@@ -151,7 +151,7 @@ export const pickingTheEquation: Lesson = {
       options: [
         { id: 'twice', label: 'Twice as far' },
         { id: 'three', label: 'Three times as far' },
-        { id: 'four', label: 'Four times as far' },
+        { id: 'four', label: 'Four times as far', correct: true },
         { id: 'unsure', label: "I'm not sure" },
       ],
       after: "Let's find out",

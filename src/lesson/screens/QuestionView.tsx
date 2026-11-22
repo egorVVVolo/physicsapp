@@ -21,12 +21,14 @@ type Props = {
   /** For a revisit: what the learner predicted earlier. */
   earlierPick?: Option;
   onOutcome: (o: Outcome) => void;
+  /** Every wrong Check, with the option picked. */
+  onWrong: (optionId: string) => void;
   onNext: () => void;
 };
 
 type Status = 'answering' | 'retry' | 'right' | 'revealed';
 
-export function QuestionView({ screen, figN, phase, earlierPick, onOutcome, onNext }: Props) {
+export function QuestionView({ screen, figN, phase, earlierPick, onOutcome, onWrong, onNext }: Props) {
   const { palette: p } = useTheme();
   const [sel, setSel] = useState<string | null>(null);
   const [wrong, setWrong] = useState<string[]>([]); // ids missed so far
@@ -46,6 +48,7 @@ export function QuestionView({ screen, figN, phase, earlierPick, onOutcome, onNe
       return;
     }
     feedback.wrong();
+    onWrong(sel);
     const missed = [...wrong, sel];
     setWrong(missed);
     if (missed.length >= tries) {

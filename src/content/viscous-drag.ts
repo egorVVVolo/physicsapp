@@ -76,7 +76,7 @@ export const viscousDrag: Lesson = {
       options: [
         { id: 'same', label: 'At the same speed' },
         { id: 'twice', label: 'Twice as fast' },
-        { id: 'four', label: 'Four times as fast' },
+        { id: 'four', label: 'Four times as fast', correct: true },
         { id: 'eight', label: 'Eight times as fast' },
       ],
       after: "Let's find out",

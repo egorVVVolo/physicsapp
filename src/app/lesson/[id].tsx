@@ -4,8 +4,8 @@ import { Text, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { course } from '@/content/course';
 import { lessons } from '@/content/lessons';
-import { startState, type LessonState } from '@/session/logic';
-import { addFinishedLesson, clearProgress, loadProgress, recordFinishedDay, saveProgress } from '@/session/storage';
+import { runOf, startState, type LessonState } from '@/session/logic';
+import { addFinishedLesson, clearProgress, loadProgress, recordFinishedDay, saveProgress, saveRun } from '@/session/storage';
 import { currentRun, dayKey } from '@/session/streak';
 import { LessonPlayer } from '@/lesson/LessonPlayer';
 import { LessonComplete, type FinishInfo } from '@/lesson/LessonComplete';
@@ -20,7 +20,8 @@ export default function LessonRoute() {
 
   useEffect(() => {
     if (!lesson) return;
-    loadProgress(lesson).then((saved) => setState(saved && !saved.state.finished ? saved.state : startState));
+    // timing starts now: time away from the app since the last save does not count
+    loadProgress(lesson).then((saved) => setState({ ...(saved && !saved.state.finished ? saved.state : startState), lastAt: Date.now() }));
   }, [lesson]);
 
   const back = () => (router.canGoBack() ? router.back() : router.replace('/'));
@@ -40,6 +41,7 @@ export default function LessonRoute() {
     if (s.finished && !state.finished) {
       // a finished lesson makes today count for the streak, and its card goes to the notebook (the first time)
       const today = dayKey(new Date());
+      saveRun(lesson.id, runOf(lesson, s, Date.now()));
       Promise.all([recordFinishedDay(), addFinishedLesson(lesson.id)]).then(([streak, firstTime]) =>
         setFinish({
           firstTime,
@@ -66,7 +68,7 @@ export default function LessonRoute() {
         onDone={back}
         onReplay={() => {
           clearProgress(lesson.id);
-          setState(startState);
+          setState({ ...startState, lastAt: Date.now() });
         }}
       />
     );

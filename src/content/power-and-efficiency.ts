@@ -82,7 +82,7 @@ export const powerAndEfficiency: Lesson = {
       options: [
         { id: 'twice', label: 'Twice as much' },
         { id: 'four', label: 'Four times as much' },
-        { id: 'eight', label: 'Eight times as much' },
+        { id: 'eight', label: 'Eight times as much', correct: true },
         { id: 'unsure', label: "I'm not sure" },
       ],
       after: "Let's find out",

@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from 'react';
 import { BackHandler, Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { Fig, Lesson } from '@/content/types';
-import { figNumbers, figOf, itemsOf, next, progressOf, recordOutcome, recordPick, type LessonState } from '@/session/logic';
+import { figNumbers, figOf, itemsOf, next, progressOf, recordOutcome, recordPick, recordWrong, type LessonState } from '@/session/logic';
 import { LessonFigs, SharedSheet, type FigMemory, type SharedFig } from '@/figures/anim';
 import { useTheme } from '@/theme/ThemeContext';
 import { colorOfLesson } from '@/theme/levelColor';
@@ -32,10 +32,19 @@ export function LessonPlayer({ lesson, state, onChange, onClose }: Props) {
   const [memory] = useState<FigMemory>(() => ({ seen: new Set(), shown: null, width: 0, scrollY: 0 }));
   // the screen just left: its figure as it was drawn, how wide and how far scrolled
   const [left, setLeft] = useState<{ index: number; fig: Fig | null; width: number; scrollY: number } | null>(null);
+  // Changes made in one tap (a wrong pick, then the outcome) build on each other, not each on the same old state.
+  const [chain] = useState<{ from: LessonState | null; to: LessonState | null }>(() => ({ from: null, to: null }));
+  const change = (f: (s: LessonState) => LessonState) => {
+    const base = chain.from === state && chain.to ? chain.to : state;
+    const s = f(base);
+    chain.from = state;
+    chain.to = s;
+    onChange(s);
+  };
   const go = () => {
     setLeft({ index: state.index, fig: memory.shown, width: memory.width, scrollY: memory.scrollY });
     memory.shown = null;
-    onChange(next(state, lesson));
+    change((s) => next(s, lesson));
   };
   // the screen before showed the same kind of figure: keep its sheet (not after a resume: nothing was shown before)
   const fig = figOf(item);
@@ -72,12 +81,12 @@ export function LessonPlayer({ lesson, state, onChange, onClose }: Props) {
     const n = figs[s.id] ?? 0;
     if (s.kind === 'intro') body = <IntroView screen={s} figN={n} onNext={go} />;
     if (s.kind === 'text') body = <TextView screen={s} figN={n} onNext={go} />;
-    if (s.kind === 'predict') body = <PredictView screen={s} figN={n} picked={state.picks[s.id]} onPick={(id) => onChange(recordPick(state, s.id, id))} onNext={go} />;
+    if (s.kind === 'predict') body = <PredictView screen={s} figN={n} picked={state.picks[s.id]} onPick={(id) => change((st) => recordPick(st, s.id, id))} onNext={go} />;
     if (s.kind === 'explore') body = <ExploreView screen={s} figN={n} onNext={go} />;
     if (s.kind === 'choice' || s.kind === 'tapFig') {
       const earlier = s.kind === 'choice' && s.revisitOf ? lesson.story.find((x) => x.id === s.revisitOf) : undefined;
       const earlierPick = earlier?.kind === 'predict' ? earlier.options.find((o) => o.id === state.picks[earlier.id]) : undefined;
-      body = <QuestionView screen={s} figN={n} phase={item.phase} earlierPick={earlierPick} onOutcome={(o) => onChange(recordOutcome(state, s.id, o))} onNext={go} />;
+      body = <QuestionView screen={s} figN={n} phase={item.phase} earlierPick={earlierPick} onOutcome={(o) => change((st) => recordOutcome(st, s.id, o))} onWrong={(o) => change((st) => recordWrong(st, s.id, o))} onNext={go} />;
     }
   }
 

@@ -1,7 +1,7 @@
 // Progress is kept on the device (in the browser: localStorage). The only file that touches storage.
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { Lesson } from '@/content/types';
-import { parseProgress, type LessonState, type SavedProgress } from './logic';
+import { parseProgress, type LessonState, type Run, type SavedProgress } from './logic';
 import { addDay, dayKey, emptyStreak, parseStreak, type Streak } from './streak';
 
 const key = (lessonId: string) => `progress/v2/${lessonId}`;
@@ -76,6 +76,41 @@ export async function addFinishedLesson(lessonId: string): Promise<boolean> {
   return true;
 }
 
+export type { Run };
+
+const runsKey = (lessonId: string) => `runs/v1/${lessonId}`;
+/** How many finished runs of each lesson are kept. */
+const RUNS_KEPT = 5;
+
+/** The lesson's finished runs, newest last. */
+export async function loadRuns(lessonId: string): Promise<Run[]> {
+  try {
+    const raw: unknown = JSON.parse((await AsyncStorage.getItem(runsKey(lessonId))) ?? '[]');
+    return Array.isArray(raw) ? raw.filter((r): r is Run => typeof r === 'object' && r !== null && typeof r.at === 'number' && typeof r.ms === 'number') : [];
+  } catch {
+    return [];
+  }
+}
+
+async function saveRuns(lessonId: string, runs: Run[]): Promise<void> {
+  try {
+    await AsyncStorage.setItem(runsKey(lessonId), JSON.stringify(runs.slice(-RUNS_KEPT)));
+  } catch {}
+}
+
+/** Keeps a finished run (only the last five per lesson). */
+export async function saveRun(lessonId: string, run: Run): Promise<void> {
+  await saveRuns(lessonId, [...(await loadRuns(lessonId)), run]);
+}
+
+/** How the lesson felt, given after the latest run. */
+export async function setLastRunFeel(lessonId: string, feel: Run['feel']): Promise<void> {
+  const runs = await loadRuns(lessonId);
+  if (runs.length === 0) return;
+  runs[runs.length - 1] = { ...runs[runs.length - 1], feel };
+  await saveRuns(lessonId, runs);
+}
+
 const PREFS_KEY = 'prefs/v1';
 
 /** The learner's settings, kept on the device. */
@@ -104,10 +139,10 @@ export async function savePrefs(change: Partial<Prefs>): Promise<Prefs> {
   return next;
 }
 
-/** Clears every lesson's progress, the notebook cards and the day streak. Settings stay. */
+/** Clears every lesson's progress and finished runs, the notebook cards and the day streak. Settings stay. */
 export async function resetProgress(): Promise<void> {
   try {
-    const keys = (await AsyncStorage.getAllKeys()).filter((k) => k.startsWith('progress/') || k === FINISHED_KEY || k === STREAK_KEY);
+    const keys = (await AsyncStorage.getAllKeys()).filter((k) => k.startsWith('progress/') || k.startsWith('runs/') || k === FINISHED_KEY || k === STREAK_KEY);
     await AsyncStorage.multiRemove(keys);
   } catch {}
 }

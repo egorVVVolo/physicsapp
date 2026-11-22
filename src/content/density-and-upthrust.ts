@@ -74,7 +74,7 @@ export const densityAndUpthrust: Lesson = {
       fig: tank({}),
       options: [
         { id: 'rise', label: 'It rises' },
-        { id: 'fall', label: 'It falls' },
+        { id: 'fall', label: 'It falls', correct: true },
         { id: 'same', label: 'It stays the same' },
         { id: 'unsure', label: "I'm not sure" },
       ],

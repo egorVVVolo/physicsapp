@@ -1011,6 +1011,7 @@ export type PredictScreen = Base & {
   kind: 'predict';
   prompt: string;
   fig?: Fig;
+  /** Any pick is fine on screen, but the option the puzzle's answer bears out has `correct: true` (kept in the lesson's run record). */
   options: Option[];
   after: string; // the button label once an option is picked ("Let's find out")
 };
