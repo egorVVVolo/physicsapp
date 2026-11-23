@@ -258,7 +258,7 @@ export const whichWayIsPositive: Lesson = {
       id: 'hiker',
       kind: 'choice',
       prompt: `A hiker walks ${km(HIKE.north)} north, then ${km(HIKE.east)} east. How far from the start does the hiker end up?`,
-      fig: hike({ resultant: 'afterCheck' }),
+      fig: hike({ resultant: 'afterCheck', play: 'afterCheck' }),
       options: [
         { id: 'right', label: km(x.hike.right), correct: true },
         { id: 'added', label: km(x.hike.added), hint: `${km(x.hike.added)} is the distance walked. At right angles sizes don't simply add.` },

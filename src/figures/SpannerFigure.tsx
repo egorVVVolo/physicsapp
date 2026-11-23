@@ -8,7 +8,8 @@ import { fixed } from '@/physics/format';
 import type { SpannerFig, SpannerPull } from '@/content/types';
 import { useTheme } from '@/theme/ThemeContext';
 import { stroke } from '@/theme/tokens';
-import { STILL, type DrawClock } from './anim';
+import { STILL, useLoopTime, type DrawClock } from './anim';
+import { useReducedMotionPref } from '@/ui/parts';
 import { ForceArrow, ForceLetter, MonoLabel, polyPath, rectPath } from './draw';
 import { AngleArc, cm, RightAngle, TurnArc } from './turning';
 import { Dim, stage, Tag } from './kit';
@@ -35,11 +36,42 @@ function pullsOf(fig: SpannerFig, live?: number): SpannerPull[] {
   return fig.pulls.map((pull, i) => (i === 0 && live !== undefined ? { ...pull, angle: live } : pull));
 }
 
-export function SpannerFigure({ fig, live, clock = STILL }: { fig: SpannerFig; live?: number; clock?: DrawClock }) {
+/** Played: the spanner with the biggest moment turns the nut TURN degrees in TURN_S seconds; the others turn slower, ∝ their moment. */
+const TURN = 30;
+const TURN_S = 1.2;
+const REST_S = 0.8; // still at the start of each turn, so the marks can be read
+const HOLD_S = 0.6;
+const BACK_S = 0.5;
+
+/** Whether the figure plays (the sheet shows its pause button). */
+export const spannerPlays = (fig: SpannerFig, live?: number): boolean => fig.play === true && live === undefined;
+
+/**
+ * The angle (degrees, anticlockwise) each spanner has turned at time t of the loop. Angular speed ∝ moment: the biggest
+ * moment reaches TURN at TURN_S, a moment half as big has turned half as far by then. All hold, then glide back together.
+ */
+export function spannerTurns(moments: number[], t: number): number[] {
+  const top = Math.max(...moments.map(Math.abs), 1e-9);
+  const back = 1 - Math.min(1, Math.max(0, (t - REST_S - TURN_S - HOLD_S) / BACK_S));
+  const eased = back * back * (3 - 2 * back);
+  return moments.map((M) => {
+    const turned = Math.min(TURN, (TURN / TURN_S) * (Math.abs(M) / top) * Math.max(0, Math.min(t - REST_S, TURN_S)));
+    return turned * eased;
+  });
+}
+export const SPANNER_LOOP_S = REST_S + TURN_S + HOLD_S + BACK_S;
+
+type FigProps = { fig: SpannerFig; live?: number; playing?: boolean; clock?: DrawClock };
+
+export function SpannerFigure({ fig, live, playing = false, clock = STILL }: FigProps) {
   const { palette: p, material: m } = useTheme();
   const pulls = pullsOf(fig, live);
   const panels = panelsFor(pulls.length);
   const perp = fig.perp === 'shown' || live !== undefined;
+  const plays = spannerPlays(fig, live);
+  const reduced = useReducedMotionPref();
+  const t = useLoopTime(plays && playing && !reduced, SPANNER_LOOP_S, fig, 0);
+  const turns = plays ? spannerTurns(pulls.map((pull) => momentAtAngle(fig.F, pull.r, pull.angle)), t) : pulls.map(() => 0);
 
   return (
     <Group>
@@ -67,12 +99,14 @@ export function SpannerFigure({ fig, live, clock = STILL }: { fig: SpannerFig; l
           const l = Math.hypot(nx - foot[0], ny - foot[1]);
           return l < 1 ? [-1, 0] : [(nx - foot[0]) / l, (ny - foot[1]) / l];
         })();
+        const turn = turns[i];
+        const marksOpacity = Math.max(0, 1 - turn / 4); // the measurements belong to the spanner at rest
         return (
           <Group key={pull.who}>
+            <Group transform={`rotate(${-turn} ${nx} ${ny})`}>
             {stage(clock, 
               PEN.tool,
               <Group>
-                <MonoLabel x={pn.x0 + 12} y={20} text={pull.who} color={p.label} size={10} anchor="start" />
                 <Circle cx={nx} cy={ny} r={pn.head + 7} fill={m.metalSide} />
                 <Path d={handle.d} fill={m.metal} stroke={p.draw} strokeWidth={stroke.body} />
                 <Circle cx={nx} cy={ny} r={pn.head} fill={m.metal} stroke={p.draw} strokeWidth={stroke.body} />
@@ -91,9 +125,11 @@ export function SpannerFigure({ fig, live, clock = STILL }: { fig: SpannerFig; l
               </Group>,
             )}
 
+            </Group>
+            {stage(clock, PEN.tool, <MonoLabel x={pn.x0 + 12} y={20} text={pull.who} color={p.label} size={10} anchor="start" />)}
             {stage(clock, 
               PEN.marks,
-              <Group>
+              <Group opacity={marksOpacity}>
                 {/* where the pull acts, measured along the handle */}
                 <Dim a={[nx, dimY]} b={[P[0], dimY]} text={perp && alongHandle ? `x = ${cm(x)}` : cm(pull.r)} strong={perp && alongHandle} within={[0, SPANNER_VB.w]} />
                 {alongHandle ? (
@@ -112,6 +148,11 @@ export function SpannerFigure({ fig, live, clock = STILL }: { fig: SpannerFig; l
                   </Group>
                 )}
                 {perp && !alongHandle && x <= 0.004 && <Tag x={nx} y={ny - pn.head - 14} text="x = 0" />}
+              </Group>,
+            )}
+            {stage(clock,
+              PEN.marks,
+              <Group>
                 {fig.moment !== undefined && (
                   <MonoLabel x={pn.x0 + 12} y={34} text={fig.moment === 'shown' ? `M = ${fixed(M, 1)} N m` : 'M = ?'} color={p.ink} size={10} anchor="start" />
                 )}

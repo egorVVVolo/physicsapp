@@ -13,11 +13,11 @@ export function revealed(fig: Fig): Fig {
   // the size of each area is written in
   if (fig.kind === 'graph') return { ...fig, areas: fig.areas?.map((area) => ({ ...area, value: 'shown' as const })) };
   if (fig.kind === 'track') return { ...fig, disp: fig.disp === 'afterCheck' ? 'shown' : fig.disp };
-  if (fig.kind === 'vectors') return { ...fig, resultant: fig.resultant === 'afterCheck' ? 'shown' : fig.resultant, angle: fig.angle === 'afterCheck' ? 'shown' : fig.angle };
+  if (fig.kind === 'vectors') return { ...fig, play: fig.play === 'afterCheck' ? true : fig.play, resultant: fig.resultant === 'afterCheck' ? 'shown' : fig.resultant, angle: fig.angle === 'afterCheck' ? 'shown' : fig.angle };
   // the size of the component the question asked for is written in
   if (fig.kind === 'sledge') return { ...fig, forward: shownAfter(fig.forward), up: shownAfter(fig.up) };
   if (fig.kind === 'hill') return { ...fig, along: shownAfter(fig.along), into: shownAfter(fig.into) };
-  if (fig.kind === 'resolve') return { ...fig, answer: fig.answer === 'afterCheck' ? 'shown' : fig.answer };
+  if (fig.kind === 'resolve') return { ...fig, play: fig.play === 'afterCheck' ? true : fig.play, answer: fig.answer === 'afterCheck' ? 'shown' : fig.answer };
   // the free-body diagram appears, or the force it asked for grows to its real size
   if (fig.kind === 'crate') return { ...fig, fbdAfterCheck: undefined, ask: fig.ask?.filter((a) => a.answer !== 'afterCheck'), accel: fig.accel === 'afterCheck' ? 'shown' : fig.accel };
   // the drag grows to its real size, the steady speed of each stack is written in
@@ -38,13 +38,13 @@ export function revealed(fig: Fig): Fig {
   // the collision plays through, and the momentum line fills in: the total before and after
   if (fig.kind === 'collide') return { ...fig, play: fig.play === 'afterCheck' ? true : fig.play, ledger: fig.ledger === 'afterCheck' ? 'shown' : fig.ledger };
   // the perpendicular distance appears, and the moment is written by its turning arc
-  if (fig.kind === 'spanner') return { ...fig, perp: fig.perp === 'afterCheck' ? 'shown' : fig.perp, moment: fig.moment === 'afterCheck' ? 'shown' : fig.moment };
+  if (fig.kind === 'spanner') return { ...fig, play: fig.play === 'afterCheck' ? true : fig.play, perp: fig.perp === 'afterCheck' ? 'shown' : fig.perp, moment: fig.moment === 'afterCheck' ? 'shown' : fig.moment };
   if (fig.kind === 'pole') return { ...fig, moment: fig.moment === 'afterCheck' ? 'shown' : fig.moment };
-  if (fig.kind === 'bar') return { ...fig, moments: fig.moments === 'afterCheck' ? 'shown' : fig.moments };
+  if (fig.kind === 'bar') return { ...fig, play: fig.play === 'afterCheck' ? true : fig.play, moments: fig.moments === 'afterCheck' ? 'shown' : fig.moments };
   // the asked distance, weight or push gets its size, and the totals of the moments appear
   if (fig.kind === 'beam') return { ...fig, answer: fig.answer === 'afterCheck' ? 'shown' : fig.answer };
   // each piece's weight grows to its size
-  if (fig.kind === 'broom') return { ...fig, pieces: fig.pieces === 'afterCheck' ? 'shown' : fig.pieces };
+  if (fig.kind === 'broom') return { ...fig, play: fig.play === 'afterCheck' ? true : fig.play, pieces: fig.pieces === 'afterCheck' ? 'shown' : fig.pieces };
   // the work each hand's force does is written in
   if (fig.kind === 'platform') return { ...fig, work: fig.work === 'afterCheck' ? 'shown' : fig.work };
   // the push along the ramp grows to its size, and the work up the ramp is written in
@@ -68,8 +68,8 @@ export function revealed(fig: Fig): Fig {
   // the wires stretch, and the asked reading is written in
   // the load is taken off, and the unloading line is drawn
   // the energy is written in (and the triangles shaded), the spring is released and the ball's speed drawn
-  if (fig.kind === 'launcher') return { ...fig, ask: fig.ask === 'afterCheck' ? undefined : fig.ask, speed: fig.speed === 'afterCheck' ? true : fig.speed };
-  if (fig.kind === 'material') return { ...fig, unload: fig.unload === 'afterCheck' ? true : fig.unload };
+  if (fig.kind === 'launcher') return { ...fig, play: fig.play === 'afterCheck' ? true : fig.play, ask: fig.ask === 'afterCheck' ? undefined : fig.ask, speed: fig.speed === 'afterCheck' ? true : fig.speed };
+  if (fig.kind === 'material') return { ...fig, play: fig.play === 'afterCheck' ? true : fig.play, unload: fig.unload === 'afterCheck' ? true : fig.unload };
   if (fig.kind === 'wire') return { ...fig, ask: fig.ask?.hide === 'afterCheck' ? undefined : fig.ask, stretch: fig.stretch === 'afterCheck' ? undefined : fig.stretch };
   if (fig.kind === 'spring')
     return {

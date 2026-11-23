@@ -230,6 +230,8 @@ export type VectorsFig = {
   resultant: 'unknown' | 'shown' | 'afterCheck';
   /** The angle between the first leg and the resultant: "θ = ?", its value, or "?" until answered. */
   angle?: 'unknown' | 'shown' | 'afterCheck';
+  /** Played: the legs are drawn one by one, each from the tip of the one before, then the resultant (once). */
+  play?: true | 'afterCheck';
 };
 
 /**
@@ -294,6 +296,8 @@ export type ResolveFig = {
   /** The component the question asks for, and how it is labelled. The other one is drawn bare. */
   ask: 'x' | 'y';
   answer: 'unknown' | 'afterCheck' | 'shown';
+  /** Played: the two components slide out from the tail along the axes, under the vector's tip (once). */
+  play?: true | 'afterCheck';
 };
 
 /**
@@ -540,6 +544,8 @@ export type SpannerFig = {
   perp?: 'shown' | 'afterCheck';
   /** The turning arc around the nut with the moment: its value, "M = ?", or "M = ?" until answered. */
   moment?: 'shown' | 'unknown' | 'afterCheck';
+  /** Played: each spanner turns the nut 30° and back, again and again; the bigger moment turns it faster. */
+  play?: true | 'afterCheck';
 };
 export type SpannerPull = { who: 'MIA' | 'LEO'; r: number; angle: number };
 
@@ -565,6 +571,8 @@ export type BarFig = {
   loads: { at: number; W: number }[];
   /** The turning arc of each load with its moment, and the resultant: shown, or once answered. */
   moments?: 'shown' | 'afterCheck';
+  /** Played: the bar tips towards the bigger moment (angular acceleration ∝ resultant moment) until it hits the ground, and back. */
+  play?: true | 'afterCheck';
 };
 
 /**
@@ -617,6 +625,8 @@ export type BroomFig = {
   cut?: true;
   /** Each piece's weight at its centre of gravity, with its distance from the cut: sizes, "?", or "?" until answered. */
   pieces?: 'shown' | 'unknown' | 'afterCheck';
+  /** Played (with `pieces`): each piece hangs from a newtonmeter at its centre of gravity and the readings grow (once). */
+  play?: true | 'afterCheck';
 };
 
 /**
@@ -928,6 +938,8 @@ export type MaterialFig = {
   reach?: number; // loop: the strain reached on loading, 10⁻³ (default 5.0)
   /** loop: the load is taken off; 'afterCheck': once the question is answered. */
   unload?: true | 'afterCheck';
+  /** loop, with `unload`: the point travels up the loading curve and back down the unloading line, leaving its trail. */
+  play?: true | 'afterCheck';
   /** sketch: the letters are tap targets (and the legend is hidden). */
   targets?: true;
 };
@@ -952,6 +964,8 @@ export type LauncherFig = {
   ask?: 'unknown' | 'afterCheck';
   /** The spring is released and the ball's speed drawn; 'afterCheck': once the question is answered. */
   speed?: true | 'afterCheck';
+  /** With `speed`: the release plays slowed down (the spring pushes the plunger and ball out by the model). */
+  play?: true | 'afterCheck';
   /** pair: the stiffer spring B, held by the same force as A. */
   k2?: number;
   /** graph: a second, smaller squash (m), its triangle drawn in outline inside the first. */

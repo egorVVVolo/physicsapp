@@ -134,7 +134,7 @@ export const elasticStrainEnergy: Lesson = {
       id: 'speed',
       kind: 'choice',
       prompt: 'All 0.72 J goes to the 20 g ball as kinetic energy. How fast does it leave the launcher?',
-      fig: launcher({ x: DOUBLE, rows: ['x', 'F', 'E'], speed: 'afterCheck' }),
+      fig: launcher({ x: DOUBLE, rows: ['x', 'F', 'E'], speed: 'afterCheck', play: 'afterCheck' }),
       options: [
         { id: 'noHalf', label: MS(X.speed.noHalf), hint: 'That leaves out the ½ in ½mv².' },
         { id: 'right', label: MS(X.speed.right), correct: true },

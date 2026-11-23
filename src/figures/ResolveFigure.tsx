@@ -9,7 +9,7 @@ import { fixed } from '@/physics/format';
 import type { ResolveFig } from '@/content/types';
 import { useTheme } from '@/theme/ThemeContext';
 import { stroke } from '@/theme/tokens';
-import { STILL, type DrawClock } from './anim';
+import { phaseOf, STILL, useOnceTime, type DrawClock } from './anim';
 import { ForceArrow, MonoLabel, useMonoSize } from './draw';
 import { HollowArrow, stage, Tag } from './kit';
 
@@ -19,6 +19,10 @@ const RAD = Math.PI / 180;
 const O: [number, number] = [118, 196]; // the tail
 const L = 150; // drawn length of the vector
 const GRID = 20;
+/** Played: dashed lines drop from the tip to the axes, then the components slide out from the tail along them. */
+const DROP = [0.3, 0.5] as const;
+const SLIDE = [0.7, 0.9] as const;
+const CLIP_S = SLIDE[0] + SLIDE[1];
 
 /** The size of each component, from the model: x along the horizontal, y up the vertical. */
 export function resolveParts(fig: ResolveFig): { x: number; y: number } {
@@ -50,6 +54,12 @@ export function ResolveFigure({ fig, clock = STILL }: { fig: ResolveFig; clock?:
   const bisAngle = fig.from === 'horizontal' ? phi / 2 : (phi + Math.PI / 2) / 2;
   const bis: [number, number] = [Math.cos(bisAngle), -Math.sin(bisAngle)];
   const color = fig.velocity ? p.draw : p.force;
+  const plays = fig.play === true;
+  const t = useOnceTime(CLIP_S, plays);
+  const drop = plays ? phaseOf(t, DROP[0], DROP[1]) : 1;
+  const slide = plays ? phaseOf(t, SLIDE[0], SLIDE[1]) : 1;
+  const xEnd: [number, number] = [O[0] + (xTip[0] - O[0]) * slide, O[1]];
+  const yEnd: [number, number] = [O[0], O[1] + (yTip[1] - O[1]) * slide];
 
   const xs: number[] = [];
   for (let x = O[0] - Math.floor((O[0] - 4) / GRID) * GRID; x <= 336; x += GRID) xs.push(x);
@@ -76,18 +86,20 @@ export function ResolveFigure({ fig, clock = STILL }: { fig: ResolveFig; clock?:
         clock,
         [0.62, 0.8],
         <Group>
-          <Path d={`M${yTip[0]},${yTip[1]} H${tip[0]} V${xTip[1]}`} fill="none" stroke={p.label} strokeWidth={stroke.thin} strokeDasharray="4 3" />
-          {fig.velocity ? (
-            <Group>
-              <HollowArrow from={O} to={xTip} color={color} weight="thin" />
-              <HollowArrow from={O} to={yTip} color={color} weight="thin" />
-            </Group>
-          ) : (
-            <Group>
-              <ForceArrow x1={O[0]} y1={O[1]} x2={xTip[0]} y2={xTip[1]} color={color} width={2.4} />
-              <ForceArrow x1={O[0]} y1={O[1]} x2={yTip[0]} y2={yTip[1]} color={color} width={2.4} />
-            </Group>
-          )}
+          {/* from the tip, straight down to the horizontal and straight across to the vertical */}
+          <Path d={`M${tip[0]},${tip[1]} V${tip[1] + (xTip[1] - tip[1]) * drop} M${tip[0]},${tip[1]} H${tip[0] + (yTip[0] - tip[0]) * drop}`} fill="none" stroke={p.label} strokeWidth={stroke.thin} strokeDasharray="4 3" />
+          {slide > 0.06 &&
+            (fig.velocity ? (
+              <Group>
+                <HollowArrow from={O} to={xEnd} color={color} weight="thin" />
+                <HollowArrow from={O} to={yEnd} color={color} weight="thin" />
+              </Group>
+            ) : (
+              <Group>
+                <ForceArrow x1={O[0]} y1={O[1]} x2={xEnd[0]} y2={xEnd[1]} color={color} width={2.4} />
+                <ForceArrow x1={O[0]} y1={O[1]} x2={yEnd[0]} y2={yEnd[1]} color={color} width={2.4} />
+              </Group>
+            ))}
         </Group>,
       )}
       {stage(
@@ -105,8 +117,8 @@ export function ResolveFigure({ fig, clock = STILL }: { fig: ResolveFig; clock?:
         <Group>
           <Tag x={nameAt[0]} y={nameAt[1]} text={name} />
           <MonoLabel x={O[0] + bis[0] * (r + 13)} y={O[1] + bis[1] * (r + 13) + 3} text={`${fixed(fig.angle, 0)}°`} color={p.ink} size={9} />
-          {fig.ask === 'x' && <Tag x={(O[0] + xTip[0]) / 2} y={O[1] + 17} text={askText} />}
-          {fig.ask === 'y' && <Tag x={O[0] - 8 - w(askText) / 2} y={(O[1] + yTip[1]) / 2 + 3} text={askText} />}
+          {fig.ask === 'x' && slide > 0.98 && <Tag x={(O[0] + xTip[0]) / 2} y={O[1] + 17} text={askText} />}
+          {fig.ask === 'y' && slide > 0.98 && <Tag x={O[0] - 8 - w(askText) / 2} y={(O[1] + yTip[1]) / 2 + 3} text={askText} />}
         </Group>,
       )}
     </Group>

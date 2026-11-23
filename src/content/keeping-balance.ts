@@ -200,7 +200,7 @@ export const keepingBalance: Lesson = {
       kind: 'choice',
       revisitOf: 'hook',
       prompt: `Back to the ${N(BROOM.total, 1)} broom. The brush piece's weight acts ${m(BROOM.brush)} from the cut, the handle's ${m(BROOM.handle)}. Which is heavier?`,
-      fig: broom({ cut: true, pieces: 'afterCheck' }),
+      fig: broom({ cut: true, pieces: 'afterCheck', play: 'afterCheck' }),
       options: [
         { id: 'same', label: `Neither: ${N(X.puzzle.half, 1)} each, since it balanced`, hint: 'Balance means equal moments about the cut, not equal weights.' },
         { id: 'handle', label: 'The handle piece: it is far longer', hint: 'Its weight acts 0.45 m out: three times as far needs a third of the weight.' },

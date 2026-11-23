@@ -69,7 +69,7 @@ const nut = (over: Partial<SpannerFig>): SpannerFig => ({
 
 const pole = (over: Partial<PoleFig>): PoleFig => ({ kind: 'pole', ...POLE, ...over });
 
-const barFig: BarFig = { kind: 'bar', half: BAR.half, loads: [BAR.left, BAR.right], moments: 'afterCheck' };
+const barFig: BarFig = { kind: 'bar', half: BAR.half, loads: [BAR.left, BAR.right], moments: 'afterCheck', play: 'afterCheck' };
 
 export const turningForces: Lesson = {
   id: 'moments',
@@ -158,7 +158,7 @@ export const turningForces: Lesson = {
       kind: 'choice',
       revisitOf: 'hook',
       prompt: `Back to the nut. Mia pulls with ${F}${NB}N at the end of the ${Math.round(SPANNER * 100)}${NB}cm spanner, at ${MIA.angle}° to the handle. Whose moment is bigger?`,
-      fig: nut({ perp: 'afterCheck', moment: 'afterCheck' }),
+      fig: nut({ perp: 'afterCheck', moment: 'afterCheck', play: 'afterCheck' }),
       options: [
         { id: 'point', label: `Mia's: hers is ${Nm(X.puzzle.point)}`, hint: '30 cm is where she pulls, not x. Use the perpendicular to her line.' },
         { id: 'cos', label: `Mia's: hers is ${Nm(X.puzzle.cos)}`, hint: 'x is opposite the 30° angle: 0.30 × sin 30°, not cos.' },

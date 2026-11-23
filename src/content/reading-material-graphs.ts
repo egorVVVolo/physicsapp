@@ -62,7 +62,7 @@ export const readingMaterialGraphs: Lesson = {
       id: 'hook',
       kind: 'predict',
       prompt: 'After the load is taken off, how much of the strain is left in the wire?',
-      fig: loop({ unload: 'afterCheck' }),
+      fig: loop({ unload: 'afterCheck', play: 'afterCheck' }),
       options: [
         { id: 'none', label: 'None: it returns to its original length' },
         { id: 'springy', label: EPS(X.hook.springy) },
@@ -137,7 +137,7 @@ export const readingMaterialGraphs: Lesson = {
       kind: 'choice',
       revisitOf: 'hook',
       prompt: 'Back to the copper wire, 1.50 m long. After release, how much longer is it than before?',
-      fig: loop({ unload: 'afterCheck' }),
+      fig: loop({ unload: 'afterCheck', play: 'afterCheck' }),
       options: [
         { id: 'zero', label: `0 mm: it springs back completely`, hint: 'Past the elastic limit some of the strain is permanent.' },
         { id: 'springy', label: MM(X.left.springy), hint: 'That is the part that springs back: 2.0 × 10⁻³ of 1.50 m.' },

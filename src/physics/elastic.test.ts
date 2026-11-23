@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { areaUnder, bandForce, elasticEnergy, energyForForce, launchSpeed, riseHeight, springEnergy } from './elastic.ts';
+import { areaUnder, bandForce, elasticEnergy, energyForForce, launchSpeed, leaveTime, releaseRun, riseHeight, springEnergy } from './elastic.ts';
 
 const near = (a: number, b: number, rel = 1e-9) => assert.ok(Math.abs(a - b) <= rel * Math.abs(b), `expected ${b}, got ${a}`);
 
@@ -33,4 +33,19 @@ test('the area under a straight line is the triangle; the band needs the area un
   const band = areaUnder(bandForce, 0, 0.2);
   assert.ok(band < elasticEnergy(8, 0.2)); // below the triangle through the end point
   near(band, 0.2 * 8 * (0.55 * (2 / 3) + 0.45 / 4), 1e-4); // √x at the origin: Simpson is close, not exact
+});
+
+test('released, the ball leaves at the natural length with the speed the energy gives, and goes on steadily', () => {
+  const [k, dx, m] = [400, 0.06, 0.02];
+  const tl = leaveTime(k, m);
+  const atLeave = releaseRun(k, dx, m, tl);
+  assert.ok(Math.abs(atLeave.squash) < 1e-12);
+  near(atLeave.v, launchSpeed(springEnergy(k, dx), m), 1e-9);
+  assert.ok(releaseRun(k, dx, m, tl * 0.5).squash < dx && releaseRun(k, dx, m, tl * 0.5).squash > 0);
+  const later = releaseRun(k, dx, m, tl + 0.01);
+  assert.ok(later.left);
+  near(later.moved - atLeave.moved, atLeave.v * 0.01, 1e-9);
+  // energy kept while the spring pushes: ½kx² + ½mv² = ½kΔx²
+  const mid = releaseRun(k, dx, m, tl * 0.3);
+  near(springEnergy(k, mid.squash) + 0.5 * m * mid.v ** 2, springEnergy(k, dx), 1e-12);
 });

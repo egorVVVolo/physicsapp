@@ -96,6 +96,7 @@ const kiteFig: ResolveFig = {
   name: 'string',
   ask: 'x',
   answer: 'afterCheck',
+  play: 'afterCheck',
 };
 const kickFig: ResolveFig = {
   kind: 'resolve',
@@ -108,6 +109,7 @@ const kickFig: ResolveFig = {
   name: 'ball',
   ask: 'y',
   answer: 'afterCheck',
+  play: 'afterCheck',
 };
 
 export const splittingAVector: Lesson = {

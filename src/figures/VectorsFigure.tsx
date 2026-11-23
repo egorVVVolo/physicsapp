@@ -9,7 +9,7 @@ import { fixed } from '@/physics/format';
 import type { VectorsFig } from '@/content/types';
 import { useTheme } from '@/theme/ThemeContext';
 import { stroke } from '@/theme/tokens';
-import { STILL, type DrawClock } from './anim';
+import { phaseOf, STILL, useOnceTime, type DrawClock } from './anim';
 import { DrawnFade, ForceArrow, ForceLetter, MonoLabel, useMonoSize } from './draw';
 import { Tag } from './kit';
 
@@ -21,6 +21,20 @@ const AR = 316;
 const AT = 24;
 const AB = 206;
 const ARC_R = 30;
+/** Played: each leg grows in LEG_S seconds, the next starting from its tip; then the resultant. */
+const LEG_S = 0.7;
+const GAP_S = 0.25;
+const START_S = 0.3;
+
+/** The growth (0…1) of each leg and of the resultant at time t of the clip. */
+function growth(n: number, t: number): { legs: number[]; resultant: number } {
+  const at = (i: number) => phaseOf(t, START_S + i * (LEG_S + GAP_S), LEG_S);
+  return { legs: Array.from({ length: n }, (_, i) => at(i)), resultant: at(n) };
+}
+const clipLength = (n: number) => START_S + (n + 1) * (LEG_S + GAP_S);
+
+/** Part of the arrow from a to b, grown by g (0…1). */
+const grown = (a: [number, number], b: [number, number], g: number): [number, number] => [a[0] + (b[0] - a[0]) * g, a[1] + (b[1] - a[1]) * g];
 
 /** The size of the resultant and its angle from the first leg, from the model. */
 export function vectorsResult(fig: VectorsFig): { size: number; angle: number } {
@@ -36,6 +50,9 @@ export function vectorsResult(fig: VectorsFig): { size: number; angle: number } 
 
 export function VectorsFigure({ fig, clock = STILL }: { fig: VectorsFig; clock?: DrawClock }) {
   const { palette: p, material: m } = useTheme();
+  const plays = fig.play === true;
+  const t = useOnceTime(clipLength(fig.legs.length), plays);
+  const g = plays ? growth(fig.legs.length, t) : { legs: fig.legs.map(() => 1), resultant: 1 };
   // the corners of the path, in the figure's unit: the start, then the tip of each leg
   const pts: [number, number][] = [[0, 0]];
   for (const leg of fig.legs) {
@@ -110,25 +127,37 @@ export function VectorsFigure({ fig, clock = STILL }: { fig: VectorsFig; clock?:
         <MonoLabel x={332} y={222} text={`GRID ${fixed(fig.grid, fig.grid < 1 ? 1 : 0)} ${fig.unit}`} color={p.label} size={8} anchor="end" />
       </DrawnFade>
 
-      {legs.map(({ a, b }, i) => (
-        <DrawnFade key={i} clock={clock} from={0.3 + i * 0.16} to={0.46 + i * 0.16}>
-          <ForceArrow x1={a[0]} y1={a[1]} x2={b[0]} y2={b[1]} color={p.draw} width={2.4} />
-        </DrawnFade>
-      ))}
+      {legs.map(({ a, b }, i) => {
+        const tip = grown(a, b, g.legs[i]);
+        return (
+          <DrawnFade key={i} clock={clock} from={0.3 + i * 0.16} to={0.46 + i * 0.16}>
+            {g.legs[i] > 0.04 && <ForceArrow x1={a[0]} y1={a[1]} x2={tip[0]} y2={tip[1]} color={p.draw} width={2.4} />}
+          </DrawnFade>
+        );
+      })}
 
       <DrawnFade clock={clock} from={0.66} to={0.82}>
-        <ForceArrow x1={start[0]} y1={start[1]} x2={end[0]} y2={end[1]} color={p.ink} width={3.2} dashed={fig.resultant !== 'shown'} />
-        {fig.angle !== undefined && <Path d={arc} fill="none" stroke={p.label} strokeWidth={stroke.thin} />}
+        {g.resultant > 0.04 && (() => {
+          const tip = grown(start, end, g.resultant);
+          return <ForceArrow x1={start[0]} y1={start[1]} x2={tip[0]} y2={tip[1]} color={p.ink} width={3.2} dashed={fig.resultant !== 'shown'} />;
+        })()}
+        {fig.angle !== undefined && <Group opacity={g.resultant}><Path d={arc} fill="none" stroke={p.label} strokeWidth={stroke.thin} /></Group>}
       </DrawnFade>
 
       <DrawnFade clock={clock} from={0.8} to={0.95}>
         <Circle cx={start[0]} cy={start[1]} r={3.5} fill={p.ink} />
         {legs.map(({ leg, a, b }, i) => {
           const [x, y] = beside(a, b, true, leg.label);
-          return <Tag key={i} x={x} y={y} text={leg.label} />;
+          return (
+            <Group key={i} opacity={g.legs[i]}>
+              <Tag x={x} y={y} text={leg.label} />
+            </Group>
+          );
         })}
-        <Tag x={resAt[0]} y={resAt[1]} text={resLabel} />
-        {fig.angle !== undefined && <Tag x={start[0] + bis[0] * (ARC_R + 16)} y={start[1] + bis[1] * (ARC_R + 16) + 3} text={angleText} />}
+        <Group opacity={g.resultant}>
+          <Tag x={resAt[0]} y={resAt[1]} text={resLabel} />
+          {fig.angle !== undefined && <Tag x={start[0] + bis[0] * (ARC_R + 16)} y={start[1] + bis[1] * (ARC_R + 16) + 3} text={angleText} />}
+        </Group>
       </DrawnFade>
     </Group>
   );

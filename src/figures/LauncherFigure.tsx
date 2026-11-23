@@ -4,12 +4,13 @@
 // energy shaded as the triangle under the line, or two launchers A and B held by the same push, with their triangles.
 // view 'curve': a rubber band's curved force–extension graph on squared paper, the area under it shaded.
 import { Circle, G as Group, Line, Path, Polygon, Rect } from 'react-native-svg';
-import { areaUnder, bandForce, energyForForce, launchSpeed, springEnergy } from '@/physics/elastic';
+import { areaUnder, bandForce, energyForForce, launchSpeed, leaveTime, releaseRun, springEnergy } from '@/physics/elastic';
 import { fixed, sig } from '@/physics/format';
 import type { LauncherFig } from '@/content/types';
 import { useTheme } from '@/theme/ThemeContext';
 import { stroke } from '@/theme/tokens';
-import { STILL, type DrawClock } from './anim';
+import { STILL, useLoopTime, type DrawClock } from './anim';
+import { useReducedMotionPref } from '@/ui/parts';
 import { ForceArrow, ForceLetter, Hatch, MonoLabel } from './draw';
 import { stage } from './kit';
 
@@ -35,34 +36,66 @@ export function launcherParams(fig: LauncherFig): string {
   return `k = ${sig(fig.k)} N m⁻¹ · ball ${fixed(fig.m * 1000, 0)} g`;
 }
 
-type Props = { fig: LauncherFig; live?: number; clock?: DrawClock };
+type Props = { fig: LauncherFig; live?: number; playing?: boolean; clock?: DrawClock };
 
-export function LauncherFigure({ fig, live, clock = STILL }: Props) {
-  if (fig.view === 'curve') return <Curve clock={clock} />;
+/** Played, the release is slowed down this many times (the real one is over in about a hundredth of a second). */
+export const SLOW = 40;
+const REST_S = 0.9; // held squashed first
+/** Played, the ball is followed this far after it leaves the spring (its speed arrow stays clear of the panel). */
+const FLIGHT_END = NATURAL + PLUNGER + BALL + 8;
+const HOLD_S = 1.2; // the ball at the mouth of the tube, with its speed
+
+/** Whether the figure plays (the sheet shows its pause button). */
+export const launcherPlays = (fig: LauncherFig, live?: number): boolean => fig.view !== 'curve' && fig.play === true && fig.speed === true && live === undefined;
+
+/** Model seconds from release until the ball reaches the mouth of the tube. */
+function mouthTime(k: number, dx: number, m: number): number {
+  const travel = (FLIGHT_END - (NATURAL + PLUNGER + BALL)) / K / 100 + dx; // m, from where it starts
+  const v = launchSpeed(springEnergy(k, dx), m);
+  return leaveTime(k, m) + Math.max(0, travel - dx) / v;
+}
+
+export function LauncherFigure({ fig, live, playing = false, clock = STILL }: Props) {
+  const reduced = useReducedMotionPref();
+  const plays = launcherPlays(fig, live);
   const x = live !== undefined ? live / 100 : fig.x;
-  return <Launchers fig={fig} x={x} clock={clock} />;
+  const loop = REST_S + (fig.view === 'curve' ? 0 : mouthTime(fig.k, x, fig.m)) * SLOW + HOLD_S;
+  const t = useLoopTime(plays && playing && !reduced, loop, fig, 0);
+  if (fig.view === 'curve') return <Curve clock={clock} />;
+  // model seconds since release; with reduced motion the ball is shown leaving the tube
+  const since = !plays ? undefined : reduced ? Infinity : (t - REST_S) / SLOW;
+  return <Launchers fig={fig} x={x} since={since} clock={clock} />;
 }
 
 
-function Launchers({ fig, x, clock }: { fig: LauncherFig; x: number; clock: DrawClock }) {
+function Launchers({ fig, x, since, clock }: { fig: LauncherFig; x: number; since?: number; clock: DrawClock }) {
   const F = fig.k * x;
   const pair = fig.panel === 'pair' && fig.k2 !== undefined;
   const tubes = pair ? [{ cy: 74, k: fig.k, name: 'A' }, { cy: 152, k: fig.k2!, name: 'B' }] : [{ cy: 120, k: fig.k, name: '' }];
   return (
     <Group>
       {tubes.map((t) => (
-        <OneLauncher key={t.cy} cy={t.cy} squash={F / t.k} F={F} name={t.name} released={fig.speed === true} speed={launchSpeed(springEnergy(t.k, F / t.k), fig.m)} clock={clock} />
+        <OneLauncher key={t.cy} cy={t.cy} squash={F / t.k} F={F} name={t.name} released={fig.speed === true} speed={launchSpeed(springEnergy(t.k, F / t.k), fig.m)} run={since === undefined ? undefined : { since, k: t.k, m: fig.m }} clock={clock} />
       ))}
       {stage(clock, PEN.labels, <Panel fig={fig} x={x} />)}
     </Group>
   );
 }
 
-function OneLauncher({ cy, squash, F, name, released, speed, clock }: { cy: number; squash: number; F: number; name: string; released: boolean; speed: number; clock: DrawClock }) {
+type Run = { since: number; k: number; m: number };
+
+function OneLauncher({ cy, squash, F, name, released: releasedIn, speed, run, clock }: { cy: number; squash: number; F: number; name: string; released: boolean; speed: number; run?: Run; clock: DrawClock }) {
   const { palette: p, material: m } = useTheme();
-  const cm = released ? 0 : squash * 100;
+  // played: held until `since` reaches 0, then the spring pushes plunger and ball out by the model (releaseRun)
+  const state = run && run.since > 0 ? releaseRun(run.k, squash, run.m, run.since) : undefined;
+  const released = run ? run.since > 0 : releasedIn;
+  const cm = !released ? squash * 100 : state ? state.squash * 100 : 0;
   const xp = SPRING0 + (L0 - cm) * K; // the plunger's face, on the spring side
-  const ball = xp + PLUNGER + BALL;
+  const mouth = FLIGHT_END;
+  const leftAt = NATURAL + PLUNGER + BALL; // where the ball leaves the spring: the speed is written above it
+  const ballFrom = SPRING0 + (L0 - squash * 100) * K + PLUNGER + BALL;
+  const ball = state ? Math.min(mouth, ballFrom + state.moved * 100 * K) : xp + PLUNGER + BALL;
+  const flying = !run || (state?.left ?? false); // the speed arrow once the ball has left the spring
   const top = cy - TUBE.h / 2;
   const coils = 10;
   const pitch = (xp - SPRING0) / coils;
@@ -88,16 +121,17 @@ function OneLauncher({ cy, squash, F, name, released, speed, clock }: { cy: numb
           <Rect x={xp} y={cy - 10} width={PLUNGER} height={20} rx={1} fill={m.metalSide} stroke={p.draw} strokeWidth={stroke.thin} />
           <Circle cx={ball} cy={cy} r={BALL} fill={m.ball} stroke={p.draw} strokeWidth={stroke.thin} />
           {name !== '' && <MonoLabel x={TUBE.x1} y={top - 6} text={name} color={p.ink} size={10} anchor="start" />}
+          {run && <MonoLabel x={TUBE.x1} y={cy + TUBE.h / 2 + 22} text={`${SLOW}× SLOWER`} color={p.label} size={8} anchor="start" />}
         </Group>,
       )}
       {stage(
         clock,
         PEN.labels,
         released ? (
-          <Group>
+          <Group opacity={flying ? 1 : 0}>
             {/* the ball leaves: an outline arrow for its speed */}
             <Path d={`M${ball + 11},${cy - 3} h28 v-4 l9,7 l-9,7 v-4 h-28 Z`} fill="none" stroke={p.ink} strokeWidth={stroke.thin} strokeLinejoin="round" />
-            <MonoLabel x={ball + 30} y={top - 8} text={`v = ${sig(speed)} m s⁻¹`} color={p.ink} size={8.5} />
+            <MonoLabel x={leftAt + 14} y={top - 8} text={`v = ${sig(speed)} m s⁻¹`} color={p.ink} size={8.5} />
           </Group>
         ) : (
           <Group>

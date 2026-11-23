@@ -43,3 +43,23 @@ export function areaUnder(f: (x: number) => number, a: number, b: number, n = 20
   for (let i = 1; i < n; i++) s += f(a + i * h) * (i % 2 ? 4 : 2);
   return (s * h) / 3;
 }
+
+/**
+ * A launcher released from a squash Δx (m): a light plunger, spring k (N m⁻¹), ball m (kg). While they touch, the spring
+ * pushes plunger and ball out in simple harmonic motion, squash = Δx cos ωt with ω = √(k ÷ m). At the natural length
+ * (a quarter period) the ball leaves with v = Δx ω, the speed ½mv² = ½kΔx² gives, and goes on at that speed.
+ * Returns the squash left (m), how far the ball has moved (m) and its speed (m s⁻¹) at time t (s) after release.
+ */
+export function releaseRun(k: number, dx: number, m: number, t: number): { squash: number; moved: number; v: number; left: boolean } {
+  const w = Math.sqrt(k / m);
+  const tLeave = Math.PI / 2 / w;
+  if (t <= 0) return { squash: dx, moved: 0, v: 0, left: false };
+  if (t < tLeave) return { squash: dx * Math.cos(w * t), moved: dx * (1 - Math.cos(w * t)), v: dx * w * Math.sin(w * t), left: false };
+  const v = dx * w;
+  return { squash: 0, moved: dx + v * (t - tLeave), v, left: true };
+}
+
+/** Seconds from release until the ball leaves the spring (a quarter period, π/2 × √(m ÷ k)). */
+export function leaveTime(k: number, m: number): number {
+  return (Math.PI / 2) * Math.sqrt(m / k);
+}

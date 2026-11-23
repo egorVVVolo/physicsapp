@@ -36,9 +36,9 @@ import { AIR_FALL_VB, FallFigure, fallParams, fallPlays } from './FallFigure';
 import { WALL_VB, WallFigure, wallParams, wallPlays } from './WallFigure';
 import { BODIES_VB, BodiesFigure } from './BodiesFigure';
 import { COLLIDE_VB, CollideFigure, collideParams, collidePlays } from './CollideFigure';
-import { SPANNER_VB, SpannerFigure, spannerParams } from './SpannerFigure';
+import { SPANNER_VB, SpannerFigure, spannerParams, spannerPlays } from './SpannerFigure';
 import { POLE_VB, PoleFigure, poleParams, poleTargets } from './PoleFigure';
-import { BAR_VB, BarFigure, barParams } from './BarFigure';
+import { BAR_VB, BarFigure, barParams, barPlays } from './BarFigure';
 import { BEAM_VB, BeamFigure, beamTargets } from './BeamFigure';
 import { BROOM_VB, BroomFigure, broomParams } from './BroomFigure';
 import { PLATFORM_VB, PlatformFigure, platformParams, platformPlays } from './PlatformFigure';
@@ -53,8 +53,8 @@ import { TUBE_VB, TubeFigure, tubeParams, tubePlays } from './TubeFigure';
 import { FLOW_VB, FlowFigure, flowParams, flowTargets } from './FlowFigure';
 import { SPRING_VB, SpringFigure, springParams, springTargets } from './SpringFigure';
 import { WIRE_VB, WireFigure, wireParams } from './WireFigure';
-import { MATERIAL_VB, MaterialFigure, materialParams, materialTargets } from './MaterialFigure';
-import { LAUNCHER_VB, LauncherFigure, launcherParams } from './LauncherFigure';
+import { MATERIAL_VB, MaterialFigure, materialParams, materialPlays, materialTargets } from './MaterialFigure';
+import { LAUNCHER_VB, LauncherFigure, launcherParams, launcherPlays } from './LauncherFigure';
 import { HEIGHT_VB, HeightFigure, heightParams, KINETIC_VB, KineticFigure, kineticParams, kineticPlays } from './EnergyFigure';
 
 export type TapTarget = { id: string; x: number; y: number; w: number; h: number; label: string };
@@ -134,7 +134,7 @@ export function Sheet({ fig, n, live, tap: tapIn, caption, compact = false, stil
     w = (h * vb.w) / vb.h;
   }
   const scale = w / vb.w;
-  const animates = !reduced && ((fig.kind === 'lift' && liftMoves(fig, aNow)) || fig.kind === 'scales' || (fig.kind === 'throw' && throwPlays(fig)) || (fig.kind === 'road' && roadPlays(fig)) || (fig.kind === 'chase' && chasePlays(fig)) || (fig.kind === 'track' && trackPlays(fig) && live === undefined) || (fig.kind === 'bench' && benchPlays(fig) && live === undefined) || (fig.kind === 'kick' && kickPlays(fig) && live === undefined) || (fig.kind === 'crate' && cratePlays(fig) && (live === undefined || cratePlaysLive(fig))) || (fig.kind === 'pulley' && pulleyPlays(fig)) || (fig.kind === 'fall' && fallPlays(fig) && live === undefined) || (fig.kind === 'wall' && wallPlays(fig)) || (fig.kind === 'collide' && collidePlays(fig)) || (fig.kind === 'platform' && platformPlays(fig) && live === undefined) || (fig.kind === 'kinetic' && kineticPlays(fig)) || (fig.kind === 'cliff' && cliffPlays(fig) && live === undefined) || (fig.kind === 'slide' && slidePlays(fig) && live === undefined) || (fig.kind === 'ride' && ridePlays(fig)) || (fig.kind === 'winch' && (winchPlays(fig) || live !== undefined)) || (fig.kind === 'tank' && tankPlays(fig)) || (fig.kind === 'tube' && (tubePlays(fig) || live !== undefined)) || fig.kind === 'flow' || (fig.kind === 'spring' && live !== undefined));
+  const animates = !reduced && ((fig.kind === 'lift' && liftMoves(fig, aNow)) || fig.kind === 'scales' || (fig.kind === 'throw' && throwPlays(fig)) || (fig.kind === 'road' && roadPlays(fig)) || (fig.kind === 'chase' && chasePlays(fig)) || (fig.kind === 'track' && trackPlays(fig) && live === undefined) || (fig.kind === 'bench' && benchPlays(fig) && live === undefined) || (fig.kind === 'kick' && kickPlays(fig) && live === undefined) || (fig.kind === 'crate' && cratePlays(fig) && (live === undefined || cratePlaysLive(fig))) || (fig.kind === 'pulley' && pulleyPlays(fig)) || (fig.kind === 'fall' && fallPlays(fig) && live === undefined) || (fig.kind === 'wall' && wallPlays(fig)) || (fig.kind === 'collide' && collidePlays(fig)) || (fig.kind === 'platform' && platformPlays(fig) && live === undefined) || (fig.kind === 'kinetic' && kineticPlays(fig)) || (fig.kind === 'cliff' && cliffPlays(fig) && live === undefined) || (fig.kind === 'slide' && slidePlays(fig) && live === undefined) || (fig.kind === 'ride' && ridePlays(fig)) || (fig.kind === 'winch' && (winchPlays(fig) || live !== undefined)) || (fig.kind === 'tank' && tankPlays(fig)) || (fig.kind === 'tube' && (tubePlays(fig) || live !== undefined)) || fig.kind === 'flow' || (fig.kind === 'spanner' && spannerPlays(fig, live)) || (fig.kind === 'bar' && barPlays(fig)) || (fig.kind === 'launcher' && launcherPlays(fig, live)) || (fig.kind === 'material' && materialPlays(fig, live)) || (fig.kind === 'spring' && live !== undefined));
   const run = playing && !reduced && !still;
   const targets = !tap ? [] : fig.kind === 'lift' ? liftTargets(fig) : fig.kind === 'pairs' ? pairsTargets() : fig.kind === 'vt' ? vtTargets(fig) : fig.kind === 'throw' ? throwTargets(fig) : fig.kind === 'equations' ? equationsTargets(fig) : fig.kind === 'graph' ? graphTargets(fig) : fig.kind === 'sledge' ? sledgeTargets(fig, live) : fig.kind === 'ladder' ? ladderTargets(fig) : fig.kind === 'pole' ? poleTargets(fig) : fig.kind === 'beam' ? beamTargets(fig) : fig.kind === 'flow' ? flowTargets() : fig.kind === 'spring' ? springTargets(fig) : fig.kind === 'material' ? materialTargets(fig) : [];
   const params = caption ?? paramsOf(fig, aNow, live);
@@ -208,9 +208,9 @@ export function Sheet({ fig, n, live, tap: tapIn, caption, compact = false, stil
               {fig.kind === 'wall' && <WallFigure fig={fig} live={live} playing={run} clock={clock} />}
               {fig.kind === 'bodies' && <BodiesFigure fig={fig} clock={clock} />}
               {fig.kind === 'collide' && <CollideFigure fig={fig} live={live} playing={run} clock={clock} />}
-              {fig.kind === 'spanner' && <SpannerFigure fig={fig} live={live} clock={clock} />}
+              {fig.kind === 'spanner' && <SpannerFigure fig={fig} live={live} playing={run} clock={clock} />}
               {fig.kind === 'pole' && <PoleFigure fig={fig} tap={tap} clock={clock} />}
-              {fig.kind === 'bar' && <BarFigure fig={fig} clock={clock} />}
+              {fig.kind === 'bar' && <BarFigure fig={fig} playing={run} clock={clock} />}
               {fig.kind === 'beam' && <BeamFigure fig={fig} live={live} tap={tap} clock={clock} />}
               {fig.kind === 'broom' && <BroomFigure fig={fig} clock={clock} />}
               {fig.kind === 'platform' && <PlatformFigure fig={fig} live={live} playing={run} clock={clock} />}
@@ -227,8 +227,8 @@ export function Sheet({ fig, n, live, tap: tapIn, caption, compact = false, stil
               {fig.kind === 'flow' && <FlowFigure fig={fig} playing={run} tap={tap} clock={clock} />}
               {fig.kind === 'spring' && <SpringFigure fig={fig} live={live} playing={run} tap={tap} clock={clock} />}
               {fig.kind === 'wire' && <WireFigure fig={fig} live={live} clock={clock} />}
-              {fig.kind === 'material' && <MaterialFigure fig={fig} live={live} tap={tap} clock={clock} />}
-              {fig.kind === 'launcher' && <LauncherFigure fig={fig} live={live} clock={clock} />}
+              {fig.kind === 'material' && <MaterialFigure fig={fig} live={live} tap={tap} playing={run} clock={clock} />}
+              {fig.kind === 'launcher' && <LauncherFigure fig={fig} live={live} playing={run} clock={clock} />}
               </SheetScale.Provider>
             </Svg>
             {fig.kind === 'lift' && <ShaftMarks fig={fig} a={aNow} scale={scale} playing={run} clock={clock} shift={shift} />}
