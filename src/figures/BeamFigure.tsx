@@ -8,6 +8,7 @@ import { momentsAbout, senseTotals, type Load } from '@/physics/moments';
 import { fixed } from '@/physics/format';
 import { BEAM_IDS, type BeamFig, type BeamLoad } from '@/content/types';
 import { useTheme } from '@/theme/ThemeContext';
+import { stroke } from '@/theme/tokens';
 import { STILL, useTween, type DrawClock } from './anim';
 import { CgMark, ForceArrow, ForceLetter, Hatch, MonoLabel, polyPath } from './draw';
 import { Person } from './people';
@@ -79,7 +80,7 @@ export function beamTargets(fig: BeamFig): TapTarget[] {
 }
 
 export function BeamFigure({ fig, live, tap, clock = STILL }: { fig: BeamFig; live?: number; tap?: TapProps; clock?: DrawClock }) {
-  const { palette: p } = useTheme();
+  const { palette: p, material: m } = useTheme();
   const k = kOf(fig);
   const { loads, all } = loadsOf(fig, live);
   // the asked distance, weight or push: "?" until the figure is told to show it
@@ -92,11 +93,14 @@ export function BeamFigure({ fig, live, tap, clock = STILL }: { fig: BeamFig; li
   const pivot = fig.supports.length === 1;
   const GROUND = groundOf(fig);
   // a dimension between two points of the plank, level, under the ground (a tipped plank tips only ~5°)
+  // with room under the ground, a size too long for its short dimension goes under its line, and the second row
+  // moves down to leave it space; on the trestles (ground lower) the rows stay close
+  const roomy = GROUND + 22 + 29 + 8 <= BEAM_VB.h;
   const dim = (from: number, to: number, text: string | undefined, row = 0, strong = false) => {
     const a = onPlank(Math.min(from, to));
     const b = onPlank(Math.max(from, to));
-    const y = GROUND + 22 + row * 15;
-    return <Dim key={`${from}-${to}`} a={[a[0], y]} b={[b[0], y]} text={text} strong={strong} />;
+    const y = GROUND + 22 + row * (roomy ? 29 : 15);
+    return <Dim key={`${from}-${to}`} a={[a[0], y]} b={[b[0], y]} text={text} strong={strong} fit={roomy ? 'below' : undefined} within={[0, BEAM_VB.w]} />;
   };
 
   // a point on the plank's centre line, `along` metres from its left end, with the plank at its tilt
@@ -113,6 +117,7 @@ export function BeamFigure({ fig, live, tap, clock = STILL }: { fig: BeamFig; li
   const balanced = totals !== null && Math.abs(totals.clockwise - totals.anticlockwise) < 1e-6;
   const showTotals = fig.moments && fig.answer !== 'afterCheck' && totals !== null;
 
+  const people = loads.filter((l) => l.look === 'person').map((l) => l.id);
   return (
     <Group>
       {stage(clock, 
@@ -122,11 +127,11 @@ export function BeamFigure({ fig, live, tap, clock = STILL }: { fig: BeamFig; li
           {fig.supports.map((at) => {
             const x = X0 + at * k;
             return pivot ? (
-              <Path key={at} d={polyPath([[x, APEX], [x + 20, GROUND], [x - 20, GROUND]]).d} fill={p.drawFillDark} stroke={p.draw} strokeWidth={1.6} strokeLinejoin="round" />
+              <Path key={at} d={polyPath([[x, APEX], [x + 20, GROUND], [x - 20, GROUND]]).d} fill={m.metalSide} stroke={p.draw} strokeWidth={stroke.body} strokeLinejoin="round" />
             ) : (
               <Group key={at}>
-                <Path d={`M${x - 14},${GROUND} L${x - 4},${APEX + 4} M${x + 14},${GROUND} L${x + 4},${APEX + 4} M${x - 10},${GROUND - 16} H${x + 10}`} stroke={p.draw} strokeWidth={2.2} strokeLinecap="round" />
-                <Rect x={x - 12} y={APEX} width={24} height={5} rx={1.5} fill={p.drawFillDark} stroke={p.draw} strokeWidth={1.4} />
+                <Path d={`M${x - 14},${GROUND} L${x - 4},${APEX + 4} M${x + 14},${GROUND} L${x + 4},${APEX + 4} M${x - 10},${GROUND - 16} H${x + 10}`} stroke={p.draw} strokeWidth={stroke.body} strokeLinecap="round" />
+                <Rect x={x - 12} y={APEX} width={24} height={5} rx={1.5} fill={m.metalSide} stroke={p.draw} strokeWidth={stroke.thin} />
               </Group>
             );
           })}
@@ -136,13 +141,14 @@ export function BeamFigure({ fig, live, tap, clock = STILL }: { fig: BeamFig; li
       {stage(clock, 
         PEN.beam,
         <Group>
-          <Path d={plank.d} fill={p.drawFill} stroke={p.draw} strokeWidth={1.8} strokeLinejoin="round" />
+          <Path d={plank.d} fill={m.wood} stroke={p.draw} strokeWidth={stroke.body} strokeLinejoin="round" />
           {pivot && <Circle cx={pivotX} cy={MID_Y} r={2.4} fill={p.draw} />}
         </Group>,
       )}
 
       {fig.candidates && <TapBoxes targets={beamTargets(fig)} tap={tap} />}
 
+      {/* the people on the plank in order: the first is hero A, the second hero B */}
       {stage(clock, 
         PEN.loads,
         <Group>
@@ -150,13 +156,13 @@ export function BeamFigure({ fig, live, tap, clock = STILL }: { fig: BeamFig; li
             const [x, y] = onPlank(l.at, THICK / 2);
             return l.look === 'person' ? (
               <Group key={l.id}>
-                <Person x={x} y={y} scale={PERSON_S} cg={false} />
+                <Person x={x} y={y} scale={PERSON_S} cg={false} who={people.indexOf(l.id) % 2 === 1 ? 'B' : 'A'} />
                 {l.name && <MonoLabel x={x} y={y - PERSON_TOP - 7} text={l.name} color={p.label} size={9} />}
               </Group>
             ) : (
               <Group key={l.id} transform={`rotate(${(-tilt * 180) / Math.PI} ${x} ${y})`}>
-                <Rect x={x - BOX.w / 2} y={y - BOX.h} width={BOX.w} height={BOX.h} rx={2} fill={p.drawFillDark} stroke={p.draw} strokeWidth={1.6} />
-                <Path d={`M${x - BOX.w / 2},${y - BOX.h / 2} H${x + BOX.w / 2}`} stroke={p.draw} strokeWidth={1} opacity={0.5} />
+                <Rect x={x - BOX.w / 2} y={y - BOX.h} width={BOX.w} height={BOX.h} rx={2} fill={m.woodSide} stroke={p.draw} strokeWidth={stroke.body} />
+                <Path d={`M${x - BOX.w / 2},${y - BOX.h / 2} H${x + BOX.w / 2}`} stroke={p.draw} strokeWidth={stroke.thin} opacity={0.5} />
               </Group>
             );
           })}
@@ -187,7 +193,7 @@ export function BeamFigure({ fig, live, tap, clock = STILL }: { fig: BeamFig; li
               const x = t.x + BOXT / 2;
               return (
                 <Group key={t.id} opacity={0.85}>
-                  <Circle cx={x} cy={MID_Y} r={6} fill={p.page} stroke={p.ink} strokeWidth={1.4} strokeDasharray="2.5 2" />
+                  <Circle cx={x} cy={MID_Y} r={6} fill={p.page} stroke={p.ink} strokeWidth={stroke.thin} strokeDasharray="2.5 2" />
                 </Group>
               );
             })}
@@ -256,9 +262,10 @@ export function BeamFigure({ fig, live, tap, clock = STILL }: { fig: BeamFig; li
             <Group>
               <TurnArc cx={X0 + 9} cy={18} r={8} from={-30} sweep={-240} color={p.ink} width={1.6} />
               <MonoLabel x={X0 + 24} y={22} text={`anticlockwise ${fixed(totals.anticlockwise, 0)} N m`} color={p.ink} size={9} anchor="start" />
-              <TurnArc cx={X1 - 9} cy={18} r={8} from={-150} sweep={240} color={p.ink} width={1.6} />
-              <MonoLabel x={X1 - 24} y={22} text={`clockwise ${fixed(totals.clockwise, 0)} N m`} color={p.ink} size={9} anchor="end" />
-              {balanced && <MonoLabel x={(X0 + X1) / 2} y={40} text="BALANCED" color={p.ink} size={9} />}
+              {/* clockwise on a second row: with readable labels the two totals no longer fit side by side */}
+              <TurnArc cx={X1 - 9} cy={36} r={8} from={-150} sweep={240} color={p.ink} width={1.6} />
+              <MonoLabel x={X1 - 24} y={40} text={`clockwise ${fixed(totals.clockwise, 0)} N m`} color={p.ink} size={9} anchor="end" />
+              {balanced && <MonoLabel x={(X0 + X1) / 2} y={58} text="BALANCED" color={p.ink} size={9} />}
             </Group>
           )}
         </Group>,

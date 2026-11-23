@@ -6,6 +6,7 @@ import { loadMoment, resultantMoment } from '@/physics/moments';
 import { fixed } from '@/physics/format';
 import type { BarFig } from '@/content/types';
 import { useTheme } from '@/theme/ThemeContext';
+import { stroke } from '@/theme/tokens';
 import { STILL, type DrawClock } from './anim';
 import { ForceArrow, Hatch, MonoLabel, polyPath, rectPath } from './draw';
 import { TurnArc } from './turning';
@@ -29,7 +30,7 @@ export function barParams(fig: BarFig): string {
 export const senseText = (m: number): string => `${fixed(Math.abs(m), 1)} N m ${m >= 0 ? 'anticlockwise' : 'clockwise'}`;
 
 export function BarFigure({ fig, clock = STILL }: { fig: BarFig; clock?: DrawClock }) {
-  const { palette: p } = useTheme();
+  const { palette: p, material: m } = useTheme();
   const k = HALF / fig.half;
   const shown = fig.moments === 'shown';
   const bar = rectPath(MID[0] - HALF, MID[1] - THICK / 2, HALF * 2, THICK, 2);
@@ -54,8 +55,8 @@ export function BarFigure({ fig, clock = STILL }: { fig: BarFig; clock?: DrawClo
       {stage(clock, 
         PEN.bar,
         <Group>
-          <Path d={pivot.d} fill={p.drawFillDark} stroke={p.draw} strokeWidth={1.6} strokeLinejoin="round" />
-          <Path d={bar.d} fill={p.drawFill} stroke={p.draw} strokeWidth={1.8} />
+          <Path d={pivot.d} fill={m.metalSide} stroke={p.draw} strokeWidth={stroke.body} strokeLinejoin="round" />
+          <Path d={bar.d} fill={m.wood} stroke={p.draw} strokeWidth={stroke.body} />
           <Circle cx={MID[0]} cy={MID[1]} r={2.4} fill={p.draw} />
         </Group>,
       )}
@@ -68,7 +69,7 @@ export function BarFigure({ fig, clock = STILL }: { fig: BarFig; clock?: DrawClo
             const tip = MID[1] + THICK / 2 + l.W * KW;
             return (
               <Group key={l.at}>
-                <Path d={`M${x},${tip + 4} V${DIM_Y - 4}`} stroke={p.label} strokeWidth={1} strokeDasharray="2 3" />
+                <Path d={`M${x},${tip + 4} V${DIM_Y - 4}`} stroke={p.label} strokeWidth={stroke.thin} strokeDasharray="2 3" />
                 <ForceArrow x1={x} y1={MID[1] + THICK / 2} x2={x} y2={tip} color={p.force} />
                 <Circle cx={x} cy={MID[1] + THICK / 2} r={3} fill={p.force} />
                 <MonoLabel x={x + (l.at < 0 ? -8 : 8)} y={tip - 4} text={`${fixed(l.W, 0)} N`} color={p.forceText} size={10} anchor={l.at < 0 ? 'end' : 'start'} />
@@ -81,7 +82,7 @@ export function BarFigure({ fig, clock = STILL }: { fig: BarFig; clock?: DrawClo
       {stage(clock, 
         PEN.marks,
         <Group>
-          <Path d={`M${MID[0]},${base + 10} V${DIM_Y - 4}`} stroke={p.label} strokeWidth={1} strokeDasharray="2 3" />
+          <Path d={`M${MID[0]},${base + 10} V${DIM_Y - 4}`} stroke={p.label} strokeWidth={stroke.thin} strokeDasharray="2 3" />
           {fig.loads.map((l) => {
             const x = MID[0] + l.at * k;
             return <Dim key={l.at} a={[Math.min(x, MID[0]), DIM_Y]} b={[Math.max(x, MID[0]), DIM_Y]} text={`${fixed(Math.abs(l.at), 2)} m`} />;

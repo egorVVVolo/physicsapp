@@ -31,10 +31,12 @@ export function ParticleFigure({ fig, clock = STILL }: { fig: ParticleFig; clock
         {fig.forces.map((f) => {
           const c = Math.cos(f.angle * RAD);
           const s = Math.sin(f.angle * RAD);
-          const len = f.size * fig.scale + 9;
-          const anchor = c > 0.3 ? 'start' : c < -0.3 ? 'end' : 'middle';
-          const dy = s > 0.3 ? -2 : s < -0.3 ? 10 : 3;
-          return <MonoLabel key={f.text + f.angle} x={DOT.x + c * len} y={DOT.y - s * len + dy} text={f.text} color={p.ink} size={10} anchor={anchor} />;
+          // up and down arrows reach the edges of the sheet: their names sit beside the tip, the others past it
+          const upright = Math.abs(c) < 0.3;
+          const len = f.size * fig.scale + (upright ? 0 : 9);
+          const anchor = upright || c > 0.3 ? 'start' : 'end';
+          const dy = upright ? (s > 0 ? 10 : -2) : s > 0.3 ? -2 : s < -0.3 ? 10 : 3;
+          return <MonoLabel key={f.text + f.angle} x={DOT.x + c * len + (upright ? 9 : 0)} y={DOT.y - s * len + dy} text={f.text} color={p.ink} size={10} anchor={anchor} />;
         })}
       </DrawnFade>
     </Group>

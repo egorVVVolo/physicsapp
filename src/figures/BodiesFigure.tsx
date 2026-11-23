@@ -7,6 +7,7 @@ import { momentum, totalMomentum } from '@/physics/momentum';
 import { fixed, signed } from '@/physics/format';
 import type { BodiesFig } from '@/content/types';
 import { useTheme } from '@/theme/ThemeContext';
+import { stroke } from '@/theme/tokens';
 import { STILL, useTween, type DrawClock } from './anim';
 import { ForceArrow, Hatch, MonoLabel } from './draw';
 import { Ball, HollowArrow, stage, TROLLEY, Trolley } from './kit';
@@ -34,7 +35,7 @@ type Part = { fig: BodiesFig; grow: number; stage: (pen: readonly [number, numbe
 
 /** One lane each: the body on the left, its velocity and (revealed) momentum running right, each to one scale. */
 function Lanes({ fig, grow, stage }: Part) {
-  const { palette: p } = useTheme();
+  const { palette: p, material: m } = useTheme();
   const ps = fig.bodies.map((b) => momentum(b.m, b.v));
   const kp = ROOM / Math.max(...ps.map(Math.abs));
   const kv = ROOM / Math.max(...fig.bodies.map((b) => Math.abs(b.v)));
@@ -49,7 +50,7 @@ function Lanes({ fig, grow, stage }: Part) {
             {stage(
               PEN.ground,
               b.look === 'cricket' ? (
-                <Line x1={14} y1={y} x2={START - 12} y2={y} stroke={p.label} strokeWidth={1} strokeDasharray="2 4" />
+                <Line x1={14} y1={y} x2={START - 12} y2={y} stroke={p.label} strokeWidth={stroke.thin} strokeDasharray="2 4" />
               ) : (
                 <Hatch x1={10} x2={330} y={y + r} color={p.draw} />
               ),
@@ -77,7 +78,7 @@ function Lanes({ fig, grow, stage }: Part) {
 
 /** All on one track, heading at each other: velocities, momenta (revealed) and the total under the track. */
 function Shared({ fig, grow, stage }: Part) {
-  const { palette: p } = useTheme();
+  const { palette: p, material: m } = useTheme();
   const y = SHARED.floor;
   const total = totalMomentum(fig.bodies);
   const totalText = fig.total === 'shown' ? `Σp = ${Math.abs(total) < 0.005 ? '0' : `${signed(total, 2)} kg m s⁻¹`}` : 'Σp = ?';
@@ -89,8 +90,8 @@ function Shared({ fig, grow, stage }: Part) {
       {stage(
         PEN.ground,
         <Group>
-          <Path d="M14,26 H40" stroke={p.label} strokeWidth={1.2} />
-          <Path d="M35,22 L41,26 L35,30" stroke={p.label} strokeWidth={1.2} fill="none" />
+          <Path d="M14,26 H40" stroke={p.label} strokeWidth={stroke.thin} />
+          <Path d="M35,22 L41,26 L35,30" stroke={p.label} strokeWidth={stroke.thin} fill="none" />
           <MonoLabel x={46} y={29} text="+" color={p.label} size={10} anchor="start" />
         </Group>,
       )}

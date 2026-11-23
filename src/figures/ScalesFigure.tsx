@@ -105,7 +105,7 @@ export function ScalesFigure({ fig, playing, clock = STILL }: { fig: ScalesFig; 
       )}
       {/* labels with leader lines */}
       <DrawnPath clock={clock} len={46} from={PEN.leader[0]} to={PEN.leader[1]} d={`M${CX - 52},196 H${CX - 98}`} stroke={p.label} strokeWidth={stroke.thin} />
-      <MonoLabel x={CX - 101} y={199} text="SPRING" color={p.label} size={9} anchor="end" />
+      <MonoLabel x={CX - 96} y={199} text="SPRING" color={p.label} size={9} anchor="end" />
       {/* the display, wired to the plate (dashed wires cannot be traced by the pen: they fade in with the fills) */}
       <DrawnFade clock={clock} from={FILLS[0]} to={FILLS[1]}>
         <Line x1={CX + 92} y1={plate + 5} x2={262} y2={plate + 5} stroke={p.lineStrong} strokeWidth={stroke.thin} strokeDasharray="3 3" />

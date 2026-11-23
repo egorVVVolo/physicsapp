@@ -7,6 +7,7 @@ import { footOfPerpendicular, momentAtAngle, perpendicularDistance } from '@/phy
 import { fixed } from '@/physics/format';
 import type { SpannerFig, SpannerPull } from '@/content/types';
 import { useTheme } from '@/theme/ThemeContext';
+import { stroke } from '@/theme/tokens';
 import { STILL, type DrawClock } from './anim';
 import { ForceArrow, ForceLetter, MonoLabel, polyPath, rectPath } from './draw';
 import { AngleArc, cm, RightAngle, TurnArc } from './turning';
@@ -35,14 +36,14 @@ function pullsOf(fig: SpannerFig, live?: number): SpannerPull[] {
 }
 
 export function SpannerFigure({ fig, live, clock = STILL }: { fig: SpannerFig; live?: number; clock?: DrawClock }) {
-  const { palette: p } = useTheme();
+  const { palette: p, material: m } = useTheme();
   const pulls = pullsOf(fig, live);
   const panels = panelsFor(pulls.length);
   const perp = fig.perp === 'shown' || live !== undefined;
 
   return (
     <Group>
-      {pulls.length > 1 && <Line x1={170} y1={10} x2={170} y2={222} stroke={p.paperLine} strokeWidth={1} strokeDasharray="3 4" />}
+      {pulls.length > 1 && <Line x1={170} y1={10} x2={170} y2={222} stroke={p.paperLine} strokeWidth={stroke.thin} strokeDasharray="3 4" />}
       {pulls.map((pull, i) => {
         const pn = panels[i];
         const [nx, ny] = pn.nut;
@@ -72,10 +73,10 @@ export function SpannerFigure({ fig, live, clock = STILL }: { fig: SpannerFig; l
               PEN.tool,
               <Group>
                 <MonoLabel x={pn.x0 + 12} y={20} text={pull.who} color={p.label} size={10} anchor="start" />
-                <Circle cx={nx} cy={ny} r={pn.head + 7} fill={p.drawFillDark} />
-                <Path d={handle.d} fill={p.drawFill} stroke={p.draw} strokeWidth={1.8} />
-                <Circle cx={nx} cy={ny} r={pn.head} fill={p.drawFill} stroke={p.draw} strokeWidth={1.8} />
-                <Path d={hex.d} fill={p.page} stroke={p.draw} strokeWidth={1.4} />
+                <Circle cx={nx} cy={ny} r={pn.head + 7} fill={m.metalSide} />
+                <Path d={handle.d} fill={m.metal} stroke={p.draw} strokeWidth={stroke.body} />
+                <Circle cx={nx} cy={ny} r={pn.head} fill={m.metal} stroke={p.draw} strokeWidth={stroke.body} />
+                <Path d={hex.d} fill={p.page} stroke={p.draw} strokeWidth={stroke.thin} />
                 <Circle cx={nx} cy={ny} r={2} fill={p.draw} />
               </Group>,
             )}
@@ -83,7 +84,7 @@ export function SpannerFigure({ fig, live, clock = STILL }: { fig: SpannerFig; l
             {stage(clock, 
               PEN.pulls,
               <Group>
-                {perp && <Path d={`M${P[0] - dir[0] * 16},${P[1] - dir[1] * 16} L${P[0] + dir[0] * tEnd},${P[1] + dir[1] * tEnd}`} stroke={p.force} strokeWidth={1.2} strokeDasharray="4 4" opacity={0.75} />}
+                {perp && <Path d={`M${P[0] - dir[0] * 16},${P[1] - dir[1] * 16} L${P[0] + dir[0] * tEnd},${P[1] + dir[1] * tEnd}`} stroke={p.force} strokeWidth={stroke.thin} strokeDasharray="4 4" opacity={0.75} />}
                 <ForceArrow x1={P[0]} y1={P[1]} x2={tip[0]} y2={tip[1]} color={p.force} />
                 <Circle cx={P[0]} cy={P[1]} r={3} fill={p.force} />
                 <ForceLetter x={tip[0] - dir[1] * 12} y={tip[1] + dir[0] * 12 + 5} text="F" color={p.force} size={14} />
@@ -94,7 +95,7 @@ export function SpannerFigure({ fig, live, clock = STILL }: { fig: SpannerFig; l
               PEN.marks,
               <Group>
                 {/* where the pull acts, measured along the handle */}
-                <Dim a={[nx, dimY]} b={[P[0], dimY]} text={perp && alongHandle ? `x = ${cm(x)}` : cm(pull.r)} strong={perp && alongHandle} />
+                <Dim a={[nx, dimY]} b={[P[0], dimY]} text={perp && alongHandle ? `x = ${cm(x)}` : cm(pull.r)} strong={perp && alongHandle} within={[0, SPANNER_VB.w]} />
                 {alongHandle ? (
                   <RightAngle at={[P[0], P[1] - hw / 2]} u={[0, -1]} v={[-1, 0]} size={8} color={p.label} />
                 ) : pull.angle < 8 ? null : (
@@ -105,9 +106,9 @@ export function SpannerFigure({ fig, live, clock = STILL }: { fig: SpannerFig; l
                 )}
                 {perp && !alongHandle && x > 0.004 && (
                   <Group>
-                    <Path d={`M${nx},${ny} L${foot[0]},${foot[1]}`} stroke={p.ink} strokeWidth={1.6} />
+                    <Path d={`M${nx},${ny} L${foot[0]},${foot[1]}`} stroke={p.ink} strokeWidth={stroke.body} />
                     <RightAngle at={foot} u={toNut} v={[-dir[0], -dir[1]]} color={p.ink} />
-                    <Tag x={mid[0]} y={mid[1] + 3} text={`x = ${cm(x)}`} />
+                    <Tag x={Math.min(Math.max(mid[0], (`x = ${cm(x)}`.length * 7.2 + 8) / 2 + 2), SPANNER_VB.w - (`x = ${cm(x)}`.length * 7.2 + 8) / 2 - 2)} y={mid[1] + 3} text={`x = ${cm(x)}`} />
                   </Group>
                 )}
                 {perp && !alongHandle && x <= 0.004 && <Tag x={nx} y={ny - pn.head - 14} text="x = 0" />}

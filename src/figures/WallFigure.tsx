@@ -8,6 +8,7 @@ import { momentum, momentumChange, wallContact, wallRun, type WallHit } from '@/
 import { fixed, signed } from '@/physics/format';
 import type { WallFig } from '@/content/types';
 import { useTheme } from '@/theme/ThemeContext';
+import { stroke } from '@/theme/tokens';
 import { STILL, useLoopTime, useTween, type DrawClock } from './anim';
 import { ForceArrow, ForceLetter, MonoLabel } from './draw';
 import { HollowArrow, stage, TROLLEY, Trolley } from './kit';
@@ -44,7 +45,7 @@ export const wallPlays = (fig: WallFig): boolean => fig.play === true;
 type Props = { fig: WallFig; live?: number; playing: boolean; clock?: DrawClock };
 
 export function WallFigure({ fig, live, playing, clock = STILL }: Props) {
-  const { palette: p } = useTheme();
+  const { palette: p, material: m } = useTheme();
   const { floors, rows } = layout(fig.trolleys.length, fig.ledger !== undefined);
   // the clip lasts until the slower of the two has had TAIL seconds after its hit
   const ends = fig.trolleys.map((id) => wallContact(hitOf(fig, id, live)).tEnd);
@@ -65,20 +66,20 @@ export function WallFigure({ fig, live, playing, clock = STILL }: Props) {
         <Group>
           {floors.map((y) => (
             <Group key={y}>
-              <Line x1={8} y1={y} x2={WALL_X} y2={y} stroke={p.draw} strokeWidth={1.6} />
+              <Line x1={8} y1={y} x2={WALL_X} y2={y} stroke={p.draw} strokeWidth={stroke.body} />
               {Array.from({ length: 34 }, (_, i) => 10 + i * 9).map((x) => (
-                <Line key={x} x1={x} y1={y + 7} x2={x + 7} y2={y} stroke={p.draw} strokeWidth={0.9} opacity={0.5} />
+                <Line key={x} x1={x} y1={y + 7} x2={x + 7} y2={y} stroke={p.draw} strokeWidth={stroke.hair} opacity={0.5} />
               ))}
             </Group>
           ))}
-          <Rect x={WALL_X} y={top} width={8} height={last - top} fill={p.drawFillDark} stroke={p.draw} strokeWidth={1.6} />
+          <Rect x={WALL_X} y={top} width={8} height={last - top} fill={p.drawFillDark} stroke={p.draw} strokeWidth={stroke.body} />
           {Array.from({ length: Math.floor((last - top) / 9) }, (_, i) => top + 4 + i * 9).map((y) => (
-            <Line key={y} x1={WALL_X + 8} y1={y + 7} x2={WALL_X + 14} y2={y} stroke={p.draw} strokeWidth={0.9} opacity={0.55} />
+            <Line key={y} x1={WALL_X + 8} y1={y + 7} x2={WALL_X + 14} y2={y} stroke={p.draw} strokeWidth={stroke.hair} opacity={0.55} />
           ))}
           {rows.length === 0 && (
             <Group>
-              <Path d={`M14,${last + 24} H40`} stroke={p.label} strokeWidth={1.2} />
-              <Path d={`M35,${last + 20} L41,${last + 24} L35,${last + 28}`} stroke={p.label} strokeWidth={1.2} fill="none" />
+              <Path d={`M14,${last + 24} H40`} stroke={p.label} strokeWidth={stroke.thin} />
+              <Path d={`M35,${last + 20} L41,${last + 24} L35,${last + 28}`} stroke={p.label} strokeWidth={stroke.thin} fill="none" />
               <MonoLabel x={46} y={last + 27} text="+ towards the wall" color={p.label} size={8.5} anchor="start" />
             </Group>
           )}
@@ -121,7 +122,7 @@ export function WallFigure({ fig, live, playing, clock = STILL }: Props) {
           PEN.labels,
           <Group>
             <MonoLabel x={LINE.x0} y={rows[0] - 30} text="MOMENTUM LINE · kg m s⁻¹" color={p.label} size={8} anchor="start" />
-            <Circle cx={LINE.x1 - 84} cy={rows[0] - 33} r={3} fill={p.paper} stroke={p.ink} strokeWidth={1.3} />
+            <Circle cx={LINE.x1 - 84} cy={rows[0] - 33} r={3} fill={p.paper} stroke={p.ink} strokeWidth={stroke.thin} />
             <MonoLabel x={LINE.x1 - 78} y={rows[0] - 30} text="before" color={p.label} size={8} anchor="start" />
             <Circle cx={LINE.x1 - 30} cy={rows[0] - 33} r={3} fill={p.ink} />
             <MonoLabel x={LINE.x1 - 24} y={rows[0] - 30} text="after" color={p.label} size={8} anchor="start" />
@@ -136,7 +137,7 @@ export function WallFigure({ fig, live, playing, clock = STILL }: Props) {
  * a hollow one (velocity) or a dashed stub ("?"). The text sits left of the arrow if there is room, otherwise right.
  */
 function Arrowed({ x, y, len, text, hollow, dashed }: { x: number; y: number; len: number; text: string; hollow?: boolean; dashed?: boolean }) {
-  const { palette: p } = useTheme();
+  const { palette: p, material: m } = useTheme();
   const lo = Math.min(x, x + len);
   const hi = Math.max(x, x + len);
   const w = text.length * 5.4;
@@ -153,7 +154,7 @@ function Arrowed({ x, y, len, text, hollow, dashed }: { x: number; y: number; le
 
 /** One row of the momentum line: the axis with its numbers, p before (○), p after (●) and the Δp arrow from one to the other. */
 function LedgerRow({ y, id, before, after, k, show }: { y: number; id: string; before: number; after: number; k: number; show: boolean }) {
-  const { palette: p } = useTheme();
+  const { palette: p, material: m } = useTheme();
   const X = (v: number) => LINE.zero + v * KL;
   const ticks: number[] = [];
   for (let v = -LINE.range; v <= LINE.range + 1e-9; v += 0.4) ticks.push(Math.round(v * 10) / 10);
@@ -163,7 +164,7 @@ function LedgerRow({ y, id, before, after, k, show }: { y: number; id: string; b
   return (
     <Group>
       <ForceLetter x={18} y={y + 5} text={id} color={p.ink} size={14} />
-      <Line x1={LINE.x0} y1={y} x2={LINE.x1} y2={y} stroke={p.draw} strokeWidth={1.2} />
+      <Line x1={LINE.x0} y1={y} x2={LINE.x1} y2={y} stroke={p.draw} strokeWidth={stroke.thin} />
       {ticks.map((v) => (
         <Group key={v}>
           <Line x1={X(v)} y1={y - (v === 0 ? 5 : 3)} x2={X(v)} y2={y + (v === 0 ? 5 : 3)} stroke={p.draw} strokeWidth={v === 0 ? 1.4 : 1} />
@@ -173,7 +174,7 @@ function LedgerRow({ y, id, before, after, k, show }: { y: number; id: string; b
       {show ? (
         <Group>
           {Math.abs(xA - xB) > 2 && <ForceArrow x1={xB} y1={y - 9} x2={xA} y2={y - 9} color={p.ink} width={2.6} />}
-          <Circle cx={xB} cy={y} r={3.6} fill={p.paper} stroke={p.ink} strokeWidth={1.5} />
+          <Circle cx={xB} cy={y} r={3.6} fill={p.paper} stroke={p.ink} strokeWidth={stroke.body} />
           {k > 0.98 && <Circle cx={X(after)} cy={y} r={3.6} fill={p.ink} />}
           {k > 0.98 && <MonoLabel x={(xB + X(after)) / 2} y={y - 16} text={`Δp = ${signed(dp, 2)}`} color={p.ink} size={9} />}
         </Group>

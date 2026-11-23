@@ -6,6 +6,7 @@ import { momentAtAngle } from '@/physics/moments';
 import { fixed } from '@/physics/format';
 import { POLE_IDS, type PoleFig } from '@/content/types';
 import { useTheme } from '@/theme/ThemeContext';
+import { stroke } from '@/theme/tokens';
 import { STILL, type DrawClock } from './anim';
 import { ForceArrow, ForceLetter, Hatch, MonoLabel } from './draw';
 import type { TapProps, TapTarget } from './Sheet';
@@ -48,7 +49,7 @@ export function poleTargets(fig: PoleFig): TapTarget[] {
 }
 
 export function PoleFigure({ fig, tap, clock = STILL }: { fig: PoleFig; tap?: TapProps; clock?: DrawClock }) {
-  const { palette: p } = useTheme();
+  const { palette: p, material: m } = useTheme();
   const { end, sign, across, M } = geometry(fig);
   const shown = fig.moment === 'shown';
   const wTip: [number, number] = [sign[0], sign[1] + 14 + fig.W * KW];
@@ -62,7 +63,7 @@ export function PoleFigure({ fig, tap, clock = STILL }: { fig: PoleFig; tap?: Ta
           <Group transform={`translate(${WALL} 10) rotate(90)`}>
             <Hatch x1={0} x2={212} y={0} color={p.draw} clock={clock} from={PEN.wall[0]} to={PEN.wall[1]} />
           </Group>
-          <Rect x={WALL} y={FIX[1] - 9} width={7} height={18} fill={p.drawFillDark} stroke={p.draw} strokeWidth={1.2} />
+          <Rect x={WALL} y={FIX[1] - 9} width={7} height={18} fill={m.metalSide} stroke={p.draw} strokeWidth={stroke.thin} />
         </Group>,
       )}
 
@@ -72,14 +73,14 @@ export function PoleFigure({ fig, tap, clock = STILL }: { fig: PoleFig; tap?: Ta
         PEN.pole,
         <Group>
           <Path d={`M${FIX[0]},${FIX[1]} L${end[0]},${end[1]}`} stroke={p.draw} strokeWidth={6} strokeLinecap="round" />
-          <Path d={`M${FIX[0]},${FIX[1]} L${end[0]},${end[1]}`} stroke={p.drawFill} strokeWidth={2.4} strokeLinecap="round" />
-          <Path d={`M${end[0]},${end[1]} L${sign[0] - 18},${sign[1] - 14} M${end[0]},${end[1]} L${sign[0] + 18},${sign[1] - 14}`} stroke={p.draw} strokeWidth={1.2} />
-          <Rect x={sign[0] - 28} y={sign[1] - 14} width={56} height={28} rx={3} fill={p.drawFill} stroke={p.draw} strokeWidth={1.8} />
+          <Path d={`M${FIX[0]},${FIX[1]} L${end[0]},${end[1]}`} stroke={m.metal} strokeWidth={stroke.force} strokeLinecap="round" />
+          <Path d={`M${end[0]},${end[1]} L${sign[0] - 18},${sign[1] - 14} M${end[0]},${end[1]} L${sign[0] + 18},${sign[1] - 14}`} stroke={p.draw} strokeWidth={stroke.thin} />
+          <Rect x={sign[0] - 28} y={sign[1] - 14} width={56} height={28} rx={3} fill={m.wood} stroke={p.draw} strokeWidth={stroke.body} />
           <MonoLabel x={sign[0]} y={sign[1] + 3.5} text="CAFÉ" color={p.draw} size={10} />
           <Circle cx={FIX[0]} cy={FIX[1]} r={2.4} fill={p.draw} />
           <AngleArc at={FIX} r={30} from={0} sweep={-fig.angle} color={p.label} />
           <MonoLabel x={FIX[0] + Math.cos((-fig.angle / 2) * RAD) * 42} y={FIX[1] + Math.sin((-fig.angle / 2) * RAD) * 42 + 3} text={`${fixed(fig.angle, 0)}°`} color={p.ink} size={9} />
-          <Path d={`M${FIX[0]},${FIX[1]} H${FIX[0] + 48}`} stroke={p.label} strokeWidth={1} strokeDasharray="2 3" />
+          <Path d={`M${FIX[0]},${FIX[1]} H${FIX[0] + 48}`} stroke={p.label} strokeWidth={stroke.thin} strokeDasharray="2 3" />
         </Group>,
       )}
 
@@ -87,10 +88,10 @@ export function PoleFigure({ fig, tap, clock = STILL }: { fig: PoleFig; tap?: Ta
         PEN.forces,
         <Group>
           {/* the line of action of the weight, straight down through the end */}
-          {(shown || fig.candidates) && <Path d={`M${lineX},${end[1] - 10} V${FIX[1] + 12}`} stroke={p.force} strokeWidth={1.2} strokeDasharray="4 4" opacity={0.75} />}
+          {(shown || fig.candidates) && <Path d={`M${lineX},${end[1] - 10} V${FIX[1] + 12}`} stroke={p.force} strokeWidth={stroke.thin} strokeDasharray="4 4" opacity={0.75} />}
           <ForceArrow x1={sign[0]} y1={sign[1] + 14} x2={wTip[0]} y2={wTip[1]} color={p.force} />
           <ForceLetter x={sign[0] + 9} y={wTip[1] - 8} text="W" color={p.force} size={14} anchor="start" />
-          <MonoLabel x={sign[0] + 9} y={wTip[1] + 4} text={`${fixed(fig.W, 0)} N`} color={p.ink} size={9} anchor="start" />
+          <MonoLabel x={sign[0] + 9} y={wTip[1] + 9} text={`${fixed(fig.W, 0)} N`} color={p.ink} size={9} anchor="start" />
         </Group>,
       )}
 
@@ -101,7 +102,7 @@ export function PoleFigure({ fig, tap, clock = STILL }: { fig: PoleFig; tap?: Ta
             <Group>
               <Dim a={FIX} b={end} offset={18} dashed />
               <Dim a={[HEIGHT_X, FIX[1]]} b={[HEIGHT_X, end[1]]} dashed />
-              <Path d={`M${end[0] + 6},${end[1]} H${HEIGHT_X + 6}`} stroke={p.label} strokeWidth={1} strokeDasharray="2 3" />
+              <Path d={`M${end[0] + 6},${end[1]} H${HEIGHT_X + 6}`} stroke={p.label} strokeWidth={stroke.thin} strokeDasharray="2 3" />
               <Dim a={FIX} b={[lineX, FIX[1]]} dashed />
             </Group>
           ) : (
