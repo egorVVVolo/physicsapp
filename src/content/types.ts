@@ -1126,7 +1126,17 @@ export type EstimateScreen = Base & {
   why: string;
 };
 
-export type Screen = IntroScreen | TextScreen | PredictScreen | ChoiceScreen | ExploreScreen | TapFigScreen | BuildScreen | OrderScreen | SpotErrorScreen | SortScreen | EstimateScreen;
+/** A worked example revealed step by step; optionally the learner picks the final line (not counted). */
+export type WorkedScreen = Base & {
+  kind: 'worked';
+  title: string; // "Worked example"
+  fig?: Fig;
+  /** 3–5, revealed one by one; `math` sits on its own line. */
+  steps: { text: string; math?: string }[];
+  last?: { prompt: string; options: Option[] };
+};
+
+export type Screen = IntroScreen | TextScreen | PredictScreen | ChoiceScreen | ExploreScreen | TapFigScreen | BuildScreen | OrderScreen | SpotErrorScreen | SortScreen | EstimateScreen | WorkedScreen;
 /** A graded question answered by picking one option (cards or places on the figure). */
 export type OptionQuestion = ChoiceScreen | TapFigScreen;
 export type Question = OptionQuestion | BuildScreen | OrderScreen | SpotErrorScreen | SortScreen | EstimateScreen;

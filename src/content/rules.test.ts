@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import { lessons } from './lessons.ts';
 import { samples } from './samples.ts';
 import { boxesOf } from '../session/build.ts';
-import { ACC_IDS, BEAM_IDS, CANDIDATE_IDS, COMPARE_IDS, SKETCH_IDS, EQUATION_IDS, FLOW_IDS, LADDER_IDS, PAIR_IDS, POLE_IDS, SLEDGE_IDS, isQuestion, type BuildScreen, type Fig, type OrderScreen, type Screen, type EstimateScreen, type SortScreen, type SpotErrorScreen } from './types.ts';
+import { ACC_IDS, BEAM_IDS, CANDIDATE_IDS, COMPARE_IDS, SKETCH_IDS, EQUATION_IDS, FLOW_IDS, LADDER_IDS, PAIR_IDS, POLE_IDS, SLEDGE_IDS, isQuestion, type BuildScreen, type Fig, type OrderScreen, type Screen, type EstimateScreen, type SortScreen, type SpotErrorScreen, type WorkedScreen } from './types.ts';
 
 // **key words** are bold on screen: the stars do not count, but they must come in pairs
 const max = (text: string, n: number, where: string) => {
@@ -90,6 +90,21 @@ function checkEstimateScreen(s: EstimateScreen) {
   max(s.why, 170, `${s.id} why`);
 }
 
+/** A worked example: 3–5 steps of at most 120 characters; a final-line question, if any, has 2–4 options and one right. */
+function checkWorkedScreen(s: WorkedScreen) {
+  assert.ok(s.steps.length >= 3 && s.steps.length <= 5, `${s.id}: 3–5 steps`);
+  max(s.title, 30, `${s.id} title`);
+  s.steps.forEach((x, i) => {
+    max(x.text, 120, `${s.id} step ${i + 1}`);
+    if (x.math) max(x.math, 40, `${s.id} step ${i + 1} maths`);
+  });
+  if (s.last) {
+    assert.ok(s.last.options.length >= 2 && s.last.options.length <= 4, `${s.id}: 2–4 final lines`);
+    assert.equal(s.last.options.filter((o) => o.correct).length, 1, `${s.id}: one right final line`);
+    s.last.options.forEach((o) => max(o.label, 40, `${s.id}/${o.id}`));
+  }
+}
+
 test('sample steps of the gallery fit together', () => {
   for (const { screen } of samples) {
     if (screen.kind === 'build') checkBuildScreen(screen);
@@ -97,6 +112,7 @@ test('sample steps of the gallery fit together', () => {
     if (screen.kind === 'spotError') checkSpotErrorScreen(screen);
     if (screen.kind === 'sort') checkSortScreen(screen);
     if (screen.kind === 'estimate') checkEstimateScreen(screen);
+    if (screen.kind === 'worked') checkWorkedScreen(screen);
   }
 });
 
@@ -203,6 +219,7 @@ for (const lesson of Object.values(lessons)) {
       if (s.kind === 'spotError') checkSpotErrorScreen(s);
       if (s.kind === 'sort') checkSortScreen(s);
       if (s.kind === 'estimate') checkEstimateScreen(s);
+      if (s.kind === 'worked') checkWorkedScreen(s);
     }
   });
 

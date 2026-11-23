@@ -10,6 +10,7 @@ import { EstimateView } from '@/lesson/screens/EstimateView';
 import { OrderView } from '@/lesson/screens/OrderView';
 import { SortView } from '@/lesson/screens/SortView';
 import { SpotErrorView } from '@/lesson/screens/SpotErrorView';
+import { WorkedView } from '@/lesson/screens/WorkedView';
 import { useTheme } from '@/theme/ThemeContext';
 import { font, radius, touch } from '@/theme/tokens';
 
@@ -57,6 +58,7 @@ function Live({ screen, onLog, onNext }: { screen: Screen; onLog: (line: string)
   if (screen.kind === 'spotError') return <SpotErrorView screen={screen} {...graded} />;
   if (screen.kind === 'sort') return <SortView screen={screen} {...graded} />;
   if (screen.kind === 'estimate') return <EstimateView screen={screen} {...graded} />;
+  if (screen.kind === 'worked') return <WorkedView screen={screen} figN={1} onNext={onNext} />;
   return null;
 }
 

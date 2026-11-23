@@ -101,4 +101,26 @@ export const samples: { title: string; screen: Screen }[] = [
       why: `On a smooth ramp all the work goes into raising the machine: W = mgh = ${VAN.m} × 9.81 × ${fixed(VAN.h, 1)} = ${sig(liftWork(VAN.m, VAN.h))}${NB}J, however long the ramp.`,
     },
   },
+  {
+    title: 'worked · Worked example',
+    screen: {
+      id: 'sample-worked',
+      kind: 'worked',
+      title: 'Worked example',
+      fig: { kind: 'ramp', m: VAN.m, h: VAN.h, L: VAN.L, push: 'shown' },
+      steps: [
+        { text: `The ramp is smooth, so the push only has to match the part of the weight down the slope. sin θ = h ÷ L.`, math: `F = mg × h ÷ L = ${sig(push)}${NB}N` },
+        { text: 'Work is force times distance along the force. The push acts along the ramp, so the distance is its length.', math: 'W = F × L' },
+        { text: 'Put in the numbers, with their units.', math: `W = ${sig(push)}${NB}N × ${fixed(VAN.L, 1)}${NB}m` },
+      ],
+      last: {
+        prompt: 'So what is the last line?',
+        options: [
+          { id: 'right', label: `W = ${sig(push * VAN.L)}${NB}J`, correct: true },
+          { id: 'height', label: `W = ${sig(push * VAN.h)}${NB}J` },
+          { id: 'weight', label: `W = ${sig(weight(VAN.m) * VAN.L)}${NB}J` },
+        ],
+      },
+    },
+  },
 ];
