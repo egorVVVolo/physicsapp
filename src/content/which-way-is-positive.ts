@@ -3,11 +3,12 @@
 // The puzzle: runners A and B leave the same lamp post. In 200 s runner A runs 300 m east, then 500 m west;
 // runner B walks 200 m west. Whose average velocity is greater?
 // The answer: the same, −1.0 m s⁻¹ each (east positive), although runner A ran four times as far.
-// Spec: docs/lessons/which-way-is-positive.md.
+// Spec: docs/lessons/which-way-is-positive.md. Format v3 (V2 task D1): sort, estimate, build, spotError and a worked example
+// replace the old text screens and number choices; the Skill check ends with an exam-style card.
 // Every number below comes from src/physics; wrong options are named mistakes, recomputed by the test.
 import { tripDistance, tripPosition, tripVelocity, type Trip } from '../physics/kinematics.ts';
 import { angleFromFirst, chordAround, radiusOf, sizeAtRightAngles } from '../physics/vectors.ts';
-import { fixed, signed } from '../physics/format.ts';
+import { fixed, sig, signed } from '../physics/format.ts';
 import type { Lesson, TrackFig, VectorsFig } from './types.ts';
 
 const NB = '\u00A0'; // numbers never break from their units
@@ -118,6 +119,12 @@ export const whichWayIsPositive: Lesson = {
   title: 'Which way is positive?',
   spec: [4, 6],
   minutes: 11,
+  chapters: [
+    { title: 'The puzzle', from: 'intro' },
+    { title: 'Signs and arrows', from: 'signs' },
+    { title: 'Back to the runners', from: 'hook-again' },
+  ],
+  cast: ['Noor'],
   story: [
     {
       id: 'intro',
@@ -140,12 +147,22 @@ export const whichWayIsPositive: Lesson = {
       after: "Let's find out",
     },
     {
-      id: 'scalar',
-      kind: 'text',
-      body: [
-        'A **scalar** has a size only: distance, speed, mass, time, energy.',
-        'A **vector** has a size and a direction: displacement, velocity, acceleration, force. Speed is a scalar; velocity is the vector that goes with it.',
+      id: 'quantities',
+      kind: 'sort',
+      prompt: 'Sort these quantities into scalars and vectors.',
+      bins: [
+        { id: 'scalar', label: 'Scalar' },
+        { id: 'vector', label: 'Vector' },
       ],
+      items: [
+        { id: 'distance', label: 'Distance', bin: 'scalar', hint: 'A path length has a size and no direction: a scalar.' },
+        { id: 'displacement', label: 'Displacement', bin: 'vector', hint: 'Displacement is an arrow from start to finish: size and direction.' },
+        { id: 'speed', label: 'Speed', bin: 'scalar', hint: 'Speed is only the size of the velocity: a scalar.' },
+        { id: 'velocity', label: 'Velocity', bin: 'vector', hint: 'Velocity is speed with a direction: a vector.' },
+        { id: 'time', label: 'Time', bin: 'scalar', hint: 'Time has no direction: a scalar.' },
+        { id: 'acceleration', label: 'Acceleration', bin: 'vector', hint: 'Acceleration points somewhere: it is a vector.' },
+      ],
+      why: 'A scalar has a size only; a vector has a size and a direction. Speed goes with velocity, distance with displacement, but distance is not the size of the displacement.',
     },
     {
       id: 'distance',
@@ -154,17 +171,15 @@ export const whichWayIsPositive: Lesson = {
       fig: track({ runners: ONLY_A, legs: true, at: 'end' }),
     },
     {
-      id: 'displacement',
-      kind: 'choice',
-      prompt: "Displacement is the straight arrow from the start to the finish. What is runner A's displacement?",
-      fig: track({ runners: ONLY_A, legs: true, at: 'end', disp: 'afterCheck' }),
-      options: [
-        { id: 'path', label: `${metres(x.distA)} west`, hint: `${metres(x.distA)} is the length of the path. Displacement joins start and finish.` },
-        { id: 'right', label: `${metres(-x.dispA)} west`, correct: true },
-        { id: 'east', label: `${metres(-x.dispA)} east`, hint: `Runner A came back ${metres(-x.back)} west, more than the ${metres(x.out)} out east.` },
-        { id: 'leg', label: `${metres(-x.back)} west`, hint: `That is the second leg alone. The first ${metres(x.out)} east counts too.` },
-      ],
-      why: `From the lamp post to the finish is ${metres(-x.dispA)}, to the west. The ${metres(x.distA)} path is the distance, a scalar.`,
+      id: 'finish',
+      kind: 'estimate',
+      prompt: 'Displacement is the arrow from the start to the finish. East is positive: where does runner A finish?',
+      fig: track({ runners: ONLY_A, legs: true, at: 'start' }),
+      after: track({ runners: ONLY_A, legs: true, play: true, disp: 'shown', numbers: true }),
+      scale: { min: -400, max: 400, step: 10, tick: 100, unit: 'm', symbol: 's', dp: 0, label: "Runner A's displacement" },
+      answer: x.dispA,
+      tolerance: 20,
+      why: `Displacement = (${signed(x.out, 0)}) + (${signed(x.back, 0)}) = ${signed(x.dispA, 0)}${NB}m: ${metres(-x.dispA)} west. The path was ${metres(x.distA)}, but only the start and the finish count.`,
     },
     {
       id: 'signs',
@@ -176,47 +191,37 @@ export const whichWayIsPositive: Lesson = {
     },
     {
       id: 'avg-velocity',
-      kind: 'choice',
-      prompt: "Average velocity = displacement ÷ time. With east positive, what is runner A's average velocity?",
+      kind: 'build',
+      prompt: "Average velocity = displacement ÷ time. East is positive. Build runner A's average velocity.",
       fig: track({ runners: ONLY_A, legs: true, at: 'end', disp: 'shown' }),
-      options: [
-        { id: 'speed', label: vel(x.avgSpeedA), hint: 'That is the average speed: distance ÷ time. Velocity uses displacement.' },
-        { id: 'right', label: vel(x.avgVelA), correct: true },
-        { id: 'sign', label: vel(-x.avgVelA), hint: 'The size is right, but runner A ends up west of the lamp post.' },
-        { id: 'distance', label: vel(-x.avgSpeedA), hint: `${metres(x.distA)} is the distance. Divide the displacement by the time.` },
+      equation: 'v = {s} ÷ {t}',
+      boxes: { s: 'disp', t: 'time' },
+      chips: [
+        { id: 'disp', label: `${signed(x.dispA, 0)}${NB}m` },
+        { id: 'time', label: secs(T) },
+        { id: 'path', label: metres(x.distA), hint: `That is the distance A ran, not the displacement.` },
+        { id: 'plus', label: `${signed(-x.dispA, 0)}${NB}m`, hint: 'Runner A finishes west of the lamp post, so s is negative.' },
+        { id: 'leg', label: metres(x.out), hint: 'That is the first leg alone. Use the whole displacement.' },
       ],
+      result: { symbol: 'v', value: x.avgVelA, unit: 'm s⁻¹', sf: 2 },
       why: `${signed(x.dispA, 0)}${NB}m ÷ ${secs(T)} = ${vel(x.avgVelA)}: ${speed(-x.avgVelA)} west. The average speed is ${metres(x.distA)} ÷ ${secs(T)} = ${speed(x.avgSpeedA)}.`,
     },
     {
-      id: 'hook-again',
-      kind: 'choice',
-      revisitOf: 'hook',
-      prompt: `Back to the puzzle. Runner B walks ${metres(-x.dispB)} west in the same ${secs(T)}. Whose average velocity is greater?`,
-      fig: track({ at: 'end', disp: 'shown' }),
-      options: [
-        { id: 'A', label: "Runner A's", hint: 'A ran farther, but finished in the same place. Velocity uses displacement.' },
-        { id: 'B', label: "Runner B's", hint: `Both end ${metres(-x.dispA)} west of the lamp post after ${secs(T)}.` },
-        { id: 'same', label: 'They are the same', correct: true },
+      id: 'working',
+      kind: 'spotError',
+      prompt: "Noor works out runner A's average velocity. Her working has one mistake. Which line?",
+      lines: [
+        { id: 'data', text: `A runs ${metres(x.out)} east, then ${metres(-x.back)} west, in ${secs(T)}.`, hint: 'That line only copies the data.' },
+        { id: 'rule', text: 'Average velocity = displacement ÷ time', hint: 'That is the right rule. Velocity uses displacement.' },
+        {
+          id: 'calc',
+          text: `v = ${metres(x.distA)} ÷ ${secs(T)} = ${vel(x.avgSpeedA)}`,
+          wrong: true,
+          fix: `v = (${signed(x.dispA, 0)}${NB}m) ÷ ${secs(T)} = ${vel(x.avgVelA)}`,
+        },
+        { id: 'end', text: `So A moves at ${vel(x.avgSpeedA)}, towards the east.`, hint: `This follows from the line above. Where did ${metres(x.distA)} come from?` },
       ],
-      why: `Both end ${metres(-x.dispA)} west after ${secs(T)}: ${vel(x.avgVelA)} each. Runner A's average speed, ${speed(x.avgSpeedA)}, is four times runner B's.`,
-    },
-    {
-      id: 'race',
-      kind: 'text',
-      body: ['Sped up 20 times: A runs four times as far, and they finish side by side.'],
-      fig: track({ play: true, disp: 'shown', numbers: true }),
-    },
-    {
-      id: 'faster',
-      kind: 'choice',
-      prompt: `At ${secs(T_MID)}, runner A runs back at ${vel(x.vA)} and runner B walks at ${vel(x.vB)}. Who is moving faster?`,
-      fig: track({ at: T_MID, values: true, numbers: true }),
-      options: [
-        { id: 'A', label: 'Runner A', correct: true },
-        { id: 'B', label: 'Runner B', hint: `${signed(x.vB, 1)} is greater than ${signed(x.vA, 1)}, but speed is the size: ${speed(-x.vA)}.` },
-        { id: 'same', label: 'They have the same speed', hint: `Same direction, different sizes: ${speed(-x.vA)} and ${speed(-x.vB)}.` },
-      ],
-      why: `Speed is the size of the velocity: ${speed(-x.vA)} against ${speed(-x.vB)}. The minus signs only say that both move west.`,
+      why: `Velocity divides the displacement, ${signed(x.dispA, 0)}${NB}m, by the time. ${metres(x.distA)} is the distance: ${speed(x.avgSpeedA)} is the average speed.`,
     },
     {
       id: 'flip',
@@ -231,40 +236,29 @@ export const whichWayIsPositive: Lesson = {
       why: `The motion is the same, only the sign flips: ${signed(-x.dispA, 0)}${NB}m ÷ ${secs(T)} = ${vel(-x.avgVelA)}. Choose + once and never switch halfway.`,
     },
     {
-      id: 'scrub',
-      kind: 'explore',
-      instruction: 'Drag the slider to run the clock.',
-      fig: track({ numbers: true }),
-      slider: { min: 0, max: T, step: 5, tick: 25, label: 'Time since the runners set off', unit: 's', symbol: 't', dp: 0 },
-      question: {
-        prompt: 'When is runner A back at the lamp post?',
-        options: [
-          { id: 'turn', label: `At ${secs(x.tTurn)}`, hint: `At ${secs(x.tTurn)} runner A turns round, ${metres(x.out)} east of the lamp post.` },
-          { id: 'home', label: `At ${secs(x.tHome)}`, correct: true },
-          { id: 'end', label: `At ${secs(T)}`, hint: `At ${secs(T)} runner A is ${metres(-x.dispA)} west. It passed the lamp post earlier.` },
-        ],
-        right: `Right: at ${secs(x.tHome)}. Distance ${metres(x.distHome)}, displacement 0${NB}m.`,
-      },
-    },
-    {
       id: 'plane',
       kind: 'text',
-      body: [
-        'Off a straight line, a sign is not enough: a direction needs an angle. Vectors still add **tip to tail**.',
-        'Draw the second arrow from the tip of the first. The **resultant** runs from the first tail to the last tip.',
-      ],
+      body: ['Off a straight line a sign is not enough: add vectors **tip to tail**.'],
+      fig: hike(),
     },
     {
       id: 'hiker',
-      kind: 'choice',
-      prompt: `A hiker walks ${km(HIKE.north)} north, then ${km(HIKE.east)} east. How far from the start does the hiker end up?`,
-      fig: hike({ resultant: 'afterCheck', play: 'afterCheck' }),
-      options: [
-        { id: 'right', label: km(x.hike.right), correct: true },
-        { id: 'added', label: km(x.hike.added), hint: `${km(x.hike.added)} is the distance walked. At right angles sizes don't simply add.` },
-        { id: 'subtracted', label: km(x.hike.subtracted), hint: 'Subtracting only works when the two vectors point opposite ways.' },
+      kind: 'worked',
+      title: 'Worked example',
+      fig: hike({ resultant: 'shown', play: true }),
+      steps: [
+        { text: `A hiker walks ${km(HIKE.north)} north, then ${km(HIKE.east)} east. Draw the legs tip to tail: they meet at a right angle.` },
+        { text: 'The resultant runs from the first tail to the last tip. At a right angle its size comes from Pythagoras.', math: 'R² = a² + b²' },
+        { text: 'Put in the numbers, with their units.', math: `R = √(${fixed(HIKE.north, 1)}² + ${fixed(HIKE.east, 1)}²) km` },
       ],
-      why: `The legs are at right angles, so use Pythagoras: √(${fixed(HIKE.north, 1)}² + ${fixed(HIKE.east, 1)}²) = ${km(x.hike.right)}. The distance walked is ${km(x.hike.added)}.`,
+      last: {
+        prompt: 'So how far from the start does the hiker end up?',
+        options: [
+          { id: 'right', label: km(x.hike.right), correct: true },
+          { id: 'added', label: km(x.hike.added) },
+          { id: 'subtracted', label: km(x.hike.subtracted) },
+        ],
+      },
     },
     {
       id: 'bearing',
@@ -285,36 +279,41 @@ export const whichWayIsPositive: Lesson = {
       body: ['At any other angle, make a **scale drawing**: draw the arrows tip to tail with a ruler and a protractor, then measure the resultant.'],
       card: { term: 'Adding two vectors', text: 'Along one line: add them with their signs. At right angles: Pythagoras for the size, tan for the angle. Any angle: a scale drawing.' },
     },
+    {
+      id: 'hook-again',
+      kind: 'choice',
+      revisitOf: 'hook',
+      prompt: `Back to the two runners. Runner B walks ${metres(-x.dispB)} west in the same ${secs(T)}. Whose average velocity is greater?`,
+      fig: track({ at: 'end', disp: 'shown' }),
+      options: [
+        { id: 'A', label: "Runner A's", hint: 'A ran farther, but finished in the same place. Velocity uses displacement.' },
+        { id: 'B', label: "Runner B's", hint: `Both end ${metres(-x.dispA)} west of the lamp post after ${secs(T)}.` },
+        { id: 'same', label: 'They are the same', correct: true },
+      ],
+      why: `Both end ${metres(-x.dispA)} west after ${secs(T)}: ${vel(x.avgVelA)} each. Runner A's average speed, ${speed(x.avgSpeedA)}, is four times runner B's.`,
+    },
+    {
+      id: 'scrub',
+      kind: 'explore',
+      instruction: 'Drag the slider to run the clock.',
+      fig: track({ numbers: true }),
+      slider: { min: 0, max: T, step: 5, tick: 25, label: 'Time since the runners set off', unit: 's', symbol: 't', dp: 0 },
+      question: {
+        prompt: 'When is runner A back at the lamp post?',
+        options: [
+          { id: 'turn', label: `At ${secs(x.tTurn)}`, hint: `At ${secs(x.tTurn)} runner A turns round, ${metres(x.out)} east of the lamp post.` },
+          { id: 'home', label: `At ${secs(x.tHome)}`, correct: true },
+          { id: 'end', label: `At ${secs(T)}`, hint: `At ${secs(T)} runner A is ${metres(-x.dispA)} west. It passed the lamp post earlier.` },
+        ],
+        right: `Right: at ${secs(x.tHome)}. Distance ${metres(x.distHome)}, displacement 0${NB}m.`,
+      },
+    },
   ],
   skillCheck: [
     {
-      id: 'scalar-q',
-      kind: 'choice',
-      prompt: 'Which of these quantities is a scalar?',
-      options: [
-        { id: 'weight', label: 'Weight' },
-        { id: 'momentum', label: 'Momentum' },
-        { id: 'mass', label: 'Mass', correct: true },
-        { id: 'acceleration', label: 'Acceleration' },
-      ],
-      why: 'Mass has a size only. Weight is a force, so it has a direction: down. Momentum and acceleration are vectors too.',
-    },
-    {
-      id: 'half-lap',
-      kind: 'choice',
-      prompt: `A runner runs half a lap of a circular track, ${metres(LAP.round)} round, in ${secs(LAP.t)}. What is the size of the runner's average velocity?`,
-      options: [
-        { id: 'speed', label: speed(x.lap.speed) },
-        { id: 'right', label: speed(x.lap.right), correct: true },
-        { id: 'radius', label: speed(x.lap.radius) },
-        { id: 'zero', label: `0${NB}m${NB}s⁻¹` },
-      ],
-      why: `The displacement is the diameter: ${fixed(LAP.round, 0)} ÷ π = ${metres(x.lap.chord)}. ${metres(x.lap.chord)} ÷ ${secs(LAP.t)} = ${speed(x.lap.right)}. ${speed(x.lap.speed)} is the average speed.`,
-    },
-    {
       id: 'river',
-      kind: 'choice',
-      prompt: `A swimmer swims at ${speed(SWIM.across)} straight across a river. The current flows at ${speed(SWIM.current)}. What is the swimmer's resultant speed?`,
+      kind: 'build',
+      prompt: `A swimmer swims at ${speed(SWIM.across)} straight across a river. The current flows at ${speed(SWIM.current)}. Build the swimmer's resultant speed.`,
       fig: {
         kind: 'vectors',
         header: 'across the river, then downstream',
@@ -326,25 +325,81 @@ export const whichWayIsPositive: Lesson = {
         ],
         resultant: 'afterCheck',
       },
-      options: [
-        { id: 'right', label: speed(x.swim.right), correct: true },
-        { id: 'added', label: speed(x.swim.added) },
-        { id: 'subtracted', label: speed(x.swim.subtracted) },
-        { id: 'squares', label: speed(x.swim.squaresSubtracted) },
+      equation: 'R = √({across}² + {current}²)',
+      boxes: { across: 'across', current: 'current' },
+      chips: [
+        { id: 'across', label: speed(SWIM.across) },
+        { id: 'current', label: speed(SWIM.current) },
+        { id: 'added', label: speed(x.swim.added), hint: 'That adds the speeds. At right angles they do not simply add.' },
+        { id: 'subtracted', label: speed(x.swim.subtracted), hint: 'That subtracts the speeds. They are not opposite.' },
+        { id: 'root', label: speed(x.swim.squaresSubtracted), hint: 'That is a root of a difference. The squares are added.' },
       ],
+      result: { symbol: 'R', value: x.swim.right, unit: 'm s⁻¹', sf: 2 },
       why: `The two velocities are at right angles: √(${fixed(SWIM.across, 1)}² + ${fixed(SWIM.current, 1)}²) = ${speed(x.swim.right)}. Adding only works for vectors in the same direction.`,
     },
     {
       id: 'bounce',
-      kind: 'choice',
-      prompt: `A ball hits a wall at ${speed(BOUNCE.u)} and bounces straight back at ${speed(-BOUNCE.v)}. Towards the wall is positive. What is the change in velocity?`,
-      options: [
-        { id: 'sizes', label: vel(x.bounce.sizes) },
-        { id: 'right', label: vel(x.bounce.right), correct: true },
-        { id: 'sizes-flipped', label: vel(x.bounce.sizesFlipped) },
-        { id: 'flipped', label: vel(x.bounce.flipped) },
+      kind: 'spotError',
+      prompt: `A ball hits a wall at ${speed(BOUNCE.u)} and bounces straight back at ${speed(-BOUNCE.v)}. Which line of this working is wrong?`,
+      lines: [
+        { id: 'signs', text: `Towards the wall is +: u = ${vel(BOUNCE.u)}, v = ${vel(BOUNCE.v)}`, hint: 'That line only sets the signs, and they are right.' },
+        { id: 'rule', text: 'Change in velocity: Δv = v − u', hint: 'That is the right rule for a change.' },
+        { id: 'calc', text: `Δv = ${fixed(Math.abs(BOUNCE.v), 1)} − ${fixed(Math.abs(BOUNCE.u), 1)} = ${vel(x.bounce.sizes)}`, wrong: true, fix: `Δv = (${signed(BOUNCE.v, 1)}) − (${signed(BOUNCE.u, 1)}) = ${vel(x.bounce.right)}` },
+        { id: 'end', text: `So the velocity changes by ${vel(x.bounce.sizes)}.`, hint: `This follows from the line above. Check where ${signed(x.bounce.sizes, 1)} came from.` },
       ],
-      why: `Δv = v − u = (${signed(BOUNCE.v, 1)}) − (${signed(BOUNCE.u, 1)}) = ${vel(x.bounce.right)}. Without the signs you get ${fixed(Math.abs(x.bounce.sizes), 1)}, as if the ball had only slowed down.`,
+      why: `The signs matter: v = ${signed(BOUNCE.v, 1)}, u = ${signed(BOUNCE.u, 1)}, so Δv = ${vel(x.bounce.right)}. With sizes only it looks as if the ball had just slowed down.`,
+    },
+    {
+      id: 'brake-sign',
+      kind: 'choice',
+      prompt: 'A cyclist rides west and brakes to a stop. East is positive. What is the sign of the acceleration?',
+      options: [
+        { id: 'right', label: 'Positive: the velocity changes towards the east', correct: true },
+        { id: 'slow', label: 'Negative: the cyclist is slowing down' },
+        { id: 'west', label: 'Negative: the cyclist moves west' },
+        { id: 'zero', label: 'Zero: the cyclist ends at rest' },
+      ],
+      why: 'West is negative, so the velocity goes from −v up to 0: the change is positive. Slowing down does not make an acceleration negative.',
+    },
+    {
+      id: 'half-lap',
+      kind: 'examCard',
+      context: `A runner runs half a lap of a circular track, ${metres(LAP.round)} round, in ${secs(LAP.t)}.`,
+      parts: [
+        {
+          id: 'a',
+          command: 'State',
+          text: 'the difference between distance and displacement.',
+          marks: 1,
+          kind: 'choice',
+          options: [
+            { id: 'right', label: 'Distance has size only; displacement also has a direction', correct: true },
+            { id: 'swap', label: 'Distance is a vector; displacement is a scalar' },
+            { id: 'path', label: 'Displacement is the length of the path' },
+            { id: 'same', label: 'They are equal when the runner moves in a circle' },
+          ],
+          why: 'Distance is a scalar, the length of the path. Displacement is a vector, the straight line from start to finish.',
+        },
+        {
+          id: 'b',
+          command: 'Calculate',
+          text: "the size of the runner's average velocity.",
+          marks: 2,
+          kind: 'build',
+          build: {
+            equation: 'v = {s} ÷ {t}',
+            boxes: { s: 'chord', t: 'time' },
+            chips: [
+              { id: 'chord', label: metres(Number(sig(x.lap.chord))) },
+              { id: 'time', label: secs(LAP.t) },
+              { id: 'half', label: metres(LAP.round / 2), hint: 'That is half the track, the distance. Use the displacement.' },
+              { id: 'radius', label: `${sig(radiusOf(LAP.round))}${NB}m`, hint: 'That is the radius. Across half a lap is the diameter.' },
+            ],
+            result: { symbol: 'v', value: x.lap.right, unit: 'm s⁻¹', sf: 2 },
+          },
+          why: `The displacement is the diameter: ${fixed(LAP.round, 0)} ÷ π = ${metres(x.lap.chord)}. ${metres(x.lap.chord)} ÷ ${secs(LAP.t)} = ${speed(x.lap.right)}.`,
+        },
+      ],
     },
   ],
   youCanNow: [

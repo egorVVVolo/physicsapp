@@ -189,7 +189,7 @@ for (const lesson of Object.values(lessons)) {
   test(`${lesson.id}: starts with an intro and ends the story before the Skill check`, () => {
     assert.equal(lesson.story[0].kind, 'intro');
     assert.ok(lesson.skillCheck.length >= 3 && lesson.skillCheck.length <= 5);
-    assert.ok(lesson.skillCheck.every(isQuestion));
+    assert.ok(lesson.skillCheck.every((x) => isQuestion(x) || x.kind === 'examCard'));
   });
 
   test(`${lesson.id}: one focus per screen`, () => {
@@ -299,7 +299,7 @@ for (const lesson of Object.values(lessons)) {
 // ── Lesson format v3 (docs/LESSON_FRAMEWORK.md, 1c; docs/V2_PLAN.md, 2.2) ───────────────────
 
 /** Lessons rebuilt to format v3. Each one added here must pass every rule below. */
-const REVISED = new Set<string>([]);
+const REVISED = new Set<string>(['vectors-signs']);
 
 /** The kinds the learner does something with. */
 const INTERACTIVE = new Set<Screen['kind']>(['predict', 'choice', 'tapFig', 'explore', 'build', 'order', 'spotError', 'sort', 'estimate', 'worked', 'graphPick']);

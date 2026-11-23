@@ -3,31 +3,58 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { whichWayIsPositive as L, ANSWERS as X, BOUNCE, HIKE, LAP, RUN_A, RUN_B, SWIM, T, T_MID } from './which-way-is-positive.ts';
 import { tripPosition, tripVelocity } from '../physics/kinematics.ts';
-import type { OptionQuestion } from './types.ts';
+import type { BuildScreen, EstimateScreen, ExamCardScreen, OptionQuestion, SortScreen, SpotErrorScreen, WorkedScreen } from './types.ts';
 
 const all = [...L.story, ...L.skillCheck];
 const q = (id: string) => all.find((s) => s.id === id) as OptionQuestion;
 const label = (id: string, opt: string) => q(id).options.find((o) => o.id === opt)!.label;
 const right = (id: string) => q(id).options.find((o) => o.correct)!.id;
+const build = (id: string) => all.find((s) => s.id === id) as BuildScreen;
+const chip = (b: BuildScreen, id: string) => b.chips.find((c) => c.id === id)!.label;
+const spot = (id: string) => all.find((s) => s.id === id) as SpotErrorScreen;
 const NB = '\u00A0';
 const near = (a: number, b: number, tol = 1e-6) => assert.ok(Math.abs(a - b) <= tol, `expected ${b}, got ${a}`);
 
-test('runner A: 300 m east, 500 m west in 200 s; distance 800 m, displacement −200 m', () => {
+test('runner A: 300 m east, 500 m west in 200 s; distance 800 m, displacement −200 m (the estimate)', () => {
   near(X.out, 300);
   near(X.back, -500);
   near(X.distA, 800);
   near(X.dispA, -200);
-  assert.equal(right('displacement'), 'right');
-  assert.equal(label('displacement', 'right'), `200${NB}m west`);
-  assert.equal(label('displacement', 'path'), `800${NB}m west`);
+  const est = L.story.find((s) => s.id === 'finish') as EstimateScreen;
+  near(est.answer, tripPosition(T, RUN_A));
+  near(est.answer, -200);
+  assert.ok(est.scale.min <= -200 && est.scale.max >= 300, 'the scale holds both the finish and the turn');
+  assert.ok(est.after.kind === 'track' && est.after.play === true, 'checking plays the run');
 });
 
-test('average speed 4.0 m s⁻¹, average velocity −1.0 m s⁻¹; west positive flips only the sign', () => {
+test('average velocity is built from the displacement: −1.0 m s⁻¹; the wrong chips are named mistakes', () => {
   near(X.avgSpeedA, 4);
   near(X.avgVelA, -1);
-  assert.equal(label('avg-velocity', 'right'), `−1.0${NB}m${NB}s⁻¹`);
-  assert.equal(label('avg-velocity', 'speed'), `+4.0${NB}m${NB}s⁻¹`);
+  const b = build('avg-velocity');
+  assert.deepEqual(b.boxes, { s: 'disp', t: 'time' });
+  assert.equal(chip(b, 'disp'), `−200${NB}m`);
+  assert.equal(chip(b, 'time'), `200${NB}s`);
+  assert.equal(chip(b, 'path'), `800${NB}m`);
+  assert.equal(chip(b, 'plus'), `+200${NB}m`);
+  near(b.result.value, X.dispA / T);
   assert.equal(label('flip', 'right'), `+1.0${NB}m${NB}s⁻¹`);
+  assert.equal(label('flip', 'speed'), `+4.0${NB}m${NB}s⁻¹`);
+});
+
+test('the sort: every quantity is in its right bin', () => {
+  const sort = L.story.find((s) => s.id === 'quantities') as SortScreen;
+  const bin = (id: string) => sort.items.find((i) => i.id === id)!.bin;
+  for (const id of ['distance', 'speed', 'time']) assert.equal(bin(id), 'scalar', id);
+  for (const id of ['displacement', 'velocity', 'acceleration']) assert.equal(bin(id), 'vector', id);
+});
+
+test("Noor's mistake: she divided the distance, 800 m ÷ 200 s = 4.0 m s⁻¹, the average speed", () => {
+  const w = spot('working');
+  const wrong = w.lines.find((l) => l.wrong)!;
+  assert.equal(wrong.id, 'calc');
+  assert.ok(wrong.text.includes(`800${NB}m`) && wrong.text.includes(`+4.0${NB}m${NB}s⁻¹`));
+  assert.ok(wrong.fix!.includes(`−1.0${NB}m${NB}s⁻¹`));
+  near(X.distA / T, 4);
 });
 
 test('the puzzle: both runners have the same average velocity, and A catches B exactly at the finish', () => {
@@ -42,7 +69,6 @@ test('the puzzle: both runners have the same average velocity, and A catches B e
 test('at 120 s both move west; runner A is the faster one', () => {
   near(X.vA, tripVelocity(T_MID, RUN_A));
   assert.ok(X.vA < 0 && X.vB < 0 && Math.abs(X.vA) > Math.abs(X.vB));
-  assert.equal(right('faster'), 'A');
 });
 
 test('runner A is back at the lamp post at 150 s, after 600 m', () => {
@@ -53,25 +79,49 @@ test('runner A is back at the lamp post at 150 s, after 600 m', () => {
   assert.ok(scrub.kind === 'explore' && scrub.question.options.find((o) => o.correct)!.label === `At 150${NB}s`);
 });
 
-test('the hiker: 5.0 km at 53° east of north (7.0 km walked)', () => {
+test('the hiker: 5.0 km at 53° east of north (7.0 km walked), worked through then asked about the bearing', () => {
   near(X.hike.right, Math.hypot(HIKE.north, HIKE.east));
   near(X.hike.right, 5);
   near(X.hike.angle, (Math.atan(HIKE.east / HIKE.north) * 180) / Math.PI);
-  assert.equal(label('hiker', 'right'), `5.0${NB}km`);
-  assert.equal(label('hiker', 'added'), `7.0${NB}km`);
+  const w = L.story.find((s) => s.id === 'hiker') as WorkedScreen;
+  assert.equal(w.kind, 'worked');
+  const opt = (id: string) => w.last!.options.find((o) => o.id === id)!;
+  assert.equal(opt('right').label, `5.0${NB}km`);
+  assert.ok(opt('right').correct);
+  assert.equal(opt('added').label, `7.0${NB}km`);
   assert.equal(label('bearing', 'right'), '53° east of north');
   assert.equal(label('bearing', 'from-east'), '37° east of north');
 });
 
-test('Skill check: half lap 3.2 m s⁻¹, river 1.5 m s⁻¹, bounce −10.0 m s⁻¹, mass is the scalar', () => {
-  near(X.lap.chord, LAP.round / Math.PI, 1e-9);
-  assert.equal(label('half-lap', 'right'), `3.2${NB}m${NB}s⁻¹`);
-  assert.equal(label('half-lap', 'speed'), `5.0${NB}m${NB}s⁻¹`);
+test('Skill check: river 1.5 m s⁻¹ (built), bounce −10.0 m s⁻¹ (the −2.0 line is wrong), braking west is a positive acceleration', () => {
   near(X.swim.right, Math.hypot(SWIM.across, SWIM.current));
-  assert.equal(label('river', 'right'), `1.5${NB}m${NB}s⁻¹`);
+  const r = build('river');
+  assert.equal(r.result.value, X.swim.right);
+  assert.equal(chip(r, 'across'), `1.2${NB}m${NB}s⁻¹`);
+  assert.equal(chip(r, 'current'), `0.9${NB}m${NB}s⁻¹`);
+  assert.equal(chip(r, 'added'), `2.1${NB}m${NB}s⁻¹`);
   near(X.bounce.right, BOUNCE.v - BOUNCE.u);
-  assert.equal(label('bounce', 'right'), `−10.0${NB}m${NB}s⁻¹`);
-  assert.equal(right('scalar-q'), 'mass');
+  near(X.bounce.sizes, -2);
+  const wrong = spot('bounce').lines.find((l) => l.wrong)!;
+  assert.ok(wrong.text.includes(`−2.0${NB}m${NB}s⁻¹`) && wrong.fix!.includes(`−10.0${NB}m${NB}s⁻¹`));
+  assert.equal(right('brake-sign'), 'right');
+  // the sign of the acceleration of a cyclist braking from west-moving to rest
+  assert.ok((0 - -5) / 3 > 0);
+});
+
+test('the exam card: half a lap, displacement is the diameter, 3.2 m s⁻¹, 2 marks for 2 boxes', () => {
+  near(X.lap.chord, LAP.round / Math.PI, 1e-9);
+  const card = L.skillCheck.find((s) => s.id === 'half-lap') as ExamCardScreen;
+  assert.equal(card.kind, 'examCard');
+  const b = card.parts.find((p) => p.id === 'b')!;
+  assert.ok(b.kind === 'build');
+  if (b.kind === 'build') {
+    assert.equal(b.build.chips.find((c) => c.id === 'chord')!.label, `127${NB}m`);
+    assert.equal(b.build.chips.find((c) => c.id === 'half')!.label, `200${NB}m`);
+    near(b.build.result.value, X.lap.right);
+  }
+  assert.equal(`${X.lap.right.toFixed(1)}`, '3.2');
+  assert.equal(card.parts.reduce((n, p) => n + p.marks, 0), 3);
 });
 
 test('every option label is different within a question', () => {

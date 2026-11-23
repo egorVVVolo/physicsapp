@@ -66,3 +66,21 @@ All numbers from `src/physics/` (the runs are `Trip`s of steady velocity in `kin
 - Level: is the start (distance vs displacement) too easy for a strong student? It is quick and leads straight into the puzzle and the sign traps.
 - The runners are small standing figures that slide along the track (no running animation).
 - Point 6 "any angle by drawing" is only told (rules screen), not practised: a drag-to-draw scale drawing would need a new kind of screen.
+
+## v3 changes (23 Nov)
+
+Pilot lesson of format v3 (task D1). The puzzle, its answer and the recap are unchanged. 15 screens + 4 Skill check; chapters: *The puzzle* → *Signs and arrows* → *Back to the runners*; cast: Noor.
+
+| Was | Now |
+|---|---|
+| text "scalar / vector" | **sort** `quantities`: Scalar / Vector — distance, displacement, speed, velocity, time, acceleration |
+| choice "what is A's displacement?" + text "Sped up 20 times…" | **estimate** `finish`: drag to where A finishes (−400…+400 m, answer −200 m from `tripPosition`, tolerance 20 m); checking plays the race |
+| choice "A's average velocity?" | **build** `v = {s} ÷ {t}`; chips −200 m, 200 s, 800 m (the distance), +200 m (the sign), 300 m (one leg); result −1.0 m s⁻¹ |
+| — | **spotError** `working`: Noor divides the distance, 800 ÷ 200 = +4.0 (the average speed) |
+| choice "who is moving faster?" | removed (speed vs velocity is now the sort and the spotError) |
+| text "plane" + choice "how far is the hiker?" | text `plane` with a figure + **worked** example `hiker` (tip to tail, Pythagoras, last line picked) |
+| puzzle revisit in the middle | the revisit now opens chapter 3 (`Back to the two runners.`), followed by the explore slider |
+
+Skill check: **build** the swimmer's resultant (was a choice with four numbers), **spotError** for the wall bounce (the working uses sizes, −2.0 instead of −10.0), **choice** on the sign of the acceleration of a cyclist braking while riding west (options differ by idea), **exam card** on the half lap: (a) State the difference between distance and displacement [1], (b) Calculate the size of the average velocity [2] (build, 127 m ÷ 40 s = 3.2 m s⁻¹).
+
+Deviations from the task text: the hiker (3 + 4 km) became the worked example in the story, so the Skill check build uses the swimmer instead; the "choice" rule needed one more non-choice interactive screen, hence the worked example.
