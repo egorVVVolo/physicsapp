@@ -1173,9 +1173,10 @@ export type Lesson = {
   story: Screen[];
   /** Three chapters of the story; `from` is the id of a chapter's first screen (the first chapter starts at the intro). */
   chapters?: { title: string; from: string }[];
-  /** Exam-level questions at the end: one try each, "Why?" only after the answer. */
-  /** Graded questions; an exam-style card may come last. */
+  /** Exam-level questions at the end: one try each, "Why?" only after the answer. An exam-style card may come last. */
   skillCheck: (Question | ExamCardScreen)[];
+  /** The people in the lesson's story (format v3: no name is reused in another lesson). */
+  cast?: string[];
   youCanNow: string[];
   /** The last screen: the puzzle, solved, as one figure with one sentence. */
   recap: { fig: Fig; text: string };

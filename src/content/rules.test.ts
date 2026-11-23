@@ -1,10 +1,11 @@
-// Writing rules for every lesson (docs/LESSON_FRAMEWORK.md, "Decisions of 11 Nov, night").
+// Writing rules for every lesson (docs/LESSON_FRAMEWORK.md, "Decisions of 11 Nov, night"), and the stricter
+// format v3 (section 1c) for the lessons already rebuilt to it (REVISED).
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { lessons } from './lessons.ts';
 import { samples } from './samples.ts';
 import { boxesOf } from '../session/build.ts';
-import { ACC_IDS, BEAM_IDS, CANDIDATE_IDS, COMPARE_IDS, SKETCH_IDS, EQUATION_IDS, FLOW_IDS, LADDER_IDS, PAIR_IDS, POLE_IDS, SLEDGE_IDS, isQuestion, type BuildScreen, type Fig, type OrderScreen, type Screen, type EstimateScreen, type ExamCardScreen, type GraphPickScreen, type SortScreen, type SpotErrorScreen, type WorkedScreen } from './types.ts';
+import { ACC_IDS, type Lesson, type Question, BEAM_IDS, CANDIDATE_IDS, COMPARE_IDS, SKETCH_IDS, EQUATION_IDS, FLOW_IDS, LADDER_IDS, PAIR_IDS, POLE_IDS, SLEDGE_IDS, isQuestion, type BuildScreen, type Fig, type OrderScreen, type Screen, type EstimateScreen, type ExamCardScreen, type GraphPickScreen, type SortScreen, type SpotErrorScreen, type WorkedScreen } from './types.ts';
 
 // **key words** are bold on screen: the stars do not count, but they must come in pairs
 const max = (text: string, n: number, where: string) => {
@@ -294,3 +295,93 @@ for (const lesson of Object.values(lessons)) {
     });
   });
 }
+
+// ── Lesson format v3 (docs/LESSON_FRAMEWORK.md, 1c; docs/V2_PLAN.md, 2.2) ───────────────────
+
+/** Lessons rebuilt to format v3. Each one added here must pass every rule below. */
+const REVISED = new Set<string>([]);
+
+/** The kinds the learner does something with. */
+const INTERACTIVE = new Set<Screen['kind']>(['predict', 'choice', 'tapFig', 'explore', 'build', 'order', 'spotError', 'sort', 'estimate', 'worked', 'graphPick']);
+const SECOND_IN_CHECK = new Set<Screen['kind']>(['order', 'spotError', 'sort', 'graphPick']);
+
+/** "471 J", "−1.0 m s⁻¹", "3.06 × 10⁸ Pa": a number with at most a unit (no word of four or more letters). */
+const isNumberLabel = (label: string) => /^[−+-]?\d/.test(label.trim()) && !/[A-Za-z]{4,}/.test(label);
+
+/**
+ * Every way a lesson breaks format v3, each message starting with its rule's key.
+ * `others`: the other revised lessons (their names must not come back).
+ */
+function v3Problems(lesson: Lesson, others: Lesson[] = []): string[] {
+  const out: string[] = [];
+  const story = lesson.story;
+  const kinds = story.map((s) => s.kind);
+  const interactive = story.filter((s) => INTERACTIVE.has(s.kind));
+  if (story.length < 12 || story.length > 16) out.push(`length: the story has ${story.length} screens, not 12–16`);
+  const variety = new Set(interactive.map((s) => s.kind)).size;
+  if (variety < 5) out.push(`variety: ${variety} interactive kinds in the story, at least 5`);
+  const choices = interactive.filter((s) => s.kind === 'choice').length;
+  if (interactive.length > 0 && choices / interactive.length > 0.35) out.push(`choice: ${choices} of ${interactive.length} interactive screens are choice (at most 35 %)`);
+  for (let i = 2; i < kinds.length; i++) if (kinds[i] === kinds[i - 1] && kinds[i] === kinds[i - 2]) out.push(`row: three ${kinds[i]} screens in a row at ${story[i].id}`);
+  const textOnly = story.filter((s) => s.kind === 'text' && !s.fig).length;
+  if (textOnly > 3) out.push(`text: ${textOnly} text screens without a figure, at most 3`);
+  const check = lesson.skillCheck;
+  if (check.length !== 4) out.push(`check: the Skill check has ${check.length} questions, not 4`);
+  else {
+    const last = check[3];
+    if (last.kind !== 'examCard') out.push('check: the last Skill check question is not an exam-style card');
+    else if (last.parts.length !== 2) out.push(`check: the exam-style card has ${last.parts.length} parts, not 2`);
+    const first3 = check.slice(0, 3);
+    if (first3.filter((s) => s.kind === 'build').length !== 1) out.push('check: one build in the Skill check');
+    if (first3.filter((s) => SECOND_IN_CHECK.has(s.kind)).length !== 1) out.push('check: one order, spotError, sort or graphPick in the Skill check');
+    if (first3.filter((s) => s.kind === 'choice' || s.kind === 'tapFig').length !== 1) out.push('check: one choice or tapFig in the Skill check');
+  }
+  const numberChoices = [...story, ...check].filter((s) => s.kind === 'choice' && s.options.every((o) => isNumberLabel(o.label)));
+  if (numberChoices.length > 1) out.push(`numbers: ${numberChoices.length} choices whose options are all numbers, at most 1 (${numberChoices.map((s) => s.id).join(', ')})`);
+  for (const s of story) if (s.kind === 'predict' && s.options[s.options.length - 1]?.id !== 'unsure') out.push(`unsure: ${s.id} has no "I'm not sure" last`);
+  if ((lesson.chapters ?? []).length !== 3) out.push(`chapters: ${(lesson.chapters ?? []).length} chapters, not 3`);
+  if (!lesson.cast?.length) out.push('cast: the lesson lists no cast');
+  const taken = new Set(others.flatMap((o) => o.cast ?? []));
+  for (const name of lesson.cast ?? []) if (taken.has(name)) out.push(`cast: ${name} is already in another lesson`);
+  return out;
+}
+
+for (const id of REVISED) {
+  test(`${id}: follows lesson format v3`, () => {
+    const lesson = lessons[id];
+    assert.ok(lesson, `${id} is a lesson`);
+    const others = [...REVISED].filter((x) => x !== id).map((x) => lessons[x]);
+    assert.deepEqual(v3Problems(lesson, others), []);
+  });
+}
+
+test('the v3 rules catch every kind of break', () => {
+  const choice = (id: string, labels: string[]): Question => ({ id, kind: 'choice', prompt: '?', options: labels.map((label, i) => ({ id: `o${i}`, label, ...(i === 0 ? { correct: true as const } : {}) })), why: '' });
+  const text = (id: string): Screen => ({ id, kind: 'text', body: ['x'] });
+  const bad: Lesson = {
+    id: 'bad',
+    title: 'Bad',
+    spec: [],
+    minutes: 10,
+    story: [
+      { id: 'intro', kind: 'intro', title: 'x', body: 'x', fig: { kind: 'vt', phases: [] } },
+      { id: 'p', kind: 'predict', prompt: '?', options: [{ id: 'a', label: 'a', correct: true }, { id: 'b', label: 'b' }], after: 'Go' },
+      text('t1'),
+      text('t2'),
+      text('t3'),
+      text('t4'),
+      choice('c1', ['1.0 m', '2.0 m']),
+      choice('c2', ['3.0 J', '4.0 J']),
+      choice('c3', ['Up', 'Down']),
+    ],
+    chapters: [{ title: 'one', from: 'intro' }],
+    skillCheck: [choice('k1', ['up', 'down'])],
+    youCanNow: [],
+    recap: { fig: { kind: 'vt', phases: [] }, text: '' },
+    card: { formula: '', idea: '' },
+    cast: ['Omar'],
+  };
+  const keys = new Set(v3Problems(bad, [{ ...bad, id: 'other', cast: ['Omar'] }]).map((m) => m.split(':')[0]));
+  for (const key of ['length', 'variety', 'choice', 'row', 'text', 'check', 'numbers', 'unsure', 'chapters', 'cast']) assert.ok(keys.has(key), `the rule "${key}" is caught`);
+  assert.ok(isNumberLabel('471 J') && isNumberLabel('3.06 × 10⁸ Pa') && isNumberLabel('−1.0 m s⁻¹') && !isNumberLabel('20.0 m behind') && !isNumberLabel('Up'));
+});

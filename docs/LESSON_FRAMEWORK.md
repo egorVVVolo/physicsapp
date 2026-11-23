@@ -11,6 +11,37 @@ Every lesson is built from this framework: one idea per lesson, split into sessi
 - **Language:** lesson content in English; this framework is the source of truth for structure, step types, visuals and exam alignment.
 - **Scope:** written for Kinematics (Edexcel IAL Unit 1, WPH11), designed to reuse for every later module.
 
+## 1c. Lesson format v3 (22 Nov 2026)
+
+**Supersedes 1b where it conflicts.** Owner's decisions (plan: `docs/V2_PLAN.md`, section 2): flat fills in figures; the app does the arithmetic (the learner builds the solution, there is no typing of numbers); a lesson takes 10–12 minutes. A lesson moves to v3 when its id is added to `REVISED` in `src/content/rules.test.ts`; from then on the test checks every rule below (`v3Problems`), and a synthetic lesson in the same file proves each rule is caught.
+
+**Rules (checked by the test):**
+- **length** — the story has 12–16 screens; the Skill check exactly 4.
+- **variety** — at least 5 different interactive kinds in the story (predict, choice, tapFig, explore, build, order, spotError, sort, estimate, worked, graphPick).
+- **choice** — at most 35 % of the story's interactive screens.
+- **row** — never three screens of the same kind in a row.
+- **text** — at most 3 text screens without their own figure (the others carry the last figure, small and still).
+- **check** — the Skill check is one `build`, one of `order / spotError / sort / graphPick`, one `choice` or `tapFig` whose options differ by idea, and last an `examCard` with 2 parts.
+- **numbers** — at most one choice per lesson whose options are all numbers.
+- **unsure** — every predict ends with "I'm not sure" (`id: 'unsure'`).
+- **chapters** — exactly 3: the puzzle → building the idea → back to the puzzle (`chapters`); the Skill check stands apart.
+- **cast** — the lesson lists its people (`cast`); no name comes back in another revised lesson (Rose in Forces is a deliberate link: give her lessons one shared entry when that comes up).
+
+Also (not checked automatically): options are shuffled per screen (A1); data are picked so results come out in 2–3 significant figures where the physics allows (g stays 9.81).
+
+**New step kinds** (each has a live sample on the hidden page `/gallery/steps`, content in `src/content/samples.ts`):
+
+| Kind | The learner | For | Checked |
+|---|---|---|---|
+| `build` | picks the equation (optional), taps value chips into its boxes; the app computes and counts the result up | every calculation | each box; a wrong chip shakes with its hint |
+| `order` | taps 3–5 statements into numbered rows | "Explain" chains, the steps of a practical | the first wrong row and all after it, with a hint |
+| `spotError` | taps the one wrong line of a 3–5 line solution | classic mistakes | the exact line; its fix slides in |
+| `sort` | taps an item, then one of 2–3 bins | scalar/vector, work/no work, elastic/plastic | every item in place; wrong ones shake and go back |
+| `estimate` | drags a ruler to a guess; Check plays the truth and drops its mark with the tolerance band | intuition before the calculation | within the tolerance (`estimateOutcome`) |
+| `worked` | opens a solution step by step, may pick the last line | a model before a build | not counted |
+| `graphPick` | flips through graphs A · B · C, one full sheet at a time (segments or swipe) | motion, force–extension, stress–strain graphs | the exact graph |
+| `examCard` | answers parts (a), (b) with command words and marks, one try each | the last Skill check question | per part; marks kept in the run |
+
 ## 1b. Lesson format v2: decisions of 11 Nov 2026, night (supersedes everything below where it conflicts)
 
 The owner played the Blueprint L4 and rejected both the lessons and the look, then sent 60 screenshots of Brilliant. What we take from them:
@@ -178,7 +209,7 @@ Six step types cover the first build; a session should use at least three of the
 | `numeric` | Enters a value and picks a unit, with a built-in calculator | Exam-format steps only | Value within tolerance + unit | Calculator view; layout decided on the first build |
 | `exam-card` | Answers a full exam-style question (command word bold, marks shown) | Exam workout | Per part | A wrapper: each part (a), (b) is one of the types above |
 
-`build-solution` is built (type name `build` in `src/content/types.ts`, state machine in `src/session/build.ts`, view in `src/steps/BuildStepView.tsx`). Stages: pick the equation → fill the signed values into the equation itself (tap a box, then a chip) → choose the root or read the sign. The app solves. A wrong value is marked in its box and plays as a ghost (the motion the wrong numbers describe); all signs flipped is a note, not an error. Exam format (`exam` field): one attempt per part, a miss loses the mark and the part is corrected for the learner. Checked in the web version at 375×667; **not yet played on a phone**.
+**22–23 Nov 2026:** `build` was rebuilt for format v3 (section 1c): pure logic in `src/session/build.ts` (new), view `src/lesson/screens/BuildView.tsx`; `graph-pick`, `spot-error` and `exam-card` now exist as `graphPick`, `spotError`, `examCard`. **`numeric` is dropped by the owner's decision: the learner never types numbers.** The paragraph below describes the older build of 10 Nov. `build-solution` is built (type name `build` in `src/content/types.ts`, state machine in `src/session/build.ts`, view in `src/steps/BuildStepView.tsx`). Stages: pick the equation → fill the signed values into the equation itself (tap a box, then a chip) → choose the root or read the sign. The app solves. A wrong value is marked in its box and plays as a ghost (the motion the wrong numbers describe); all signs flipped is a note, not an error. Exam format (`exam` field): one attempt per part, a miss loses the mark and the part is corrected for the learner. Checked in the web version at 375×667; **not yet played on a phone**.
 
 **Added later, when a lesson needs them:** free scene exploration, drag-to-target, graph sketching, tapping knowns in the text, ordering a reasoning chain. They were in the original list of twelve; several do not fit one phone screen as first specified.
 
