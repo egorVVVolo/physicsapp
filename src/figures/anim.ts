@@ -102,16 +102,23 @@ export function useTween(target: number, from?: number, ms = 420, delay = 0): nu
 }
 
 /**
+ * The sheet's replay counter: the Replay button adds one, and every clip on the sheet (useLoopTime, useOnceTime)
+ * starts again from 0. Outside a sheet it stays 0.
+ */
+export const SheetReplay = createContext(0);
+
+/**
  * Time in seconds inside a repeating clip: runs 0 → `length`, holds the last frame for `hold`, starts again.
  * `running` false pauses on the current frame; a new `restartKey` goes back to 0.
  */
 export function useLoopTime(running: boolean, length: number, restartKey: unknown, hold = 0.7): number {
+  const replay = useContext(SheetReplay);
   const [t, setT] = useState(0);
   const time = useRef(0);
   useEffect(() => {
     time.current = 0;
     setT(0);
-  }, [restartKey]);
+  }, [restartKey, replay]);
   useEffect(() => {
     if (!running || length <= 0) return;
     let raf = 0;
@@ -125,7 +132,7 @@ export function useLoopTime(running: boolean, length: number, restartKey: unknow
     };
     raf = requestAnimationFrame(step);
     return () => cancelAnimationFrame(raf);
-  }, [running, length, hold, restartKey]);
+  }, [running, length, hold, restartKey, replay]);
   return t;
 }
 
@@ -158,8 +165,10 @@ export function useWave(period = 1.6, running = true): number {
  * Seconds since the component appeared (or since `start` became true), counting up to `length` once and then staying there.
  * Reduced motion, or `done` (the figure was already on the screen before): `length` at once.
  */
-export function useOnceTime(length: number, start = true, done = false): number {
+export function useOnceTime(length: number, start = true, doneIn = false): number {
   const reduced = useReducedMotionPref();
+  const replay = useContext(SheetReplay);
+  const done = doneIn && replay === 0; // a replay plays it even if it was already on the screen before
   const [t, setT] = useState(done ? length : 0);
   useEffect(() => {
     if (reduced || done) {
@@ -176,7 +185,7 @@ export function useOnceTime(length: number, start = true, done = false): number 
     };
     raf = requestAnimationFrame(step);
     return () => cancelAnimationFrame(raf);
-  }, [length, reduced, start, done]);
+  }, [length, reduced, start, done, replay]);
   return t;
 }
 

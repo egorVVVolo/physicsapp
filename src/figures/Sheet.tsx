@@ -13,7 +13,7 @@ import { LIFT_VB, LiftFigure, liftMoves, liftParams, liftShiftX, liftTargets, Sh
 import { LIFT_PAIR_VB, LiftPairFigure } from './LiftPairFigure';
 import { SCALES_VB, ScalesFigure } from './ScalesFigure';
 import { PAIRS_MAX_H, PAIRS_VB, PairsFigure, pairsTargets } from './PairsFigure';
-import { LessonFigs, SharedSheet, useDrawIn, useFirstShow, useTween } from './anim';
+import { LessonFigs, SharedSheet, SheetReplay, useDrawIn, useFirstShow, useTween } from './anim';
 import { VT_VB, VtFigure, vtTargets } from './VtFigure';
 import { THROW_VB, ThrowFigure, throwParams, throwPlays, throwTargets } from './ThrowFigure';
 import { FALL_VB, FallGraphFigure, THROW_VT_VB, ThrowVtFigure } from './ThrowGraphs';
@@ -97,6 +97,9 @@ const STYLE_2 = new Set<Fig['kind']>([
   'spring', 'wire', 'material', 'launcher',
 ]);
 
+/** Moving figures with no clip to start again: endless flows, or figures that keep their own clock (see C11). */
+const NO_REPLAY: Fig['kind'][] = ['lift', 'liftPair', 'flow', 'ride', 'winch', 'spring'];
+
 /** Every figure is drawn at the same size on every screen, so the drawing never jumps between screens. */
 const MAX_H = 270;
 /** A compact sheet is at most this share of the full height. */
@@ -114,6 +117,7 @@ export function Sheet({ fig, n, live, tap: tapIn, caption, compact = false, stil
   const prev = shared && shared.prev.kind === fig.kind ? shared.prev : undefined;
   const [width, setWidth] = useState(prev && shared ? shared.width : 0);
   const [playing, setPlaying] = useState(true);
+  const [replays, setReplays] = useState(0);
   const reduced = useReducedMotionPref();
   // the first figure of each kind in a lesson draws itself; the pen starts once the sheet knows its size
   const first = useFirstShow(fig.kind);
@@ -136,6 +140,9 @@ export function Sheet({ fig, n, live, tap: tapIn, caption, compact = false, stil
   const scale = w / vb.w;
   const animates = !reduced && ((fig.kind === 'lift' && liftMoves(fig, aNow)) || fig.kind === 'scales' || (fig.kind === 'throw' && throwPlays(fig)) || (fig.kind === 'road' && roadPlays(fig)) || (fig.kind === 'chase' && chasePlays(fig)) || (fig.kind === 'track' && trackPlays(fig) && live === undefined) || (fig.kind === 'bench' && benchPlays(fig) && live === undefined) || (fig.kind === 'kick' && kickPlays(fig) && live === undefined) || (fig.kind === 'crate' && cratePlays(fig) && (live === undefined || cratePlaysLive(fig))) || (fig.kind === 'pulley' && pulleyPlays(fig)) || (fig.kind === 'fall' && fallPlays(fig) && live === undefined) || (fig.kind === 'wall' && wallPlays(fig)) || (fig.kind === 'collide' && collidePlays(fig)) || (fig.kind === 'platform' && platformPlays(fig) && live === undefined) || (fig.kind === 'kinetic' && kineticPlays(fig)) || (fig.kind === 'cliff' && cliffPlays(fig) && live === undefined) || (fig.kind === 'slide' && slidePlays(fig) && live === undefined) || (fig.kind === 'ride' && ridePlays(fig)) || (fig.kind === 'winch' && (winchPlays(fig) || live !== undefined)) || (fig.kind === 'tank' && tankPlays(fig)) || (fig.kind === 'tube' && (tubePlays(fig) || live !== undefined)) || fig.kind === 'flow' || (fig.kind === 'spanner' && spannerPlays(fig, live)) || (fig.kind === 'bar' && barPlays(fig)) || (fig.kind === 'launcher' && launcherPlays(fig, live)) || (fig.kind === 'material' && materialPlays(fig, live)) || (fig.kind === 'spring' && live !== undefined));
   const run = playing && !reduced && !still;
+  // a clip with a start (not an endless flow or a figure with its own clock) can be played again from 0
+  const oncePlays = (fig.kind === 'vectors' || fig.kind === 'resolve' || fig.kind === 'broom') && fig.play === true;
+  const replayable = !reduced && !still && ((animates && !NO_REPLAY.includes(fig.kind)) || oncePlays);
   const targets = !tap ? [] : fig.kind === 'lift' ? liftTargets(fig) : fig.kind === 'pairs' ? pairsTargets() : fig.kind === 'vt' ? vtTargets(fig) : fig.kind === 'throw' ? throwTargets(fig) : fig.kind === 'equations' ? equationsTargets(fig) : fig.kind === 'graph' ? graphTargets(fig) : fig.kind === 'sledge' ? sledgeTargets(fig, live) : fig.kind === 'ladder' ? ladderTargets(fig) : fig.kind === 'pole' ? poleTargets(fig) : fig.kind === 'beam' ? beamTargets(fig) : fig.kind === 'flow' ? flowTargets() : fig.kind === 'spring' ? springTargets(fig) : fig.kind === 'material' ? materialTargets(fig) : [];
   const params = caption ?? paramsOf(fig, aNow, live);
 
@@ -146,12 +153,28 @@ export function Sheet({ fig, n, live, tap: tapIn, caption, compact = false, stil
         <Text style={[styles.params, { color: p.label }]} numberOfLines={1}>
           {params}
         </Text>
+        {replayable && (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Replay"
+            onPress={() => {
+              setReplays((n) => n + 1);
+              setPlaying(true);
+            }}
+            hitSlop={{ top: 12, bottom: 12, left: 12, right: 6 }}
+            style={[styles.play, { borderColor: p.paperLine }]}
+          >
+            <Svg width={14} height={14} viewBox="0 0 24 24">
+              <Path d="M5.5,12 A6.5,6.5 0 1 0 8,7 M4.5,4.5 V8.5 H8.5" fill="none" stroke={p.label} strokeWidth={2.4} strokeLinecap="round" strokeLinejoin="round" />
+            </Svg>
+          </Pressable>
+        )}
         {animates && !still && (
           <Pressable
             accessibilityRole="button"
             accessibilityLabel={playing ? 'Pause the animation' : 'Play the animation'}
             onPress={() => setPlaying((x) => !x)}
-            hitSlop={12}
+            hitSlop={{ top: 12, bottom: 12, left: replayable ? 6 : 12, right: 12 }}
             style={[styles.play, { borderColor: p.paperLine }]}
           >
             <Svg width={12} height={12} viewBox="0 0 12 12">
@@ -179,6 +202,7 @@ export function Sheet({ fig, n, live, tap: tapIn, caption, compact = false, stil
           <View style={{ width: w, height: h, alignSelf: 'center' }}>
             <Svg width={w} height={h} viewBox={`0 0 ${vb.w} ${vb.h}`}>
               {/* labels grow to stay readable on a full sheet; a compact sheet is only a reminder and keeps the drawing's proportions */}
+              <SheetReplay.Provider value={replays}>
               <SheetScale.Provider value={STYLE_2.has(fig.kind) && !classic && !compact ? scale : 0}>
               {fig.kind === 'lift' && <LiftFigure fig={fig} a={aNow} tap={tap} clock={clock} prev={prev?.kind === 'lift' ? prev : undefined} shift={shift} />}
               {fig.kind === 'scales' && <ScalesFigure fig={fig} playing={run} clock={clock} />}
@@ -230,6 +254,7 @@ export function Sheet({ fig, n, live, tap: tapIn, caption, compact = false, stil
               {fig.kind === 'material' && <MaterialFigure fig={fig} live={live} tap={tap} playing={run} clock={clock} />}
               {fig.kind === 'launcher' && <LauncherFigure fig={fig} live={live} playing={run} clock={clock} />}
               </SheetScale.Provider>
+              </SheetReplay.Provider>
             </Svg>
             {fig.kind === 'lift' && <ShaftMarks fig={fig} a={aNow} scale={scale} playing={run} clock={clock} shift={shift} />}
             {targets.map((t) => (
