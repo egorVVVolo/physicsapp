@@ -93,6 +93,8 @@ const STYLE_2 = new Set<Fig['kind']>([
   'platform', 'ramp', 'kinetic', 'height', 'cliff', 'slide', 'ride', 'winch',
   // Fluids (C7)
   'tank', 'dunk', 'tube', 'flow',
+  // Materials (C8)
+  'spring', 'wire', 'material', 'launcher',
 ]);
 
 /** Every figure is drawn at the same size on every screen, so the drawing never jumps between screens. */
@@ -176,7 +178,8 @@ export function Sheet({ fig, n, live, tap: tapIn, caption, compact = false, stil
         {width > 0 && (
           <View style={{ width: w, height: h, alignSelf: 'center' }}>
             <Svg width={w} height={h} viewBox={`0 0 ${vb.w} ${vb.h}`}>
-              <SheetScale.Provider value={STYLE_2.has(fig.kind) && !classic ? scale : 0}>
+              {/* labels grow to stay readable on a full sheet; a compact sheet is only a reminder and keeps the drawing's proportions */}
+              <SheetScale.Provider value={STYLE_2.has(fig.kind) && !classic && !compact ? scale : 0}>
               {fig.kind === 'lift' && <LiftFigure fig={fig} a={aNow} tap={tap} clock={clock} prev={prev?.kind === 'lift' ? prev : undefined} shift={shift} />}
               {fig.kind === 'scales' && <ScalesFigure fig={fig} playing={run} clock={clock} />}
               {fig.kind === 'liftPair' && <LiftPairFigure fig={fig} playing={!reduced && !still} />}

@@ -14,7 +14,7 @@ import { stroke } from '@/theme/tokens';
 import { useReducedMotionPref } from '@/ui/parts';
 import { phaseOf, STILL, useLoopTime, type DrawClock } from './anim';
 import { Hatch, MonoLabel } from './draw';
-import { Dim, Ruler, stage, type RulerTick } from './kit';
+import { Dim, Ruler, stage, type RulerTick, Rows } from './kit';
 
 export const TANK_VB = { w: 340, h: 230 };
 
@@ -231,13 +231,7 @@ function Panel({ fig, n, dropped, level }: { fig: TankFig; n: Num; dropped: bool
   return (
     <Group>
       <MonoLabel x={x} y={58} text={title} color={p.label} size={9} anchor="start" />
-      {rows.map(([k, val, strong], i) => (
-        <Group key={k}>
-          <MonoLabel x={x} y={84 + i * 26} text={k} color={p.label} size={8.5} anchor="start" />
-          <MonoLabel x={right} y={84 + i * 26} text={val} color={p.ink} size={strong ? 11 : 10} anchor="end" />
-          <Line x1={x} y1={91 + i * 26} x2={right} y2={91 + i * 26} stroke={p.paperLine} strokeWidth={stroke.hair} />
-        </Group>
-      ))}
+      <Rows rows={rows.map(([k, val, strong]) => [k, val, undefined, strong])} x={x} right={right} y0={84} step={26} />
     </Group>
   );
 }

@@ -9,8 +9,9 @@ import { fixed, sci } from '@/physics/format';
 import { COPPER, loadingStress, permanentStrain } from '@/physics/materials';
 import type { MaterialFig } from '@/content/types';
 import { useTheme } from '@/theme/ThemeContext';
+import { stroke } from '@/theme/tokens';
 import { STILL, type DrawClock } from './anim';
-import { MonoLabel } from './draw';
+import { MonoLabel, useLineStep } from './draw';
 import type { TapProps, TapTarget } from './Sheet';
 import { stage, TapBoxes } from './kit';
 
@@ -39,7 +40,7 @@ const lx = (e: number) => LB.x1 + (e / LB.eMax) * (LB.x2 - LB.x1); // e in 10⁻
 const ly = (mpa: number) => LB.y2 - (mpa / LB.sMax) * (LB.y2 - LB.y1);
 
 function Loop({ fig, live, clock }: { fig: MaterialFig; live?: number; clock: DrawClock }) {
-  const { palette: p } = useTheme();
+  const { palette: p, material: m } = useTheme();
   const reach = live ?? fig.reach ?? 5; // 10⁻³
   const unloading = live !== undefined || fig.unload === true;
   const yieldE = COPPER.yieldStrain * 1e3;
@@ -60,8 +61,8 @@ function Loop({ fig, live, clock }: { fig: MaterialFig; live?: number; clock: Dr
         clock,
         PEN.axes,
         <Group>
-          <Path d={grid.join(' ')} stroke={p.paperLine} strokeWidth={0.7} />
-          <Path d={`M${LB.x1},${LB.y1 - 6} V${LB.y2} H${LB.x2 + 4}`} stroke={p.draw} strokeWidth={1.3} fill="none" />
+          <Path d={grid.join(' ')} stroke={p.paperLine} strokeWidth={stroke.hair} />
+          <Path d={`M${LB.x1},${LB.y1 - 6} V${LB.y2} H${LB.x2 + 4}`} stroke={p.draw} strokeWidth={stroke.thin} fill="none" />
           {[0, 100, 200, 300].map((s) => (
             <MonoLabel key={s} x={LB.x1 - 5} y={ly(s) + 3} text={`${s}`} color={p.label} size={7.5} anchor="end" />
           ))}
@@ -69,22 +70,22 @@ function Loop({ fig, live, clock }: { fig: MaterialFig; live?: number; clock: Dr
             <MonoLabel key={e} x={lx(e)} y={LB.y2 + 12} text={`${e}`} color={p.label} size={7.5} />
           ))}
           <MonoLabel x={LB.x1 - 4} y={LB.y1 - 9} text="σ / MPa" color={p.label} size={7.5} anchor="start" />
-          <MonoLabel x={LB.x2} y={LB.y2 + 24} text="ε / 10⁻³" color={p.label} size={7.5} anchor="end" />
+          <MonoLabel x={LB.x2} y={LB.y2 + 29} text="ε / 10⁻³" color={p.label} size={7.5} anchor="end" />
         </Group>,
       )}
       {stage(
         clock,
         PEN.curves,
         <Group>
-          <Path d={load} stroke={p.ink} strokeWidth={2} fill="none" strokeLinejoin="round" />
+          <Path d={load} stroke={p.ink} strokeWidth={stroke.body} fill="none" strokeLinejoin="round" />
           {unloading && perm > 0.001 && (
             <Group>
-              <Line x1={lx(reach)} y1={ly(sReach)} x2={lx(perm)} y2={ly(0)} stroke={p.ink} strokeWidth={2} strokeDasharray="5 4" />
+              <Line x1={lx(reach)} y1={ly(sReach)} x2={lx(perm)} y2={ly(0)} stroke={p.ink} strokeWidth={stroke.body} strokeDasharray="5 4" />
               <Circle cx={lx(perm)} cy={ly(0)} r={3} fill={p.ink} />
-              <Path d={bracket(0, perm) + ' ' + bracket(perm, reach)} stroke={p.label} strokeWidth={1} fill="none" />
+              <Path d={bracket(0, perm) + ' ' + bracket(perm, reach)} stroke={p.label} strokeWidth={stroke.thin} fill="none" />
             </Group>
           )}
-          <Circle cx={lx(reach)} cy={ly(sReach)} r={4} fill={p.paper} stroke={p.ink} strokeWidth={2} />
+          <Circle cx={lx(reach)} cy={ly(sReach)} r={4} fill={p.paper} stroke={p.ink} strokeWidth={stroke.body} />
         </Group>,
       )}
       {stage(
@@ -120,7 +121,7 @@ const COMPARE = {
 } as const;
 
 function geometry(fig: MaterialFig) {
-  const x2 = fig.view === 'sketch' && !fig.targets ? 226 : 318;
+  const x2 = fig.view === 'sketch' && !fig.targets ? 186 : 318; // the sketch leaves room on the right for its legend
   const X = (u: number) => SB.x1 + u * (x2 - SB.x1);
   const Y = (v: number) => SB.y2 - v * (SB.y2 - SB.y1);
   return { x2, X, Y };
@@ -155,12 +156,13 @@ const LEGEND: [string, string, string?][] = [
   ['P', 'limit of', 'proportionality'],
   ['E', 'elastic limit'],
   ['Y', 'yield point'],
-  ['U', 'ultimate tensile', 'stress'],
+  ['U', 'ultimate', 'tensile stress'],
   ['B', 'breaking point'],
 ];
 
 function Sketch({ fig, tap, clock }: { fig: MaterialFig; tap?: TapProps; clock: DrawClock }) {
-  const { palette: p } = useTheme();
+  const { palette: p, material: m } = useTheme();
+  const step = useLineStep(7.5); // the legend's two-line names
   const { x2, X, Y } = geometry(fig);
   const c = badges(fig);
   const d = DUCTILE;
@@ -176,7 +178,7 @@ function Sketch({ fig, tap, clock }: { fig: MaterialFig; tap?: TapProps; clock: 
         clock,
         PEN.axes,
         <Group>
-          <Path d={`M${SB.x1},${SB.y1 - 8} V${SB.y2} H${x2 + 4}`} stroke={p.draw} strokeWidth={1.4} fill="none" />
+          <Path d={`M${SB.x1},${SB.y1 - 8} V${SB.y2} H${x2 + 4}`} stroke={p.draw} strokeWidth={stroke.thin} fill="none" />
           <MonoLabel x={SB.x1 + 6} y={SB.y1 - 8} text="stress" color={p.label} size={8} anchor="start" />
           <MonoLabel x={x2} y={SB.y2 + 14} text="strain" color={p.label} size={8} anchor="end" />
         </Group>,
@@ -187,11 +189,11 @@ function Sketch({ fig, tap, clock }: { fig: MaterialFig; tap?: TapProps; clock: 
         PEN.curves,
         fig.view === 'sketch' ? (
           <Group>
-            <Path d={ductile} stroke={p.ink} strokeWidth={2} fill="none" strokeLinejoin="round" />
+            <Path d={ductile} stroke={p.ink} strokeWidth={stroke.body} fill="none" strokeLinejoin="round" />
             {(['P', 'E', 'Y', 'U'] as const).map((id) => (
               <Circle key={id} cx={X(d[id].x)} cy={Y(d[id].y)} r={2.6} fill={p.ink} />
             ))}
-            <Path d={cross(d.B.x, d.B.y)} stroke={p.ink} strokeWidth={1.8} />
+            <Path d={cross(d.B.x, d.B.y)} stroke={p.ink} strokeWidth={stroke.body} />
           </Group>
         ) : (
           <Group>
@@ -200,8 +202,8 @@ function Sketch({ fig, tap, clock }: { fig: MaterialFig; tap?: TapProps; clock: 
               const end = cv.path[cv.path.length - 1];
               return (
                 <Group key={id}>
-                  <Path d={poly(cv.path)} stroke={p.ink} strokeWidth={2} fill="none" strokeLinejoin="round" />
-                  <Path d={cross(end[0], end[1])} stroke={p.ink} strokeWidth={1.8} />
+                  <Path d={poly(cv.path)} stroke={p.ink} strokeWidth={stroke.body} fill="none" strokeLinejoin="round" />
+                  <Path d={cross(end[0], end[1])} stroke={p.ink} strokeWidth={stroke.body} />
                 </Group>
               );
             })}
@@ -214,7 +216,7 @@ function Sketch({ fig, tap, clock }: { fig: MaterialFig; tap?: TapProps; clock: 
         <Group>
           {Object.entries(c).map(([id, q]) => (
             <Group key={id}>
-              <Circle cx={q.x} cy={q.y} r={8} fill={p.paper} stroke={p.ink} strokeWidth={1.4} />
+              <Circle cx={q.x} cy={q.y} r={8} fill={p.paper} stroke={p.ink} strokeWidth={stroke.thin} />
               <MonoLabel x={q.x} y={q.y + 3.3} text={id} color={p.ink} size={9.5} />
             </Group>
           ))}
@@ -222,10 +224,10 @@ function Sketch({ fig, tap, clock }: { fig: MaterialFig; tap?: TapProps; clock: 
             <Group>
               {LEGEND.map(([id, a, b], i) => (
                 <Group key={id}>
-                  <Circle cx={246} cy={46 + i * 34} r={7} fill={p.paper} stroke={p.ink} strokeWidth={1.3} />
-                  <MonoLabel x={246} y={49 + i * 34} text={id} color={p.ink} size={8.5} />
-                  <MonoLabel x={258} y={(b ? 44 : 49) + i * 34} text={a} color={p.label} size={7.5} anchor="start" />
-                  {b && <MonoLabel x={258} y={55 + i * 34} text={b} color={p.label} size={7.5} anchor="start" />}
+                  <Circle cx={214} cy={46 + i * 34} r={7} fill={p.paper} stroke={p.ink} strokeWidth={stroke.thin} />
+                  <MonoLabel x={214} y={49 + i * 34} text={id} color={p.ink} size={8.5} />
+                  <MonoLabel x={226} y={(b ? 49 - step / 2 : 49) + i * 34} text={a} color={p.label} size={7.5} anchor="start" />
+                  {b && <MonoLabel x={226} y={49 + step / 2 + i * 34} text={b} color={p.label} size={7.5} anchor="start" />}
                 </Group>
               ))}
             </Group>

@@ -2,6 +2,7 @@
 // `cricket` (pale, with a seam) or `bowling` (dark, three finger holes).
 import { Circle, G as Group, Path } from 'react-native-svg';
 import { useTheme } from '@/theme/ThemeContext';
+import { stroke } from '@/theme/tokens';
 
 export function Ball({ x, y, r, look = 'shaded' }: { x: number; y: number; r: number; look?: 'shaded' | 'steel' | 'cricket' | 'bowling' }) {
   const { palette: p, material: m, stroke } = useTheme();
@@ -15,9 +16,9 @@ export function Ball({ x, y, r, look = 'shaded' }: { x: number; y: number; r: nu
     );
   return (
     <Group>
-      <Circle cx={x} cy={y} r={r} fill={look === 'bowling' ? p.drawFillDark : p.drawFill} stroke={p.draw} strokeWidth={1.6} />
+      <Circle cx={x} cy={y} r={r} fill={look === 'bowling' ? p.drawFillDark : p.drawFill} stroke={p.draw} strokeWidth={stroke.body} />
       {look === 'cricket' ? (
-        <Path d={`M${x - r * 0.35},${y - r * 0.9} Q${x + r * 0.25},${y} ${x - r * 0.35},${y + r * 0.9}`} fill="none" stroke={p.draw} strokeWidth={1} />
+        <Path d={`M${x - r * 0.35},${y - r * 0.9} Q${x + r * 0.25},${y} ${x - r * 0.35},${y + r * 0.9}`} fill="none" stroke={p.draw} strokeWidth={stroke.thin} />
       ) : (
         <Group>
           <Circle cx={x - 6} cy={y - 8} r={2.6} fill={p.draw} />

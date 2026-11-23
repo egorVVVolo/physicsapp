@@ -4,6 +4,7 @@ import { createContext, useContext, type ReactNode } from 'react';
 import Animated, { useAnimatedProps, type SharedValue } from 'react-native-reanimated';
 import { Circle, G, Line, Path, Polygon, Text as SvgText, type PathProps } from 'react-native-svg';
 import { useTheme } from '@/theme/ThemeContext';
+import { stroke } from '@/theme/tokens';
 import { svgLetter, svgMono } from '@/theme/svgFont';
 import { STILL, type DrawClock } from './anim';
 
@@ -131,7 +132,7 @@ export function MotionArrow({ x, y, dir, length, color, clock = STILL, pen = [0,
   const d = `M${x - 4},${tail} L${x - 4},${neck} L${x - 10},${neck} L${x},${tip} L${x + 10},${neck} L${x + 4},${neck} L${x + 4},${tail} Z`;
   // two shafts (length − 14 each), two shoulders of 6, two head edges of √(10² + 14²), the tail of 8
   const len = 2 * length + 28;
-  return <DrawnPath clock={clock} len={len} from={pen[0]} to={pen[1]} d={d} fill="none" stroke={color} strokeWidth={1.8} strokeLinejoin="round" />;
+  return <DrawnPath clock={clock} len={len} from={pen[0]} to={pen[1]} d={d} fill="none" stroke={color} strokeWidth={stroke.body} strokeLinejoin="round" />;
 }
 
 /** Two stacked chevrons: the direction of the acceleration. */
@@ -140,19 +141,19 @@ export function AccChevrons({ x, y, dir, color }: { x: number; y: number; dir: '
   const one = (cy: number) => `M${x - 9},${cy - s * 5} L${x},${cy + s * 5} L${x + 9},${cy - s * 5}`;
   return (
     <G>
-      <Path d={one(y - 6)} fill="none" stroke={color} strokeWidth={2.6} strokeLinecap="round" strokeLinejoin="round" />
-      <Path d={one(y + 6)} fill="none" stroke={color} strokeWidth={2.6} strokeLinecap="round" strokeLinejoin="round" />
+      <Path d={one(y - 6)} fill="none" stroke={color} strokeWidth={stroke.force} strokeLinecap="round" strokeLinejoin="round" />
+      <Path d={one(y + 6)} fill="none" stroke={color} strokeWidth={stroke.force} strokeLinecap="round" strokeLinejoin="round" />
     </G>
   );
 }
 
 /** The centre-of-gravity mark used on engineering drawings: a ring with a cross. */
 export function CgMark({ x, y, color }: { x: number; y: number; color: string }) {
-  const { palette: p } = useTheme();
+  const { palette: p, material: m } = useTheme();
   return (
     <G>
-      <Circle cx={x} cy={y} r={5} fill={p.page} stroke={color} strokeWidth={1.6} />
-      <Path d={`M${x},${y - 5} L${x},${y + 5} M${x - 5},${y} L${x + 5},${y}`} stroke={color} strokeWidth={1.2} />
+      <Circle cx={x} cy={y} r={5} fill={p.page} stroke={color} strokeWidth={stroke.body} />
+      <Path d={`M${x},${y - 5} L${x},${y + 5} M${x - 5},${y} L${x + 5},${y}`} stroke={color} strokeWidth={stroke.thin} />
     </G>
   );
 }
@@ -208,11 +209,11 @@ export function Hatch({ x1, x2, y, color, clock = STILL, from = 0, to = 1 }: { x
   const start = (i: number) => mid + (rest * 0.7 * i) / ticks.length;
   return (
     <G>
-      <DrawnPath clock={clock} len={x2 - x1} from={from} to={mid} d={`M${x1},${y} H${x2}`} stroke={color} strokeWidth={2} />
+      <DrawnPath clock={clock} len={x2 - x1} from={from} to={mid} d={`M${x1},${y} H${x2}`} stroke={color} strokeWidth={stroke.body} />
       {clock.on ? (
-        ticks.map((d, i) => <DrawnPath key={i} clock={clock} len={12} from={start(i)} to={start(i) + rest * 0.3} d={d} stroke={color} strokeWidth={1} strokeOpacity={0.55} />)
+        ticks.map((d, i) => <DrawnPath key={i} clock={clock} len={12} from={start(i)} to={start(i) + rest * 0.3} d={d} stroke={color} strokeWidth={stroke.hair} strokeOpacity={0.55} />)
       ) : (
-        <Path d={ticks.join(' ')} stroke={color} strokeWidth={1} opacity={0.55} />
+        <Path d={ticks.join(' ')} stroke={color} strokeWidth={stroke.hair} opacity={0.55} />
       )}
     </G>
   );

@@ -39,7 +39,7 @@ export function Car({ front, y, id, roll, clock, pen = CAR_PEN }: { front: numbe
         <Path d={WINDOW} fill={p.drawFillDark} />
         {/* the pillar between the windows, and the door below it */}
         <Path d="M-36.5,-22.5 V-15.5" stroke={body} strokeWidth={2} fill="none" />
-        <Path d="M-36.5,-15.5 V-7" stroke={p.draw} strokeWidth={0.9} opacity={0.45} fill="none" />
+        <Path d="M-36.5,-15.5 V-7" stroke={p.draw} strokeWidth={stroke.hair} opacity={0.45} fill="none" />
         {WHEELS.map((x) => (
           <Group key={x}>
             <Circle cx={x} cy={-WHEEL_R} r={WHEEL_R} fill={pick(m.rubber, p.draw)} stroke={pick(p.draw, 'none')} strokeWidth={pick(stroke.thin, 0)} />

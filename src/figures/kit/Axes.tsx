@@ -2,6 +2,7 @@
 // ticks with their numbers, and the two axis titles.
 import { G as Group, Line } from 'react-native-svg';
 import { useTheme } from '@/theme/ThemeContext';
+import { stroke } from '@/theme/tokens';
 import { STILL, type DrawClock } from '../anim';
 import { DrawnFade, DrawnPath, MonoLabel, type Pen } from '../draw';
 
@@ -28,21 +29,21 @@ type Props = {
 };
 
 export function Axes({ x0, y0, xEnd, yTop, yBottom = y0, xTicks, xLabelY = y0 + 17, yTicks = [], xTitle, yTitle, clock = STILL, pen = [0, 1] }: Props) {
-  const { palette: p } = useTheme();
+  const { palette: p, material: m } = useTheme();
   return (
     <Group>
-      <DrawnPath clock={clock} len={yBottom - yTop} from={pen[0]} to={pen[1]} d={`M${x0},${yBottom} V${yTop}`} stroke={p.draw} strokeWidth={1.8} fill="none" />
-      <DrawnPath clock={clock} len={xEnd - x0} from={pen[0] + 0.08} to={pen[1]} d={`M${x0},${y0} H${xEnd}`} stroke={p.draw} strokeWidth={1.8} fill="none" />
+      <DrawnPath clock={clock} len={yBottom - yTop} from={pen[0]} to={pen[1]} d={`M${x0},${yBottom} V${yTop}`} stroke={p.draw} strokeWidth={stroke.body} fill="none" />
+      <DrawnPath clock={clock} len={xEnd - x0} from={pen[0] + 0.08} to={pen[1]} d={`M${x0},${y0} H${xEnd}`} stroke={p.draw} strokeWidth={stroke.body} fill="none" />
       <DrawnFade clock={clock} from={pen[1] - 0.1} to={pen[1] + 0.1}>
         {xTicks.map((t) => (
           <Group key={t.x}>
-            <Line x1={t.x} y1={y0} x2={t.x} y2={y0 + 5} stroke={p.draw} strokeWidth={1.4} />
+            <Line x1={t.x} y1={y0} x2={t.x} y2={y0 + 5} stroke={p.draw} strokeWidth={stroke.thin} />
             <MonoLabel x={t.x} y={xLabelY} text={t.label} color={p.label} />
           </Group>
         ))}
         {yTicks.map((t) => (
           <Group key={t.y}>
-            <Line x1={x0 - 5} y1={t.y} x2={x0} y2={t.y} stroke={p.draw} strokeWidth={1.4} />
+            <Line x1={x0 - 5} y1={t.y} x2={x0} y2={t.y} stroke={p.draw} strokeWidth={stroke.thin} />
             <MonoLabel x={x0 - 8} y={t.y + 3.5} text={t.label} color={p.label} anchor="end" />
           </Group>
         ))}

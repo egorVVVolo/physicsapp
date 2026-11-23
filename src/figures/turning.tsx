@@ -1,5 +1,6 @@
 // Shared drawing for the moments figures: the turning arc (the sense of a moment), a dimension between any two
 // points (dashed when it is only a candidate) and a right-angle mark. Coordinates are viewBox units, y down.
+import { stroke } from '@/theme/tokens';
 import { G as Group, Path, Polygon } from 'react-native-svg';
 
 const RAD = Math.PI / 180;
@@ -39,7 +40,7 @@ export function RightAngle({ at, u, v, size = 7, color }: { at: Pt; u: Pt; v: Pt
   const p1 = [at[0] + u[0] * size, at[1] + u[1] * size];
   const p2 = [p1[0] + v[0] * size, p1[1] + v[1] * size];
   const p3 = [at[0] + v[0] * size, at[1] + v[1] * size];
-  return <Path d={`M${p1[0]},${p1[1]} L${p2[0]},${p2[1]} L${p3[0]},${p3[1]}`} fill="none" stroke={color} strokeWidth={1.1} />;
+  return <Path d={`M${p1[0]},${p1[1]} L${p2[0]},${p2[1]} L${p3[0]},${p3[1]}`} fill="none" stroke={color} strokeWidth={stroke.thin} />;
 }
 
 /** An angle mark: an arc of radius r at `at` from screen angle `from` sweeping `sweep` degrees. */
@@ -48,7 +49,7 @@ export function AngleArc({ at, r, from, sweep, color }: { at: Pt; r: number; fro
   const a1 = (from + sweep) * RAD;
   const p0 = [at[0] + r * Math.cos(a0), at[1] + r * Math.sin(a0)];
   const p1 = [at[0] + r * Math.cos(a1), at[1] + r * Math.sin(a1)];
-  return <Path d={`M${p0[0]},${p0[1]} A${r},${r} 0 0 ${sweep > 0 ? 1 : 0} ${p1[0]},${p1[1]}`} fill="none" stroke={color} strokeWidth={1.2} />;
+  return <Path d={`M${p0[0]},${p0[1]} A${r},${r} 0 0 ${sweep > 0 ? 1 : 0} ${p1[0]},${p1[1]}`} fill="none" stroke={color} strokeWidth={stroke.thin} />;
 }
 
 /** "15 cm", "30 cm": a length in metres written in whole centimetres (lengths of a hand tool). */
