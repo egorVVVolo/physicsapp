@@ -5,7 +5,7 @@
 // the motor; "?" until the question is answered.
 // On the explore screen the slider sets the load and the useful power stays the same, so the pallet rises at
 // v = P ÷ mg: the cable's pull T (= mg at a steady speed) grows and the speed falls. A panel works out P = Tv.
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Circle, G as Group, Line, Path, Rect } from 'react-native-svg';
 import { weight } from '@/physics/dynamics';
 import { potentialChange } from '@/physics/energy';
@@ -15,9 +15,8 @@ import type { WinchFig } from '@/content/types';
 import { useTheme } from '@/theme/ThemeContext';
 import { useReducedMotionPref } from '@/ui/parts';
 import { STILL, useTween, type DrawClock } from './anim';
-import { DrawnFade, ForceArrow, ForceLetter, Hatch, MonoLabel } from './draw';
-import { HollowArrow } from './ResolveFigure';
-import { AlignedDim } from './turning';
+import { ForceArrow, ForceLetter, Hatch, MonoLabel } from './draw';
+import { Dim, HollowArrow, stage } from './kit';
 
 export const WINCH_VB = { w: 340, h: 230 };
 
@@ -95,11 +94,6 @@ export function WinchFigure({ fig, live, playing, clock = STILL }: Props) {
   const yb = GROUND - s * K; // the bottom of the pallet
   const hook = yb - 31;
   const tLen = useTween(n.T * KT, undefined, 160);
-  const stage = (pen: readonly [number, number], children: ReactNode) => (
-    <DrawnFade clock={clock} from={pen[0]} to={pen[1]}>
-      {children}
-    </DrawnFade>
-  );
   const braces: string[] = [];
   const bays = [GROUND, 160, 117, TOWER.top];
   for (let i = 0; i < bays.length - 1; i++) {
@@ -110,9 +104,9 @@ export function WinchFigure({ fig, live, playing, clock = STILL }: Props) {
 
   return (
     <Group>
-      {stage(PEN.ground, <Hatch x1={8} x2={188} y={GROUND} color={p.draw} clock={clock} from={PEN.ground[0]} to={PEN.ground[1]} />)}
+      {stage(clock, PEN.ground, <Hatch x1={8} x2={188} y={GROUND} color={p.draw} clock={clock} from={PEN.ground[0]} to={PEN.ground[1]} />)}
 
-      {stage(
+      {stage(clock, 
         PEN.frame,
         <Group>
           {/* the scaffold: two standards, ledgers and braces, the top platform */}
@@ -136,21 +130,21 @@ export function WinchFigure({ fig, live, playing, clock = STILL }: Props) {
         </Group>,
       )}
 
-      {stage(PEN.load, <Pallet x={CABLE_X} yb={yb} />)}
+      {stage(clock, PEN.load, <Pallet x={CABLE_X} yb={yb} />)}
 
-      {stage(PEN.flow, explore ? <Panel fig={fig} n={n} /> : <Flow fig={fig} n={n} />)}
+      {stage(clock, PEN.flow, explore ? <Panel fig={fig} n={n} /> : <Flow fig={fig} n={n} />)}
 
-      {stage(
+      {stage(clock, 
         PEN.labels,
         <Group>
-          <AlignedDim a={[124, GROUND]} b={[124, GROUND - fig.h * K]} text={`${fixed(fig.h, 1)} m`} />
+          <Dim a={[124, GROUND]} b={[124, GROUND - fig.h * K]} text={`${fixed(fig.h, 1)} m`} />
           {explore && (
             <Group>
               {/* the cable's pull up from the bricks' middle, and the pallet's velocity beside it */}
               <ForceArrow x1={CABLE_X} y1={yb - 11} x2={CABLE_X} y2={yb - 11 - tLen} color={p.force} width={3} />
               <Circle cx={CABLE_X} cy={yb - 11} r={2.6} fill={p.force} />
               <ForceLetter x={CABLE_X + 8} y={yb - 18 - tLen / 2} text="T" color={p.force} size={13} anchor="start" />
-              <HollowArrow from={[CABLE_X - 30, yb - 2]} to={[CABLE_X - 30, yb - 2 - Math.max(8, n.v * 14)]} color={p.draw} thin />
+              <HollowArrow from={[CABLE_X - 30, yb - 2]} to={[CABLE_X - 30, yb - 2 - Math.max(8, n.v * 14)]} color={p.draw} weight="thin" />
             </Group>
           )}
         </Group>,

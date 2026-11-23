@@ -6,7 +6,7 @@
 // own energies.
 // HeightFigure: a tower crane holds the car over the road by a height ruler; two bars to one scale compare its gain in
 // GPE, mgh, with its kinetic energy at a given speed.
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Circle, G as Group, Line, Path, Rect } from 'react-native-svg';
 import { kineticEnergy, potentialChange } from '@/physics/energy';
 import { fixed, sig } from '@/physics/format';
@@ -14,8 +14,8 @@ import type { HeightFig, KineticFig } from '@/content/types';
 import { useTheme } from '@/theme/ThemeContext';
 import { useReducedMotionPref } from '@/ui/parts';
 import { STILL, useLoopTime, useTween, type DrawClock } from './anim';
-import { DrawnFade, Hatch, MonoLabel } from './draw';
-import { Car, Tag, VelocityArrow, WHEEL_R } from './RoadFigure';
+import { Hatch, MonoLabel } from './draw';
+import { Car, WHEEL_R, HollowArrow, stage, Tag } from './kit';
 
 export const KINETIC_VB = { w: 340, h: 230 };
 export const HEIGHT_VB = { w: 340, h: 230 };
@@ -80,11 +80,6 @@ export function KineticFigure({ fig, live, playing, clock = STILL }: KProps) {
   const scale = 1.7 - 0.7 * sq;
   const front = 222;
   const mid = front - 32 * scale;
-  const stage = (pen: readonly [number, number], children: ReactNode) => (
-    <DrawnFade clock={clock} from={pen[0]} to={pen[1]}>
-      {children}
-    </DrawnFade>
-  );
   const ticks: string[] = [];
   for (let x = 6 - (scroll % HATCH); x < 334; x += HATCH) if (x >= 6) ticks.push(`M${x},${roadY + 8} L${x + 8},${roadY}`);
   const posts: number[] = [];
@@ -95,7 +90,7 @@ export function KineticFigure({ fig, live, playing, clock = STILL }: KProps) {
 
   return (
     <Group>
-      {stage(
+      {stage(clock, 
         PEN.road,
         <Group>
           <Line x1={6} y1={roadY} x2={334} y2={roadY} stroke={p.draw} strokeWidth={1.6} />
@@ -108,10 +103,10 @@ export function KineticFigure({ fig, live, playing, clock = STILL }: KProps) {
       <Group transform={`translate(${front}, ${roadY}) scale(${scale}) translate(${-front}, ${-roadY})`}>
         <Car front={front} y={roadY} id="" roll={scroll / (WHEEL_R * scale)} clock={clock} />
       </Group>
-      {stage(
+      {stage(clock, 
         PEN.labels,
         <Group>
-          {len > 2 && <VelocityArrow x={mid - len / 2} y={arrowY} len={len} color={p.draw} />}
+          {len > 2 && <HollowArrow from={[mid - len / 2, arrowY]} to={[mid - len / 2 + len, arrowY]} color={p.draw} weight="track" />}
           <Tag x={mid} y={arrowY - 13} text={v < 0.05 ? 'v = 0' : `v = ${fixed(v, 1)} m s⁻¹`} />
           {fig.energy && sq < 0.5 && <MonoLabel x={mid} y={52} text={fig.energy === 'shown' ? `Ek = ${kJ(E)}` : 'Ek = ?'} color={p.ink} size={12} />}
         </Group>,
@@ -198,11 +193,6 @@ export function HeightFigure({ fig, live, clock = STILL }: { fig: HeightFig; liv
   const carTop = carY - 26 * CAR_SCALE;
   const ep = potentialChange(fig.m, h);
   const ek = fig.match !== undefined ? kineticEnergy(fig.m, fig.match) : undefined;
-  const stage = (pen: readonly [number, number], children: ReactNode) => (
-    <DrawnFade clock={clock} from={pen[0]} to={pen[1]}>
-      {children}
-    </DrawnFade>
-  );
   const rungs: string[] = [];
   for (let y = GROUND; y > JIB_Y + 8; y -= 12) rungs.push(`M${MAST_X - 5},${y} L${MAST_X + 5},${y - 12}`);
   for (let x = 60; x < MAST_X; x += 12) rungs.push(`M${x},${JIB_Y + 8} L${x + 6},${JIB_Y} L${x + 12},${JIB_Y + 8}`);
@@ -210,8 +200,8 @@ export function HeightFigure({ fig, live, clock = STILL }: { fig: HeightFig; liv
 
   return (
     <Group>
-      {stage(PEN.road, <Hatch x1={8} x2={332} y={GROUND} color={p.draw} clock={clock} from={PEN.road[0]} to={PEN.road[1]} />)}
-      {stage(
+      {stage(clock, PEN.road, <Hatch x1={8} x2={332} y={GROUND} color={p.draw} clock={clock} from={PEN.road[0]} to={PEN.road[1]} />)}
+      {stage(clock, 
         PEN.car,
         <Group>
           {/* the tower crane: a lattice mast and a jib reaching out over the car */}
@@ -227,7 +217,7 @@ export function HeightFigure({ fig, live, clock = STILL }: { fig: HeightFig; liv
           </Group>
         </Group>,
       )}
-      {stage(
+      {stage(clock, 
         PEN.labels,
         <Group>
           {/* the height ruler */}

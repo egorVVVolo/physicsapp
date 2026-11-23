@@ -3,7 +3,6 @@
 // The upthrust is the weight of that water, U = ρVg, and the newtonmeter reads W − U. On the explore screen the slider
 // sets how deep the block's bottom is: the stand's clamp, the newtonmeter and the block move down together, and the
 // reading, the overflow and U follow the volume under the surface; once the block is under, nothing changes any more.
-import type { ReactNode } from 'react';
 import { Circle, G as Group, Line, Path, Rect } from 'react-native-svg';
 import { weight } from '@/physics/dynamics';
 import { apparentWeight, RHO_WATER, submergedVolume, upthrust, volumeOf } from '@/physics/fluids';
@@ -11,7 +10,8 @@ import { fixed, sig } from '@/physics/format';
 import type { DunkFig } from '@/content/types';
 import { useTheme } from '@/theme/ThemeContext';
 import { STILL, type DrawClock } from './anim';
-import { DrawnFade, ForceArrow, ForceLetter, Hatch, MonoLabel } from './draw';
+import { ForceArrow, ForceLetter, Hatch, MonoLabel } from './draw';
+import { stage } from './kit';
 
 export const DUNK_VB = { w: 340, h: 230 };
 
@@ -52,11 +52,6 @@ export function DunkFigure({ fig, live, clock = STILL }: Props) {
   const ytop = yb - bh;
   const meterTop = ytop - METER.string - METER.h;
   const armY = meterTop - 6;
-  const stage = (pen: readonly [number, number], children: ReactNode) => (
-    <DrawnFade clock={clock} from={pen[0]} to={pen[1]}>
-      {children}
-    </DrawnFade>
-  );
   // the newtonmeter's pointer: 0 to 10 N down its window
   const win = { y1: meterTop + 7, y2: meterTop + METER.h - 7 };
   const showReading = fig.reading === 'shown';
@@ -79,9 +74,9 @@ export function DunkFigure({ fig, live, clock = STILL }: Props) {
 
   return (
     <Group>
-      {stage(PEN.ground, <Hatch x1={8} x2={226} y={BENCH} color={p.draw} clock={clock} from={PEN.ground[0]} to={PEN.ground[1]} />)}
+      {stage(clock, PEN.ground, <Hatch x1={8} x2={226} y={BENCH} color={p.draw} clock={clock} from={PEN.ground[0]} to={PEN.ground[1]} />)}
 
-      {stage(
+      {stage(clock, 
         PEN.stand,
         <Group>
           {/* the stand: a base, a rod, a clamp at the newtonmeter's height */}
@@ -93,7 +88,7 @@ export function DunkFigure({ fig, live, clock = STILL }: Props) {
         </Group>,
       )}
 
-      {stage(
+      {stage(clock, 
         PEN.can,
         <Group>
           {/* the can's water up to the spout, the overflow in the cylinder */}
@@ -102,7 +97,7 @@ export function DunkFigure({ fig, live, clock = STILL }: Props) {
         </Group>,
       )}
 
-      {stage(
+      {stage(clock, 
         PEN.hang,
         <Group>
           {/* the newtonmeter: a body with a window, a scale and a pointer; the string down to the block */}
@@ -126,7 +121,7 @@ export function DunkFigure({ fig, live, clock = STILL }: Props) {
         </Group>,
       )}
 
-      {stage(
+      {stage(clock, 
         PEN.can,
         <Group>
           {/* the water's dashes and surface over the block, then the can and its spout, the cylinder and its scale */}
@@ -144,7 +139,7 @@ export function DunkFigure({ fig, live, clock = STILL }: Props) {
 
       {fig.forces &&
         n.U > 0.01 &&
-        stage(
+        stage(clock, 
           PEN.labels,
           <Group>
             {/* the upthrust, from the middle of the part under the surface (the centre of the water it displaced) */}
@@ -154,7 +149,7 @@ export function DunkFigure({ fig, live, clock = STILL }: Props) {
           </Group>,
         )}
 
-      {stage(PEN.labels, <Panel fig={fig} n={n} cm3={cm3} />)}
+      {stage(clock, PEN.labels, <Panel fig={fig} n={n} cm3={cm3} />)}
     </Group>
   );
 }

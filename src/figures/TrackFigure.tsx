@@ -7,7 +7,6 @@
 // The velocity is an outline arrow over the runner's head; it flips when the runner turns.
 // A played figure runs the race sped up (the sheet says how much), holds the last frame and starts again.
 // The first track figure of a lesson draws itself: track → ruler → lamp post → runners; arrows and labels come last.
-import type { ReactNode } from 'react';
 import { G as Group, Line, Path, Rect } from 'react-native-svg';
 import { tripDistance, tripDuration, tripPosition, tripVelocity, type Trip } from '@/physics/kinematics';
 import { fixed, signed } from '@/physics/format';
@@ -17,7 +16,7 @@ import { useReducedMotionPref } from '@/ui/parts';
 import { STILL, useLoopTime, type DrawClock } from './anim';
 import { DrawnFade, DrawnPath, FILLS, ForceArrow, ForceLetter, Hatch, MonoLabel } from './draw';
 import { Person } from './people';
-import { Tag } from './RoadFigure';
+import { Ruler, stage, Tag, type RulerTick } from './kit';
 
 export const TRACK_VB = { w: 340, h: 230 };
 
@@ -107,11 +106,6 @@ export function TrackFigure({ fig, live, playing, clock = STILL }: Props) {
   const t = live ?? (plays ? (reduced ? fig.tEnd : loop * TRACK_SPEEDUP) : still);
   const ended = t >= fig.tEnd - 1e-9;
   const moving = t > 1e-9 && !ended;
-  const late = (children: ReactNode) => (
-    <DrawnFade clock={clock} from={PEN.marks[0]} to={PEN.marks[1]}>
-      {children}
-    </DrawnFade>
-  );
   const topGround = Math.min(...fig.runners.map((r) => groundOf(fig, r.id)));
   const runnerA = fig.runners.find((r) => r.id === 'A');
 
@@ -126,7 +120,7 @@ export function TrackFigure({ fig, live, playing, clock = STILL }: Props) {
       <LampPost x={x0} y={topGround} clock={clock} />
 
       {/* runner A's legs: one arrow per part of its run, stacked above its lane, joined where it turns */}
-      {fig.legs && runnerA && late(<Legs trip={runnerA.trip} tEnd={fig.tEnd} top={groundOf(fig, 'A') - 104} X={X} />)}
+      {fig.legs && runnerA && stage(clock, PEN.marks, <Legs trip={runnerA.trip} tEnd={fig.tEnd} top={groundOf(fig, 'A') - 104} X={X} />)}
 
       {plays && !reduced && <MonoLabel x={332} y={11} text={`t = ${fixed(t, 0)} s   × ${TRACK_SPEEDUP}`} color={p.label} size={9} anchor="end" />}
 
@@ -144,10 +138,10 @@ export function TrackFigure({ fig, live, playing, clock = STILL }: Props) {
         return (
           <Group key={r.id}>
             <Person x={X(s)} y={y} scale={SCALE} cg={false} clock={clock} pen={PEN.runner} />
-            {late(<ForceLetter x={X(s) + 14} y={y - 40} text={r.id} color={p.ink} size={13} anchor="start" />)}
-            {moving && Math.abs(v) > 1e-9 && late(<HArrow x={X(s)} y={arrowY} dx={dx} color={p.draw} />)}
-            {moving && fig.values && late(<Tag x={vAt[0]} y={vAt[1]} text={vText} />)}
-            {showDisp && late(<Displacement x1={x0} x2={X(tripPosition(fig.tEnd, r.trip))} y={y + 17} text={fig.disp === 'shown' ? `s = ${signedMetres(sign * tripPosition(fig.tEnd, r.trip))}` : 's = ?'} unknown={fig.disp !== 'shown'} />)}
+            {stage(clock, PEN.marks, <ForceLetter x={X(s) + 14} y={y - 40} text={r.id} color={p.ink} size={13} anchor="start" />)}
+            {moving && Math.abs(v) > 1e-9 && stage(clock, PEN.marks, <HArrow x={X(s)} y={arrowY} dx={dx} color={p.draw} />)}
+            {moving && fig.values && stage(clock, PEN.marks, <Tag x={vAt[0]} y={vAt[1]} text={vText} />)}
+            {showDisp && stage(clock, PEN.marks, <Displacement x1={x0} x2={X(tripPosition(fig.tEnd, r.trip))} y={y + 17} text={fig.disp === 'shown' ? `s = ${signedMetres(sign * tripPosition(fig.tEnd, r.trip))}` : 's = ?'} unknown={fig.disp !== 'shown'} />)}
           </Group>
         );
       })}
@@ -168,28 +162,18 @@ function signedMetres(s: number): string {
 function TrackRuler({ lo, hi, X, plus, numbers, clock }: { lo: number; hi: number; X: (s: number) => number; plus: 'east' | 'west'; numbers: boolean; clock: DrawClock }) {
   const { palette: p } = useTheme();
   const sign = plus === 'east' ? 1 : -1;
-  const ticks: number[] = [];
-  for (let s = lo; s <= hi + 1e-9; s += 50) ticks.push(s);
+  const ticks: RulerTick[] = [];
+  for (let s = lo; s <= hi + 1e-9; s += 50) {
+    const numbered = s % 100 === 0 && (numbers || s === 0);
+    ticks.push({ at: X(s), len: s % 100 === 0 ? 6 : 3.5, label: numbered ? (s === 0 ? '0 m' : fixed(sign * s, 0)) : undefined, color: s === 0 ? p.ink : undefined });
+  }
   const tipX = plus === 'east' ? XR + 10 : XL - 10;
-  const baseX = plus === 'east' ? XR + 2 : XL - 2;
   return (
-    <Group>
-      <DrawnPath clock={clock} len={XR - XL + 8} from={PEN.ruler[0]} to={PEN.ruler[1]} d={`M${XL - 4},${RULER_Y} H${XR + 4}`} stroke={p.draw} strokeWidth={1.6} fill="none" />
-      <DrawnFade clock={clock} from={FILLS[0]} to={FILLS[1]}>
-        <Path d={`M${baseX},${RULER_Y - 4.5} L${tipX},${RULER_Y} L${baseX},${RULER_Y + 4.5} Z`} fill={p.draw} />
-        <ForceLetter x={tipX - sign * 5} y={RULER_Y - 9} text="+" color={p.label} size={14} />
-        {ticks.map((s) => (
-          <Line key={s} x1={X(s)} y1={RULER_Y} x2={X(s)} y2={RULER_Y - (s % 100 === 0 ? 6 : 3.5)} stroke={p.draw} strokeWidth={1.2} />
-        ))}
-        {ticks
-          .filter((s) => s % 100 === 0 && (numbers || s === 0))
-          .map((s) => (
-            <MonoLabel key={s} x={X(s)} y={RULER_Y + 12} text={s === 0 ? '0 m' : fixed(sign * s, 0)} color={s === 0 ? p.ink : p.label} size={9} />
-          ))}
-        <MonoLabel x={XL - 6} y={RULER_Y + 12} text="W" color={p.ink} size={9.5} anchor="start" />
-        <MonoLabel x={XR + 6} y={RULER_Y + 12} text="E" color={p.ink} size={9.5} anchor="end" />
-      </DrawnFade>
-    </Group>
+    <Ruler axis="x" at={RULER_Y} from={XL - 4} to={XR + 4} arrow={plus === 'east' ? 'end' : 'start'} ticks={ticks} side={-1} labelAt={12} clock={clock} pen={PEN.ruler}>
+      <ForceLetter x={tipX - sign * 5} y={RULER_Y - 9} text="+" color={p.label} size={14} />
+      <MonoLabel x={XL - 6} y={RULER_Y + 12} text="W" color={p.ink} size={9.5} anchor="start" />
+      <MonoLabel x={XR + 6} y={RULER_Y + 12} text="E" color={p.ink} size={9.5} anchor="end" />
+    </Ruler>
   );
 }
 

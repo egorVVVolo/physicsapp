@@ -3,14 +3,14 @@
 // then the buffer squashes with a constant deceleration until the trolley leaves at its bounce speed (or stops).
 // Each trolley carries its momentum as a solid ink arrow (blue is kept for forces) that shrinks through zero and flips
 // during a bounce. Under the track an optional momentum line per trolley: p before (○), p after (●) and Δp between them.
-import type { ReactNode } from 'react';
 import { Circle, G as Group, Line, Path, Rect } from 'react-native-svg';
 import { momentum, momentumChange, wallContact, wallRun, type WallHit } from '@/physics/momentum';
 import { fixed, signed } from '@/physics/format';
 import type { WallFig } from '@/content/types';
 import { useTheme } from '@/theme/ThemeContext';
 import { STILL, useLoopTime, useTween, type DrawClock } from './anim';
-import { DrawnFade, ForceArrow, ForceLetter, MonoLabel } from './draw';
+import { ForceArrow, ForceLetter, MonoLabel } from './draw';
+import { HollowArrow, stage, TROLLEY, Trolley } from './kit';
 
 export const WALL_VB = { w: 340, h: 230 };
 
@@ -19,7 +19,6 @@ const K = 170; // viewBox units per metre
 const GAP = 1.1; // m from the buffer's tip to the wall when the clip starts
 const SQUASH = 0.05; // m, the deepest a buffer squashes
 const TAIL = 0.8; // s the clip runs on after the hit
-export const TROLLEY = { w: 80, h: 30, wheel: 6, buf: 14 };
 const KP = 50; // viewBox units per kg m s⁻¹ of momentum
 const KV = 26; // viewBox units per m s⁻¹ of velocity
 const LINE = { x0: 40, x1: 324, zero: 182, range: 1.6 }; // the momentum line: from −range to +range
@@ -54,11 +53,6 @@ export function WallFigure({ fig, live, playing, clock = STILL }: Props) {
   // revealed after Check, a momentum arrow grows and the Δp arrow runs from p before to p after; shown from the start, they are just there
   const grow = useTween(fig.p === 'shown' ? 1 : 0, fig.p === 'shown' ? 1 : 0, 420);
   const rowsGrow = useTween(fig.ledger === 'shown' ? 1 : 0, fig.ledger === 'shown' ? 1 : 0, 520);
-  const stage = (pen: readonly [number, number], children: ReactNode) => (
-    <DrawnFade clock={clock} from={pen[0]} to={pen[1]}>
-      {children}
-    </DrawnFade>
-  );
   // two trolleys over two rows of the momentum line: no room for arrows over the trolleys, the rows tell the story
   const compact = rows.length > 1;
   const top = floors[0] - (compact ? 48 : 60);
@@ -66,7 +60,7 @@ export function WallFigure({ fig, live, playing, clock = STILL }: Props) {
 
   return (
     <Group>
-      {stage(
+      {stage(clock, 
         PEN.track,
         <Group>
           {floors.map((y) => (
@@ -106,8 +100,8 @@ export function WallFigure({ fig, live, playing, clock = STILL }: Props) {
         const arrowY = y - 50;
         return (
           <Group key={id}>
-            {stage(PEN.trolleys, <Trolley rear={back} floor={y} facing={1} text={`${id} ${fixed(fig.m, 2)} kg`} buffer={id === 'A' ? 'spring' : 'putty'} squashed={squashed} />)}
-            {!compact && stage(
+            {stage(clock, PEN.trolleys, <Trolley rear={back} floor={y} facing={1} text={`${id} ${fixed(fig.m, 2)} kg`} buffer={id === 'A' ? 'spring' : 'putty'} squashed={squashed} />)}
+            {!compact && stage(clock, 
               PEN.labels,
               fig.p === undefined ? (
                 <Arrowed x={mid} y={arrowY} len={run.v * KV} hollow text={Math.abs(run.v) < 0.05 ? 'at rest' : `v = ${signed(run.v, 1)} m s⁻¹`} />
@@ -117,13 +111,13 @@ export function WallFigure({ fig, live, playing, clock = STILL }: Props) {
                 <Arrowed x={mid} y={arrowY} len={Math.sign(run.v || 1) * 26} dashed text="p = ?" />
               ),
             )}
-            {rows.length > 0 && stage(PEN.labels, <LedgerRow y={rows[i]} id={id} before={momentum(fig.m, fig.u)} after={momentum(fig.m, -hit.back)} k={rowsGrow} show={fig.ledger === 'shown'} />)}
+            {rows.length > 0 && stage(clock, PEN.labels, <LedgerRow y={rows[i]} id={id} before={momentum(fig.m, fig.u)} after={momentum(fig.m, -hit.back)} k={rowsGrow} show={fig.ledger === 'shown'} />)}
           </Group>
         );
       })}
 
       {rows.length > 0 &&
-        stage(
+        stage(clock, 
           PEN.labels,
           <Group>
             <MonoLabel x={LINE.x0} y={rows[0] - 30} text="MOMENTUM LINE · kg m s⁻¹" color={p.label} size={8} anchor="start" />
@@ -149,22 +143,13 @@ function Arrowed({ x, y, len, text, hollow, dashed }: { x: number; y: number; le
   const left = lo - 6 - w >= 4;
   return (
     <Group>
-      {hollow ? <HollowArrow x={x} y={y} len={len} color={p.label} /> : <ForceArrow x1={x} y1={y} x2={x + len} y2={y} color={p.ink} width={3} dashed={dashed} />}
+      {hollow ? <HollowArrow from={[x, y]} to={[x + len, y]} color={p.label} weight="track" minLen={4} /> : <ForceArrow x1={x} y1={y} x2={x + len} y2={y} color={p.ink} width={3} dashed={dashed} />}
       {Math.abs(len) < 1 && !hollow && <Circle cx={x} cy={y} r={2.4} fill={p.ink} />}
       <MonoLabel x={left ? lo - 6 : hi + 6} y={y + 3.2} text={text} color={p.ink} size={9} anchor={left ? 'end' : 'start'} />
     </Group>
   );
 }
 
-/** A hollow arrow along the track: its tail at x, its length `len` (negative points left). */
-export function HollowArrow({ x, y, len, color }: { x: number; y: number; len: number; color: string }) {
-  if (Math.abs(len) < 4) return null;
-  const s = Math.sign(len);
-  const tip = x + len;
-  const neck = tip - s * Math.min(9, Math.abs(len) * 0.55);
-  const d = `M${x},${y - 2.6} L${neck},${y - 2.6} L${neck},${y - 6.5} L${tip},${y} L${neck},${y + 6.5} L${neck},${y + 2.6} L${x},${y + 2.6} Z`;
-  return <Path d={d} fill="none" stroke={color} strokeWidth={1.7} strokeLinejoin="round" />;
-}
 
 /** One row of the momentum line: the axis with its numbers, p before (○), p after (●) and the Δp arrow from one to the other. */
 function LedgerRow({ y, id, before, after, k, show }: { y: number; id: string; before: number; after: number; k: number; show: boolean }) {
@@ -199,39 +184,3 @@ function LedgerRow({ y, id, before, after, k, show }: { y: number; id: string; b
   );
 }
 
-/**
- * A lab trolley in flat 3D (a top facet, the side, two wheels) with a buffer on its front: a spring with a plate, or a
- * putty pad. `rear`: x of its back end; `facing` 1 points the front right, −1 left. `squashed`: how far the buffer is pushed in.
- */
-export function Trolley({ rear, floor, facing, text, buffer, squashed = 0 }: { rear: number; floor: number; facing: 1 | -1; text: string; buffer: 'spring' | 'putty' | 'none'; squashed?: number }) {
-  const { palette: p } = useTheme();
-  const { w, h, wheel, buf } = TROLLEY;
-  const X = (dx: number) => rear + facing * dx;
-  const top = floor - wheel * 2 - h + 3;
-  const x1 = Math.min(X(0), X(w));
-  const midY = top + h / 2 + 1;
-  const bl = Math.max(2, buf - squashed); // the buffer's length now
-  const zig = Array.from({ length: 6 }, (_, i) => `L${X(w + ((i + 1) * (bl - 2)) / 7)},${midY + (i % 2 === 0 ? -4 : 4)}`).join(' ');
-  return (
-    <Group>
-      <Path d={`M${x1},${top} L${x1 + 6},${top - 5} H${x1 + w + 6} L${x1 + w},${top} Z`} fill={p.drawFillDark} stroke={p.draw} strokeWidth={1.3} strokeLinejoin="round" />
-      <Rect x={x1} y={top} width={w} height={h} rx={2} fill={p.drawFill} stroke={p.draw} strokeWidth={1.6} />
-      {[14, w - 14].map((dx) => (
-        <Group key={dx}>
-          <Circle cx={X(dx)} cy={floor - wheel} r={wheel} fill={p.drawFillDark} stroke={p.draw} strokeWidth={1.3} />
-          <Circle cx={X(dx)} cy={floor - wheel} r={1.3} fill={p.draw} />
-        </Group>
-      ))}
-      <MonoLabel x={x1 + w / 2} y={top + 18} text={text} color={p.ink} size={9} />
-      {buffer === 'spring' && (
-        <Group>
-          <Path d={`M${X(w)},${midY} ${zig} L${X(w + bl - 1)},${midY}`} fill="none" stroke={p.draw} strokeWidth={1.4} strokeLinejoin="round" />
-          <Line x1={X(w + bl)} y1={midY - 7} x2={X(w + bl)} y2={midY + 7} stroke={p.draw} strokeWidth={2.4} strokeLinecap="round" />
-        </Group>
-      )}
-      {buffer === 'putty' && (
-        <Rect x={Math.min(X(w), X(w + bl))} y={midY - 6 - squashed * 0.35} width={bl} height={12 + squashed * 0.7} rx={4} fill={p.drawFillDark} stroke={p.draw} strokeWidth={1.3} />
-      )}
-    </Group>
-  );
-}

@@ -4,15 +4,14 @@
 // at every instant, then steady speeds again. Velocities are hollow arrows over the trolleys. Under the track an optional
 // momentum line with two rows, BEFORE and AFTER: A's momentum, then the other body's from its tip, and the total Σp; a
 // dashed line joins the two Σ marks, so the total visibly never moves.
-import type { ReactNode } from 'react';
 import { Circle, G as Group, Line, Path } from 'react-native-svg';
 import { collisionRun, collisionSquash, collisionTimes, momentum, stickVelocity, type Collision } from '@/physics/momentum';
 import { fixed, signed } from '@/physics/format';
 import type { CollideBody, CollideFig } from '@/content/types';
 import { useTheme } from '@/theme/ThemeContext';
 import { STILL, useLoopTime, type DrawClock } from './anim';
-import { DrawnFade, ForceArrow, Hatch, MonoLabel } from './draw';
-import { HollowArrow, TROLLEY, Trolley } from './WallFigure';
+import { ForceArrow, Hatch, MonoLabel } from './draw';
+import { HollowArrow, stage, TROLLEY, Trolley } from './kit';
 
 export const COLLIDE_VB = { w: 340, h: 230 };
 
@@ -91,11 +90,6 @@ export function CollideFigure({ fig, live, playing, clock = STILL }: Props) {
   const ledger = fig.ledger !== undefined;
   const floor = ledger ? 96 : 140;
   const rows = [150, 202];
-  const stage = (pen: readonly [number, number], children: ReactNode) => (
-    <DrawnFade clock={clock} from={pen[0]} to={pen[1]}>
-      {children}
-    </DrawnFade>
-  );
 
   // A: its unsquashed buffer tip; B: its front face
   const tipA = x0 + run.sA * k;
@@ -117,10 +111,10 @@ export function CollideFigure({ fig, live, playing, clock = STILL }: Props) {
 
   return (
     <Group>
-      {stage(PEN.track, <Hatch x1={8} x2={332} y={floor} color={p.draw} />)}
+      {stage(clock, PEN.track, <Hatch x1={8} x2={332} y={floor} color={p.draw} />)}
       {bodies.map((b, i) => (
         <Group key={b.id}>
-          {stage(
+          {stage(clock, 
             PEN.trolleys,
             i === 0 ? (
               <Trolley rear={rearA} floor={floor} facing={1} text={`${b.id} ${fixed(b.m, 2)} kg`} buffer={buffer} squashed={squashed} />
@@ -128,11 +122,11 @@ export function CollideFigure({ fig, live, playing, clock = STILL }: Props) {
               <Trolley rear={rearB} floor={floor} facing={-1} text={`${b.id} ${fixed(b.m, 2)} kg`} buffer="none" />
             ),
           )}
-          {stage(PEN.labels, <Velocity x={mids[i]} y={floor - 54} v={vs[i]} dp={t < tHit ? 1 : 2} />)}
+          {stage(clock, PEN.labels, <Velocity x={mids[i]} y={floor - 54} v={vs[i]} dp={t < tHit ? 1 : 2} />)}
         </Group>
       ))}
       {ledger &&
-        stage(
+        stage(clock, 
           PEN.labels,
           <Group>
             <LedgerRow y={rows[0]} title="BEFORE" ids={[bodies[0].id, bodies[1].id]} ps={before} axis={axis} show={fig.ledger === 'shown'} unknown={fig.ledger !== 'shown'} />
@@ -153,7 +147,7 @@ function Velocity({ x, y, v, dp }: { x: number; y: number; v: number; dp: number
   const len = Math.sign(v) * Math.max(14, Math.abs(v) * KV); // a slow trolley still gets an arrow you can read
   return (
     <Group>
-      {!still && <HollowArrow x={x - len / 2} y={y} len={len} color={p.label} />}
+      {!still && <HollowArrow from={[x - len / 2, y]} to={[x - len / 2 + len, y]} color={p.label} weight="track" minLen={4} />}
       <MonoLabel x={x} y={y - 13} text={still ? 'at rest' : `${signed(v, dp)} m s⁻¹`} color={p.ink} size={9} />
     </Group>
   );

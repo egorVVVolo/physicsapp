@@ -4,16 +4,16 @@
 // so they never cross, and dashes stream along them. Water: the ball drops about 60 times as fast (turbulentTerminal);
 // the flow comes round the front smoothly, then breaks away and curls into eddies behind it, which spin and drift.
 // That half is a sketch, not a model: no simple law gives turbulent flow. Both panels are tap targets.
-import { useMemo, type ReactNode } from 'react';
+import { useMemo } from 'react';
 import { G as Group, Line, Path } from 'react-native-svg';
 import { sig } from '@/physics/format';
 import { glycerolViscosity, RHO_GLYCEROL, stokesTerminal, streamlineOffset, turbulentTerminal } from '@/physics/viscosity';
 import { FLOW_IDS, type FlowFig } from '@/content/types';
 import { useTheme } from '@/theme/ThemeContext';
 import { STILL, useLoopTime, type DrawClock } from './anim';
-import { DrawnFade, MonoLabel } from './draw';
+import { MonoLabel } from './draw';
 import type { TapProps, TapTarget } from './Sheet';
-import { TapBoxes } from './SledgeFigure';
+import { stage, TapBoxes } from './kit';
 
 export const FLOW_VB = { w: 340, h: 230 };
 
@@ -98,11 +98,6 @@ type Props = { fig: FlowFig; playing: boolean; tap?: TapProps; clock?: DrawClock
 export function FlowFigure({ fig, playing, tap, clock = STILL }: Props) {
   const { palette: p } = useTheme();
   const t = useLoopTime(playing && !clock.on, LOOP, 'flow', 0);
-  const stage = (pen: readonly [number, number], children: ReactNode) => (
-    <DrawnFade clock={clock} from={pen[0]} to={pen[1]}>
-      {children}
-    </DrawnFade>
-  );
   const vG = stokesTerminal(fig.r, fig.rho, RHO_GLYCEROL, glycerolViscosity(fig.T));
   const vW = turbulentTerminal(fig.r, fig.rho, 1000);
   const shift = -(t / LOOP) * DASH * 2; // the dashes stream upwards: each line is drawn from the bottom
@@ -124,7 +119,7 @@ export function FlowFigure({ fig, playing, tap, clock = STILL }: Props) {
     <Group>
       {/* the panels as tap targets, under the drawing: a picked panel gets its soft fill behind the lines */}
       {tap && <TapBoxes targets={flowTargets()} tap={tap} />}
-      {stage(
+      {stage(clock, 
         PEN.lines,
         <Group>
           {lines(CX.glycerol, false)}
@@ -142,7 +137,7 @@ export function FlowFigure({ fig, playing, tap, clock = STILL }: Props) {
         </Group>,
       )}
 
-      {stage(
+      {stage(clock, 
         PEN.ball,
         <Group>
           {(['glycerol', 'water'] as const).map((id) => (
@@ -155,7 +150,7 @@ export function FlowFigure({ fig, playing, tap, clock = STILL }: Props) {
         </Group>,
       )}
 
-      {stage(
+      {stage(clock, 
         PEN.labels,
         <Group>
           <MonoLabel x={CX.glycerol} y={24} text="GLYCEROL" color={p.label} size={9} />

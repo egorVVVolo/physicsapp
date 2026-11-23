@@ -2,7 +2,7 @@
 // (what is known, what is wanted, what nobody mentions) and the equations on the right, each with the one quantity
 // it leaves out. The equations and what they contain come from RELATIONS (src/physics/kinematics).
 // Tap targets: the equations. The first equations figure of a lesson draws itself: the frames, then the writing.
-import { Circle, G as Group, Line, Path, Rect } from 'react-native-svg';
+import { Circle, G as Group, Line, Path } from 'react-native-svg';
 import { QUANTITIES, RELATIONS, leftOut } from '@/physics/kinematics';
 import { EQUATION_IDS, type EquationsFig } from '@/content/types';
 import { useTheme } from '@/theme/ThemeContext';

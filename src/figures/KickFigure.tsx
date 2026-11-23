@@ -5,7 +5,6 @@
 // How far and how high are dimension lines, "?" until the question is answered.
 // On the explore screen the slider is the launch angle: the path, the time and the distance follow it.
 // The first kick figure of a lesson draws itself: ground → launch arrows → paths; the labels come last.
-import type { ReactNode } from 'react';
 import { Circle, G as Group, Path } from 'react-native-svg';
 import { flightTime, launchParts, projectilePosition, projectileRange, timeToTop, topHeight, type Launch } from '@/physics/projectile';
 import { fixed } from '@/physics/format';
@@ -14,8 +13,7 @@ import { useTheme } from '@/theme/ThemeContext';
 import { useReducedMotionPref } from '@/ui/parts';
 import { STILL, useLoopTime, type DrawClock } from './anim';
 import { DrawnFade, DrawnPath, FILLS, Hatch, MonoLabel } from './draw';
-import { HollowArrow } from './ResolveFigure';
-import { Tag } from './RoadFigure';
+import { HollowArrow, stage, Tag } from './kit';
 
 export const KICK_VB = { w: 340, h: 248 };
 
@@ -73,11 +71,6 @@ export function KickFigure({ fig, live, playing, clock = STILL }: Props) {
   const length = Math.max(...kicks.map((k) => flightTime(launchOf(fig.u, k.angle))));
   const loop = useLoopTime(plays && playing && !reduced && !clock.on, length, kicks.map((k) => k.id).join(''), HOLD);
   const timeOf = (l: Launch) => (plays ? (reduced ? length : loop) : fig.at === 'top' ? timeToTop(l) : 0);
-  const late = (children: ReactNode) => (
-    <DrawnFade clock={clock} from={PEN.labels[0]} to={PEN.labels[1]}>
-      {children}
-    </DrawnFade>
-  );
   const first = launchOf(fig.u, kicks[0].angle);
 
   return (
@@ -97,7 +90,7 @@ export function KickFigure({ fig, live, playing, clock = STILL }: Props) {
       {/* names at the tops of the paths, when two paths are drawn */}
       {fig.path === 'shown' &&
         kicks.length > 1 &&
-        late(
+        stage(clock, PEN.labels, 
           kicks.map((k) => {
             const l = launchOf(fig.u, k.angle);
             const [x, y] = pointAt(l, timeToTop(l));
@@ -114,8 +107,8 @@ export function KickFigure({ fig, live, playing, clock = STILL }: Props) {
         </DrawnFade>
       )}
 
-      {fig.height && late(<HeightLine l={first} label={fig.height} />)}
-      {fig.range && late(<RangeLines fig={fig} kicks={kicks} label={fig.range} />)}
+      {fig.height && stage(clock, PEN.labels, <HeightLine l={first} label={fig.height} />)}
+      {fig.range && stage(clock, PEN.labels, <RangeLines fig={fig} kicks={kicks} label={fig.range} />)}
 
       {/* the balls */}
       {kicks.map((k) => {
@@ -130,9 +123,9 @@ export function KickFigure({ fig, live, playing, clock = STILL }: Props) {
         );
       })}
 
-      {fig.topV && late(<TopVelocity l={first} label={fig.topV} />)}
+      {fig.topV && stage(clock, PEN.labels, <TopVelocity l={first} label={fig.topV} />)}
 
-      {plays && late(<MonoLabel x={10} y={18} text={`t = ${fixed(Math.min(loop, length), 2)} s`} color={p.label} size={9} anchor="start" />)}
+      {plays && stage(clock, PEN.labels, <MonoLabel x={10} y={18} text={`t = ${fixed(Math.min(loop, length), 2)} s`} color={p.label} size={9} anchor="start" />)}
     </Group>
   );
 }
@@ -170,8 +163,8 @@ function LaunchArrow({ u, angle, name, parts, arc, labelAt }: { u: number; angle
       {parts && (
         <Group>
           <Path d={`M${O[0]},${tip[1]} H${tip[0]} V${O[1]}`} fill="none" stroke={p.label} strokeWidth={1.1} strokeDasharray="4 3" />
-          <HollowArrow from={O} to={[tip[0], O[1]]} color={p.draw} thin />
-          <HollowArrow from={O} to={[O[0], tip[1]]} color={p.draw} thin />
+          <HollowArrow from={O} to={[tip[0], O[1]]} color={p.draw} weight="thin" />
+          <HollowArrow from={O} to={[O[0], tip[1]]} color={p.draw} weight="thin" />
         </Group>
       )}
       <Path d={arcD} fill="none" stroke={p.label} strokeWidth={1.1} />

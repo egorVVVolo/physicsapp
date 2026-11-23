@@ -7,16 +7,15 @@
 // "hill": a sledge resting on a snowy hill; its weight acts down from the centre of gravity and is split along the
 // slope and into it (`onSlope`), with the angle between W and the line into the slope marked: the hill's angle again.
 // The first figure of each kind draws itself: snow → sledge → rope → forces → components → labels.
-import type { ReactNode } from 'react';
 import { Circle, G as Group, Line, Path, Rect } from 'react-native-svg';
 import { components, onSlope } from '@/physics/vectors';
 import { fixed } from '@/physics/format';
 import { SLEDGE_IDS, type HillFig, type PartLabel, type SledgeFig } from '@/content/types';
 import { useTheme } from '@/theme/ThemeContext';
 import { STILL, type DrawClock } from './anim';
-import { CgMark, DrawnFade, ForceArrow, Hatch, MonoLabel } from './draw';
-import { Tag } from './RoadFigure';
+import { CgMark, ForceArrow, Hatch, MonoLabel } from './draw';
 import type { TapProps, TapTarget } from './Sheet';
+import { stage, Tag, TapBoxes } from './kit';
 
 export const SLEDGE_VB = { w: 340, h: 230 };
 export const HILL_VB = { w: 340, h: 230 };
@@ -102,11 +101,6 @@ export function SledgeFigure({ fig, live, tap, clock = STILL }: Props) {
   const fwdTip: [number, number] = [hitch[0] + fwd, hitch[1]];
   const upTip: [number, number] = [hitch[0], hitch[1] - up];
   const split = fig.split;
-  const stage = (pen: readonly [number, number], children: ReactNode) => (
-    <DrawnFade clock={clock} from={pen[0]} to={pen[1]}>
-      {children}
-    </DrawnFade>
-  );
 
   // Ben's sledge and push (both view only)
   const benPush: [number, number] = [v.benBack + BACK[0] * v.s, v.snowY + BACK[1] * v.s];
@@ -129,16 +123,16 @@ export function SledgeFigure({ fig, live, tap, clock = STILL }: Props) {
 
   return (
     <Group>
-      {stage(PEN.snow, <Hatch x1={8} x2={332} y={v.snowY} color={p.draw} clock={clock} from={PEN.snow[0]} to={PEN.snow[1]} />)}
+      {stage(clock, PEN.snow, <Hatch x1={8} x2={332} y={v.snowY} color={p.draw} clock={clock} from={PEN.snow[0]} to={PEN.snow[1]} />)}
 
       {/* tap boxes go under the arrows */}
       {fig.targets && <TapBoxes targets={sledgeTargets(fig, angle)} tap={tap} />}
 
-      {stage(PEN.sledge, <Sledge x={v.anaBack} y={v.snowY} s={v.s} />)}
-      {fig.who === 'AB' && stage(PEN.sledge, <Sledge x={v.benBack} y={v.snowY} s={v.s} />)}
+      {stage(clock, PEN.sledge, <Sledge x={v.anaBack} y={v.snowY} s={v.s} />)}
+      {fig.who === 'AB' && stage(clock, PEN.sledge, <Sledge x={v.benBack} y={v.snowY} s={v.s} />)}
 
       {/* Ana's rope and hand */}
-      {stage(
+      {stage(clock, 
         PEN.rope,
         <Group>
           <Line x1={hitch[0]} y1={hitch[1]} x2={mitten[0]} y2={mitten[1]} stroke={p.draw} strokeWidth={1.6} />
@@ -147,7 +141,7 @@ export function SledgeFigure({ fig, live, tap, clock = STILL }: Props) {
         </Group>,
       )}
       {fig.who === 'AB' &&
-        stage(
+        stage(clock, 
           PEN.rope,
           <Group>
             <Mitten x={benPush[0] - 7} y={benPush[1]} dx={-1} dy={0} />
@@ -157,7 +151,7 @@ export function SledgeFigure({ fig, live, tap, clock = STILL }: Props) {
 
       {/* components (dashed rectangle or tip to tail) */}
       {split &&
-        stage(
+        stage(clock, 
           PEN.parts,
           <Group>
             {split === 'box' && (
@@ -171,7 +165,7 @@ export function SledgeFigure({ fig, live, tap, clock = STILL }: Props) {
         )}
 
       {/* the forces themselves, from the point where they act */}
-      {stage(
+      {stage(clock, 
         PEN.forces,
         <Group>
           <ForceArrow x1={hitch[0]} y1={hitch[1]} x2={tip[0]} y2={tip[1]} color={p.force} width={split ? 3.4 : 3.2} />
@@ -186,7 +180,7 @@ export function SledgeFigure({ fig, live, tap, clock = STILL }: Props) {
         </Group>,
       )}
 
-      {stage(
+      {stage(clock, 
         PEN.labels,
         <Group>
           {showArc && <Tag x={hitch[0] + bis[0] * arcLabelR} y={hitch[1] + bis[1] * arcLabelR + 3} text={`${fixed(angle, 0)}°`} />}
@@ -204,34 +198,6 @@ export function SledgeFigure({ fig, live, tap, clock = STILL }: Props) {
   );
 }
 
-/** Dashed boxes round the tap targets; the chosen one turns soft blue, a checked one green or red. */
-export function TapBoxes({ targets, tap }: { targets: TapTarget[]; tap?: TapProps }) {
-  const { palette: p } = useTheme();
-  return (
-    <Group>
-      {targets.map((t) => {
-        const mark = tap?.marks?.[t.id];
-        const on = tap?.selected === t.id;
-        const color = mark === 'right' ? p.ok : mark === 'wrong' ? p.bad : on ? p.select : p.lineStrong;
-        const bg = mark === 'right' ? p.okBg : mark === 'wrong' ? p.badBg : on ? p.selectBg : 'none';
-        return (
-          <Rect
-            key={t.id}
-            x={t.x + 2}
-            y={t.y + 2}
-            width={t.w - 4}
-            height={t.h - 4}
-            rx={9}
-            fill={bg}
-            stroke={color}
-            strokeWidth={on || mark ? 2 : 1.2}
-            strokeDasharray={on || mark ? undefined : '4 3'}
-          />
-        );
-      })}
-    </Group>
-  );
-}
 
 /** A sledge: a flat deck on two struts and a runner that curls up at the front. Back of the runner at (x, y), facing right. */
 function Sledge({ x, y, s, flip }: { x: number; y: number; s: number; flip?: boolean }) {
@@ -296,15 +262,10 @@ export function HillFigure({ fig, clock = STILL }: { fig: HillFig; clock?: DrawC
   const R = 46;
   const M: [number, number] = [HILL.mark, yAt(HILL.mark)];
   const arcFoot = `M${M[0] + R},${M[1]} A${R},${R} 0 0 0 ${M[0] + R * Math.cos(th)},${M[1] - R * Math.sin(th)}`;
-  const stage = (pen: readonly [number, number], children: ReactNode) => (
-    <DrawnFade clock={clock} from={pen[0]} to={pen[1]}>
-      {children}
-    </DrawnFade>
-  );
 
   return (
     <Group>
-      {stage(
+      {stage(clock, 
         PEN.snow,
         <Group>
           {/* the snow surface, hatched underneath like ground on a drawing */}
@@ -317,13 +278,13 @@ export function HillFigure({ fig, clock = STILL }: { fig: HillFig; clock?: DrawC
         </Group>,
       )}
       {/* the sledge points down the slope */}
-      {stage(
+      {stage(clock, 
         PEN.sledge,
         <Group transform={`translate(${P[0]} ${P[1]}) rotate(${-fig.angle})`} opacity={0.6}>
           <Sledge x={CG[0] * HILL.s} y={0} s={HILL.s} flip />
         </Group>,
       )}
-      {stage(
+      {stage(clock, 
         PEN.parts,
         <Group>
           <Path d={`M${aTip[0]},${aTip[1]} L${wTip[0]},${wTip[1]} L${iTip[0]},${iTip[1]}`} fill="none" stroke={p.label} strokeWidth={1.1} strokeDasharray="4 3" />
@@ -332,14 +293,14 @@ export function HillFigure({ fig, clock = STILL }: { fig: HillFig; clock?: DrawC
           <Path d={arcW} fill="none" stroke={p.label} strokeWidth={1.2} />
         </Group>,
       )}
-      {stage(
+      {stage(clock, 
         PEN.forces,
         <Group>
           <ForceArrow x1={cg[0]} y1={cg[1]} x2={wTip[0]} y2={wTip[1]} color={p.force} width={3.4} />
           <CgMark x={cg[0]} y={cg[1]} color={p.draw} />
         </Group>,
       )}
-      {stage(
+      {stage(clock, 
         PEN.labels,
         <Group>
           <Tag x={cg[0] - 6 - w(wText) / 2} y={cg[1] + wLen * 0.78} text={wText} />

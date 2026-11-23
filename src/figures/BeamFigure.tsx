@@ -3,18 +3,17 @@
 // from its middle (with the centre-of-gravity mark), a support's push up from where it touches the plank. One scale
 // per figure. On a single pivot the totals of the clockwise and anticlockwise moments come from src/physics/moments;
 // if they differ the plank tips until its low end rests on the ground, and it lies level once they match.
-import type { ReactNode } from 'react';
 import { Circle, G as Group, Path, Rect } from 'react-native-svg';
 import { momentsAbout, senseTotals, type Load } from '@/physics/moments';
 import { fixed } from '@/physics/format';
 import { BEAM_IDS, type BeamFig, type BeamLoad } from '@/content/types';
 import { useTheme } from '@/theme/ThemeContext';
 import { STILL, useTween, type DrawClock } from './anim';
-import { CgMark, DrawnFade, ForceArrow, ForceLetter, Hatch, MonoLabel, polyPath } from './draw';
+import { CgMark, ForceArrow, ForceLetter, Hatch, MonoLabel, polyPath } from './draw';
 import { Person } from './people';
-import { TapBoxes } from './SledgeFigure';
 import type { TapProps, TapTarget } from './Sheet';
-import { AlignedDim, TurnArc } from './turning';
+import { TurnArc } from './turning';
+import { Dim, stage, TapBoxes } from './kit';
 
 export const BEAM_VB = { w: 340, h: 252 };
 
@@ -97,7 +96,7 @@ export function BeamFigure({ fig, live, tap, clock = STILL }: { fig: BeamFig; li
     const a = onPlank(Math.min(from, to));
     const b = onPlank(Math.max(from, to));
     const y = GROUND + 22 + row * 15;
-    return <AlignedDim key={`${from}-${to}`} a={[a[0], y]} b={[b[0], y]} text={text} strong={strong} />;
+    return <Dim key={`${from}-${to}`} a={[a[0], y]} b={[b[0], y]} text={text} strong={strong} />;
   };
 
   // a point on the plank's centre line, `along` metres from its left end, with the plank at its tilt
@@ -108,11 +107,6 @@ export function BeamFigure({ fig, live, tap, clock = STILL }: { fig: BeamFig; li
     const d = (along - fig.supports[0]) * k;
     return [pivotX + d * c - up * s, MID_Y - d * s - up * c];
   };
-  const stage = (pen: readonly [number, number], children: ReactNode) => (
-    <DrawnFade clock={clock} from={pen[0]} to={pen[1]}>
-      {children}
-    </DrawnFade>
-  );
   const corners = [onPlank(0, THICK / 2), onPlank(fig.L, THICK / 2), onPlank(fig.L, -THICK / 2), onPlank(0, -THICK / 2)];
   const plank = polyPath(corners);
   const totals = pivot ? senseTotals(all, fig.supports[0]) : null;
@@ -121,7 +115,7 @@ export function BeamFigure({ fig, live, tap, clock = STILL }: { fig: BeamFig; li
 
   return (
     <Group>
-      {stage(
+      {stage(clock, 
         PEN.ground,
         <Group>
           <Hatch x1={X0 - 10} x2={X1 + 10} y={GROUND} color={p.draw} clock={clock} from={PEN.ground[0]} to={PEN.ground[1]} />
@@ -139,7 +133,7 @@ export function BeamFigure({ fig, live, tap, clock = STILL }: { fig: BeamFig; li
         </Group>,
       )}
 
-      {stage(
+      {stage(clock, 
         PEN.beam,
         <Group>
           <Path d={plank.d} fill={p.drawFill} stroke={p.draw} strokeWidth={1.8} strokeLinejoin="round" />
@@ -149,7 +143,7 @@ export function BeamFigure({ fig, live, tap, clock = STILL }: { fig: BeamFig; li
 
       {fig.candidates && <TapBoxes targets={beamTargets(fig)} tap={tap} />}
 
-      {stage(
+      {stage(clock, 
         PEN.loads,
         <Group>
           {loads.map((l) => {
@@ -169,7 +163,7 @@ export function BeamFigure({ fig, live, tap, clock = STILL }: { fig: BeamFig; li
         </Group>,
       )}
 
-      {stage(
+      {stage(clock, 
         PEN.forces,
         <Group>
           {/* the plank's own weight, from its middle */}
@@ -236,7 +230,7 @@ export function BeamFigure({ fig, live, tap, clock = STILL }: { fig: BeamFig; li
         </Group>,
       )}
 
-      {stage(
+      {stage(clock, 
         PEN.marks,
         <Group>
           {/* distances along the plank: from the pivot on a pivot, from the left end on trestles */}

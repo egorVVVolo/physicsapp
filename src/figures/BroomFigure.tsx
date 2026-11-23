@@ -1,15 +1,14 @@
 // FIG: a broom lying flat, balanced on a fingertip at its centre of gravity. Sawn there, each piece's weight acts at
 // its own centre of gravity: the brush piece's close to the cut, the handle piece's far out. Their moments about the
 // cut are equal, so their weights are not (piecesAtBalance, src/physics/moments).
-import type { ReactNode } from 'react';
 import { Circle, G as Group, Path, Rect } from 'react-native-svg';
 import { piecesAtBalance } from '@/physics/moments';
 import { fixed } from '@/physics/format';
 import type { BroomFig } from '@/content/types';
 import { useTheme } from '@/theme/ThemeContext';
 import { STILL, type DrawClock } from './anim';
-import { CgMark, DrawnFade, ForceArrow, MonoLabel, polyPath, rectPath } from './draw';
-import { AlignedDim } from './turning';
+import { CgMark, ForceArrow, MonoLabel, polyPath, rectPath } from './draw';
+import { Dim, stage } from './kit';
 
 export const BROOM_VB = { w: 340, h: 230 };
 
@@ -32,11 +31,6 @@ export function broomParams(fig: BroomFig): string {
 export function BroomFigure({ fig, clock = STILL }: { fig: BroomFig; clock?: DrawClock }) {
   const { palette: p } = useTheme();
   const [brushW, handleW] = piecesAtBalance(fig.total, fig.brush, fig.handle);
-  const stage = (pen: readonly [number, number], children: ReactNode) => (
-    <DrawnFade clock={clock} from={pen[0]} to={pen[1]}>
-      {children}
-    </DrawnFade>
-  );
   const handle = rectPath(xAt(-HANDLE_END), Y - ROD / 2, (HANDLE_END + 0.07) * K, ROD, ROD / 2);
   const ferrule = rectPath(xAt(0.06), Y - 11, 0.06 * K, 22, 3);
   const bristles = polyPath([
@@ -62,7 +56,7 @@ export function BroomFigure({ fig, clock = STILL }: { fig: BroomFig; clock?: Dra
 
   return (
     <Group>
-      {stage(
+      {stage(clock, 
         PEN.finger,
         <Group>
           {/* a hand from below, one finger up under the balance point */}
@@ -72,7 +66,7 @@ export function BroomFigure({ fig, clock = STILL }: { fig: BroomFig; clock?: Dra
         </Group>,
       )}
 
-      {stage(
+      {stage(clock, 
         PEN.broom,
         <Group>
           <Path d={handle.d} fill={p.drawFill} stroke={p.draw} strokeWidth={1.6} />
@@ -84,7 +78,7 @@ export function BroomFigure({ fig, clock = STILL }: { fig: BroomFig; clock?: Dra
         </Group>,
       )}
 
-      {stage(
+      {stage(clock, 
         PEN.marks,
         <Group>
           {fig.cut && (
@@ -97,8 +91,8 @@ export function BroomFigure({ fig, clock = STILL }: { fig: BroomFig; clock?: Dra
             <Group>
               <MonoLabel x={xAt(-HANDLE_END / 2)} y={DIM_Y - 22} text="HANDLE PIECE" color={p.label} size={9} />
               <MonoLabel x={xAt(0.17)} y={DIM_Y - 22} text="BRUSH PIECE" color={p.label} size={9} />
-              <AlignedDim a={[xAt(-fig.handle), DIM_Y]} b={[CUT_X, DIM_Y]} text={`${fixed(fig.handle, 2)} m`} />
-              <AlignedDim a={[CUT_X, DIM_Y]} b={[xAt(fig.brush), DIM_Y]} text={`${fixed(fig.brush, 2)} m`} />
+              <Dim a={[xAt(-fig.handle), DIM_Y]} b={[CUT_X, DIM_Y]} text={`${fixed(fig.handle, 2)} m`} />
+              <Dim a={[CUT_X, DIM_Y]} b={[xAt(fig.brush), DIM_Y]} text={`${fixed(fig.brush, 2)} m`} />
               <Path d={`M${xAt(-fig.handle)},${DIM_Y + 4} V${Y - 8} M${xAt(fig.brush)},${DIM_Y + 4} V${Y - 14}`} stroke={p.label} strokeWidth={1} strokeDasharray="2 3" />
             </Group>
           )}
@@ -106,7 +100,7 @@ export function BroomFigure({ fig, clock = STILL }: { fig: BroomFig; clock?: Dra
       )}
 
       {pieces &&
-        stage(
+        stage(clock, 
           PEN.forces,
           <Group>
             {piece(-fig.handle, handleW, 'handle')}

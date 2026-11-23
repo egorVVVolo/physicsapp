@@ -1,15 +1,15 @@
 // FIG: a light bar on a pivot at its middle, loads hanging from it. Each load turns the bar its own way about the pivot:
 // on the left anticlockwise, on the right clockwise (loadMoment, src/physics/moments). Once shown, every load gets its
 // turning arc and moment, and the resultant is written on top.
-import type { ReactNode } from 'react';
 import { Circle, G as Group, Path } from 'react-native-svg';
 import { loadMoment, resultantMoment } from '@/physics/moments';
 import { fixed } from '@/physics/format';
 import type { BarFig } from '@/content/types';
 import { useTheme } from '@/theme/ThemeContext';
 import { STILL, type DrawClock } from './anim';
-import { DrawnFade, ForceArrow, Hatch, MonoLabel, polyPath, rectPath } from './draw';
-import { AlignedDim, TurnArc } from './turning';
+import { ForceArrow, Hatch, MonoLabel, polyPath, rectPath } from './draw';
+import { TurnArc } from './turning';
+import { Dim, stage } from './kit';
 
 export const BAR_VB = { w: 340, h: 230 };
 
@@ -32,11 +32,6 @@ export function BarFigure({ fig, clock = STILL }: { fig: BarFig; clock?: DrawClo
   const { palette: p } = useTheme();
   const k = HALF / fig.half;
   const shown = fig.moments === 'shown';
-  const stage = (pen: readonly [number, number], children: ReactNode) => (
-    <DrawnFade clock={clock} from={pen[0]} to={pen[1]}>
-      {children}
-    </DrawnFade>
-  );
   const bar = rectPath(MID[0] - HALF, MID[1] - THICK / 2, HALF * 2, THICK, 2);
   const base = MID[1] + THICK / 2 + PIVOT_H;
   const pivot = polyPath([
@@ -49,14 +44,14 @@ export function BarFigure({ fig, clock = STILL }: { fig: BarFig; clock?: DrawClo
 
   return (
     <Group>
-      {stage(
+      {stage(clock, 
         PEN.ground,
         <Group>
           <Hatch x1={MID[0] - 44} x2={MID[0] + 44} y={base} color={p.draw} clock={clock} from={PEN.ground[0]} to={PEN.ground[1]} />
         </Group>,
       )}
 
-      {stage(
+      {stage(clock, 
         PEN.bar,
         <Group>
           <Path d={pivot.d} fill={p.drawFillDark} stroke={p.draw} strokeWidth={1.6} strokeLinejoin="round" />
@@ -65,7 +60,7 @@ export function BarFigure({ fig, clock = STILL }: { fig: BarFig; clock?: DrawClo
         </Group>,
       )}
 
-      {stage(
+      {stage(clock, 
         PEN.loads,
         <Group>
           {fig.loads.map((l) => {
@@ -83,13 +78,13 @@ export function BarFigure({ fig, clock = STILL }: { fig: BarFig; clock?: DrawClo
         </Group>,
       )}
 
-      {stage(
+      {stage(clock, 
         PEN.marks,
         <Group>
           <Path d={`M${MID[0]},${base + 10} V${DIM_Y - 4}`} stroke={p.label} strokeWidth={1} strokeDasharray="2 3" />
           {fig.loads.map((l) => {
             const x = MID[0] + l.at * k;
-            return <AlignedDim key={l.at} a={[Math.min(x, MID[0]), DIM_Y]} b={[Math.max(x, MID[0]), DIM_Y]} text={`${fixed(Math.abs(l.at), 2)} m`} />;
+            return <Dim key={l.at} a={[Math.min(x, MID[0]), DIM_Y]} b={[Math.max(x, MID[0]), DIM_Y]} text={`${fixed(Math.abs(l.at), 2)} m`} />;
           })}
           {shown &&
             fig.loads.map((l, i) => {

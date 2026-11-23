@@ -1,8 +1,6 @@
 // Shared drawing for the moments figures: the turning arc (the sense of a moment), a dimension between any two
 // points (dashed when it is only a candidate) and a right-angle mark. Coordinates are viewBox units, y down.
 import { G as Group, Path, Polygon } from 'react-native-svg';
-import { useTheme } from '@/theme/ThemeContext';
-import { Tag } from './RoadFigure';
 
 const RAD = Math.PI / 180;
 type Pt = readonly [number, number];
@@ -35,30 +33,6 @@ export function TurnArc({ cx, cy, r, from, sweep, color, width = 2 }: { cx: numb
   );
 }
 
-/**
- * A dimension from a to b, moved `offset` units to the left of the direction a → b (on screen), with end ticks and its
- * size on a patch of paper. `dashed`: only a candidate, no ticks; `text` may be left out.
- */
-export function AlignedDim({ a, b, offset = 0, text, dashed, strong }: { a: Pt; b: Pt; offset?: number; text?: string; dashed?: boolean; strong?: boolean }) {
-  const { palette: p } = useTheme();
-  const len = Math.hypot(b[0] - a[0], b[1] - a[1]);
-  if (len < 1) return null;
-  const ux = (b[0] - a[0]) / len;
-  const uy = (b[1] - a[1]) / len;
-  const nx = uy * offset;
-  const ny = -ux * offset;
-  const a2: Pt = [a[0] + nx, a[1] + ny];
-  const b2: Pt = [b[0] + nx, b[1] + ny];
-  const tick = (q: Pt) => `M${q[0] + uy * 4},${q[1] - ux * 4} L${q[0] - uy * 4},${q[1] + ux * 4}`;
-  const color = strong ? p.ink : p.label;
-  return (
-    <Group>
-      <Path d={`M${a2[0]},${a2[1]} L${b2[0]},${b2[1]}`} stroke={color} strokeWidth={dashed ? 1.6 : strong ? 1.6 : 1.1} strokeDasharray={dashed ? '5 4' : undefined} />
-      {!dashed && <Path d={`${tick(a2)} ${tick(b2)}`} stroke={color} strokeWidth={1.1} />}
-      {text && <Tag x={(a2[0] + b2[0]) / 2} y={(a2[1] + b2[1]) / 2 + 3.5} text={text} />}
-    </Group>
-  );
-}
 
 /** A right-angle mark at `at` between the unit directions u and v. */
 export function RightAngle({ at, u, v, size = 7, color }: { at: Pt; u: Pt; v: Pt; size?: number; color: string }) {

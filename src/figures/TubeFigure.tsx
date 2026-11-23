@@ -6,7 +6,7 @@
 // both push up through the centre, so F is stacked on U and the two together match W); the two balls side by side with
 // their weights; a stopwatch that runs while the ball is between the bands; or, on the explore screen (the slider =
 // temperature), a thermometer with η and the ball's speed, the ball drifting down at that speed.
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Circle, G as Group, Line, Path, Rect } from 'react-native-svg';
 import { fixed, sci, sig } from '@/physics/format';
 import { glycerolViscosity, RHO_GLYCEROL, sphereUpthrust, sphereWeight, stokesDrag, stokesFall, stokesTerminal } from '@/physics/viscosity';
@@ -14,7 +14,8 @@ import type { TubeFig } from '@/content/types';
 import { useTheme } from '@/theme/ThemeContext';
 import { useReducedMotionPref } from '@/ui/parts';
 import { STILL, useLoopTime, type DrawClock } from './anim';
-import { DrawnFade, ForceArrow, ForceLetter, Hatch, MonoLabel } from './draw';
+import { ForceArrow, ForceLetter, Hatch, MonoLabel } from './draw';
+import { Ball, stage } from './kit';
 
 export const TUBE_VB = { w: 340, h: 230 };
 
@@ -87,11 +88,6 @@ export function TubeFigure({ fig, live, playing, clock = STILL }: Props) {
   const drift = useDrift(vNow, live !== undefined && playing && !reduced && !clock.on, DEPTH - 4);
   const balls = fig.balls.map((r) => (live !== undefined ? { ...ballAt(r, fig.rho, eta, 0), s: drift } : ballAt(r, fig.rho, eta, t)));
   const lanes = balls.length === 1 ? [84] : [74, 96];
-  const stage = (pen: readonly [number, number], children: ReactNode) => (
-    <DrawnFade clock={clock} from={pen[0]} to={pen[1]}>
-      {children}
-    </DrawnFade>
-  );
   const dashes: string[] = [];
   for (let y = SURFACE + 9; y < TUBE.bottom - 3; y += 9) for (let x = TUBE.x1 + 4 + ((y / 9) % 2) * 6; x < TUBE.x2 - 6; x += 12) dashes.push(`M${x},${y} h5`);
   const ticks: string[] = [];
@@ -100,9 +96,9 @@ export function TubeFigure({ fig, live, playing, clock = STILL }: Props) {
 
   return (
     <Group>
-      {stage(PEN.ground, <Hatch x1={8} x2={150} y={BENCH} color={p.draw} clock={clock} from={PEN.ground[0]} to={PEN.ground[1]} />)}
+      {stage(clock, PEN.ground, <Hatch x1={8} x2={150} y={BENCH} color={p.draw} clock={clock} from={PEN.ground[0]} to={PEN.ground[1]} />)}
 
-      {stage(
+      {stage(clock, 
         PEN.liquid,
         <Group>
           <Rect x={TUBE.x1} y={SURFACE} width={TUBE.x2 - TUBE.x1} height={TUBE.bottom - SURFACE} fill={p.drawFill} />
@@ -111,17 +107,17 @@ export function TubeFigure({ fig, live, playing, clock = STILL }: Props) {
         </Group>,
       )}
 
-      {stage(
+      {stage(clock, 
         PEN.balls,
         <Group>
           {balls.map((b, i) => {
             const rr = b.r * 1000 * DRAW_R;
-            return <Ball key={i} x={lanes[i]} y={SURFACE + rr + b.s * K} r={rr} />;
+            return <Ball key={i} look="steel" x={lanes[i]} y={SURFACE + rr + b.s * K} r={rr} />;
           })}
         </Group>,
       )}
 
-      {stage(
+      {stage(clock, 
         PEN.tube,
         <Group>
           {/* the glass: walls, a rounded bottom, a foot; the rubber bands round it; the ruler beside it */}
@@ -142,21 +138,11 @@ export function TubeFigure({ fig, live, playing, clock = STILL }: Props) {
         </Group>,
       )}
 
-      {stage(PEN.labels, <Panel fig={fig} eta={eta} T={T} t={t} vLive={live !== undefined ? vNow : undefined} />)}
+      {stage(clock, PEN.labels, <Panel fig={fig} eta={eta} T={T} t={t} vLive={live !== undefined ? vNow : undefined} />)}
     </Group>
   );
 }
 
-/** A steel ball: a flat disc with a lighter cap, like the bodies of the other figures. */
-function Ball({ x, y, r }: { x: number; y: number; r: number }) {
-  const { palette: p } = useTheme();
-  return (
-    <Group>
-      <Circle cx={x} cy={y} r={r} fill={p.drawFillDark} stroke={p.draw} strokeWidth={r > 8 ? 1.5 : 1.1} />
-      <Path d={`M${x - r * 0.55},${y - r * 0.35} A${r * 0.62},${r * 0.62} 0 0 1 ${x + r * 0.2},${y - r * 0.68}`} stroke={p.paper} strokeWidth={Math.max(1, r * 0.16)} fill="none" strokeLinecap="round" />
-    </Group>
-  );
-}
 
 const PX = 156; // the panel's left edge
 const PR = 334; // … and right edge
@@ -256,7 +242,7 @@ function Forces({ fig, eta }: { fig: TubeFig; eta: number }) {
   return (
     <Group>
       <MonoLabel x={PX} y={22} text="× 20" color={p.label} size={8.5} anchor="start" />
-      <Ball x={cx} y={cy} r={r * 1000 * 12} />
+      <Ball look="steel" x={cx} y={cy} r={r * 1000 * 12} />
       <ForceArrow x1={cx} y1={cy} x2={cx} y2={cy + W * k} color={p.force} width={3} />
       <ForceLetter x={cx + 9} y={cy + W * k - 2} text="W" color={p.force} size={13} anchor="start" />
       <ForceArrow x1={cx} y1={cy} x2={cx} y2={uTop} color={p.force} width={3} />
@@ -291,7 +277,7 @@ function Weights({ fig }: { fig: TubeFig }) {
         const asked = fig.ask !== undefined && i === fig.balls.length - 1;
         return (
           <Group key={i}>
-            <Ball x={x} y={96} r={rr} />
+            <Ball look="steel" x={x} y={96} r={rr} />
             <Line x1={x - rr} y1={96 + 30} x2={x + rr} y2={96 + 30} stroke={p.label} strokeWidth={0.9} />
             <Path d={`M${x - rr},${126 - 4} v8 M${x + rr},${126 - 4} v8`} stroke={p.label} strokeWidth={0.9} />
             <MonoLabel x={x} y={142} text={mm(r)} color={p.label} size={8.5} />

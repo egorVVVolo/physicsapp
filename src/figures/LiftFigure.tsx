@@ -5,7 +5,7 @@
 // The first lift of a lesson draws itself: shaft → car → floor → scales → person → fills; the forces grow after that.
 // A lift kept from the screen before (`prev`) changes state instead: arrows already there stay, new ones grow,
 // N and the scales count from their old values to the new ones.
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useState } from 'react';
 import { StyleSheet } from 'react-native';
 import Animated, { useAnimatedStyle, useFrameCallback, useSharedValue, withTiming } from 'react-native-reanimated';
 import Svg, { G as Group, Line, Rect, Circle, Polygon } from 'react-native-svg';
@@ -18,6 +18,7 @@ import { CHANGE_DELAY, DRAWN_MS, STILL, useTween, useWave, type DrawClock } from
 import { AccChevrons, DrawnFade, DrawnPath, DrawnShape, FILLS, ForceArrow, ForceLetter, Hatch, MonoLabel, MotionArrow, rectPath } from './draw';
 import { Person, Scales, SCALES_H } from './people';
 import { type TapProps, type TapTarget } from './Sheet';
+import { stage } from './kit';
 
 export const LIFT_VB = { w: 340, h: 260 };
 
@@ -94,11 +95,6 @@ export function LiftFigure({ fig, a, tap, clock = STILL, prev, shift: shiftNow }
   const line = (d: string, len: number, pen: readonly [number, number], color: string, width: number, cap?: 'round') => (
     <DrawnPath clock={clock} len={len} from={pen[0]} to={pen[1]} d={d} stroke={color} strokeWidth={width} strokeLinecap={cap} fill="none" />
   );
-  const late = (children: ReactNode) => (
-    <DrawnFade clock={clock} from={PEN.marks[0]} to={PEN.marks[1]}>
-      {children}
-    </DrawnFade>
-  );
   const k = scaleFor(fig.m);
   const W = weight(fig.m);
   const N = normalInLift(fig.m, a);
@@ -155,7 +151,7 @@ export function LiftFigure({ fig, a, tap, clock = STILL, prev, shift: shiftNow }
       )}
       {fig.showAcc && !fig.motion && Math.abs(a) > 1e-9 && (
         <Group opacity={room}>
-          {late(<DriftingChevrons x={MID_X} y={118} dir={a > 0 ? 'up' : 'down'} color={p.draw} />)}
+          {stage(clock, PEN.marks, <DriftingChevrons x={MID_X} y={118} dir={a > 0 ? 'up' : 'down'} color={p.draw} />)}
           <MonoLabel x={MID_X} y={150} text="a" color={p.label} size={11} />
         </Group>
       )}
@@ -186,8 +182,8 @@ export function LiftFigure({ fig, a, tap, clock = STILL, prev, shift: shiftNow }
                 </DrawnFade>
               );
             })}
-          {fig.candidates && late(<Line x1={222} y1={DOT.y} x2={322} y2={DOT.y} stroke={p.lineStrong} strokeWidth={1} strokeDasharray="2 3" />)}
-          {late(<Circle cx={DOT.x} cy={DOT.y} r={5} fill={p.draw} />)}
+          {fig.candidates && stage(clock, PEN.marks, <Line x1={222} y1={DOT.y} x2={322} y2={DOT.y} stroke={p.lineStrong} strokeWidth={1} strokeDasharray="2 3" />)}
+          {stage(clock, PEN.marks, <Circle cx={DOT.x} cy={DOT.y} r={5} fill={p.draw} />)}
         </Group>
       )}
     </Group>

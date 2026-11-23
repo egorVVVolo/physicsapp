@@ -4,7 +4,6 @@
 // kinetic energy at the foot, ½mv² = mgh − FL, and the work done against friction, FL, which heats the child and the
 // chute. The friction force acts up the chute from where the child touches it.
 // On the explore screen the slider sets L at the same height and friction: a longer slide takes more energy.
-import type { ReactNode } from 'react';
 import { Circle, G as Group, Line, Path, Rect } from 'react-native-svg';
 import { kineticEnergy, potentialChange, slideAcceleration, slideSpeed } from '@/physics/energy';
 import { workDone } from '@/physics/work';
@@ -13,10 +12,8 @@ import type { SlideFig } from '@/content/types';
 import { useTheme } from '@/theme/ThemeContext';
 import { useReducedMotionPref } from '@/ui/parts';
 import { STILL, useLoopTime, useTween, type DrawClock } from './anim';
-import { DrawnFade, ForceArrow, Hatch, MonoLabel } from './draw';
-import { HollowArrow } from './ResolveFigure';
-import { Tag } from './RoadFigure';
-import { AlignedDim } from './turning';
+import { ForceArrow, Hatch, MonoLabel } from './draw';
+import { Dim, HollowArrow, stage, Tag } from './kit';
 
 export const SLIDE_VB = { w: 340, h: 230 };
 
@@ -74,11 +71,6 @@ export function SlideFigure({ fig, live, playing, clock = STILL }: Props) {
   // the child is drawn by the hips, so its legs end on the run-out: the model's distance is scaled onto the chute less a leg
   const along = (s / (plays ? fig.L : L)) * (len - LEG);
   const contact: Pt = [top[0] + u[0] * along, top[1] + u[1] * along];
-  const stage = (pen: readonly [number, number], children: ReactNode) => (
-    <DrawnFade clock={clock} from={pen[0]} to={pen[1]}>
-      {children}
-    </DrawnFade>
-  );
   const rungs: string[] = [];
   for (let y = GROUND - 14; y > deckY + 4; y -= 13) rungs.push(`M${XT - 30},${y} H${XT - 14}`);
   const mid: Pt = [(top[0] + foot[0]) / 2, (top[1] + foot[1]) / 2];
@@ -88,9 +80,9 @@ export function SlideFigure({ fig, live, playing, clock = STILL }: Props) {
 
   return (
     <Group>
-      {stage(PEN.ground, <Hatch x1={8} x2={332} y={GROUND} color={p.draw} clock={clock} from={PEN.ground[0]} to={PEN.ground[1]} />)}
+      {stage(clock, PEN.ground, <Hatch x1={8} x2={332} y={GROUND} color={p.draw} clock={clock} from={PEN.ground[0]} to={PEN.ground[1]} />)}
 
-      {stage(
+      {stage(clock, 
         PEN.slide,
         <Group>
           {/* the ladder and the deck with its handrail */}
@@ -104,14 +96,14 @@ export function SlideFigure({ fig, live, playing, clock = STILL }: Props) {
         </Group>,
       )}
 
-      {stage(
+      {stage(clock, 
         PEN.child,
         <Group transform={`translate(${contact[0]} ${contact[1]}) scale(1.25) translate(${-contact[0]} ${-contact[1]})`}>
           <Child at={contact} u={u} />
         </Group>,
       )}
 
-      {stage(
+      {stage(clock, 
         PEN.labels,
         <Group>
           {/* friction up the chute, from where the child touches it */}
@@ -125,18 +117,18 @@ export function SlideFigure({ fig, live, playing, clock = STILL }: Props) {
           {/* the child's velocity: down the chute while sliding */}
           {v > 0.05 && (
             <Group>
-              <HollowArrow from={[contact[0] + nrm[0] * 50, contact[1] + nrm[1] * 50]} to={[contact[0] + nrm[0] * 50 + u[0] * v * KV, contact[1] + nrm[1] * 50 + u[1] * v * KV]} color={p.draw} thin />
+              <HollowArrow from={[contact[0] + nrm[0] * 50, contact[1] + nrm[1] * 50]} to={[contact[0] + nrm[0] * 50 + u[0] * v * KV, contact[1] + nrm[1] * 50 + u[1] * v * KV]} color={p.draw} weight="thin" />
               {(atFoot || !plays) && <Tag x={contact[0] + nrm[0] * 50 + u[0] * v * KV * 0.5} y={contact[1] + nrm[1] * 50 - 10} text={`v = ${fixed(v, 1)} m s⁻¹`} />}
             </Group>
           )}
-          <AlignedDim a={[XT - 50, GROUND]} b={[XT - 50, deckY]} text={`${fixed(fig.h, 1)} m`} />
+          <Dim a={[XT - 50, GROUND]} b={[XT - 50, deckY]} text={`${fixed(fig.h, 1)} m`} />
           {/* the length along the chute, its value near the top so it never meets the friction label by the child */}
-          <AlignedDim a={top} b={foot} offset={-25} />
+          <Dim a={top} b={foot} offset={-25} />
           <Tag x={top[0] + (foot[0] - top[0]) * 0.3 - nrm[0] * 25} y={top[1] + (foot[1] - top[1]) * 0.3 - nrm[1] * 25 + 3.5} text={`${fixed(L, 1)} m`} />
         </Group>,
       )}
 
-      {stage(PEN.bars, <Bars n={n} heat={fig.heat} />)}
+      {stage(clock, PEN.bars, <Bars n={n} heat={fig.heat} />)}
     </Group>
   );
 }

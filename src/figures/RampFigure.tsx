@@ -2,7 +2,6 @@
 // road, down to the road; the machine sits halfway up with the movers' push along the ramp from its centre of gravity.
 // The push is rampPush (mg h ÷ L) and its work over L is the same as lifting the machine straight up (src/physics/work):
 // both sums are written at the top. On the explore screen the slider sets the ramp's length.
-import type { ReactNode } from 'react';
 import { Circle, G as Group, Line, Path, Rect } from 'react-native-svg';
 import { weight } from '@/physics/dynamics';
 import { liftWork, rampPush, workDone } from '@/physics/work';
@@ -10,9 +9,9 @@ import { fixed, sig } from '@/physics/format';
 import type { RampFig } from '@/content/types';
 import { useTheme } from '@/theme/ThemeContext';
 import { STILL, useTween, type DrawClock } from './anim';
-import { DrawnFade, ForceArrow, Hatch, MonoLabel } from './draw';
+import { ForceArrow, Hatch, MonoLabel } from './draw';
 import { Mitten } from './SledgeFigure';
-import { AlignedDim } from './turning';
+import { Dim, stage } from './kit';
 
 export const RAMP_VB = { w: 340, h: 230 };
 
@@ -56,17 +55,12 @@ export function RampFigure({ fig, live, clock = STILL }: { fig: RampFig; live?: 
   const known = fig.push === 'shown';
   const arrow = known ? r.F * KF : STUB;
   const tip: [number, number] = [cg[0] + u[0] * arrow, cg[1] + u[1] * arrow];
-  const stage = (pen: readonly [number, number], children: ReactNode) => (
-    <DrawnFade clock={clock} from={pen[0]} to={pen[1]}>
-      {children}
-    </DrawnFade>
-  );
 
   return (
     <Group>
-      {stage(PEN.ground, <Hatch x1={8} x2={332} y={GROUND} color={p.draw} clock={clock} from={PEN.ground[0]} to={PEN.ground[1]} />)}
+      {stage(clock, PEN.ground, <Hatch x1={8} x2={332} y={GROUND} color={p.draw} clock={clock} from={PEN.ground[0]} to={PEN.ground[1]} />)}
 
-      {stage(
+      {stage(clock, 
         PEN.van,
         <Group>
           {/* the back of a van: its floor, the open body above it, a wheel */}
@@ -79,7 +73,7 @@ export function RampFigure({ fig, live, clock = STILL }: { fig: RampFig; live?: 
         </Group>,
       )}
 
-      {stage(
+      {stage(clock, 
         PEN.ramp,
         <Group>
           <Line x1={foot[0]} y1={foot[1]} x2={top[0]} y2={top[1]} stroke={p.draw} strokeWidth={3} strokeLinecap="round" />
@@ -94,7 +88,7 @@ export function RampFigure({ fig, live, clock = STILL }: { fig: RampFig; live?: 
         </Group>,
       )}
 
-      {stage(
+      {stage(clock, 
         PEN.forces,
         <Group>
           <ForceArrow x1={cg[0]} y1={cg[1]} x2={tip[0]} y2={tip[1]} color={p.force} dashed={!known} />
@@ -102,12 +96,12 @@ export function RampFigure({ fig, live, clock = STILL }: { fig: RampFig; live?: 
         </Group>,
       )}
 
-      {stage(
+      {stage(clock, 
         PEN.labels,
         <Group>
           <MonoLabel x={tip[0] + nrm[0] * 12 - 2} y={tip[1] + nrm[1] * 12} text={known ? `F = ${sig(r.F)} N` : 'F = ?'} color={p.forceText} size={9} anchor="end" />
-          <AlignedDim a={foot} b={top} offset={-14} text={`L = ${fixed(L, 1)} m`} />
-          <AlignedDim a={[318, GROUND]} b={[318, floorY + SLAB]} text={`${fixed(fig.h, 1)} m`} />
+          <Dim a={foot} b={top} offset={-14} text={`L = ${fixed(L, 1)} m`} />
+          <Dim a={[318, GROUND]} b={[318, floorY + SLAB]} text={`${fixed(fig.h, 1)} m`} />
           {fig.work && (
             <Group>
               <MonoLabel x={14} y={24} text={`ramp  ${known ? sig(r.F) : '?'} N × ${fixed(r.L, 1)} m = ${known ? `${sig(r.work)} J` : '?'}`} color={p.ink} size={10} anchor="start" />

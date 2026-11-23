@@ -4,7 +4,6 @@
 // ball every 0.1 s; dashed lines join the copies taken at the same moment, so you see the balls stay level.
 // On the explore screen the slider is the clock, and an inset draws B's velocity as its two parts.
 // The first bench figure of a lesson draws itself: floor → bench → balls; the marks come last.
-import type { ReactNode } from 'react';
 import { Circle, G as Group, Line, Path } from 'react-native-svg';
 import { flightTime, projectilePosition, projectileRange, projectileVelocity, type Launch } from '@/physics/projectile';
 import { fixed } from '@/physics/format';
@@ -13,8 +12,7 @@ import { useTheme } from '@/theme/ThemeContext';
 import { useReducedMotionPref } from '@/ui/parts';
 import { STILL, useLoopTime, type DrawClock } from './anim';
 import { DrawnFade, DrawnShape, FILLS, ForceLetter, Hatch, MonoLabel, rectPath } from './draw';
-import { HollowArrow } from './ResolveFigure';
-import { Tag } from './RoadFigure';
+import { HollowArrow, stage, Tag } from './kit';
 
 export const BENCH_VB = { w: 340, h: 252 };
 
@@ -77,11 +75,6 @@ export function BenchFigure({ fig, live, playing, clock = STILL }: Props) {
   const t = live ?? (plays ? (reduced ? length : loop / SLOW) : still);
   const showStrobe = live !== undefined || plays;
   const top = topY(fig);
-  const late = (children: ReactNode) => (
-    <DrawnFade clock={clock} from={PEN.marks[0]} to={PEN.marks[1]}>
-      {children}
-    </DrawnFade>
-  );
 
   // the strobe copies: every 0.1 s from the start up to now (the ball itself covers the newest one)
   const moments: number[] = [];
@@ -101,7 +94,7 @@ export function BenchFigure({ fig, live, playing, clock = STILL }: Props) {
       ))}
 
       {/* while it plays: how much slower than real time, and the clock */}
-      {plays && live === undefined && late(<MonoLabel x={10} y={18} text={`t = ${fixed(t, 2)} s · ¼ SPEED`} color={p.label} size={9} anchor="start" />)}
+      {plays && live === undefined && stage(clock, PEN.marks, <MonoLabel x={10} y={18} text={`t = ${fixed(t, 2)} s · ¼ SPEED`} color={p.label} size={9} anchor="start" />)}
 
       {/* dashed lines joining the slowest and fastest balls' copies taken at the same moment: they are always level */}
       {fig.levels &&
@@ -121,7 +114,7 @@ export function BenchFigure({ fig, live, playing, clock = STILL }: Props) {
       )}
 
       {/* the landing distance of the fastest ball, measured along the floor from the end of the bench */}
-      {fig.range === 'shown' && late(<RangeLine fig={fig} u={far.u} />)}
+      {fig.range === 'shown' && stage(clock, PEN.marks, <RangeLine fig={fig} u={far.u} />)}
 
       {/* the balls */}
       {fig.balls.map((b) => {
@@ -140,7 +133,7 @@ export function BenchFigure({ fig, live, playing, clock = STILL }: Props) {
         );
       })}
 
-      {fig.arrows && late(<VelocityInset fig={fig} u={far.u} id={far.id} t={t} />)}
+      {fig.arrows && stage(clock, PEN.marks, <VelocityInset fig={fig} u={far.u} id={far.id} t={t} />)}
     </Group>
   );
 }
@@ -169,8 +162,8 @@ function VelocityInset({ fig, u, id, t }: { fig: BenchFig; u: number; id: string
   return (
     <Group>
       <MonoLabel x={x - 8} y={y + 4} text={`${id}'S VELOCITY`} color={p.label} size={8.5} anchor="end" />
-      <HollowArrow from={[x, y]} to={[x + v.vx * KV, y]} color={p.draw} thin />
-      {down * KV > 2 && <HollowArrow from={[x, y]} to={[x, y + down * KV]} color={p.draw} thin />}
+      <HollowArrow from={[x, y]} to={[x + v.vx * KV, y]} color={p.draw} weight="thin" />
+      {down * KV > 2 && <HollowArrow from={[x, y]} to={[x, y + down * KV]} color={p.draw} weight="thin" />}
       <Circle cx={x} cy={y} r={2.6} fill={p.draw} />
       <MonoLabel x={x + v.vx * KV + 6} y={y + 3.5} text={`${fixed(v.vx, 1)} m s⁻¹`} color={p.ink} size={9} anchor="start" />
       <MonoLabel x={x + 9} y={y + Math.max(14, down * KV - 2)} text={`${fixed(down, 1)} m s⁻¹`} color={p.ink} size={9} anchor="start" />

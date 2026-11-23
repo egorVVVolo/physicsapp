@@ -5,7 +5,7 @@
 // Played, the floor slides past at a steady speed; once Rose lets go the crate slides on and stops (friction μN).
 // A force the question asks about is a dashed "?" stub until Check; arrows grow when they first appear and change
 // smoothly when the sheet is kept for the next screen.
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Circle, G as Group, Line, Path, Rect } from 'react-native-svg';
 import { acceleration, normalWithPull, weight, frictionCoefficient } from '@/physics/dynamics';
 import { brakingPosition, G, stoppingTime } from '@/physics/kinematics';
@@ -14,9 +14,9 @@ import { fixed } from '@/physics/format';
 import type { CrateFig, CrateForce } from '@/content/types';
 import { useTheme } from '@/theme/ThemeContext';
 import { CHANGE_DELAY, STILL, useLoopTime, useTween, type DrawClock } from './anim';
-import { CgMark, DrawnFade, ForceArrow, ForceLetter, MonoLabel } from './draw';
-import { Tag } from './RoadFigure';
+import { CgMark, ForceArrow, ForceLetter, MonoLabel } from './draw';
 import { Mitten } from './SledgeFigure';
+import { stage, Tag } from './kit';
 
 export const CRATE_VB = { w: 340, h: 230 };
 
@@ -144,11 +144,6 @@ export function CrateFigure({ fig, live, playing, clock = STILL, prev }: Props) 
   const mitten: [number, number] = [hitch[0] + d[0] * rope, hitch[1] + d[1] * rope];
   const poleEnd: [number, number] = [x0, top + 18];
   const hand: [number, number] = [poleEnd[0] - d[0] * POLE, poleEnd[1] - d[1] * POLE];
-  const stage = (pen: readonly [number, number], children: ReactNode) => (
-    <DrawnFade clock={clock} from={pen[0]} to={pen[1]}>
-      {children}
-    </DrawnFade>
-  );
 
   // the floor: a line with hatch ticks that slide back while the crate is pulled along
   const ticks: string[] = [];
@@ -177,7 +172,7 @@ export function CrateFigure({ fig, live, playing, clock = STILL, prev }: Props) 
 
   return (
     <Group>
-      {stage(
+      {stage(clock, 
         PEN.floor,
         <Group>
           <Line x1={8} y1={FLOOR} x2={floorEnd} y2={FLOOR} stroke={p.draw} strokeWidth={2} />
@@ -187,7 +182,7 @@ export function CrateFigure({ fig, live, playing, clock = STILL, prev }: Props) 
 
       <Group transform={`translate(${x0 + 79} ${FLOOR}) scale(${zoom}) translate(${-(x0 + 79)} ${-FLOOR})`}>
       {/* the crate: a front face of planks with a brace, a top facet, its centre of gravity */}
-      {stage(
+      {stage(clock, 
         PEN.crate,
         <Group>
           <Path d={`M${x0},${top} L${x0 + 7},${top - 6} H${x0 + BOX.w + 7} L${x0 + BOX.w},${top} Z`} fill={p.drawFillDark} stroke={p.draw} strokeWidth={1.6} strokeLinejoin="round" />
@@ -199,7 +194,7 @@ export function CrateFigure({ fig, live, playing, clock = STILL, prev }: Props) 
       )}
 
       {/* Rose's hand: on the rope, on the pole, or gone (the rope lies slack on the floor) */}
-      {stage(
+      {stage(clock, 
         PEN.hand,
         <Group>
           {fig.by === 'rope' && (
@@ -240,7 +235,7 @@ export function CrateFigure({ fig, live, playing, clock = STILL, prev }: Props) 
 
       {/* the free-body diagram: the crate as a dot */}
       {hasFbd(fig) &&
-        stage(
+        stage(clock, 
           PEN.fbd,
           <Group>
             <Line x1={divide} y1={14} x2={divide} y2={216} stroke={p.paperLine} strokeWidth={1.2} strokeDasharray="4 4" />
@@ -267,7 +262,7 @@ export function CrateFigure({ fig, live, playing, clock = STILL, prev }: Props) 
         )}
 
       {fbd &&
-        stage(
+        stage(clock, 
           PEN.labels,
           <Group>
             {len.W > 4 && <ForceLetter x={dot.x - 8} y={tip.W[1] - 2} text={letters.W} color={p.force} size={14} anchor="end" />}

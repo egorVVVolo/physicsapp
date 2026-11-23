@@ -2,16 +2,15 @@
 // anticlockwise; it acts a distance r from the nut at an angle to the handle. Its line of action is drawn dashed and the
 // perpendicular from the nut meets it at a right angle: that perpendicular, x, is the distance that counts
 // (moment = Fx, src/physics/moments). On the explore screen the slider turns the first pull.
-import type { ReactNode } from 'react';
 import { Circle, G as Group, Line, Path } from 'react-native-svg';
 import { footOfPerpendicular, momentAtAngle, perpendicularDistance } from '@/physics/moments';
 import { fixed } from '@/physics/format';
 import type { SpannerFig, SpannerPull } from '@/content/types';
 import { useTheme } from '@/theme/ThemeContext';
 import { STILL, type DrawClock } from './anim';
-import { DrawnFade, ForceArrow, ForceLetter, MonoLabel, polyPath, rectPath } from './draw';
-import { Tag } from './RoadFigure';
-import { AlignedDim, AngleArc, cm, RightAngle, TurnArc } from './turning';
+import { ForceArrow, ForceLetter, MonoLabel, polyPath, rectPath } from './draw';
+import { AngleArc, cm, RightAngle, TurnArc } from './turning';
+import { Dim, stage, Tag } from './kit';
 
 export const SPANNER_VB = { w: 340, h: 230 };
 
@@ -39,11 +38,6 @@ export function SpannerFigure({ fig, live, clock = STILL }: { fig: SpannerFig; l
   const { palette: p } = useTheme();
   const pulls = pullsOf(fig, live);
   const panels = panelsFor(pulls.length);
-  const stage = (pen: readonly [number, number], children: ReactNode) => (
-    <DrawnFade clock={clock} from={pen[0]} to={pen[1]}>
-      {children}
-    </DrawnFade>
-  );
   const perp = fig.perp === 'shown' || live !== undefined;
 
   return (
@@ -74,7 +68,7 @@ export function SpannerFigure({ fig, live, clock = STILL }: { fig: SpannerFig; l
         })();
         return (
           <Group key={pull.who}>
-            {stage(
+            {stage(clock, 
               PEN.tool,
               <Group>
                 <MonoLabel x={pn.x0 + 12} y={20} text={pull.who} color={p.label} size={10} anchor="start" />
@@ -86,7 +80,7 @@ export function SpannerFigure({ fig, live, clock = STILL }: { fig: SpannerFig; l
               </Group>,
             )}
 
-            {stage(
+            {stage(clock, 
               PEN.pulls,
               <Group>
                 {perp && <Path d={`M${P[0] - dir[0] * 16},${P[1] - dir[1] * 16} L${P[0] + dir[0] * tEnd},${P[1] + dir[1] * tEnd}`} stroke={p.force} strokeWidth={1.2} strokeDasharray="4 4" opacity={0.75} />}
@@ -96,11 +90,11 @@ export function SpannerFigure({ fig, live, clock = STILL }: { fig: SpannerFig; l
               </Group>,
             )}
 
-            {stage(
+            {stage(clock, 
               PEN.marks,
               <Group>
                 {/* where the pull acts, measured along the handle */}
-                <AlignedDim a={[nx, dimY]} b={[P[0], dimY]} text={perp && alongHandle ? `x = ${cm(x)}` : cm(pull.r)} strong={perp && alongHandle} />
+                <Dim a={[nx, dimY]} b={[P[0], dimY]} text={perp && alongHandle ? `x = ${cm(x)}` : cm(pull.r)} strong={perp && alongHandle} />
                 {alongHandle ? (
                   <RightAngle at={[P[0], P[1] - hw / 2]} u={[0, -1]} v={[-1, 0]} size={8} color={p.label} />
                 ) : pull.angle < 8 ? null : (

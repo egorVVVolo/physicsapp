@@ -3,7 +3,8 @@
 import { G as Group, Line, Polyline, Rect } from 'react-native-svg';
 import type { VtFig } from '@/content/types';
 import { useTheme } from '@/theme/ThemeContext';
-import { ForceLetter, MonoLabel } from './draw';
+import { ForceLetter } from './draw';
+import { Axes } from './kit';
 import type { TapProps, TapTarget } from './Sheet';
 
 export const VT_VB = { w: 340, h: 220 };
@@ -53,17 +54,15 @@ export function VtFigure({ fig, tap }: { fig: VtFig; tap?: TapProps }) {
           </Group>
         );
       })}
-      {/* axes */}
-      <Line x1={O.x} y1={O.y} x2={O.x + PLOT_W + 8} y2={O.y} stroke={p.draw} strokeWidth={1.8} />
-      <Line x1={O.x} y1={O.y} x2={O.x} y2={O.y - PLOT_H - 26} stroke={p.draw} strokeWidth={1.8} />
-      {ticks.map((t) => (
-        <Group key={t}>
-          <Line x1={X(t)} y1={O.y} x2={X(t)} y2={O.y + 5} stroke={p.draw} strokeWidth={1.4} />
-          <MonoLabel x={X(t)} y={O.y + 17} text={String(t)} color={p.label} />
-        </Group>
-      ))}
-      <MonoLabel x={O.x + PLOT_W + 4} y={O.y + 32} text="t / s" color={p.label} anchor="end" />
-      <MonoLabel x={O.x - 6} y={O.y - PLOT_H - 30} text="v / m s⁻¹" color={p.label} anchor="start" />
+      <Axes
+        x0={O.x}
+        y0={O.y}
+        xEnd={O.x + PLOT_W + 8}
+        yTop={O.y - PLOT_H - 26}
+        xTicks={ticks.map((t) => ({ x: X(t), label: String(t) }))}
+        xTitle={{ x: O.x + PLOT_W + 4, y: O.y + 32, text: 't / s', anchor: 'end' }}
+        yTitle={{ x: O.x - 6, y: O.y - PLOT_H - 30, text: 'v / m s⁻¹', anchor: 'start' }}
+      />
       <Polyline points={pts.map((q) => `${X(q.t)},${Y(q.v)}`).join(' ')} fill="none" stroke={p.ink} strokeWidth={3} strokeLinejoin="round" />
     </Group>
   );

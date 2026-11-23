@@ -5,7 +5,6 @@
 // bottom; every frame the level is solved from the volume under the surface, so it falls by the model.
 // On the explore screen the slider sets the block's density: the same mass, so its size follows V = m ÷ ρ; the level
 // while it was on board is dashed and the fall is written. The recap shows two tanks side by side.
-import type { ReactNode } from 'react';
 import { G as Group, Line, Path, Rect } from 'react-native-svg';
 import { floatingDisplacement, RHO_WATER, volumeOf } from '@/physics/fluids';
 import { fixed, sig } from '@/physics/format';
@@ -13,8 +12,8 @@ import type { TankFig } from '@/content/types';
 import { useTheme } from '@/theme/ThemeContext';
 import { useReducedMotionPref } from '@/ui/parts';
 import { phaseOf, STILL, useLoopTime, type DrawClock } from './anim';
-import { DrawnFade, Hatch, MonoLabel } from './draw';
-import { AlignedDim } from './turning';
+import { Hatch, MonoLabel } from './draw';
+import { Dim, Ruler, stage, type RulerTick } from './kit';
 
 export const TANK_VB = { w: 340, h: 230 };
 
@@ -77,11 +76,6 @@ export function TankFigure({ fig, live, playing, clock = STILL }: Props) {
   const n = tankNumbers(fig, live);
   const plays = tankPlays(fig) && !reduced;
   const t = useLoopTime(plays && playing && !clock.on, DROP.end, fig.drop, HOLD);
-  const stage = (pen: readonly [number, number], children: ReactNode) => (
-    <DrawnFade clock={clock} from={pen[0]} to={pen[1]}>
-      {children}
-    </DrawnFade>
-  );
   if (fig.compare) {
     const k = 5.4;
     return (
@@ -106,7 +100,7 @@ export function TankFigure({ fig, live, playing, clock = STILL }: Props) {
   return (
     <Group>
       <TankScene n={n} k={7} x0={34} state={state} clock={clock} levels={fig.levels || dropped} ruler />
-      {stage(PEN.labels, <Panel fig={fig} n={n} dropped={dropped} level={levelOf(n, state.carried, state.block === 'deck' ? Infinity : state.block.y)} />)}
+      {stage(clock, PEN.labels, <Panel fig={fig} n={n} dropped={dropped} level={levelOf(n, state.carried, state.block === 'deck' ? Infinity : state.block.y)} />)}
     </Group>
   );
 }
@@ -128,18 +122,13 @@ function TankScene({ n, k, x0, state, clock, levels, ruler, title, note }: { n: 
   const dashes: string[] = [];
   for (let yy = Y(L) + 9; yy < FLOOR - 3; yy += 9) for (let xx = x0 + 6 + ((yy / 9) % 2) * 8; xx < x0 + w - 10; xx += 16) dashes.push(`M${xx},${yy} h7`);
   const hull = hullPath(X(n.boatX), Y(hullBottom), HULL.len * k, HULL.h * k);
-  const stage = (pen: readonly [number, number], children: ReactNode) => (
-    <DrawnFade clock={clock} from={pen[0]} to={pen[1]}>
-      {children}
-    </DrawnFade>
-  );
   const oldLevel = n.onBoard;
   return (
     <Group>
-      {stage(PEN.ground, <Hatch x1={x0 - 12} x2={x0 + w + 12} y={FLOOR + 4} color={p.draw} clock={clock} from={PEN.ground[0]} to={PEN.ground[1]} />)}
-      {stage(PEN.water, <Rect x={x0} y={Y(L)} width={w} height={FLOOR - Y(L)} fill={p.drawFill} />)}
-      {stage(PEN.boat, <Block x={X(bx)} yb={Y(by)} w={n.bw * k} h={n.bh * k} />)}
-      {stage(
+      {stage(clock, PEN.ground, <Hatch x1={x0 - 12} x2={x0 + w + 12} y={FLOOR + 4} color={p.draw} clock={clock} from={PEN.ground[0]} to={PEN.ground[1]} />)}
+      {stage(clock, PEN.water, <Rect x={x0} y={Y(L)} width={w} height={FLOOR - Y(L)} fill={p.drawFill} />)}
+      {stage(clock, PEN.boat, <Block x={X(bx)} yb={Y(by)} w={n.bw * k} h={n.bh * k} />)}
+      {stage(clock, 
         PEN.boat,
         <Group>
           <Path d={hull} fill={p.drawFillDark} stroke={p.draw} strokeWidth={1.5} strokeLinejoin="round" />
@@ -149,31 +138,31 @@ function TankScene({ n, k, x0, state, clock, levels, ruler, title, note }: { n: 
         </Group>,
       )}
       {/* the water's dashes and surface over the boat and the block, then the glass */}
-      {stage(
+      {stage(clock, 
         PEN.water,
         <Group>
           <Path d={dashes.join(' ')} stroke={p.label} strokeWidth={0.9} opacity={0.4} />
           <Line x1={x0} y1={Y(L)} x2={x0 + w} y2={Y(L)} stroke={p.draw} strokeWidth={1.4} />
         </Group>,
       )}
-      {stage(
+      {stage(clock, 
         PEN.tank,
         <Group>
           <Path d={`M${x0 - 2},${top} V${FLOOR + 2} H${x0 + w + 2} V${top}`} stroke={p.draw} strokeWidth={2.4} fill="none" strokeLinejoin="round" />
           <Path d={`M${x0 + 3},${top + 6} V${top + 30} M${x0 + w - 3},${top + 6} V${top + 18}`} stroke={p.label} strokeWidth={1} opacity={0.5} />
-          {ruler && <Ruler x={x0 - 6} k={k} />}
+          {ruler && <TankRuler x={x0 - 6} k={k} />}
         </Group>,
       )}
       {levels &&
-        stage(
+        stage(clock, 
           PEN.labels,
           <Group>
             <Line x1={x0 - 2} y1={Y(oldLevel)} x2={x0 + w + 2} y2={Y(oldLevel)} stroke={p.ink} strokeWidth={1.1} strokeDasharray="5 3" />
-            <AlignedDim a={[x0 + w + 9, Y(oldLevel)]} b={[x0 + w + 9, Y(L)]} />
+            <Dim a={[x0 + w + 9, Y(oldLevel)]} b={[x0 + w + 9, Y(L)]} />
           </Group>,
         )}
       {title &&
-        stage(
+        stage(clock, 
           PEN.labels,
           <Group>
             <MonoLabel x={x0 + w / 2} y={top - 26} text={title} color={p.label} size={8.5} />
@@ -206,18 +195,14 @@ function Block({ x, yb, w, h }: { x: number; yb: number; w: number; h: number })
 }
 
 /** A cm scale on the outside of the tank's left wall, 0 to 20. */
-function Ruler({ x, k }: { x: number; k: number }) {
+function TankRuler({ x, k }: { x: number; k: number }) {
   const { palette: p } = useTheme();
-  const ticks: string[] = [];
-  for (let c = 0; c <= TANK_H; c++) ticks.push(`M${x},${FLOOR - c * k} h${c % 5 === 0 ? -6 : -3}`);
+  const ticks: RulerTick[] = [];
+  for (let c = 0; c <= TANK_H; c++) ticks.push({ at: FLOOR - c * k, len: c % 5 === 0 ? 6 : 3, label: c % 10 === 0 ? String(c) : undefined });
   return (
-    <Group>
-      <Path d={ticks.join(' ')} stroke={p.label} strokeWidth={0.9} />
-      {[0, 10, 20].map((c) => (
-        <MonoLabel key={c} x={x - 8} y={FLOOR - c * k + 3} text={String(c)} color={p.label} size={7} anchor="end" />
-      ))}
+    <Ruler axis="y" at={x} from={FLOOR} to={FLOOR - TANK_H * k} line={false} ticks={ticks} side={-1} labelAt={-8} labelDy={3} labelSize={7} labelAnchor="end" tickColor={p.label} tickWidth={0.9}>
       <MonoLabel x={x - 8} y={FLOOR - TANK_H * k - 8} text="cm" color={p.label} size={7} anchor="end" />
-    </Group>
+    </Ruler>
   );
 }
 

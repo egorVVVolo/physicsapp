@@ -3,15 +3,14 @@
 // has to see which side is next to the angle. The sizes come from `components` in src/physics/vectors.
 // A force is a solid arrow in the force colour; a velocity is an outline arrow.
 // The first resolve figure of a lesson draws itself: paper → vector → components → labels.
-import type { ReactNode } from 'react';
 import { Circle, G as Group, Line, Path } from 'react-native-svg';
 import { components } from '@/physics/vectors';
 import { fixed } from '@/physics/format';
 import type { ResolveFig } from '@/content/types';
 import { useTheme } from '@/theme/ThemeContext';
 import { STILL, type DrawClock } from './anim';
-import { DrawnFade, ForceArrow, MonoLabel } from './draw';
-import { Tag } from './RoadFigure';
+import { ForceArrow, MonoLabel } from './draw';
+import { HollowArrow, stage, Tag } from './kit';
 
 export const RESOLVE_VB = { w: 340, h: 230 };
 
@@ -49,11 +48,6 @@ export function ResolveFigure({ fig, clock = STILL }: { fig: ResolveFig; clock?:
   const bisAngle = fig.from === 'horizontal' ? phi / 2 : (phi + Math.PI / 2) / 2;
   const bis: [number, number] = [Math.cos(bisAngle), -Math.sin(bisAngle)];
   const color = fig.velocity ? p.draw : p.force;
-  const stage = (from: number, to: number, children: ReactNode) => (
-    <DrawnFade clock={clock} from={from} to={to}>
-      {children}
-    </DrawnFade>
-  );
 
   const xs: number[] = [];
   for (let x = O[0] - Math.floor((O[0] - 4) / GRID) * GRID; x <= 336; x += GRID) xs.push(x);
@@ -63,8 +57,8 @@ export function ResolveFigure({ fig, clock = STILL }: { fig: ResolveFig; clock?:
   return (
     <Group>
       {stage(
-        0,
-        0.3,
+        clock,
+        [0, 0.3],
         <Group>
           {xs.map((x) => (
             <Line key={`x${x}`} x1={x} y1={4} x2={x} y2={226} stroke={p.paperLine} strokeWidth={0.8} />
@@ -77,14 +71,14 @@ export function ResolveFigure({ fig, clock = STILL }: { fig: ResolveFig; clock?:
         </Group>,
       )}
       {stage(
-        0.62,
-        0.8,
+        clock,
+        [0.62, 0.8],
         <Group>
           <Path d={`M${yTip[0]},${yTip[1]} H${tip[0]} V${xTip[1]}`} fill="none" stroke={p.label} strokeWidth={1.1} strokeDasharray="4 3" />
           {fig.velocity ? (
             <Group>
-              <HollowArrow from={O} to={xTip} color={color} thin />
-              <HollowArrow from={O} to={yTip} color={color} thin />
+              <HollowArrow from={O} to={xTip} color={color} weight="thin" />
+              <HollowArrow from={O} to={yTip} color={color} weight="thin" />
             </Group>
           ) : (
             <Group>
@@ -95,8 +89,8 @@ export function ResolveFigure({ fig, clock = STILL }: { fig: ResolveFig; clock?:
         </Group>,
       )}
       {stage(
-        0.3,
-        0.62,
+        clock,
+        [0.3, 0.62],
         <Group>
           {fig.velocity ? <HollowArrow from={O} to={tip} color={color} /> : <ForceArrow x1={O[0]} y1={O[1]} x2={tip[0]} y2={tip[1]} color={color} width={3.4} />}
           <Circle cx={O[0]} cy={O[1]} r={3.2} fill={color} />
@@ -104,8 +98,8 @@ export function ResolveFigure({ fig, clock = STILL }: { fig: ResolveFig; clock?:
         </Group>,
       )}
       {stage(
-        0.8,
-        0.95,
+        clock,
+        [0.8, 0.95],
         <Group>
           <Tag x={nameAt[0]} y={nameAt[1]} text={name} />
           <MonoLabel x={O[0] + bis[0] * (r + 13)} y={O[1] + bis[1] * (r + 13) + 3} text={`${fixed(fig.angle, 0)}°`} color={p.ink} size={9} />
@@ -117,15 +111,3 @@ export function ResolveFigure({ fig, clock = STILL }: { fig: ResolveFig; clock?:
   );
 }
 
-/** An outline arrow from `from` to `to` at any angle: a velocity. */
-export function HollowArrow({ from, to, color, thin }: { from: [number, number]; to: [number, number]; color: string; thin?: boolean }) {
-  const len = Math.hypot(to[0] - from[0], to[1] - from[1]);
-  if (len < 1) return null;
-  const deg = (Math.atan2(to[1] - from[1], to[0] - from[0]) * 180) / Math.PI;
-  const half = thin ? 2.2 : 3;
-  const headW = thin ? 6 : 7.5;
-  const head = Math.min(thin ? 10 : 12, len * 0.5);
-  const neck = len - head;
-  const d = `M0,${-half} L${neck},${-half} L${neck},${-headW} L${len},0 L${neck},${headW} L${neck},${half} L0,${half} Z`;
-  return <Path d={d} transform={`translate(${from[0]} ${from[1]}) rotate(${deg})`} fill="none" stroke={color} strokeWidth={thin ? 1.4 : 1.8} strokeLinejoin="round" />;
-}

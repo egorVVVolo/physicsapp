@@ -5,7 +5,7 @@
 // On the right: the readings (one column per spring), the halves (a paint mark on the middle coil, read on the ruler
 // with no load and loaded), or a force–extension graph traced by the explore's point (the slider = the load).
 // `view: 'lines'`: only a large force–extension graph, one line per stiffness; the letters at the line ends are tap targets.
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Circle, G as Group, Line, Path, Rect } from 'react-native-svg';
 import { fixed, sig } from '@/physics/format';
 import { bobOmega, bobStep, cutStiffness, extensionFor, type Bob } from '@/physics/springs';
@@ -15,7 +15,7 @@ import { useReducedMotionPref } from '@/ui/parts';
 import { STILL, type DrawClock } from './anim';
 import { DrawnFade, ForceArrow, ForceLetter, Hatch, MonoLabel } from './draw';
 import type { TapProps, TapTarget } from './Sheet';
-import { TapBoxes } from './SledgeFigure';
+import { stage, TapBoxes } from './kit';
 
 export const SPRING_VB = { w: 340, h: 230 };
 
@@ -96,20 +96,15 @@ function Hanging({ fig, live, playing, clock }: { fig: SpringFig; live?: number;
     playing && !clock.on,
   );
   const lanes = fig.springs.length === 1 ? [104] : [92, 150];
-  const stage = (pen: readonly [number, number], children: ReactNode) => (
-    <DrawnFade clock={clock} from={pen[0]} to={pen[1]}>
-      {children}
-    </DrawnFade>
-  );
   const ticks: string[] = [];
   for (let cm = 0; cm <= 22; cm++) ticks.push(`M50,${Y(cm)} h${cm % 5 === 0 ? -5 : -3}`);
   const armEnd = lanes[lanes.length - 1] + 16;
 
   return (
     <Group>
-      {stage(PEN.ground, <Hatch x1={8} x2={186} y={BENCH} color={p.draw} clock={clock} from={PEN.ground[0]} to={PEN.ground[1]} />)}
+      {stage(clock, PEN.ground, <Hatch x1={8} x2={186} y={BENCH} color={p.draw} clock={clock} from={PEN.ground[0]} to={PEN.ground[1]} />)}
 
-      {stage(
+      {stage(clock, 
         PEN.stand,
         <Group>
           {/* the stand: a base, a rod and an arm; the ruler hangs from the arm with its 0 at the springs' tops */}
@@ -126,7 +121,7 @@ function Hanging({ fig, live, playing, clock }: { fig: SpringFig; live?: number;
         </Group>,
       )}
 
-      {stage(
+      {stage(clock, 
         PEN.springs,
         <Group>
           {fig.springs.map((s, i) => (
@@ -135,7 +130,7 @@ function Hanging({ fig, live, playing, clock }: { fig: SpringFig; live?: number;
         </Group>,
       )}
 
-      {stage(PEN.labels, <Panel fig={fig} nums={nums} live={live} />)}
+      {stage(clock, PEN.labels, <Panel fig={fig} nums={nums} live={live} />)}
     </Group>
   );
 }

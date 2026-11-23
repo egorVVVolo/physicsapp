@@ -10,7 +10,7 @@ import type { VectorsFig } from '@/content/types';
 import { useTheme } from '@/theme/ThemeContext';
 import { STILL, type DrawClock } from './anim';
 import { DrawnFade, ForceArrow, ForceLetter, MonoLabel } from './draw';
-import { Tag } from './RoadFigure';
+import { Tag } from './kit';
 
 export const VECTORS_VB = { w: 340, h: 230 };
 

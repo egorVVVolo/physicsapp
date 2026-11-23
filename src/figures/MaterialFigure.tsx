@@ -4,16 +4,15 @@
 // part that springs back and the permanent strain left, and their values written in.
 // view 'sketch': the whole curve of a ductile metal, not to scale, with the points P E Y U B: a legend names them,
 // or, as tap targets, they stay unnamed. view 'compare': three sketched curves A B C, tap targets.
-import type { ReactNode } from 'react';
-import { Circle, G as Group, Line, Path, Rect } from 'react-native-svg';
+import { Circle, G as Group, Line, Path } from 'react-native-svg';
 import { fixed, sci } from '@/physics/format';
 import { COPPER, loadingStress, permanentStrain } from '@/physics/materials';
 import type { MaterialFig } from '@/content/types';
 import { useTheme } from '@/theme/ThemeContext';
 import { STILL, type DrawClock } from './anim';
-import { DrawnFade, MonoLabel } from './draw';
+import { MonoLabel } from './draw';
 import type { TapProps, TapTarget } from './Sheet';
-import { TapBoxes } from './SledgeFigure';
+import { stage, TapBoxes } from './kit';
 
 export const MATERIAL_VB = { w: 340, h: 230 };
 
@@ -32,11 +31,6 @@ export function MaterialFigure({ fig, live, tap, clock = STILL }: Props) {
   return <Sketch fig={fig} tap={tap} clock={clock} />;
 }
 
-const stage = (clock: DrawClock, pen: readonly [number, number], children: ReactNode) => (
-  <DrawnFade clock={clock} from={pen[0]} to={pen[1]}>
-    {children}
-  </DrawnFade>
-);
 
 // ── view: 'loop' ──
 

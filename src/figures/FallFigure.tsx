@@ -11,8 +11,8 @@ import { fixed } from '@/physics/format';
 import type { FallFig } from '@/content/types';
 import { useTheme } from '@/theme/ThemeContext';
 import { STILL, useLoopTime, type DrawClock } from './anim';
-import { DrawnFade, ForceArrow, ForceLetter, MonoLabel } from './draw';
-import { Tag } from './RoadFigure';
+import { ForceArrow, ForceLetter, MonoLabel } from './draw';
+import { stage, Tag } from './kit';
 
 export const AIR_FALL_VB = { w: 340, h: 230 };
 
@@ -82,11 +82,6 @@ export function FallFigure({ fig, live, playing, clock = STILL }: Props) {
   const speedup = sky ? SKY_SPEEDUP : 1;
   const loop = useLoopTime(playing && fig.play === true && live === undefined, fig.tEnd / speedup, `${fig.tEnd}`, 1.0);
   const t = live ?? (fig.play === true ? loop * speedup : stillTime(fig));
-  const stage = (pen: readonly [number, number], children: ReactNode) => (
-    <DrawnFade clock={clock} from={pen[0]} to={pen[1]}>
-      {children}
-    </DrawnFade>
-  );
 
   // the lanes: where each body is drawn, and its state now
   const lanes: { x: number; n: number; vt: number; st: State }[] = sky
@@ -102,7 +97,7 @@ export function FallFigure({ fig, live, playing, clock = STILL }: Props) {
   return (
     <Group>
       {/* the air streaming up past each body */}
-      {stage(
+      {stage(clock, 
         PEN.air,
         <Group>
           {lanes.map((ln) => {
@@ -121,16 +116,16 @@ export function FallFigure({ fig, live, playing, clock = STILL }: Props) {
         </Group>,
       )}
 
-      {stage(
+      {stage(clock, 
         PEN.body,
         <Group>
           {lanes.map((ln) => (sky ? <Skydiver key={ln.x} x={ln.x} y={bodyY} chute={chuteF} /> : <CakeCases key={ln.x} x={ln.x} y={bodyY} n={ln.n} />))}
         </Group>,
       )}
 
-      {fig.graph && stage(PEN.graph, <VtGraph fig={fig} table={table} t={t} />)}
+      {fig.graph && stage(clock, PEN.graph, <VtGraph fig={fig} table={table} t={t} />)}
 
-      {stage(
+      {stage(clock, 
         PEN.labels,
         <Group>
           {lanes.map((ln, i) => {

@@ -13,6 +13,7 @@ import { useTheme } from '@/theme/ThemeContext';
 import { STILL, type DrawClock } from './anim';
 import { DrawnFade, DrawnPath, FILLS, ForceLetter, MonoLabel } from './draw';
 import type { TapProps, TapTarget } from './Sheet';
+import { Axes, stage } from './kit';
 
 export const GRAPH_VB = { w: 340, h: 224 };
 
@@ -89,11 +90,6 @@ type Props = { fig: GraphFig; live?: number; tap?: TapProps; clock?: DrawClock }
 export function GraphFigure({ fig, live, tap, clock = STILL }: Props) {
   const { palette: p } = useTheme();
   const { yMin, X, Y, value, lineOf, untilOf } = frame(fig);
-  const late = (children: ReactNode) => (
-    <DrawnFade clock={clock} from={MARKS[0]} to={MARKS[1]}>
-      {children}
-    </DrawnFade>
-  );
   const fills = (children: ReactNode) => (
     <DrawnFade clock={clock} from={FILLS[0]} to={FILLS[1]}>
       {children}
@@ -158,24 +154,20 @@ export function GraphFigure({ fig, live, tap, clock = STILL }: Props) {
         fig.lines.map((line, i) => <Path key={line.id} d={pathOf(under(line.trip, 0, Math.min(cursor, untilOf(line)))) + ' Z'} fill={i % 2 === 0 ? p.drawFill : p.drawFillDark} />)}
 
       {/* axes */}
-      <DrawnPath clock={clock} len={PLOT.bottom - PLOT.top + 12} from={AXES[0]} to={AXES[1]} d={`M${PLOT.x},${PLOT.bottom} V${PLOT.top - 12}`} stroke={p.draw} strokeWidth={1.8} fill="none" />
-      <DrawnPath clock={clock} len={PLOT.w + 12} from={AXES[0] + 0.08} to={AXES[1]} d={`M${PLOT.x},${axisY} H${PLOT.x + PLOT.w + 12}`} stroke={p.draw} strokeWidth={1.8} fill="none" />
-      <DrawnFade clock={clock} from={AXES[1] - 0.1} to={AXES[1] + 0.1}>
-        {tTicks.map((t) => (
-          <Group key={t}>
-            <Line x1={X(t)} y1={axisY} x2={X(t)} y2={axisY + 5} stroke={p.draw} strokeWidth={1.4} />
-            <MonoLabel x={X(t)} y={tLabelY} text={String(t)} color={p.label} />
-          </Group>
-        ))}
-        {yTicks.map((y) => (
-          <Group key={y}>
-            <Line x1={PLOT.x - 5} y1={Y(y)} x2={PLOT.x} y2={Y(y)} stroke={p.draw} strokeWidth={1.4} />
-            <MonoLabel x={PLOT.x - 8} y={Y(y) + 3.5} text={fixed(y, 0)} color={p.label} anchor="end" />
-          </Group>
-        ))}
-        <MonoLabel x={PLOT.x + PLOT.w + 14} y={PLOT.bottom + 30} text="t / s" color={p.label} anchor="end" />
-        <MonoLabel x={PLOT.x + 7} y={PLOT.top - 9} text={TITLE[fig.y]} color={p.label} anchor="start" />
-      </DrawnFade>
+      <Axes
+        x0={PLOT.x}
+        y0={axisY}
+        xEnd={PLOT.x + PLOT.w + 12}
+        yTop={PLOT.top - 12}
+        yBottom={PLOT.bottom}
+        xTicks={tTicks.map((t) => ({ x: X(t), label: String(t) }))}
+        xLabelY={tLabelY}
+        yTicks={yTicks.map((y) => ({ y: Y(y), label: fixed(y, 0) }))}
+        xTitle={{ x: PLOT.x + PLOT.w + 14, y: PLOT.bottom + 30, text: 't / s', anchor: 'end' }}
+        yTitle={{ x: PLOT.x + 7, y: PLOT.top - 9, text: TITLE[fig.y], anchor: 'start' }}
+        clock={clock}
+        pen={AXES}
+      />
 
       {/* the lines themselves */}
       {fig.lines.map((line, i) => {
@@ -184,12 +176,12 @@ export function GraphFigure({ fig, live, tap, clock = STILL }: Props) {
         return (
           <Group key={line.id || i}>
             <DrawnPath clock={clock} len={lengthOf(pts)} from={LINES[0] + i * 0.1} to={LINES[1] + i * 0.1} d={pathOf(pts)} stroke={p.ink} strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" fill="none" />
-            {line.id !== '' && late(<ForceLetter x={Math.min(end.x + 5, GRAPH_VB.w - 12)} y={end.y + (end.x + 5 > GRAPH_VB.w - 12 ? -8 : 5)} text={line.id} color={p.ink} size={15} anchor="start" />)}
+            {line.id !== '' && stage(clock, MARKS, <ForceLetter x={Math.min(end.x + 5, GRAPH_VB.w - 12)} y={end.y + (end.x + 5 > GRAPH_VB.w - 12 ? -8 : 5)} text={line.id} color={p.ink} size={15} anchor="start" />)}
           </Group>
         );
       })}
 
-      {late(
+      {stage(clock, MARKS, 
         <Group>
           {/* the size of each area, in metres */}
           {fig.areas?.map((area, i) => {

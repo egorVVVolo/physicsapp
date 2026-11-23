@@ -2,14 +2,14 @@
 // p = mv (src/physics/momentum) is a solid ink arrow, all to one scale, so a slow heavy body and a fast light one can be
 // compared at a glance. One lane per body, or all on one track heading at each other (`shared`) with their total.
 import type { ReactNode } from 'react';
-import { Circle, G as Group, Line, Path } from 'react-native-svg';
+import { G as Group, Line, Path } from 'react-native-svg';
 import { momentum, totalMomentum } from '@/physics/momentum';
 import { fixed, signed } from '@/physics/format';
 import type { BodiesFig } from '@/content/types';
 import { useTheme } from '@/theme/ThemeContext';
 import { STILL, useTween, type DrawClock } from './anim';
-import { DrawnFade, ForceArrow, Hatch, MonoLabel } from './draw';
-import { HollowArrow, TROLLEY, Trolley } from './WallFigure';
+import { ForceArrow, Hatch, MonoLabel } from './draw';
+import { Ball, HollowArrow, stage, TROLLEY, Trolley } from './kit';
 
 export const BODIES_VB = { w: 340, h: 230 };
 
@@ -26,12 +26,8 @@ type Props = { fig: BodiesFig; clock?: DrawClock };
 
 export function BodiesFigure({ fig, clock = STILL }: Props) {
   const grow = useTween(fig.p === 'shown' ? 1 : 0, fig.p === 'shown' ? 1 : 0, 520);
-  const stage = (pen: readonly [number, number], children: ReactNode) => (
-    <DrawnFade clock={clock} from={pen[0]} to={pen[1]}>
-      {children}
-    </DrawnFade>
-  );
-  return fig.shared ? <Shared fig={fig} grow={grow} stage={stage} /> : <Lanes fig={fig} grow={grow} stage={stage} />;
+  const staged = (pen: readonly [number, number], children: ReactNode) => stage(clock, pen, children);
+  return fig.shared ? <Shared fig={fig} grow={grow} stage={staged} /> : <Lanes fig={fig} grow={grow} stage={staged} />;
 }
 
 type Part = { fig: BodiesFig; grow: number; stage: (pen: readonly [number, number], children: ReactNode) => ReactNode };
@@ -58,12 +54,12 @@ function Lanes({ fig, grow, stage }: Part) {
                 <Hatch x1={10} x2={330} y={y + r} color={p.draw} />
               ),
             )}
-            {stage(PEN.bodies, <Ball look={b.look} x={START - 30} y={y} r={r} />)}
+            {stage(PEN.bodies, <Body look={b.look} x={START - 30} y={y} r={r} />)}
             {stage(
               PEN.labels,
               <Group>
                 <MonoLabel x={14} y={y - 50} text={`${NAMES[b.look]} · ${fixed(b.m, b.m < 1 ? 2 : 1)} kg · v ${fixed(b.v, Math.abs(b.v) >= 10 ? 0 : 1)} m s⁻¹`} color={p.label} size={8.5} anchor="start" />
-                <HollowArrow x={START} y={y - 30} len={vLen} color={p.label} />
+                <HollowArrow from={[START, y - 30]} to={[START + vLen, y - 30]} color={p.label} weight="track" minLen={4} />
                 {fig.p !== undefined && (
                   <Group>
                     {grow > 0.02 && <ForceArrow x1={START} y1={y - 4} x2={START + ps[i] * kp * grow} y2={y - 4} color={p.ink} width={3.2} />}
@@ -109,7 +105,7 @@ function Shared({ fig, grow, stage }: Part) {
             {stage(
               PEN.labels,
               <Group>
-                <HollowArrow x={mid} y={y - 52} len={vLen} color={p.label} />
+                <HollowArrow from={[mid, y - 52]} to={[mid + vLen, y - 52]} color={p.label} weight="track" minLen={4} />
                 <MonoLabel x={mid + vLen / 2} y={y - 67} text={`v = ${signed(b.v, 1)} m s⁻¹`} color={p.ink} size={9} />
                 {fig.p !== undefined && (
                   <Group>
@@ -135,21 +131,7 @@ function Shared({ fig, grow, stage }: Part) {
 }
 
 /** A cricket ball (small, with a seam) or a bowling ball (large, three finger holes), flat. */
-function Ball({ look, x, y, r }: { look: BodiesFig['bodies'][number]['look']; x: number; y: number; r: number }) {
-  const { palette: p } = useTheme();
+function Body({ look, x, y, r }: { look: BodiesFig['bodies'][number]['look']; x: number; y: number; r: number }) {
   if (look === 'trolley') return <Trolley rear={x - TROLLEY.w / 2} floor={y} facing={1} text="" buffer="none" />;
-  return (
-    <Group>
-      <Circle cx={x} cy={y} r={r} fill={look === 'bowling' ? p.drawFillDark : p.drawFill} stroke={p.draw} strokeWidth={1.6} />
-      {look === 'cricket' ? (
-        <Path d={`M${x - r * 0.35},${y - r * 0.9} Q${x + r * 0.25},${y} ${x - r * 0.35},${y + r * 0.9}`} fill="none" stroke={p.draw} strokeWidth={1} />
-      ) : (
-        <Group>
-          <Circle cx={x - 6} cy={y - 8} r={2.6} fill={p.draw} />
-          <Circle cx={x + 2} cy={y - 10} r={2.6} fill={p.draw} />
-          <Circle cx={x - 1} cy={y - 1} r={3} fill={p.draw} />
-        </Group>
-      )}
-    </Group>
-  );
+  return <Ball look={look} x={x} y={y} r={r} />;
 }

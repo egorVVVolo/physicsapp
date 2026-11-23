@@ -1,17 +1,16 @@
 // FIG: a pole fixed to a wall, rising at an angle, with a sign hanging from its end. The sign's weight acts straight
 // down, so its line of action is vertical and the perpendicular distance from the fixing is the horizontal one,
 // L cos θ (src/physics/moments). With `candidates` three dashed distances can be tapped.
-import type { ReactNode } from 'react';
 import { Circle, G as Group, Path, Rect } from 'react-native-svg';
 import { momentAtAngle } from '@/physics/moments';
 import { fixed } from '@/physics/format';
 import { POLE_IDS, type PoleFig } from '@/content/types';
 import { useTheme } from '@/theme/ThemeContext';
 import { STILL, type DrawClock } from './anim';
-import { DrawnFade, ForceArrow, ForceLetter, Hatch, MonoLabel } from './draw';
-import { TapBoxes } from './SledgeFigure';
+import { ForceArrow, ForceLetter, Hatch, MonoLabel } from './draw';
 import type { TapProps, TapTarget } from './Sheet';
-import { AlignedDim, AngleArc, RightAngle, TurnArc } from './turning';
+import { AngleArc, RightAngle, TurnArc } from './turning';
+import { Dim, stage, TapBoxes } from './kit';
 
 export const POLE_VB = { w: 340, h: 230 };
 
@@ -52,17 +51,12 @@ export function PoleFigure({ fig, tap, clock = STILL }: { fig: PoleFig; tap?: Ta
   const { palette: p } = useTheme();
   const { end, sign, across, M } = geometry(fig);
   const shown = fig.moment === 'shown';
-  const stage = (pen: readonly [number, number], children: ReactNode) => (
-    <DrawnFade clock={clock} from={pen[0]} to={pen[1]}>
-      {children}
-    </DrawnFade>
-  );
   const wTip: [number, number] = [sign[0], sign[1] + 14 + fig.W * KW];
   const lineX = end[0];
 
   return (
     <Group>
-      {stage(
+      {stage(clock, 
         PEN.wall,
         <Group>
           <Group transform={`translate(${WALL} 10) rotate(90)`}>
@@ -74,7 +68,7 @@ export function PoleFigure({ fig, tap, clock = STILL }: { fig: PoleFig; tap?: Ta
 
       {fig.candidates && <TapBoxes targets={poleTargets(fig)} tap={tap} />}
 
-      {stage(
+      {stage(clock, 
         PEN.pole,
         <Group>
           <Path d={`M${FIX[0]},${FIX[1]} L${end[0]},${end[1]}`} stroke={p.draw} strokeWidth={6} strokeLinecap="round" />
@@ -89,7 +83,7 @@ export function PoleFigure({ fig, tap, clock = STILL }: { fig: PoleFig; tap?: Ta
         </Group>,
       )}
 
-      {stage(
+      {stage(clock, 
         PEN.forces,
         <Group>
           {/* the line of action of the weight, straight down through the end */}
@@ -100,22 +94,22 @@ export function PoleFigure({ fig, tap, clock = STILL }: { fig: PoleFig; tap?: Ta
         </Group>,
       )}
 
-      {stage(
+      {stage(clock, 
         PEN.marks,
         <Group>
           {fig.candidates ? (
             <Group>
-              <AlignedDim a={FIX} b={end} offset={18} dashed />
-              <AlignedDim a={[HEIGHT_X, FIX[1]]} b={[HEIGHT_X, end[1]]} dashed />
+              <Dim a={FIX} b={end} offset={18} dashed />
+              <Dim a={[HEIGHT_X, FIX[1]]} b={[HEIGHT_X, end[1]]} dashed />
               <Path d={`M${end[0] + 6},${end[1]} H${HEIGHT_X + 6}`} stroke={p.label} strokeWidth={1} strokeDasharray="2 3" />
-              <AlignedDim a={FIX} b={[lineX, FIX[1]]} dashed />
+              <Dim a={FIX} b={[lineX, FIX[1]]} dashed />
             </Group>
           ) : (
-            <AlignedDim a={FIX} b={end} offset={18} text={`${fixed(fig.L, 1)} m`} />
+            <Dim a={FIX} b={end} offset={18} text={`${fixed(fig.L, 1)} m`} />
           )}
           {shown && (
             <Group>
-              <AlignedDim a={FIX} b={[lineX, FIX[1]]} text={`x = ${fixed(across, 2)} m`} strong />
+              <Dim a={FIX} b={[lineX, FIX[1]]} text={`x = ${fixed(across, 2)} m`} strong />
               <RightAngle at={[lineX, FIX[1]]} u={[-1, 0]} v={[0, -1]} color={p.ink} />
               <TurnArc cx={FIX[0]} cy={FIX[1]} r={17} from={-80} sweep={150} color={p.ink} />
             </Group>

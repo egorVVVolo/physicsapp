@@ -2,17 +2,15 @@
 // acts. W from the middle (centre of gravity), S, the wall's push, at the top (at right angles to the wall: a smooth
 // surface cannot pull along itself), N and F at the foot. S comes from ladderWallPush (src/physics/dynamics); the ladder
 // stays put, so F balances S and N balances W. With `candidates` three dashed arrows at the top can be tapped.
-import type { ReactNode } from 'react';
-import { Circle, G as Group, Line, Path } from 'react-native-svg';
+import { Circle, G as Group, Path } from 'react-native-svg';
 import { ladderWallPush, weight } from '@/physics/dynamics';
 import { fixed } from '@/physics/format';
 import { LADDER_IDS, type LadderFig } from '@/content/types';
 import { useTheme } from '@/theme/ThemeContext';
 import { STILL, type DrawClock } from './anim';
-import { CgMark, DrawnFade, ForceArrow, ForceLetter, Hatch, MonoLabel } from './draw';
-import { Tag } from './RoadFigure';
-import { TapBoxes } from './SledgeFigure';
+import { CgMark, ForceArrow, ForceLetter, Hatch, MonoLabel } from './draw';
 import type { TapProps, TapTarget } from './Sheet';
+import { stage, Tag, TapBoxes } from './kit';
 
 export const LADDER_VB = { w: 340, h: 230 };
 
@@ -66,11 +64,6 @@ export function LadderFigure({ fig, tap, clock = STILL }: { fig: LadderFig; tap?
   const f = ladderForces(fig);
   const has = (k: 'W' | 'S' | 'N' | 'F') => fig.forces.includes(k);
   const value = (x: number) => `${fixed(x, x < 100 ? 1 : 0)} N`;
-  const stage = (pen: readonly [number, number], children: ReactNode) => (
-    <DrawnFade clock={clock} from={pen[0]} to={pen[1]}>
-      {children}
-    </DrawnFade>
-  );
 
   const rails = [-HALF, HALF].map((o) => {
     const a: [number, number] = [foot[0] + n[0] * o, foot[1] + n[1] * o];
@@ -99,7 +92,7 @@ export function LadderFigure({ fig, tap, clock = STILL }: { fig: LadderFig; tap?
 
   return (
     <Group>
-      {stage(
+      {stage(clock, 
         PEN.walls,
         <Group>
           <Hatch x1={16} x2={WALL} y={FLOOR} color={p.draw} clock={clock} from={PEN.walls[0]} to={PEN.walls[1]} />
@@ -114,7 +107,7 @@ export function LadderFigure({ fig, tap, clock = STILL }: { fig: LadderFig; tap?
 
       {fig.candidates && <TapBoxes targets={ladderTargets(fig)} tap={tap} />}
 
-      {stage(
+      {stage(clock, 
         PEN.ladder,
         <Group>
           <Path d={rungs.join(' ')} stroke={p.draw} strokeWidth={1.6} />
@@ -125,7 +118,7 @@ export function LadderFigure({ fig, tap, clock = STILL }: { fig: LadderFig; tap?
         </Group>,
       )}
 
-      {stage(
+      {stage(clock, 
         PEN.forces,
         <Group>
           {has('W') && <ForceArrow x1={cg[0]} y1={cg[1]} x2={wTip[0]} y2={wTip[1]} color={p.force} />}
@@ -141,7 +134,7 @@ export function LadderFigure({ fig, tap, clock = STILL }: { fig: LadderFig; tap?
         </Group>,
       )}
 
-      {stage(
+      {stage(clock, 
         PEN.labels,
         <Group>
           {has('W') && <ForceLetter x={cg[0] + 8} y={cg[1] + f.W * KL * 0.4} text="W" color={p.force} size={14} anchor="start" />}

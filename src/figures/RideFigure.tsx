@@ -15,7 +15,7 @@ import { useTheme } from '@/theme/ThemeContext';
 import { useReducedMotionPref } from '@/ui/parts';
 import { STILL, useTween, type DrawClock } from './anim';
 import { DrawnFade, ForceArrow, MonoLabel } from './draw';
-import { Dim, Tag, VelocityArrow } from './RoadFigure';
+import { Dim, HollowArrow, stage, Tag } from './kit';
 
 export const RIDE_VB = { w: 340, h: 230 };
 
@@ -81,25 +81,21 @@ type Props = { fig: RideFig; live?: number; playing: boolean; clock?: DrawClock 
 export function RideFigure({ fig, live, playing, clock = STILL }: Props) {
   const reduced = useReducedMotionPref();
   const run = playing && !reduced && !clock.on;
+  const staged = (pen: readonly [number, number], children: ReactNode) => stage(clock, pen, children);
   const v1 = useTween(rideSpeed(fig, live), undefined, live !== undefined ? 160 : 420);
   const v2 = fig.compare ?? 0;
   const s1 = useScroll(v1 * KM, run);
   const s2 = useScroll(v2 * KM, run && fig.compare !== undefined);
-  const stage = (pen: readonly [number, number], children: ReactNode) => (
-    <DrawnFade clock={clock} from={pen[0]} to={pen[1]}>
-      {children}
-    </DrawnFade>
-  );
   if (fig.compare !== undefined) {
     const [a, b] = LANES.two;
     return (
       <Group>
-        <Lane fig={fig} v={v1} scroll={s1} lane={a} clock={clock} stage={stage} compact />
-        <Lane fig={fig} v={v2} scroll={s2} lane={b} clock={clock} stage={stage} compact />
+        <Lane fig={fig} v={v1} scroll={s1} lane={a} clock={clock} stage={staged} compact />
+        <Lane fig={fig} v={v2} scroll={s2} lane={b} clock={clock} stage={staged} compact />
       </Group>
     );
   }
-  return <Lane fig={fig} v={v1} scroll={s1} lane={LANES.one[0]} clock={clock} stage={stage} />;
+  return <Lane fig={fig} v={v1} scroll={s1} lane={LANES.one[0]} clock={clock} stage={staged} />;
 }
 
 type LaneProps = {
@@ -180,7 +176,7 @@ function Lane({ fig, v, scroll, lane, clock, stage, compact }: LaneProps) {
           {pair !== undefined && (
             <Group>
               <Path d={`M${pair},${GY + 10} V${GY + 38} M${pair + gap},${GY + 10} V${GY + 38}`} stroke={p.label} strokeWidth={0.8} strokeDasharray="2 2" />
-              <Dim x1={pair} x2={pair + gap} y={GY + 34} text={`${speedText(v)} m`} />
+              <Dim a={[pair, GY + 34]} b={[pair + gap, GY + 34]} text={`${speedText(v)} m`} fit="below" />
             </Group>
           )}
           {compact ? (
@@ -190,7 +186,7 @@ function Lane({ fig, v, scroll, lane, clock, stage, compact }: LaneProps) {
             </Group>
           ) : (
             <Group>
-              {v > 0.05 && <VelocityArrow x={CX - (KV * v) / 2} y={top - 12} len={KV * v} color={p.draw} />}
+              {v > 0.05 && <HollowArrow from={[CX - (KV * v) / 2, top - 12]} to={[CX - (KV * v) / 2 + KV * v, top - 12]} color={p.draw} weight="track" />}
               <Tag x={CX} y={top - 26} text={`v = ${speedText(v)} m s⁻¹`} />
               {fig.power && (
                 <Group>

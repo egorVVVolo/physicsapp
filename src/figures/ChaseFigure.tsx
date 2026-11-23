@@ -2,7 +2,6 @@
 // its own steady acceleration. Positions and velocities come from s = ut + ½at² and v = u + at
 // (src/physics/kinematics). The clip runs from 0 to `until` in real time; its last frame shows the gap between
 // the cars, or that they are level. The first chase figure of a lesson draws itself.
-import type { ReactNode } from 'react';
 import { G as Group, Line } from 'react-native-svg';
 import { position, velocity } from '@/physics/kinematics';
 import { fixed } from '@/physics/format';
@@ -10,8 +9,9 @@ import type { ChaseFig } from '@/content/types';
 import { useTheme } from '@/theme/ThemeContext';
 import { useReducedMotionPref } from '@/ui/parts';
 import { STILL, useLoopTime, type DrawClock } from './anim';
-import { DrawnFade, DrawnPath, Hatch, MonoLabel } from './draw';
-import { AccMark, ARROW_DY, Car, CAR_MID, Dim, KV, LANES, PEN, RULER_Y, Ruler, SPEED_DY, Tag, VelocityArrow, WHEEL_R, X0, roadScale } from './RoadFigure';
+import { DrawnPath, Hatch, MonoLabel } from './draw';
+import { AccMark, ARROW_DY, CAR_MID, KV, LANES, PEN, RULER_Y, RoadRuler, SPEED_DY, X0, roadScale } from './RoadFigure';
+import { Car, WHEEL_R, Dim, HollowArrow, stage, Tag } from './kit';
 
 export { ROAD_VB as CHASE_VB } from './RoadFigure';
 
@@ -37,11 +37,6 @@ export function ChaseFigure({ fig, playing, clock = STILL }: { fig: ChaseFig; pl
   const loop = useLoopTime(plays && playing && !reduced && !clock.on, fig.until, fig.until, HOLD);
   const t = plays ? (reduced ? fig.until : loop) : 0;
   const ended = plays && t >= fig.until - 1e-9;
-  const late = (children: ReactNode) => (
-    <DrawnFade clock={clock} from={PEN.marks[0]} to={PEN.marks[1]}>
-      {children}
-    </DrawnFade>
-  );
   const at = fig.cars.map((c) => {
     const m = { s0: 0, u: c.u, a: c.a };
     return { ...c, s: position(t, m), v: velocity(t, m), y: LANES[c.id] };
@@ -57,16 +52,16 @@ export function ChaseFigure({ fig, playing, clock = STILL }: { fig: ChaseFig; pl
       {at.map((c) => (
         <Hatch key={c.id} x1={6} x2={334} y={c.y} color={p.draw} clock={clock} from={PEN.road[0]} to={PEN.road[1]} />
       ))}
-      <Ruler span={fig.span} clock={clock} />
+      <RoadRuler span={fig.span} clock={clock} />
       <DrawnPath clock={clock} len={RULER_Y - 20} from={PEN.start[0]} to={PEN.start[1]} d={`M${X0},20 V${RULER_Y}`} stroke={p.lineStrong} strokeWidth={1.2} strokeDasharray="3 4" fill="none" />
-      {late(<MonoLabel x={X0 + 4} y={13} text="SIDE BY SIDE" color={p.label} size={8.5} anchor="start" />)}
+      {stage(clock, PEN.marks, <MonoLabel x={X0 + 4} y={13} text="SIDE BY SIDE" color={p.label} size={8.5} anchor="start" />)}
 
       {/* the last frame: how far apart the cars are, or that they are level */}
       {ended && gap > 0.05 && (
         <Group>
           <Line x1={X(front)} y1={leader.y} x2={X(front)} y2={leader.y < GAP_Y ? GAP_Y + 4 : GAP_Y - 4} stroke={p.label} strokeWidth={1.1} strokeDasharray="3 4" />
           <Line x1={X(back)} y1={chaser.y} x2={X(back)} y2={chaser.y < GAP_Y ? GAP_Y + 4 : GAP_Y - 4} stroke={p.label} strokeWidth={1.1} strokeDasharray="3 4" />
-          <Dim x1={X(back)} x2={X(front)} y={GAP_Y} text={`${fixed(gap, 1)} m`} />
+          <Dim a={[X(back), GAP_Y]} b={[X(front), GAP_Y]} text={`${fixed(gap, 1)} m`} fit="below" />
         </Group>
       )}
       {ended && gap <= 0.05 && (
@@ -82,9 +77,9 @@ export function ChaseFigure({ fig, playing, clock = STILL }: { fig: ChaseFig; pl
         return (
           <Group key={c.id}>
             <Car front={X(c.s)} y={c.y} id={c.id} roll={(c.s * k) / WHEEL_R} clock={clock} />
-            {len > 5 && late(<VelocityArrow x={xc} y={c.y + ARROW_DY} len={len} color={p.draw} />)}
-            {c.a !== 0 && late(<AccMark x={xc - 8} y={c.y + ARROW_DY} forward={c.a > 0} />)}
-            {fig.values && !plays && late(<Tag x={Math.max(40, xc + Math.max(len, 30) / 2)} y={c.y + SPEED_DY} text={c.v > 0.05 ? `${fixed(c.v, 1)} m s⁻¹` : 'from rest'} />)}
+            {len > 5 && stage(clock, PEN.marks, <HollowArrow from={[xc, c.y + ARROW_DY]} to={[xc + len, c.y + ARROW_DY]} color={p.draw} weight="track" />)}
+            {c.a !== 0 && stage(clock, PEN.marks, <AccMark x={xc - 8} y={c.y + ARROW_DY} forward={c.a > 0} />)}
+            {fig.values && !plays && stage(clock, PEN.marks, <Tag x={Math.max(40, xc + Math.max(len, 30) / 2)} y={c.y + SPEED_DY} text={c.v > 0.05 ? `${fixed(c.v, 1)} m s⁻¹` : 'from rest'} />)}
           </Group>
         );
       })}

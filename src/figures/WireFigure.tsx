@@ -5,7 +5,6 @@
 // or a stress–strain graph traced by the explore's point (the slider = the load).
 // view 'rig': the lab (Core Practical 2): a long thin wire from a clamp, a marker against a mm scale, a micrometer, weights.
 // view 'plot': the lab's force–extension plot with a gradient triangle.
-import type { ReactNode } from 'react';
 import { Circle, G as Group, Line, Path, Rect } from 'react-native-svg';
 import { fixed, sci, sig } from '@/physics/format';
 import { circleArea, strain, stress, wireExtension } from '@/physics/young';
@@ -13,6 +12,7 @@ import type { WireFig, WireSpec } from '@/content/types';
 import { useTheme } from '@/theme/ThemeContext';
 import { STILL, useTween, type DrawClock } from './anim';
 import { DrawnFade, Hatch, MonoLabel } from './draw';
+import { stage } from './kit';
 
 export const WIRE_VB = { w: 340, h: 230 };
 
@@ -54,18 +54,13 @@ function Hanging({ fig, F, clock }: { fig: WireFig; F: number; clock: DrawClock 
   const xs = two ? [56, 140] : [92];
   // the stretch comes in once the question is answered
   const grow = useTween(fig.stretch ? 0 : 1, undefined, 900, 250);
-  const stage = (pen: readonly [number, number], children: ReactNode) => (
-    <DrawnFade clock={clock} from={pen[0]} to={pen[1]}>
-      {children}
-    </DrawnFade>
-  );
   const hatch: string[] = [];
   for (let x = BEAM.x1; x < BEAM.x2; x += 9) hatch.push(`M${x},${BEAM.y} l8,-8`);
   const dp = 1;
 
   return (
     <Group>
-      {stage(
+      {stage(clock, 
         PEN.top,
         <Group>
           <Path d={hatch.join(' ')} stroke={p.draw} strokeWidth={1} opacity={0.55} />
@@ -73,7 +68,7 @@ function Hanging({ fig, F, clock }: { fig: WireFig; F: number; clock: DrawClock 
         </Group>,
       )}
 
-      {stage(
+      {stage(clock, 
         PEN.wires,
         <Group>
           {fig.wires.map((w, i) => {
@@ -105,7 +100,7 @@ function Hanging({ fig, F, clock }: { fig: WireFig; F: number; clock: DrawClock 
         </Group>,
       )}
 
-      {stage(PEN.labels, <Panel fig={fig} F={F} />)}
+      {stage(clock, PEN.labels, <Panel fig={fig} F={F} />)}
     </Group>
   );
 }

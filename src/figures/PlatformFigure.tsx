@@ -4,7 +4,6 @@
 // thinner arrow along the floor and the part across it a dashed line. The motion is an outline arrow under the floor
 // with Δs. ΔW at the top of each panel comes from workDone (src/physics/work): F Δs cos θ, zero at right angles.
 // Played, the floor slides past at a steady speed.
-import type { ReactNode } from 'react';
 import { Circle, G as Group, Line, Path, Rect } from 'react-native-svg';
 import { workDone } from '@/physics/work';
 import { components } from '@/physics/vectors';
@@ -12,9 +11,10 @@ import { fixed } from '@/physics/format';
 import type { PlatformFig, PlatformLane } from '@/content/types';
 import { useTheme } from '@/theme/ThemeContext';
 import { STILL, useLoopTime, type DrawClock } from './anim';
-import { DrawnFade, ForceArrow, ForceLetter, MonoLabel } from './draw';
+import { ForceArrow, ForceLetter, MonoLabel } from './draw';
 import { Mitten } from './SledgeFigure';
 import { AngleArc, RightAngle } from './turning';
+import { stage } from './kit';
 
 export const PLATFORM_VB = { w: 340, h: 230 };
 
@@ -61,11 +61,6 @@ export function PlatformFigure({ fig, live, playing, clock = STILL }: Props) {
   const k = Math.min(MAX_K, MAX_LEN / Math.max(...lanes.map((l) => Math.max(l.F, l.friction ?? 0))));
   const t = useLoopTime(playing && fig.play === true, TICK / (V * PX_PER_M), 'floor', 0);
   const scroll = t * V * PX_PER_M;
-  const stage = (pen: readonly [number, number], children: ReactNode) => (
-    <DrawnFade clock={clock} from={pen[0]} to={pen[1]}>
-      {children}
-    </DrawnFade>
-  );
 
   return (
     <Group>
@@ -89,7 +84,7 @@ export function PlatformFigure({ fig, live, playing, clock = STILL }: Props) {
         const sizeAt: [number, number] = l.how === 'carry' ? [tip[0] + 8, tip[1] + 10] : l.how === 'push' ? [tip[0] + 4, geo.hitch[1] - 9] : [tip[0] + d[1] * 11, tip[1] - d[0] * 11 + 3];
         return (
           <Group key={l.name}>
-            {stage(
+            {stage(clock, 
               PEN.floor,
               <Group>
                 {i > 0 && <Line x1={x0} y1={12} x2={x0} y2={222} stroke={p.paperLine} strokeWidth={1.2} strokeDasharray="4 4" />}
@@ -100,9 +95,9 @@ export function PlatformFigure({ fig, live, playing, clock = STILL }: Props) {
               </Group>,
             )}
 
-            {stage(PEN.loads, <Load lane={l} cx={cx} />)}
+            {stage(clock, PEN.loads, <Load lane={l} cx={cx} />)}
 
-            {stage(
+            {stage(clock, 
               PEN.hands,
               <Group>
                 {l.how === 'pull' && <Line x1={geo.hitch[0]} y1={geo.hitch[1]} x2={hand[0]} y2={hand[1]} stroke={p.draw} strokeWidth={2.4} strokeLinecap="round" />}
@@ -114,7 +109,7 @@ export function PlatformFigure({ fig, live, playing, clock = STILL }: Props) {
             )}
 
             {fig.forces &&
-              stage(
+              stage(clock, 
                 PEN.forces,
                 <Group>
                   {showSplit && (
@@ -134,7 +129,7 @@ export function PlatformFigure({ fig, live, playing, clock = STILL }: Props) {
                 </Group>,
               )}
 
-            {stage(
+            {stage(clock, 
               PEN.labels,
               <Group>
                 {workText && <MonoLabel x={x0 + pw / 2} y={WORK_Y} text={workText} color={p.ink} size={11} />}

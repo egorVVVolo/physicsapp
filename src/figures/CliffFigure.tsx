@@ -4,7 +4,6 @@
 // it hits the sea is an outline arrow and the speeds are listed: all the same, because energy has no direction.
 // With `follow` (the explore), one stone sits at the slider's time with its velocity, and a column on the right stacks
 // its kinetic energy on its GPE above the sea: the column's top never moves.
-import type { ReactNode } from 'react';
 import { Circle, G as Group, Line, Path, Rect } from 'react-native-svg';
 import { flightTime, projectilePosition, projectileVelocity, type Launch } from '@/physics/projectile';
 import { kineticEnergy, potentialChange, speedAfterDrop } from '@/physics/energy';
@@ -14,8 +13,7 @@ import { useTheme } from '@/theme/ThemeContext';
 import { useReducedMotionPref } from '@/ui/parts';
 import { STILL, useLoopTime, type DrawClock } from './anim';
 import { DrawnFade, DrawnPath, FILLS, MonoLabel } from './draw';
-import { HollowArrow } from './ResolveFigure';
-import { Tag } from './RoadFigure';
+import { HollowArrow, stage } from './kit';
 
 export const CLIFF_VB = { w: 340, h: 230 };
 
@@ -61,11 +59,6 @@ export function CliffFigure({ fig, live, playing, clock = STILL }: Props) {
   const followed = fig.stones.find((s) => s.id === fig.follow);
   const timeOf = (id: string) => (plays ? (reduced ? length : loop) : id === fig.follow ? (live ?? 0) : 0);
   const showLanding = fig.landing === 'shown';
-  const late = (children: ReactNode) => (
-    <DrawnFade clock={clock} from={PEN.labels[0]} to={PEN.labels[1]}>
-      {children}
-    </DrawnFade>
-  );
   const T = top(fig);
   // the cliff: a flat top, a rough face down to the sea, a few strata lines
   const face = `M6,${T} H${EDGE - 5} L${EDGE - 6},${T + 26} L${EDGE - 12},${T + 52} L${EDGE - 8},${T + 84} L${EDGE - 15},${T + 112} L${EDGE - 12},${SEA}`;
@@ -113,7 +106,7 @@ export function CliffFigure({ fig, live, playing, clock = STILL }: Props) {
             const tip: [number, number] = [from[0] + fig.u * KV * Math.cos(a), from[1] - fig.u * KV * Math.sin(a)];
             return (
               <Group key={`a${s.id}`}>
-                <HollowArrow from={from} to={tip} color={p.draw} thin />
+                <HollowArrow from={from} to={tip} color={p.draw} weight="thin" />
                 <MonoLabel x={tip[0] + 8 * Math.cos(a) + 3} y={tip[1] - 8 * Math.sin(a) + 3.5} text={s.id} color={p.ink} size={10} />
               </Group>
             );
@@ -143,9 +136,9 @@ export function CliffFigure({ fig, live, playing, clock = STILL }: Props) {
         );
       })}
 
-      {followed && late(<Followed fig={fig} angle={followed.angle} t={live ?? 0} />)}
-      {fig.landing && late(<SpeedTable fig={fig} shown={showLanding} />)}
-      {plays && late(<MonoLabel x={330} y={18} text={`t = ${fixed(Math.min(loop, length), 2)} s`} color={p.label} size={9} anchor="end" />)}
+      {followed && stage(clock, PEN.labels, <Followed fig={fig} angle={followed.angle} t={live ?? 0} />)}
+      {fig.landing && stage(clock, PEN.labels, <SpeedTable fig={fig} shown={showLanding} />)}
+      {plays && stage(clock, PEN.labels, <MonoLabel x={330} y={18} text={`t = ${fixed(Math.min(loop, length), 2)} s`} color={p.label} size={9} anchor="end" />)}
     </Group>
   );
 }
@@ -184,7 +177,7 @@ function SpeedTable({ fig, shown }: { fig: CliffFig; shown: boolean }) {
           return (
             <Group key={s.id}>
               {many && <MonoLabel x={o[0]} y={o[1] - 7} text={s.id} color={p.ink} size={9} />}
-              <HollowArrow from={o} to={[o[0] + vel.vx * KV, o[1] - vel.vy * KV]} color={p.draw} thin />
+              <HollowArrow from={o} to={[o[0] + vel.vx * KV, o[1] - vel.vy * KV]} color={p.draw} weight="thin" />
             </Group>
           );
         })}
@@ -215,7 +208,7 @@ function Followed({ fig, angle, t }: { fig: CliffFig; angle: number; t: number }
   const lx = COL.x + COL.w + 6;
   return (
     <Group>
-      <HollowArrow from={[x, y]} to={[x + vel.vx * KV, y - vel.vy * KV]} color={p.draw} thin />
+      <HollowArrow from={[x, y]} to={[x + vel.vx * KV, y - vel.vy * KV]} color={p.draw} weight="thin" />
       <Circle cx={x} cy={y} r={R} fill={p.drawFillDark} stroke={p.draw} strokeWidth={1.4} />
       <Rect x={COL.x} y={SEA - hEp} width={COL.w} height={hEp} fill={p.drawFillDark} stroke={p.draw} strokeWidth={1.4} />
       <Rect x={COL.x} y={SEA - hEp - hEk} width={COL.w} height={hEk} fill={p.paper} stroke={p.draw} strokeWidth={1.4} />

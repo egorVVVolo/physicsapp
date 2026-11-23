@@ -3,15 +3,14 @@
 // slack and the trolley rolls on at a steady speed. Every position and speed comes from pulleyRun, the forces from
 // connectedAcceleration and stringTension (src/physics/dynamics), so the drawing never disagrees with the numbers.
 // Played at half speed with a strobe mark under the trolley's front every 0.1 s: the gaps grow, then stay equal.
-import type { ReactNode } from 'react';
 import { Circle, G as Group, Line, Path, Rect } from 'react-native-svg';
 import { connectedAcceleration, pulleyRun, stringTension, weight } from '@/physics/dynamics';
 import { fixed } from '@/physics/format';
 import type { PulleyFig } from '@/content/types';
 import { useTheme } from '@/theme/ThemeContext';
 import { STILL, useLoopTime, type DrawClock } from './anim';
-import { DrawnFade, ForceArrow, ForceLetter, Hatch, MonoLabel } from './draw';
-import { Tag, VelocityArrow } from './RoadFigure';
+import { ForceArrow, ForceLetter, Hatch, MonoLabel } from './draw';
+import { HollowArrow, stage, Tag } from './kit';
 
 export const PULLEY_VB = { w: 340, h: 230 };
 
@@ -68,11 +67,6 @@ export function PulleyFigure({ fig, live, playing, clock = STILL }: Props) {
   const loop = useLoopTime(playing && fig.play === true, (coast ? x.tEnd : x.tLand) * SLOW, `${x.m}`, 1.1);
   const t = fig.play === true ? loop / SLOW : fig.at === 'landed' ? x.tLand + 1e-6 : 0;
   const run = pulleyRun(t, fig.trolley, x.m, fig.drop);
-  const stage = (pen: readonly [number, number], children: ReactNode) => (
-    <DrawnFade clock={clock} from={pen[0]} to={pen[1]}>
-      {children}
-    </DrawnFade>
-  );
 
   const back = TROLLEY.back + run.s * K;
   const front = back + TROLLEY.w;
@@ -104,10 +98,10 @@ export function PulleyFigure({ fig, live, playing, clock = STILL }: Props) {
 
   return (
     <Group>
-      {stage(PEN.floor, <Hatch x1={10} x2={330} y={FLOOR} color={p.draw} />)}
+      {stage(clock, PEN.floor, <Hatch x1={10} x2={330} y={FLOOR} color={p.draw} />)}
 
       {/* the bench, its legs, and the pulley clamped to its end */}
-      {stage(
+      {stage(clock, 
         PEN.bench,
         <Group>
           {BENCH.legs.map((lx) => (
@@ -124,7 +118,7 @@ export function PulleyFigure({ fig, live, playing, clock = STILL }: Props) {
       )}
 
       {/* the trolley (flat 3D: a top facet, the side, two wheels) and the hanging block */}
-      {stage(
+      {stage(clock, 
         PEN.bodies,
         <Group>
           <Path d={`M${back},${top} L${back + 6},${top - 5} H${front + 6} L${front},${top} Z`} fill={p.drawFillDark} stroke={p.draw} strokeWidth={1.4} strokeLinejoin="round" />
@@ -143,7 +137,7 @@ export function PulleyFigure({ fig, live, playing, clock = STILL }: Props) {
         </Group>,
       )}
 
-      {stage(
+      {stage(clock, 
         PEN.string,
         <Group>
           <Path d={level} fill="none" stroke={p.draw} strokeWidth={1.3} />
@@ -153,7 +147,7 @@ export function PulleyFigure({ fig, live, playing, clock = STILL }: Props) {
         </Group>,
       )}
 
-      {stage(
+      {stage(clock, 
         PEN.labels,
         <Group>
           {fig.forces && !slack && (
@@ -176,7 +170,7 @@ export function PulleyFigure({ fig, live, playing, clock = STILL }: Props) {
           )}
           {showSpeed && (
             <Group>
-              <VelocityArrow x={(back + front) / 2 - (16 + run.v * 14) / 2} y={top - 12} len={16 + run.v * 14} color={p.label} />
+              <HollowArrow from={[(back + front) / 2 - (16 + run.v * 14) / 2, top - 12]} to={[(back + front) / 2 - (16 + run.v * 14) / 2 + 16 + run.v * 14, top - 12]} color={p.label} weight="track" />
               <Tag x={Math.max((back + front) / 2, slack ? 84 : 52)} y={top - 25} text={`v = ${fixed(run.v, 2)} m s⁻¹${slack ? ', string slack' : ''}`} />
             </Group>
           )}

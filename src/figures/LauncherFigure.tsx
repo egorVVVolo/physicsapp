@@ -3,14 +3,14 @@
 // leaves with the speed ½mv² = ½kΔx² gives (an outline arrow). On the right: the readings, a force–squash graph with the
 // energy shaded as the triangle under the line, or two launchers A and B held by the same push, with their triangles.
 // view 'curve': a rubber band's curved force–extension graph on squared paper, the area under it shaded.
-import type { ReactNode } from 'react';
 import { Circle, G as Group, Line, Path, Polygon, Rect } from 'react-native-svg';
 import { areaUnder, bandForce, energyForForce, launchSpeed, springEnergy } from '@/physics/elastic';
 import { fixed, sig } from '@/physics/format';
 import type { LauncherFig } from '@/content/types';
 import { useTheme } from '@/theme/ThemeContext';
 import { STILL, type DrawClock } from './anim';
-import { DrawnFade, ForceArrow, ForceLetter, Hatch, MonoLabel } from './draw';
+import { ForceArrow, ForceLetter, Hatch, MonoLabel } from './draw';
+import { stage } from './kit';
 
 export const LAUNCHER_VB = { w: 340, h: 230 };
 
@@ -42,11 +42,6 @@ export function LauncherFigure({ fig, live, clock = STILL }: Props) {
   return <Launchers fig={fig} x={x} clock={clock} />;
 }
 
-const stage = (clock: DrawClock, pen: readonly [number, number], children: ReactNode) => (
-  <DrawnFade clock={clock} from={pen[0]} to={pen[1]}>
-    {children}
-  </DrawnFade>
-);
 
 function Launchers({ fig, x, clock }: { fig: LauncherFig; x: number; clock: DrawClock }) {
   const F = fig.k * x;

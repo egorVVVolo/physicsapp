@@ -4,8 +4,7 @@
 // The velocity is an outline arrow beside the ball (it shrinks, passes zero at the top and flips);
 // the acceleration is a double chevron that never changes. A played figure runs the flights in real time.
 // The first throw figure of a lesson draws itself: ground → ruler → building → balcony → balls; the arrows come last.
-import type { ReactNode } from 'react';
-import { Circle, G as Group, Line, Path, Rect } from 'react-native-svg';
+import { Circle, G as Group, Rect } from 'react-native-svg';
 import { G, position, velocity, type Motion } from '@/physics/kinematics';
 import { fixed, signed } from '@/physics/format';
 import { ACC_IDS, type ThrowFig } from '@/content/types';
@@ -14,6 +13,7 @@ import { useReducedMotionPref } from '@/ui/parts';
 import { STILL, useLoopTime, type DrawClock } from './anim';
 import { AccChevrons, DrawnFade, DrawnPath, DrawnShape, FILLS, ForceLetter, Hatch, MonoLabel, rectPath } from './draw';
 import type { TapProps, TapTarget } from './Sheet';
+import { Ball, HollowArrow, Ruler, stage, Tag, type RulerTick } from './kit';
 
 export const THROW_VB = { w: 340, h: 264 };
 
@@ -107,11 +107,6 @@ export function ThrowFigure({ fig, live, playing, tap, clock = STILL }: Props) {
   const line = (d: string, len: number, pen: readonly [number, number], color: string, width: number, extra?: object) => (
     <DrawnPath clock={clock} len={len} from={pen[0]} to={pen[1]} d={d} stroke={color} strokeWidth={width} fill="none" {...extra} />
   );
-  const late = (children: ReactNode) => (
-    <DrawnFade clock={clock} from={PEN.marks[0]} to={PEN.marks[1]}>
-      {children}
-    </DrawnFade>
-  );
   const handY = yOf(fig.h);
   const slabY = handY + RAIL_H;
 
@@ -121,7 +116,7 @@ export function ThrowFigure({ fig, live, playing, tap, clock = STILL }: Props) {
       <Hatch x1={6} x2={334} y={GROUND} color={p.draw} clock={clock} from={PEN.ground[0]} to={PEN.ground[1]} />
 
       {/* the ruler is the axis: metres above the ground, up is positive */}
-      <Ruler fig={fig} clock={clock} />
+      <ThrowRuler fig={fig} clock={clock} />
 
       {/* the building, its windows and the door onto the balcony */}
       <DrawnShape clock={clock} pen={PEN.building} {...rectPath(BUILDING.x, BUILDING.top, BUILDING.w, GROUND - BUILDING.top)} fill={p.drawFill} stroke={p.draw} strokeWidth={1.8} />
@@ -142,47 +137,34 @@ export function ThrowFigure({ fig, live, playing, tap, clock = STILL }: Props) {
       {line(`M${SLAB.x2 + 4},${handY} H332`, 332 - SLAB.x2 - 4, PEN.hand, p.lineStrong, 1.2, { strokeDasharray: '3 4' })}
 
       {/* faint copies of ball A along its path so far */}
-      {fig.trail && late(<Trail fig={fig} x={col.A} t={live ?? startOf(fig, 'A') + clipT} />)}
+      {fig.trail && stage(clock, PEN.marks, <Trail fig={fig} x={col.A} t={live ?? startOf(fig, 'A') + clipT} />)}
 
-      {fig.candidates && late(<Candidates fig={fig} tap={tap} />)}
+      {fig.candidates && stage(clock, PEN.marks, <Candidates fig={fig} tap={tap} />)}
 
       {fig.balls.map((b) => {
         const t = b === 'A' && live !== undefined ? live : startOf(fig, b) + clipT;
-        return <Ball key={b} fig={fig} ball={b} x={col[b]} t={t} still={!plays || live !== undefined} clock={clock} />;
+        return <FlyingBall key={b} fig={fig} ball={b} x={col[b]} t={t} still={!plays || live !== undefined} clock={clock} />;
       })}
     </Group>
   );
 }
 
 /** The axis on the left: a tick every 2 m, a number every 4 m, the arrow and "+" at the top. Bolder on the signs screen. */
-function Ruler({ fig, clock }: { fig: ThrowFig; clock: DrawClock }) {
+function ThrowRuler({ fig, clock }: { fig: ThrowFig; clock: DrawClock }) {
   const { palette: p } = useTheme();
   const top = yOf(16.6);
-  const color = fig.signs ? p.ink : p.draw;
-  const ticks: number[] = [];
-  for (let h = 0; h <= 16; h += 2) ticks.push(h);
+  const ticks: RulerTick[] = [];
+  for (let h = 0; h <= 16; h += 2) ticks.push({ at: yOf(h), len: h % 4 === 0 ? 6 : 4, label: h % 4 === 0 ? (h === 16 ? '16 m' : String(h)) : undefined, dy: h === 0 ? -7.5 : 0 });
   return (
-    <Group>
-      <DrawnPath clock={clock} len={GROUND - top} from={PEN.ruler[0]} to={PEN.ruler[1]} d={`M${RULER_X},${GROUND} V${top}`} stroke={color} strokeWidth={fig.signs ? 2.4 : 1.6} />
-      <DrawnFade clock={clock} from={FILLS[0]} to={FILLS[1]}>
-        <Path d={`M${RULER_X - 5},${top + 2} L${RULER_X},${top - 8} L${RULER_X + 5},${top + 2} Z`} fill={color} />
-        {ticks.map((h) => (
-          <Line key={h} x1={RULER_X} y1={yOf(h)} x2={RULER_X + (h % 4 === 0 ? 6 : 4)} y2={yOf(h)} stroke={p.draw} strokeWidth={1.2} />
-        ))}
-        {ticks
-          .filter((h) => h % 4 === 0)
-          .map((h) => (
-            <MonoLabel key={h} x={RULER_X + 9} y={yOf(h) + (h === 0 ? -4 : 3.5)} text={h === 16 ? '16 m' : String(h)} color={p.label} size={9} anchor="start" />
-          ))}
-        <ForceLetter x={RULER_X + 9} y={top + 4} text="+" color={fig.signs ? p.ink : p.label} size={fig.signs ? 19 : 15} anchor="start" />
-        {fig.signs && <MonoLabel x={RULER_X + 24} y={top + 1} text="UP" color={p.ink} size={9} anchor="start" />}
-      </DrawnFade>
-    </Group>
+    <Ruler axis="y" at={RULER_X} from={GROUND} to={top} arrow="end" ticks={ticks} side={1} labelAt={9} labelDy={3.5} labelAnchor="start" color={fig.signs ? p.ink : p.draw} width={fig.signs ? 2.4 : 1.6} clock={clock} pen={PEN.ruler}>
+      <ForceLetter x={RULER_X + 9} y={top + 4} text="+" color={fig.signs ? p.ink : p.label} size={fig.signs ? 19 : 15} anchor="start" />
+      {fig.signs && <MonoLabel x={RULER_X + 24} y={top + 1} text="UP" color={p.ink} size={9} anchor="start" />}
+    </Ruler>
   );
 }
 
 /** One ball at time t of its flight: the velocity arrow beside it, its letter, and its value or "v = ?". */
-function Ball({ fig, ball, x, t, still, clock }: { fig: ThrowFig; ball: 'A' | 'B'; x: number; t: number; still: boolean; clock: DrawClock }) {
+function FlyingBall({ fig, ball, x, t, still, clock }: { fig: ThrowFig; ball: 'A' | 'B'; x: number; t: number; still: boolean; clock: DrawClock }) {
   const { palette: p } = useTheme();
   const m = motionOf(fig, ball);
   const tLand = landingTime(fig, ball);
@@ -198,16 +180,14 @@ function Ball({ fig, ball, x, t, still, clock }: { fig: ThrowFig; ball: 'A' | 'B
   const showValue = fig.values && !unknown && (still || landed);
   return (
     <Group>
-      {!landed && !unknown && len > 1.5 && lateMark(clock, <VelocityArrow x={arrowX} y={y} v={v} len={len} color={p.draw} />)}
-      {ball === 'A' && fig.showAcc && lateMark(clock, <AccMark x={x - 46} y={y} />)}
+      {!landed && !unknown && len > 1.5 && stage(clock, PEN.marks, <VelocityArrow x={arrowX} y={y} v={v} len={len} color={p.draw} />)}
+      {ball === 'A' && fig.showAcc && stage(clock, PEN.marks, <AccMark x={x - 46} y={y} />)}
       <DrawnFade clock={clock} from={FILLS[0]} to={FILLS[1]}>
-        <Circle cx={x} cy={y} r={R} fill={p.drawFillDark} />
-        <Circle cx={x - 1.8} cy={y - 1.8} r={R * 0.55} fill={p.drawFill} />
-        <Circle cx={x} cy={y} r={R} fill="none" stroke={p.draw} strokeWidth={1.6} />
+        <Ball x={x} y={y} r={R} />
         <ForceLetter x={x - 14} y={y + 5} text={ball} color={p.ink} size={14} anchor="end" />
       </DrawnFade>
-      {showValue && lateMark(clock, <ValueLabel x={x} y={y} arrowX={arrowX} v={v} len={len} landed={landed} beside={!fig.balls.includes('B')} />)}
-      {unknown && lateMark(clock, <Tag x={arrowX - 4} y={y + 3.5} text="v = ?" color={p.ink} size={10} />)}
+      {showValue && stage(clock, PEN.marks, <ValueLabel x={x} y={y} arrowX={arrowX} v={v} len={len} landed={landed} beside={!fig.balls.includes('B')} />)}
+      {unknown && stage(clock, PEN.marks, <Tag x={arrowX - 4} y={y + 3.5} text="v = ?" color={p.ink} size={10} anchor="start" />)}
     </Group>
   );
 }
@@ -220,30 +200,20 @@ function ValueLabel({ x, y, arrowX, v, len, landed, beside }: { x: number; y: nu
   const { palette: p } = useTheme();
   const text = `${signed(v, 1)} m s⁻¹`;
   if (landed) return <MonoLabel x={x} y={y - R - 8} text={text} color={p.ink} size={9} />;
-  if (len <= 1.5 || Math.abs(v) < 0.05) return <Tag x={arrowX - 6} y={y + 3.5} text="v = 0" color={p.ink} />;
-  if (beside) return <Tag x={arrowX + 12} y={y + 3.5} text={`v = ${text}`} color={p.ink} />;
+  if (len <= 1.5 || Math.abs(v) < 0.05) return <Tag x={arrowX - 6} y={y + 3.5} text="v = 0" color={p.ink} anchor="start" />;
+  if (beside) return <Tag x={arrowX + 12} y={y + 3.5} text={`v = ${text}`} color={p.ink} anchor="start" />;
   const tip = tipOf(y, v);
   return <MonoLabel x={arrowX} y={v > 0 ? tip - 6 : tip + 13} text={text} color={p.ink} size={9} />;
 }
 
-const lateMark = (clock: DrawClock, children: ReactNode) => (
-  <DrawnFade clock={clock} from={PEN.marks[0]} to={PEN.marks[1]}>
-    {children}
-  </DrawnFade>
-);
 
 /** Where the velocity arrow's tip is: level with the leading edge of the ball, so it never runs into the ground. */
 const tipOf = (y: number, v: number) => (v > 0 ? y - R : y + R);
 
 /** A hollow arrow beside the ball, up for v > 0, down for v < 0, its length ∝ |v|, its tip level with the ball's front. */
 function VelocityArrow({ x, y, v, len, color }: { x: number; y: number; v: number; len: number; color: string }) {
-  const s = v > 0 ? -1 : 1;
   const tip = tipOf(y, v);
-  const tail = tip - s * len;
-  const head = Math.min(9, len * 0.55);
-  const neck = tip - s * head;
-  const d = `M${x - 2.6},${tail} L${x - 2.6},${neck} L${x - 7},${neck} L${x},${tip} L${x + 7},${neck} L${x + 2.6},${neck} L${x + 2.6},${tail} Z`;
-  return <Path d={d} fill="none" stroke={color} strokeWidth={1.7} strokeLinejoin="round" />;
+  return <HollowArrow from={[x, tip + (v > 0 ? len : -len)]} to={[x, tip]} color={color} weight="track" />;
 }
 
 /** The acceleration of ball A: two chevrons pointing down and a small "a". It is the same everywhere in the flight. */
@@ -281,18 +251,6 @@ function Trail({ fig, x, t }: { fig: ThrowFig; x: number; t: number }) {
   );
 }
 
-/** A mono label on a patch of drawing paper, so a dashed line behind it never runs through the text. */
-function Tag({ x, y, text, color, size = 9, anchor = 'start' }: { x: number; y: number; text: string; color: string; size?: number; anchor?: 'start' | 'middle' }) {
-  const { palette: p } = useTheme();
-  const w = text.length * size * 0.62 + 6;
-  const left = anchor === 'start' ? x - 3 : x - w / 2;
-  return (
-    <Group>
-      <Rect x={left} y={y - size + 1} width={w} height={size + 4} rx={2} fill={p.paper} />
-      <MonoLabel x={x} y={y} text={text} color={color} size={size} anchor={anchor} />
-    </Group>
-  );
-}
 
 /** Three answers to "which way is a at the top?": up chevrons, a = 0, down chevrons. Chosen = blue; after Check, the verdict colours. */
 function Candidates({ fig, tap }: { fig: ThrowFig; tap?: TapProps }) {
