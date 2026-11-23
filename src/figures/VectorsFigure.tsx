@@ -10,7 +10,7 @@ import type { VectorsFig } from '@/content/types';
 import { useTheme } from '@/theme/ThemeContext';
 import { stroke } from '@/theme/tokens';
 import { STILL, type DrawClock } from './anim';
-import { DrawnFade, ForceArrow, ForceLetter, MonoLabel } from './draw';
+import { DrawnFade, ForceArrow, ForceLetter, MonoLabel, useMonoSize } from './draw';
 import { Tag } from './kit';
 
 export const VECTORS_VB = { w: 340, h: 230 };
@@ -63,6 +63,7 @@ export function VectorsFigure({ fig, clock = STILL }: { fig: VectorsFig; clock?:
   const ys: number[] = [];
   for (let y = oy - Math.floor((oy - 4) / step) * step; y <= 226; y += step) ys.push(y);
 
+  const mono = useMonoSize(9);
   /** A label beside the segment from a to b, pushed away from (or towards) the middle of the drawing. */
   const beside = (a: [number, number], b: [number, number], away: boolean, text: string): [number, number] => {
     const [mx, my] = [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2];
@@ -70,9 +71,11 @@ export function VectorsFigure({ fig, clock = STILL }: { fig: VectorsFig; clock?:
     let [nx, ny] = [-(b[1] - a[1]) / len, (b[0] - a[0]) / len];
     const outward = (mx - cx) * nx + (my - cy) * ny > 0;
     if (outward !== away) [nx, ny] = [-nx, -ny];
-    // clear of the line: half the tag's width sideways, half its height up or down (a Tag is text × 5.4 + 8 wide, 13 high)
-    const gap = 8 + Math.abs(nx) * ((text.length * 5.4 + 8) / 2) + Math.abs(ny) * 7;
-    return [mx + nx * gap, my + ny * gap + 3];
+    // clear of the line: half the tag's width sideways, half its height up or down (as the Tag is drawn: it may have grown)
+    const gap = 8 + Math.abs(nx) * ((text.length * mono * 0.66 + 8) / 2) + Math.abs(ny) * (mono / 2 + 2);
+    // and never off the sheet
+    const half = (text.length * mono * 0.66 + 8) / 2;
+    return [Math.min(Math.max(mx + nx * gap, half + 2), VECTORS_VB.w - half - 2), my + ny * gap + 3];
   };
 
   const legs = fig.legs.map((leg, i) => ({ leg, a: screen[i], b: screen[i + 1] }));

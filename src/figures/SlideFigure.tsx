@@ -10,6 +10,7 @@ import { workDone } from '@/physics/work';
 import { fixed, sig } from '@/physics/format';
 import type { SlideFig } from '@/content/types';
 import { useTheme } from '@/theme/ThemeContext';
+import { stroke } from '@/theme/tokens';
 import { useReducedMotionPref } from '@/ui/parts';
 import { STILL, useLoopTime, useTween, type DrawClock } from './anim';
 import { ForceArrow, Hatch, MonoLabel } from './draw';
@@ -48,7 +49,7 @@ export function slideParams(fig: SlideFig, live?: number): string {
 type Props = { fig: SlideFig; live?: number; playing: boolean; clock?: DrawClock };
 
 export function SlideFigure({ fig, live, playing, clock = STILL }: Props) {
-  const { palette: p } = useTheme();
+  const { palette: p, material: m } = useTheme();
   const reduced = useReducedMotionPref();
   const n = slideNumbers(fig, live);
   const L = useTween(n.L, undefined, live !== undefined ? 160 : 420);
@@ -86,13 +87,13 @@ export function SlideFigure({ fig, live, playing, clock = STILL }: Props) {
         PEN.slide,
         <Group>
           {/* the ladder and the deck with its handrail */}
-          <Path d={`M${XT - 32},${GROUND} V${deckY - 22} M${XT - 12},${GROUND} V${deckY}`} stroke={p.draw} strokeWidth={1.8} fill="none" />
-          <Path d={rungs.join(' ')} stroke={p.draw} strokeWidth={1.4} fill="none" />
-          <Rect x={XT - 34} y={deckY} width={34} height={5} fill={p.drawFillDark} stroke={p.draw} strokeWidth={1.4} />
-          <Path d={`M${XT - 32},${deckY - 22} H${XT - 12} L${XT - 2},${deckY - 8}`} stroke={p.draw} strokeWidth={1.6} fill="none" strokeLinejoin="round" />
+          <Path d={`M${XT - 32},${GROUND} V${deckY - 22} M${XT - 12},${GROUND} V${deckY}`} stroke={p.draw} strokeWidth={stroke.body} fill="none" />
+          <Path d={rungs.join(' ')} stroke={p.draw} strokeWidth={stroke.thin} fill="none" />
+          <Rect x={XT - 34} y={deckY} width={34} height={5} fill={m.metalSide} stroke={p.draw} strokeWidth={stroke.thin} />
+          <Path d={`M${XT - 32},${deckY - 22} H${XT - 12} L${XT - 2},${deckY - 8}`} stroke={p.draw} strokeWidth={stroke.body} fill="none" strokeLinejoin="round" />
           {/* the chute: a surface with a side wall, a post under its middle, a short run-out at the foot */}
-          <Path d={`M${top[0]},${top[1]} L${foot[0]},${foot[1]} L${foot[0] + 16},${foot[1]} L${foot[0] + 16},${foot[1] + 5} L${foot[0]},${foot[1] + 5} L${top[0]},${top[1] + 6} Z`} fill={p.drawFill} stroke={p.draw} strokeWidth={1.6} strokeLinejoin="round" />
-          <Line x1={mid[0]} y1={mid[1] + 5} x2={mid[0]} y2={GROUND} stroke={p.draw} strokeWidth={1.8} />
+          <Path d={`M${top[0]},${top[1]} L${foot[0]},${foot[1]} L${foot[0] + 16},${foot[1]} L${foot[0] + 16},${foot[1] + 5} L${foot[0]},${foot[1] + 5} L${top[0]},${top[1] + 6} Z`} fill={m.metal} stroke={p.draw} strokeWidth={stroke.body} strokeLinejoin="round" />
+          <Line x1={mid[0]} y1={mid[1] + 5} x2={mid[0]} y2={GROUND} stroke={p.draw} strokeWidth={stroke.body} />
         </Group>,
       )}
 
@@ -136,18 +137,12 @@ export function SlideFigure({ fig, live, playing, clock = STILL }: Props) {
 /** The friction force's size in the force colour, on a patch of paper so the chute and the post never run through it. */
 function FrictionTag({ at, text }: { at: Pt; text: string }) {
   const { palette: p } = useTheme();
-  const w = text.length * 5.4 + 8;
-  return (
-    <Group>
-      <Rect x={at[0] - w / 2} y={at[1] - 9} width={w} height={13} rx={2} fill={p.paper} />
-      <MonoLabel x={at[0]} y={at[1]} text={text} color={p.forceText} size={9} />
-    </Group>
-  );
+  return <Tag x={at[0]} y={at[1]} text={text} color={p.forceText} />;
 }
 
 /** TOP: the GPE given up. BOTTOM: the kinetic energy at the foot and, once shown, the energy friction took. */
 function Bars({ n, heat }: { n: ReturnType<typeof slideNumbers>; heat: SlideFig['heat'] }) {
-  const { palette: p } = useTheme();
+  const { palette: p, material: m } = useTheme();
   const k = BAR.w / n.ep;
   const wEk = useTween(n.ek * k, undefined, 160);
   const wHeat = n.ep * k - wEk;
@@ -160,15 +155,15 @@ function Bars({ n, heat }: { n: ReturnType<typeof slideNumbers>; heat: SlideFig[
     <Group>
       <MonoLabel x={BAR.x - 6} y={BAR.y1 + BAR.h / 2 + 3} text="TOP" color={p.label} size={8.5} anchor="end" />
       <MonoLabel x={BAR.x - 6} y={BAR.y2 + BAR.h / 2 + 3} text="FOOT" color={p.label} size={8.5} anchor="end" />
-      <Rect x={BAR.x} y={BAR.y1} width={BAR.w} height={BAR.h} fill={p.drawFillDark} stroke={p.draw} strokeWidth={1.3} />
+      <Rect x={BAR.x} y={BAR.y1} width={BAR.w} height={BAR.h} fill={p.drawFillDark} stroke={p.draw} strokeWidth={stroke.thin} />
       {inside(BAR.x, BAR.w, BAR.y1, `Ep lost ${sig(n.ep)} J`, p.ink)}
-      {wEk > 0.5 && <Rect x={BAR.x} y={BAR.y2} width={wEk} height={BAR.h} fill={p.paper} stroke={p.draw} strokeWidth={1.3} />}
+      {wEk > 0.5 && <Rect x={BAR.x} y={BAR.y2} width={wEk} height={BAR.h} fill={p.paper} stroke={p.draw} strokeWidth={stroke.thin} />}
       {inside(BAR.x, wEk, BAR.y2, `Ek ${sig(n.ek)} J`, p.ink)}
       {showHeat && wHeat > 0.5 && (
         <Group>
           <Rect x={BAR.x + wEk} y={BAR.y2} width={wHeat} height={BAR.h} fill={p.drawFill} />
-          <Path d={hatch.join(' ')} stroke={p.draw} strokeWidth={0.8} opacity={0.35} />
-          <Rect x={BAR.x + wEk} y={BAR.y2} width={wHeat} height={BAR.h} fill="none" stroke={p.draw} strokeWidth={1.3} />
+          <Path d={hatch.join(' ')} stroke={p.draw} strokeWidth={stroke.hair} opacity={0.35} />
+          <Rect x={BAR.x + wEk} y={BAR.y2} width={wHeat} height={BAR.h} fill="none" stroke={p.draw} strokeWidth={stroke.thin} />
           {wHeat >= 92 ? (
             <Group>
               <Rect x={BAR.x + wEk + wHeat / 2 - 44} y={BAR.y2 + 2} width={88} height={BAR.h - 4} rx={2} fill={p.drawFill} />
@@ -183,7 +178,7 @@ function Bars({ n, heat }: { n: ReturnType<typeof slideNumbers>; heat: SlideFig[
 
 /** A child sitting on the chute, legs out along it, back upright: outlined strokes in the quiet people colours. */
 function Child({ at, u }: { at: Pt; u: Pt }) {
-  const { palette: p } = useTheme();
+  const { palette: p, material: m } = useTheme();
   const nrm: Pt = [u[1], -u[0]];
   const hip: Pt = [at[0] + nrm[0] * 5, at[1] + nrm[1] * 5];
   const knee: Pt = [hip[0] + u[0] * 12 + nrm[0] * 3, hip[1] + u[1] * 12 + nrm[1] * 3];
@@ -202,13 +197,13 @@ function Child({ at, u }: { at: Pt; u: Pt }) {
   };
   return (
     <Group>
-      {limb([hip, knee, ankle], p.trousers, 5.5)}
+      {limb([hip, knee, ankle], m.trousers, 5.5)}
       <Circle cx={ankle[0] + u[0] * 2} cy={ankle[1] + u[1] * 2} r={3.4} fill={p.shoe} />
-      {limb([hip, shoulder], p.shirt, 9)}
-      {limb([[shoulder[0] + 1, shoulder[1] + 2], hand], p.shirt, 3.6)}
-      <Circle cx={hand[0]} cy={hand[1]} r={2.4} fill={p.skin} stroke={p.draw} strokeWidth={1.2} />
-      <Circle cx={head[0]} cy={head[1]} r={6.5} fill={p.skin} stroke={p.draw} strokeWidth={1.5} />
-      <Path d={`M${head[0] - 6.4},${head[1] - 1} A6.5,6.5 0 0 1 ${head[0] + 6.4},${head[1] - 1} Q${head[0] + 2},${head[1] - 4} ${head[0] - 6.4},${head[1] - 1} Z`} fill={p.hair} stroke={p.draw} strokeWidth={1.2} />
+      {limb([hip, shoulder], m.clothA, 9)}
+      {limb([[shoulder[0] + 1, shoulder[1] + 2], hand], m.clothA, 3.6)}
+      <Circle cx={hand[0]} cy={hand[1]} r={2.4} fill={m.skinA} stroke={p.draw} strokeWidth={stroke.thin} />
+      <Circle cx={head[0]} cy={head[1]} r={6.5} fill={m.skinA} stroke={p.draw} strokeWidth={stroke.body} />
+      <Path d={`M${head[0] - 6.4},${head[1] - 1} A6.5,6.5 0 0 1 ${head[0] + 6.4},${head[1] - 1} Q${head[0] + 2},${head[1] - 4} ${head[0] - 6.4},${head[1] - 1} Z`} fill={m.hairA} stroke={p.draw} strokeWidth={stroke.thin} />
     </Group>
   );
 }

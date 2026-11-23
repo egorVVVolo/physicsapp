@@ -10,7 +10,7 @@ import type { ResolveFig } from '@/content/types';
 import { useTheme } from '@/theme/ThemeContext';
 import { stroke } from '@/theme/tokens';
 import { STILL, type DrawClock } from './anim';
-import { ForceArrow, MonoLabel } from './draw';
+import { ForceArrow, MonoLabel, useMonoSize } from './draw';
 import { HollowArrow, stage, Tag } from './kit';
 
 export const RESOLVE_VB = { w: 340, h: 230 };
@@ -38,7 +38,8 @@ export function ResolveFigure({ fig, clock = STILL }: { fig: ResolveFig; clock?:
   const value = fig.ask === 'x' ? parts.x : parts.y;
   const askText = fig.answer === 'shown' ? `${fixed(value, 1)} ${fig.unit}` : '?';
   const name = `${fig.name} ${fixed(fig.size, 0)} ${fig.unit}`;
-  const w = (text: string) => text.length * 5.4 + 8;
+  const mono = useMonoSize(9); // labels may have grown: widths are measured at the size they are drawn
+  const w = (text: string) => text.length * mono * 0.66 + 8;
   // the vector's label sits just above its tip, outside the rectangle
   const nameAt: [number, number] = [tip[0], tip[1] - 10];
   // the angle arc, from the reference line round to the vector

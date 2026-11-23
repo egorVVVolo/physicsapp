@@ -89,6 +89,8 @@ const STYLE_2 = new Set<Fig['kind']>([
   'ladder', 'particle', 'pulley', 'liftPair', 'scales', 'pairs', 'vt', 'fall',
   // Momentum and moments (C5)
   'wall', 'bodies', 'spanner', 'pole', 'bar', 'beam', 'broom',
+  // Energy (C6)
+  'platform', 'ramp', 'kinetic', 'height', 'cliff', 'slide', 'ride', 'winch',
 ]);
 
 /** Every figure is drawn at the same size on every screen, so the drawing never jumps between screens. */

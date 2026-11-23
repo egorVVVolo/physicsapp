@@ -10,7 +10,7 @@ import type { WallFig } from '@/content/types';
 import { useTheme } from '@/theme/ThemeContext';
 import { stroke } from '@/theme/tokens';
 import { STILL, useLoopTime, useTween, type DrawClock } from './anim';
-import { ForceArrow, ForceLetter, MonoLabel } from './draw';
+import { ForceArrow, ForceLetter, MonoLabel, useMonoSize } from './draw';
 import { HollowArrow, stage, TROLLEY, Trolley } from './kit';
 
 export const WALL_VB = { w: 340, h: 230 };
@@ -140,7 +140,8 @@ function Arrowed({ x, y, len, text, hollow, dashed }: { x: number; y: number; le
   const { palette: p, material: m } = useTheme();
   const lo = Math.min(x, x + len);
   const hi = Math.max(x, x + len);
-  const w = text.length * 5.4;
+  const mono = useMonoSize(9); // labels may have grown: widths are measured at the size they are drawn
+  const w = text.length * mono * 0.66;
   const left = lo - 6 - w >= 4;
   return (
     <Group>

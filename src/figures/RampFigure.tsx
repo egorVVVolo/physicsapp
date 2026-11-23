@@ -8,6 +8,7 @@ import { liftWork, rampPush, workDone } from '@/physics/work';
 import { fixed, sig } from '@/physics/format';
 import type { RampFig } from '@/content/types';
 import { useTheme } from '@/theme/ThemeContext';
+import { stroke } from '@/theme/tokens';
 import { STILL, useTween, type DrawClock } from './anim';
 import { ForceArrow, Hatch, MonoLabel } from './draw';
 import { Mitten } from './SledgeFigure';
@@ -38,7 +39,7 @@ export function rampParams(fig: RampFig, live?: number): string {
 }
 
 export function RampFigure({ fig, live, clock = STILL }: { fig: RampFig; live?: number; clock?: DrawClock }) {
-  const { palette: p } = useTheme();
+  const { palette: p, material: m } = useTheme();
   const r = rampNumbers(fig, live);
   const L = useTween(r.L, undefined, live !== undefined ? 160 : 420);
   const floorY = GROUND - fig.h * K;
@@ -64,11 +65,11 @@ export function RampFigure({ fig, live, clock = STILL }: { fig: RampFig; live?: 
         PEN.van,
         <Group>
           {/* the back of a van: its floor, the open body above it, a wheel */}
-          <Rect x={VX} y={floorY} width={340 - VX} height={SLAB} fill={p.drawFillDark} stroke={p.draw} strokeWidth={1.6} />
-          <Path d={`M${VX + 4},${floorY} V${floorY - 82} H340 M${VX + 4},${floorY - 82} V${floorY - 88} H340`} fill="none" stroke={p.draw} strokeWidth={1.8} />
+          <Rect x={VX} y={floorY} width={340 - VX} height={SLAB} fill={m.metalSide} stroke={p.draw} strokeWidth={stroke.body} />
+          <Path d={`M${VX + 4},${floorY} V${floorY - 82} H340 M${VX + 4},${floorY - 82} V${floorY - 88} H340`} fill="none" stroke={p.draw} strokeWidth={stroke.body} />
           <Rect x={VX + 4} y={floorY - 82} width={340 - VX - 4} height={82} fill={p.drawFill} opacity={0.5} />
-          <Circle cx={VX + 30} cy={GROUND - 12} r={12} fill={p.shoe} stroke={p.draw} strokeWidth={1.6} />
-          <Circle cx={VX + 30} cy={GROUND - 12} r={4.5} fill={p.drawFill} stroke={p.draw} strokeWidth={1.2} />
+          <Circle cx={VX + 30} cy={GROUND - 12} r={12} fill={p.shoe} stroke={p.draw} strokeWidth={stroke.body} />
+          <Circle cx={VX + 30} cy={GROUND - 12} r={4.5} fill={m.rubber} stroke={p.draw} strokeWidth={stroke.thin} />
           <MonoLabel x={VX + 16} y={floorY - 64} text="VAN" color={p.label} size={9} anchor="start" />
         </Group>,
       )}
@@ -76,12 +77,12 @@ export function RampFigure({ fig, live, clock = STILL }: { fig: RampFig; live?: 
       {stage(clock, 
         PEN.ramp,
         <Group>
-          <Line x1={foot[0]} y1={foot[1]} x2={top[0]} y2={top[1]} stroke={p.draw} strokeWidth={3} strokeLinecap="round" />
+          <Line x1={foot[0]} y1={foot[1]} x2={top[0]} y2={top[1]} stroke={p.draw} strokeWidth={stroke.force} strokeLinecap="round" />
           {/* the washing machine, square on the ramp */}
           <Group transform={`rotate(${angle} ${cg[0]} ${cg[1]})`}>
-            <Rect x={cg[0] - MACHINE / 2} y={cg[1] - MACHINE / 2} width={MACHINE} height={MACHINE} rx={2.5} fill={p.page} stroke={p.draw} strokeWidth={1.8} />
-            <Circle cx={cg[0]} cy={cg[1] + 2} r={8} fill={p.drawFill} stroke={p.draw} strokeWidth={1.4} />
-            <Path d={`M${cg[0] - MACHINE / 2},${cg[1] - 8} H${cg[0] + MACHINE / 2}`} stroke={p.draw} strokeWidth={1} opacity={0.6} />
+            <Rect x={cg[0] - MACHINE / 2} y={cg[1] - MACHINE / 2} width={MACHINE} height={MACHINE} rx={2.5} fill={p.page} stroke={p.draw} strokeWidth={stroke.body} />
+            <Circle cx={cg[0]} cy={cg[1] + 2} r={8} fill={m.metal} stroke={p.draw} strokeWidth={stroke.thin} />
+            <Path d={`M${cg[0] - MACHINE / 2},${cg[1] - 8} H${cg[0] + MACHINE / 2}`} stroke={p.draw} strokeWidth={stroke.thin} opacity={0.6} />
           </Group>
           <Mitten x={back[0]} y={back[1]} dx={-u[0] * 0.7 + nrm[0] * 0.7} dy={-u[1] * 0.7 + nrm[1] * 0.7} />
           <MonoLabel x={back[0] - 22} y={back[1] - 18} text="MOVERS" color={p.label} size={9} anchor="end" />

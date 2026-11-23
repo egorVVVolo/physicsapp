@@ -10,6 +10,7 @@ import { kineticEnergy, potentialChange, speedAfterDrop } from '@/physics/energy
 import { fixed, sig } from '@/physics/format';
 import type { CliffFig } from '@/content/types';
 import { useTheme } from '@/theme/ThemeContext';
+import { stroke } from '@/theme/tokens';
 import { useReducedMotionPref } from '@/ui/parts';
 import { STILL, useLoopTime, type DrawClock } from './anim';
 import { DrawnFade, DrawnPath, FILLS, MonoLabel } from './draw';
@@ -51,7 +52,7 @@ export function cliffParams(fig: CliffFig, live?: number): string {
 type Props = { fig: CliffFig; live?: number; playing: boolean; clock?: DrawClock };
 
 export function CliffFigure({ fig, live, playing, clock = STILL }: Props) {
-  const { palette: p } = useTheme();
+  const { palette: p, material: m } = useTheme();
   const reduced = useReducedMotionPref();
   const plays = cliffPlays(fig) && live === undefined;
   const length = Math.max(...fig.stones.map((s) => flightTime(launchOf(fig, s.angle))));
@@ -76,12 +77,12 @@ export function CliffFigure({ fig, live, playing, clock = STILL }: Props) {
       {/* the cliff and the sea */}
       <DrawnFade clock={clock} from={PEN.cliff[0]} to={PEN.cliff[1]}>
         <Path d={`${face} L6,${SEA} Z`} fill={p.drawFill} />
-        <Path d={`M8,${T + 30} L${EDGE - 4},${T + 36} M8,${T + 70} L${EDGE - 9},${T + 64} M8,${T + 104} L${EDGE - 12},${T + 110}`} stroke={p.draw} strokeWidth={0.8} opacity={0.3} fill="none" />
-        <Path d={face} stroke={p.draw} strokeWidth={1.6} fill="none" strokeLinejoin="round" />
-        <Path d={waves.join(' ')} stroke={p.draw} strokeWidth={1.3} fill="none" />
-        <Path d={ripples.join(' ')} stroke={p.draw} strokeWidth={0.9} fill="none" opacity={0.35} />
+        <Path d={`M8,${T + 30} L${EDGE - 4},${T + 36} M8,${T + 70} L${EDGE - 9},${T + 64} M8,${T + 104} L${EDGE - 12},${T + 110}`} stroke={p.draw} strokeWidth={stroke.hair} opacity={0.3} fill="none" />
+        <Path d={face} stroke={p.draw} strokeWidth={stroke.body} fill="none" strokeLinejoin="round" />
+        <Path d={waves.join(' ')} stroke={p.draw} strokeWidth={stroke.thin} fill="none" />
+        <Path d={ripples.join(' ')} stroke={p.draw} strokeWidth={stroke.hair} fill="none" opacity={0.35} />
         {/* the height of the cliff */}
-        <Path d={`M16,${T + 4} V${SEA - 4} M12,${T + 4} H20 M12,${SEA - 4} H20`} stroke={p.label} strokeWidth={1.1} fill="none" />
+        <Path d={`M16,${T + 4} V${SEA - 4} M12,${T + 4} H20 M12,${SEA - 4} H20`} stroke={p.label} strokeWidth={stroke.thin} fill="none" />
         <Rect x={9} y={(T + SEA) / 2 - 8} width={34} height={13} rx={2} fill={p.drawFill} />
         <MonoLabel x={26} y={(T + SEA) / 2 + 2} text={`${fig.h} m`} color={p.ink} size={9} />
       </DrawnFade>
@@ -93,7 +94,7 @@ export function CliffFigure({ fig, live, playing, clock = STILL }: Props) {
         if (until <= 0 || (fig.u === 0 && !plays && fig.landing === undefined)) return null;
         const { d, len } = pathOf(fig, l, until);
         const faint = followed && s.id !== followed.id;
-        return <DrawnPath key={`p${s.id}`} clock={clock} len={len} from={PEN.path[0]} to={PEN.path[1]} d={d} fill="none" stroke={p.label} strokeWidth={1.2} strokeDasharray="4 4" opacity={faint ? 0.4 : 1} />;
+        return <DrawnPath key={`p${s.id}`} clock={clock} len={len} from={PEN.path[0]} to={PEN.path[1]} d={d} fill="none" stroke={p.label} strokeWidth={stroke.thin} strokeDasharray="4 4" opacity={faint ? 0.4 : 1} />;
       })}
 
       {/* the throw: the same speed every way */}
@@ -125,11 +126,12 @@ export function CliffFigure({ fig, live, playing, clock = STILL }: Props) {
         return (
           <DrawnFade key={`s${s.id}`} clock={clock} from={FILLS[0]} to={FILLS[1]}>
             {landed ? (
-              <Path d={`M${x - 9},${SEA - 2} q4,-7 6,-11 M${x + 9},${SEA - 2} q-4,-7 -6,-11 M${x},${SEA - 4} v-12`} stroke={p.draw} strokeWidth={1.3} fill="none" strokeLinecap="round" />
+              <Path d={`M${x - 9},${SEA - 2} q4,-7 6,-11 M${x + 9},${SEA - 2} q-4,-7 -6,-11 M${x},${SEA - 4} v-12`} stroke={p.draw} strokeWidth={stroke.thin} fill="none" strokeLinecap="round" />
             ) : (
               <Group>
-                <Circle cx={x} cy={y} r={R} fill={p.drawFillDark} stroke={p.draw} strokeWidth={1.4} />
-                {plays && fig.stones.length > 1 && <MonoLabel x={x} y={y - 8} text={s.id} color={p.label} size={8} />}
+                <Circle cx={x} cy={y} r={R} fill={p.drawFillDark} stroke={p.draw} strokeWidth={stroke.thin} />
+                {/* the letters wait until the stones have parted: at the throw all three are in one place */}
+                {plays && fig.stones.length > 1 && t > 0.25 && <MonoLabel x={x} y={y - 8} text={s.id} color={p.label} size={8} />}
               </Group>
             )}
           </DrawnFade>
@@ -160,7 +162,7 @@ function pathOf(fig: CliffFig, l: Launch, until: number): { d: string; len: numb
 
 /** At the sea: once shown, every stone's velocity just before it lands, to the throws' scale; the speeds, "?" until answered. */
 function SpeedTable({ fig, shown }: { fig: CliffFig; shown: boolean }) {
-  const { palette: p } = useTheme();
+  const { palette: p, material: m } = useTheme();
   const x = 246;
   const v = speedAfterDrop(fig.u, fig.h);
   const many = fig.stones.length > 1;
@@ -190,7 +192,7 @@ function SpeedTable({ fig, shown }: { fig: CliffFig; shown: boolean }) {
 
 /** The followed stone's velocity, and its energy column: GPE above the sea, kinetic energy stacked on it. */
 function Followed({ fig, angle, t }: { fig: CliffFig; angle: number; t: number }) {
-  const { palette: p } = useTheme();
+  const { palette: p, material: m } = useTheme();
   const l = launchOf(fig, angle);
   const tt = Math.min(t, flightTime(l));
   const pos = projectilePosition(tt, l);
@@ -205,17 +207,17 @@ function Followed({ fig, angle, t }: { fig: CliffFig; angle: number; t: number }
   // the labels sit by the middle of their parts, never closer than one line apart
   const yEp = SEA - hEp / 2 + 3;
   const yEk = Math.min(SEA - hEp - hEk / 2 + 3, yEp - 13);
-  const lx = COL.x + COL.w + 6;
+  const lx = COL.x - 6; // the labels go left of the column: on its right they would run off the sheet
   return (
     <Group>
       <HollowArrow from={[x, y]} to={[x + vel.vx * KV, y - vel.vy * KV]} color={p.draw} weight="thin" />
-      <Circle cx={x} cy={y} r={R} fill={p.drawFillDark} stroke={p.draw} strokeWidth={1.4} />
-      <Rect x={COL.x} y={SEA - hEp} width={COL.w} height={hEp} fill={p.drawFillDark} stroke={p.draw} strokeWidth={1.4} />
-      <Rect x={COL.x} y={SEA - hEp - hEk} width={COL.w} height={hEk} fill={p.paper} stroke={p.draw} strokeWidth={1.4} />
-      <Line x1={COL.x - 6} y1={yTotal} x2={COL.x + COL.w + 6} y2={yTotal} stroke={p.lineStrong} strokeWidth={1} strokeDasharray="3 3" />
+      <Circle cx={x} cy={y} r={R} fill={p.drawFillDark} stroke={p.draw} strokeWidth={stroke.thin} />
+      <Rect x={COL.x} y={SEA - hEp} width={COL.w} height={hEp} fill={p.drawFillDark} stroke={p.draw} strokeWidth={stroke.thin} />
+      <Rect x={COL.x} y={SEA - hEp - hEk} width={COL.w} height={hEk} fill={p.paper} stroke={p.draw} strokeWidth={stroke.thin} />
+      <Line x1={COL.x - 6} y1={yTotal} x2={COL.x + COL.w + 6} y2={yTotal} stroke={p.lineStrong} strokeWidth={stroke.thin} strokeDasharray="3 3" />
       <MonoLabel x={COL.x + COL.w / 2} y={yTotal - 7} text={`total ${sig(total)} J`} color={p.ink} size={9} />
-      {hEp > 1 && <MonoLabel x={lx} y={yEp} text={`Ep ${sig(ep)} J`} color={p.label} size={8.5} anchor="start" />}
-      <MonoLabel x={lx} y={yEk} text={`Ek ${sig(ek)} J`} color={p.label} size={8.5} anchor="start" />
+      {hEp > 1 && <MonoLabel x={lx} y={yEp} text={`Ep ${sig(ep)} J`} color={p.label} size={8.5} anchor="end" />}
+      <MonoLabel x={lx} y={yEk} text={`Ek ${sig(ek)} J`} color={p.label} size={8.5} anchor="end" />
     </Group>
   );
 }

@@ -12,6 +12,7 @@ import { powerFromForce } from '@/physics/power';
 import { fixed, sig } from '@/physics/format';
 import type { RideFig } from '@/content/types';
 import { useTheme } from '@/theme/ThemeContext';
+import { stroke } from '@/theme/tokens';
 import { useReducedMotionPref } from '@/ui/parts';
 import { STILL, useTween, type DrawClock } from './anim';
 import { DrawnFade, ForceArrow, MonoLabel } from './draw';
@@ -110,7 +111,7 @@ type LaneProps = {
 
 /** One road with one rider: the air and the road stream past, the forces, and the speed and power written in. */
 function Lane({ fig, v, scroll, lane, clock, stage, compact }: LaneProps) {
-  const { palette: p } = useTheme();
+  const { palette: p, material: m } = useTheme();
   const { ground: GY, scale: S, cx: CX } = lane;
   const D = dragForce(fig.k, v);
   const P = powerFromForce(D, v);
@@ -146,11 +147,11 @@ function Lane({ fig, v, scroll, lane, clock, stage, compact }: LaneProps) {
       {stage(
         PEN.road,
         <Group>
-          <Path d={air.join(' ')} stroke={p.paperLine} strokeWidth={1.4} strokeLinecap="round" />
+          <Path d={air.join(' ')} stroke={p.paperLine} strokeWidth={stroke.thin} strokeLinecap="round" />
           <Line x1={6} y1={GY} x2={334} y2={GY} stroke={p.draw} strokeWidth={compact ? 1.6 : 2} />
-          <Path d={ticks.join(' ')} stroke={p.draw} strokeWidth={1} opacity={0.55} />
+          <Path d={ticks.join(' ')} stroke={p.draw} strokeWidth={stroke.thin} opacity={0.55} />
           {posts.map((x) => (
-            <Path key={x} d={`M${x},${GY} V${GY - 16} M${x - 3},${GY - 16} H${x + 3}`} stroke={p.label} strokeWidth={1.5} />
+            <Path key={x} d={`M${x},${GY} V${GY - 16} M${x - 3},${GY - 16} H${x + 3}`} stroke={p.label} strokeWidth={stroke.body} />
           ))}
         </Group>,
       )}
@@ -175,7 +176,7 @@ function Lane({ fig, v, scroll, lane, clock, stage, compact }: LaneProps) {
           <ForceText x={rear[0] + Math.max(dLen, 18) / 2} y={GY + (compact ? 18 : 20)} text={`F = ${fixed(D, 1)} N`} />
           {pair !== undefined && (
             <Group>
-              <Path d={`M${pair},${GY + 10} V${GY + 38} M${pair + gap},${GY + 10} V${GY + 38}`} stroke={p.label} strokeWidth={0.8} strokeDasharray="2 2" />
+              <Path d={`M${pair},${GY + 10} V${GY + 38} M${pair + gap},${GY + 10} V${GY + 38}`} stroke={p.label} strokeWidth={stroke.hair} strokeDasharray="2 2" />
               <Dim a={[pair, GY + 34]} b={[pair + gap, GY + 34]} text={`${speedText(v)} m`} fit="below" />
             </Group>
           )}
@@ -202,17 +203,10 @@ function Lane({ fig, v, scroll, lane, clock, stage, compact }: LaneProps) {
   );
 }
 
-/** A force's size in the force colour, on a patch of paper so the air and the road never run through it. */
+/** A force's size on a patch of paper, in the force's text colour. */
 function ForceText({ x, y, text, anchor = 'middle' }: { x: number; y: number; text: string; anchor?: 'middle' | 'end' }) {
   const { palette: p } = useTheme();
-  const w = text.length * 5.4 + 8;
-  const left = anchor === 'end' ? x - w + 4 : x - w / 2;
-  return (
-    <Group>
-      <Rect x={left} y={y - 9} width={w} height={13} rx={2} fill={p.paper} />
-      <MonoLabel x={x} y={y} text={text} color={p.forceText} size={9} anchor={anchor} />
-    </Group>
-  );
+  return <Tag x={x} y={y} text={text} color={p.forceText} anchor={anchor} />;
 }
 
 /** Where the knee goes for a hip, a foot and two leg bones of length l: in front of the line from hip to foot. */
@@ -233,7 +227,7 @@ function knee(hip: Pt, foot: Pt, l: number): Pt {
  * `roll`: how far the wheels have turned (rad); the cranks turn GEAR times slower.
  */
 function Cyclist({ roll, clock }: { roll: number; clock: DrawClock }) {
-  const { palette: p } = useTheme();
+  const { palette: p, material: m } = useTheme();
   const crank = roll / GEAR;
   const BB: Pt = [-4, -13];
   const pedal = (k: number): Pt => [BB[0] + 6.5 * Math.cos(crank + k * Math.PI), BB[1] + 6.5 * Math.sin(crank + k * Math.PI)];
@@ -253,7 +247,7 @@ function Cyclist({ roll, clock }: { roll: number; clock: DrawClock }) {
     return (
       <Group>
         {limb([hip, knee(hip, f, LEG), f], color, 5.2)}
-        <Path d={`M${f[0] - 2.5},${f[1] + 0.5} H${f[0] + 4.5}`} stroke={p.shoe} strokeWidth={3.2} strokeLinecap="round" />
+        <Path d={`M${f[0] - 2.5},${f[1] + 0.5} H${f[0] + 4.5}`} stroke={p.shoe} strokeWidth={stroke.force} strokeLinecap="round" />
       </Group>
     );
   };
@@ -265,8 +259,8 @@ function Cyclist({ roll, clock }: { roll: number; clock: DrawClock }) {
     }
     return (
       <Group key={x}>
-        <Circle cx={x} cy={-R} r={R} fill="none" stroke={p.draw} strokeWidth={2.6} />
-        <Path d={spokes.join(' ')} stroke={p.draw} strokeWidth={0.8} opacity={0.6} />
+        <Circle cx={x} cy={-R} r={R} fill="none" stroke={p.draw} strokeWidth={stroke.force} />
+        <Path d={spokes.join(' ')} stroke={p.draw} strokeWidth={stroke.hair} opacity={0.6} />
         <Circle cx={x} cy={-R} r={1.8} fill={p.draw} />
       </Group>
     );
@@ -275,26 +269,26 @@ function Cyclist({ roll, clock }: { roll: number; clock: DrawClock }) {
     <Group>
       <DrawnFade clock={clock} from={PEN.rider[0]} to={PEN.rider[1]}>
         {/* the far leg, behind the bike */}
-        <Group opacity={0.75}>{leg(1, p.drawFillDark)}</Group>
+        <Group opacity={0.75}>{leg(1, m.trousers)}</Group>
       </DrawnFade>
       <DrawnFade clock={clock} from={PEN.bike[0]} to={PEN.bike[1]}>
         {wheel(-27)}
         {wheel(27)}
         {/* the frame: chain stay, seat tube, seat stay, top tube, down tube, fork */}
-        <Path d="M-27,-15 L-4,-13 L-11,-38 Z M-11,-38 L19,-37 L21,-31 L-4,-13 M21,-31 L27,-15" fill="none" stroke={p.draw} strokeWidth={2} strokeLinejoin="round" />
-        <Path d="M-17,-41 H-7" stroke={p.draw} strokeWidth={3} strokeLinecap="round" />
-        <Path d="M-11,-38 L-12,-41 M19,-37 L21,-42 H25 Q29,-42 27,-37" fill="none" stroke={p.draw} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
-        <Circle cx={BB[0]} cy={BB[1]} r={3.2} fill={p.drawFill} stroke={p.draw} strokeWidth={1.4} />
-        <Line x1={pedal(0)[0]} y1={pedal(0)[1]} x2={pedal(1)[0]} y2={pedal(1)[1]} stroke={p.draw} strokeWidth={1.8} />
+        <Path d="M-27,-15 L-4,-13 L-11,-38 Z M-11,-38 L19,-37 L21,-31 L-4,-13 M21,-31 L27,-15" fill="none" stroke={p.draw} strokeWidth={stroke.body} strokeLinejoin="round" />
+        <Path d="M-17,-41 H-7" stroke={p.draw} strokeWidth={stroke.force} strokeLinecap="round" />
+        <Path d="M-11,-38 L-12,-41 M19,-37 L21,-42 H25 Q29,-42 27,-37" fill="none" stroke={p.draw} strokeWidth={stroke.body} strokeLinecap="round" strokeLinejoin="round" />
+        <Circle cx={BB[0]} cy={BB[1]} r={3.2} fill={m.metal} stroke={p.draw} strokeWidth={stroke.thin} />
+        <Line x1={pedal(0)[0]} y1={pedal(0)[1]} x2={pedal(1)[0]} y2={pedal(1)[1]} stroke={p.draw} strokeWidth={stroke.body} />
       </DrawnFade>
       <DrawnFade clock={clock} from={PEN.rider[0]} to={PEN.rider[1]}>
-        {limb([hip, shoulder], p.shirt, 9)}
-        {leg(0, p.trousers)}
-        {limb([[shoulder[0] + 1, shoulder[1] + 2], [20, -52], [25, -42]], p.shirt, 3.6)}
-        <Circle cx={25} cy={-42} r={2.3} fill={p.skin} stroke={p.draw} strokeWidth={1.1} />
-        <Circle cx={head[0]} cy={head[1]} r={6.5} fill={p.skin} stroke={p.draw} strokeWidth={1.5} />
+        {limb([hip, shoulder], m.clothA, 9)}
+        {leg(0, m.trousers)}
+        {limb([[shoulder[0] + 1, shoulder[1] + 2], [20, -52], [25, -42]], m.clothA, 3.6)}
+        <Circle cx={25} cy={-42} r={2.3} fill={m.skinA} stroke={p.draw} strokeWidth={stroke.thin} />
+        <Circle cx={head[0]} cy={head[1]} r={6.5} fill={m.skinA} stroke={p.draw} strokeWidth={stroke.body} />
         {/* the helmet */}
-        <Path d={`M${head[0] - 7.5},${head[1] - 0.5} A7.5,7.5 0 0 1 ${head[0] + 7},${head[1] - 2.5} L${head[0] - 7.5},${head[1] - 0.5} Z`} fill={p.drawFillDark} stroke={p.draw} strokeWidth={1.3} strokeLinejoin="round" />
+        <Path d={`M${head[0] - 7.5},${head[1] - 0.5} A7.5,7.5 0 0 1 ${head[0] + 7},${head[1] - 2.5} L${head[0] - 7.5},${head[1] - 0.5} Z`} fill={m.clothB} stroke={p.draw} strokeWidth={stroke.thin} strokeLinejoin="round" />
       </DrawnFade>
     </Group>
   );

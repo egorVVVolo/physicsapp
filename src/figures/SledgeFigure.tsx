@@ -14,7 +14,7 @@ import { SLEDGE_IDS, type HillFig, type PartLabel, type SledgeFig } from '@/cont
 import { useTheme } from '@/theme/ThemeContext';
 import { stroke } from '@/theme/tokens';
 import { STILL, type DrawClock } from './anim';
-import { CgMark, ForceArrow, Hatch, MonoLabel } from './draw';
+import { CgMark, ForceArrow, Hatch, MonoLabel, useMonoSize } from './draw';
 import type { TapProps, TapTarget } from './Sheet';
 import { stage, Tag, TapBoxes } from './kit';
 
@@ -115,7 +115,8 @@ export function SledgeFigure({ fig, live, tap, clock = STILL }: Props) {
   const n: [number, number] = [-Math.sin(angle * RAD), -Math.cos(angle * RAD)];
   const pullW = (pullText?.length ?? 0) * 5.4 + 8;
   const pullAt: [number, number] = [tip[0] - 6 - pullW / 2, tip[1] - 9];
-  const w = (text: string) => text.length * 5.4 + 8;
+  const mono = useMonoSize(9); // labels may have grown: widths are measured at the size they are drawn
+  const w = (text: string) => text.length * mono * 0.66 + 8;
   const showArc = split !== 'chain' && angle > 4;
   const arcR = fig.who === 'A' ? 26 : 20;
   const arc = `M${hitch[0] + arcR},${hitch[1]} A${arcR},${arcR} 0 0 0 ${hitch[0] + d[0] * arcR},${hitch[1] + d[1] * arcR}`;
@@ -253,7 +254,8 @@ export function HillFigure({ fig, clock = STILL }: { fig: HillFig; clock?: DrawC
   const iTip: [number, number] = [cg[0] + into[0] * parts.into * HILL.kf, cg[1] + into[1] * parts.into * HILL.kf];
   const alongText = partText(fig.along, 'along', parts.along);
   const intoText = partText(fig.into, 'into', parts.into);
-  const w = (text: string) => text.length * 5.4 + 8;
+  const mono = useMonoSize(9); // labels may have grown: widths are measured at the size they are drawn
+  const w = (text: string) => text.length * mono * 0.66 + 8;
   const wText = `W = ${fixed(fig.weight, 0)} N`;
   // the angle between W and the line into the slope
   const r = 30;
