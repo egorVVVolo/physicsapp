@@ -5,6 +5,7 @@ export { Car, WHEEL_R } from './Car';
 export { Dim } from './Dim';
 export { HollowArrow } from './HollowArrow';
 export { Ruler, type RulerTick } from './Ruler';
+export { Rows, type Row } from './Rows';
 export { stage } from './stage';
 export { Tag } from './Tag';
 export { TapBoxes } from './TapBoxes';

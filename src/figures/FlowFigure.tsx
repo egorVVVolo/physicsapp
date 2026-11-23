@@ -10,6 +10,7 @@ import { sig } from '@/physics/format';
 import { glycerolViscosity, RHO_GLYCEROL, stokesTerminal, streamlineOffset, turbulentTerminal } from '@/physics/viscosity';
 import { FLOW_IDS, type FlowFig } from '@/content/types';
 import { useTheme } from '@/theme/ThemeContext';
+import { stroke } from '@/theme/tokens';
 import { STILL, useLoopTime, type DrawClock } from './anim';
 import { MonoLabel } from './draw';
 import type { TapProps, TapTarget } from './Sheet';
@@ -96,7 +97,7 @@ function eddy(x: number, y: number, r: number, angle: number, sense: 1 | -1): st
 type Props = { fig: FlowFig; playing: boolean; tap?: TapProps; clock?: DrawClock };
 
 export function FlowFigure({ fig, playing, tap, clock = STILL }: Props) {
-  const { palette: p } = useTheme();
+  const { palette: p, material: m } = useTheme();
   const t = useLoopTime(playing && !clock.on, LOOP, 'flow', 0);
   const vG = stokesTerminal(fig.r, fig.rho, RHO_GLYCEROL, glycerolViscosity(fig.T));
   const vW = turbulentTerminal(fig.r, fig.rho, 1000);
@@ -108,8 +109,8 @@ export function FlowFigure({ fig, playing, tap, clock = STILL }: Props) {
         const d = turbulent ? turbulentLine(cx, o, side, t) : laminar[i * 2 + j];
         return (
           <Group key={`${o}${side}`}>
-            <Path d={d} stroke={p.label} strokeWidth={1} fill="none" opacity={0.55} />
-            {!turbulent && <Path d={d} stroke={p.ink} strokeWidth={1.8} fill="none" strokeLinecap="round" strokeDasharray={`3 ${DASH * 2 - 3}`} strokeDashoffset={shift} />}
+            <Path d={d} stroke={p.label} strokeWidth={stroke.thin} fill="none" opacity={0.55} />
+            {!turbulent && <Path d={d} stroke={p.ink} strokeWidth={stroke.body} fill="none" strokeLinecap="round" strokeDasharray={`3 ${DASH * 2 - 3}`} strokeDashoffset={shift} />}
           </Group>
         );
       }),
@@ -124,15 +125,15 @@ export function FlowFigure({ fig, playing, tap, clock = STILL }: Props) {
         <Group>
           {lines(CX.glycerol, false)}
           {/* the axis: up to the ball's front, on from its back */}
-          <Path d={`M${CX.glycerol},${BOTTOM} V${CY + A} M${CX.glycerol},${CY - A} V${TOP}`} stroke={p.label} strokeWidth={1} opacity={0.55} />
+          <Path d={`M${CX.glycerol},${BOTTOM} V${CY + A} M${CX.glycerol},${CY - A} V${TOP}`} stroke={p.label} strokeWidth={stroke.thin} opacity={0.55} />
           {lines(CX.water, true)}
-          <Path d={`M${CX.water},${BOTTOM} V${CY + A}`} stroke={p.label} strokeWidth={1} opacity={0.55} />
+          <Path d={`M${CX.water},${BOTTOM} V${CY + A}`} stroke={p.label} strokeWidth={stroke.thin} opacity={0.55} />
           {/* the wake: eddies in pairs, spinning opposite ways, drifting off behind the ball */}
           {[0, 1, 2, 3].map((i) => {
             const y = CY - A * (1.6 + i * 1.25) - ((t / LOOP) * A * 1.25) % (A * 1.25);
             const side = i % 2 === 0 ? 1 : -1;
             const r = A * (0.55 + i * 0.07);
-            return y > TOP + 6 ? <Path key={i} d={eddy(CX.water + side * A * 0.55, y, r, spin * side + i, side)} stroke={p.label} strokeWidth={1.3} fill="none" /> : null;
+            return y > TOP + 6 ? <Path key={i} d={eddy(CX.water + side * A * 0.55, y, r, spin * side + i, side)} stroke={p.label} strokeWidth={stroke.thin} fill="none" /> : null;
           })}
         </Group>,
       )}
@@ -142,11 +143,11 @@ export function FlowFigure({ fig, playing, tap, clock = STILL }: Props) {
         <Group>
           {(['glycerol', 'water'] as const).map((id) => (
             <Group key={id}>
-              <Path d={`M${CX[id] - A},${CY} a${A},${A} 0 1 0 ${2 * A},0 a${A},${A} 0 1 0 ${-2 * A},0 Z`} fill={p.drawFillDark} stroke={p.draw} strokeWidth={1.5} />
-              <Path d={`M${CX[id] - A * 0.55},${CY - A * 0.35} A${A * 0.62},${A * 0.62} 0 0 1 ${CX[id] + A * 0.2},${CY - A * 0.68}`} stroke={p.paper} strokeWidth={2.2} fill="none" strokeLinecap="round" />
+              <Path d={`M${CX[id] - A},${CY} a${A},${A} 0 1 0 ${2 * A},0 a${A},${A} 0 1 0 ${-2 * A},0 Z`} fill={m.metal} stroke={p.draw} strokeWidth={stroke.body} />
+              <Path d={`M${CX[id] - A * 0.55},${CY - A * 0.35} A${A * 0.62},${A * 0.62} 0 0 1 ${CX[id] + A * 0.2},${CY - A * 0.68}`} stroke={p.paper} strokeWidth={stroke.body} fill="none" strokeLinecap="round" />
             </Group>
           ))}
-          <Line x1={170} y1={20} x2={170} y2={214} stroke={p.paperLine} strokeWidth={1} />
+          <Line x1={170} y1={20} x2={170} y2={214} stroke={p.paperLine} strokeWidth={stroke.thin} />
         </Group>,
       )}
 

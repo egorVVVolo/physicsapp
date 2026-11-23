@@ -12,10 +12,11 @@ import { fixed, sci, sig } from '@/physics/format';
 import { glycerolViscosity, RHO_GLYCEROL, sphereUpthrust, sphereWeight, stokesDrag, stokesFall, stokesTerminal } from '@/physics/viscosity';
 import type { TubeFig } from '@/content/types';
 import { useTheme } from '@/theme/ThemeContext';
+import { stroke } from '@/theme/tokens';
 import { useReducedMotionPref } from '@/ui/parts';
 import { STILL, useLoopTime, type DrawClock } from './anim';
 import { ForceArrow, ForceLetter, Hatch, MonoLabel } from './draw';
-import { Ball, stage } from './kit';
+import { Ball, stage, Rows as KitRows } from './kit';
 
 export const TUBE_VB = { w: 340, h: 230 };
 
@@ -76,7 +77,7 @@ function useDrift(v: number, running: boolean, length: number): number {
 type Props = { fig: TubeFig; live?: number; playing: boolean; clock?: DrawClock };
 
 export function TubeFigure({ fig, live, playing, clock = STILL }: Props) {
-  const { palette: p } = useTheme();
+  const { palette: p, material: m } = useTheme();
   const reduced = useReducedMotionPref();
   const T = live ?? fig.T;
   const eta = glycerolViscosity(T);
@@ -101,9 +102,9 @@ export function TubeFigure({ fig, live, playing, clock = STILL }: Props) {
       {stage(clock, 
         PEN.liquid,
         <Group>
-          <Rect x={TUBE.x1} y={SURFACE} width={TUBE.x2 - TUBE.x1} height={TUBE.bottom - SURFACE} fill={p.drawFill} />
-          <Path d={dashes.join(' ')} stroke={p.label} strokeWidth={0.9} opacity={0.35} />
-          <Line x1={TUBE.x1} y1={SURFACE} x2={TUBE.x2} y2={SURFACE} stroke={p.draw} strokeWidth={1.3} />
+          <Rect x={TUBE.x1} y={SURFACE} width={TUBE.x2 - TUBE.x1} height={TUBE.bottom - SURFACE} fill={m.water} />
+          <Path d={dashes.join(' ')} stroke={p.label} strokeWidth={stroke.hair} opacity={0.35} />
+          <Line x1={TUBE.x1} y1={SURFACE} x2={TUBE.x2} y2={SURFACE} stroke={p.draw} strokeWidth={stroke.thin} />
         </Group>,
       )}
 
@@ -121,19 +122,18 @@ export function TubeFigure({ fig, live, playing, clock = STILL }: Props) {
         PEN.tube,
         <Group>
           {/* the glass: walls, a rounded bottom, a foot; the rubber bands round it; the ruler beside it */}
-          <Path d={`M${TUBE.x1 - 2},${TUBE.top} V${TUBE.bottom + 2} H${TUBE.x2 + 2} V${TUBE.top}`} stroke={p.draw} strokeWidth={2.4} fill="none" strokeLinejoin="round" />
-          <Rect x={TUBE.x1 - 12} y={TUBE.bottom + 2} width={TUBE.x2 - TUBE.x1 + 24} height={6} rx={1.5} fill={p.drawFillDark} stroke={p.draw} strokeWidth={1.2} />
+          <Path d={`M${TUBE.x1 - 2},${TUBE.top} V${TUBE.bottom + 2} H${TUBE.x2 + 2} V${TUBE.top}`} stroke={p.draw} strokeWidth={stroke.force} fill="none" strokeLinejoin="round" />
+          <Rect x={TUBE.x1 - 12} y={TUBE.bottom + 2} width={TUBE.x2 - TUBE.x1 + 24} height={6} rx={1.5} fill={m.metalSide} stroke={p.draw} strokeWidth={stroke.thin} />
           {BANDS.map((cm) => (
             <Rect key={cm} x={TUBE.x1 - 5} y={Y(cm) - 2.5} width={TUBE.x2 - TUBE.x1 + 10} height={5} rx={1.5} fill={p.draw} />
           ))}
-          <Line x1={40} y1={SURFACE} x2={40} y2={Y(DEPTH)} stroke={p.draw} strokeWidth={1.2} />
-          <Path d={ticks.join(' ')} stroke={p.label} strokeWidth={0.9} />
+          <Line x1={40} y1={SURFACE} x2={40} y2={Y(DEPTH)} stroke={p.draw} strokeWidth={stroke.thin} />
+          <Path d={ticks.join(' ')} stroke={p.label} strokeWidth={stroke.hair} />
           {[0, 10, 20, 30].map((cm) => (
-            <MonoLabel key={cm} x={36} y={Y(cm) + 3} text={`${cm}`} color={p.label} size={8} anchor="end" />
+            <MonoLabel key={cm} x={36} y={Y(cm) + 3} text={cm === 0 ? '0 cm' : `${cm}`} color={p.label} size={8} anchor="end" />
           ))}
-          <MonoLabel x={36} y={SURFACE - 8} text="cm" color={p.label} size={8} anchor="end" />
           <MonoLabel x={TUBE.x2 + 8} y={(Y(BANDS[0]) + Y(BANDS[1])) / 2 + 3} text="10.0" color={p.label} size={8} anchor="start" />
-          <Path d={`M${TUBE.x2 + 12},${Y(BANDS[0]) + 4} V${(Y(BANDS[0]) + Y(BANDS[1])) / 2 - 8} M${TUBE.x2 + 12},${(Y(BANDS[0]) + Y(BANDS[1])) / 2 + 8} V${Y(BANDS[1]) - 4}`} stroke={p.label} strokeWidth={0.9} />
+          <Path d={`M${TUBE.x2 + 12},${Y(BANDS[0]) + 4} V${(Y(BANDS[0]) + Y(BANDS[1])) / 2 - 8} M${TUBE.x2 + 12},${(Y(BANDS[0]) + Y(BANDS[1])) / 2 + 8} V${Y(BANDS[1]) - 4}`} stroke={p.label} strokeWidth={stroke.hair} />
           <MonoLabel x={PX} y={BENCH + 8} text="BALLS × 5" color={p.label} size={7.5} anchor="start" />
         </Group>,
       )}
@@ -147,20 +147,9 @@ export function TubeFigure({ fig, live, playing, clock = STILL }: Props) {
 const PX = 156; // the panel's left edge
 const PR = 334; // … and right edge
 
-/** Label–value rows like a lab notebook. */
-function Rows({ rows, y0 = 64, x = PX }: { rows: [string, string, string?][]; y0?: number; x?: number }) {
-  const { palette: p } = useTheme();
-  return (
-    <Group>
-      {rows.map(([k, val, color], i) => (
-        <Group key={k}>
-          <MonoLabel x={x} y={y0 + i * 24} text={k} color={p.label} size={8.5} anchor="start" />
-          <MonoLabel x={PR} y={y0 + i * 24} text={val} color={color ?? p.ink} size={10} anchor="end" />
-          <Line x1={x} y1={y0 + 7 + i * 24} x2={PR} y2={y0 + 7 + i * 24} stroke={p.paperLine} strokeWidth={0.8} />
-        </Group>
-      ))}
-    </Group>
-  );
+/** Label–value rows like a lab notebook, in the panel on the right. */
+function PanelRows({ rows, y0 = 64, x = PX }: { rows: [string, string, string?][]; y0?: number; x?: number }) {
+  return <KitRows rows={rows} x={x} right={PR} y0={y0} step={24} />;
 }
 
 const mm = (r: number) => `${fixed(r * 2000, 1)} mm`;
@@ -168,14 +157,14 @@ const cms = (v: number) => `${sig(v * 100)} cm s⁻¹`;
 const newtons = (x: number) => `${sci(x)} N`;
 
 function Panel({ fig, eta, T, t, vLive }: { fig: TubeFig; eta: number; T: number; t: number; vLive?: number }) {
-  const { palette: p } = useTheme();
+  const { palette: p, material: m } = useTheme();
   const asked = fig.ask !== undefined;
   const last = fig.balls.length - 1;
   if (fig.panel === 'speeds') {
     return (
       <Group>
         <MonoLabel x={PX} y={40} text="TERMINAL VELOCITY" color={p.label} size={8.5} anchor="start" />
-        <Rows rows={fig.balls.map((r, i): [string, string] => [`${mm(r)} ball`, asked && i === last ? '? cm s⁻¹' : cms(stokesTerminal(r, fig.rho, RHO_GLYCEROL, eta))])} />
+        <PanelRows rows={fig.balls.map((r, i): [string, string] => [`${mm(r)} ball`, asked && i === last ? '? cm s⁻¹' : cms(stokesTerminal(r, fig.rho, RHO_GLYCEROL, eta))])} />
         <MonoLabel x={PX} y={64 + fig.balls.length * 24 + 4} text={`steel, ${fig.rho} kg m⁻³`} color={p.label} size={8.5} anchor="start" />
       </Group>
     );
@@ -192,7 +181,7 @@ function Panel({ fig, eta, T, t, vLive }: { fig: TubeFig; eta: number; T: number
       <Group>
         <Stopwatch x={186} y={56} t={shown} />
         <MonoLabel x={214} y={60} text={`${fixed(shown, 2)} s`} color={p.ink} size={13} anchor="start" />
-        <Rows
+        <PanelRows
           y0={112}
           rows={[
             ['radius r', `${fixed(r * 1000, 1)} mm`],
@@ -209,7 +198,7 @@ function Panel({ fig, eta, T, t, vLive }: { fig: TubeFig; eta: number; T: number
       <Group>
         <Thermometer x={176} T={T} />
         <MonoLabel x={206} y={40} text="GLYCEROL" color={p.label} size={8.5} anchor="start" />
-        <Rows
+        <PanelRows
           x={206}
           rows={[
             ['T', `${fixed(T, 0)} °C`],
@@ -227,7 +216,7 @@ function Panel({ fig, eta, T, t, vLive }: { fig: TubeFig; eta: number; T: number
 
 /** The small ball magnified (× 20, at the tube's scale): W down from its centre; U, then F stacked on it, up. To one scale. */
 function Forces({ fig, eta }: { fig: TubeFig; eta: number }) {
-  const { palette: p } = useTheme();
+  const { palette: p, material: m } = useTheme();
   const r = fig.balls[0];
   const W = sphereWeight(r, fig.rho);
   const U = sphereUpthrust(r, RHO_GLYCEROL);
@@ -252,7 +241,7 @@ function Forces({ fig, eta }: { fig: TubeFig; eta: number }) {
       <ForceLetter x={cx + 9} y={fTop + 12} text={asked ? 'F ?' : 'F'} color={p.force} size={13} anchor="start" />
       <Circle cx={cx} cy={cy} r={2.6} fill={p.force} />
       <MonoLabel x={238} y={40} text="STEADY SPEED" color={p.label} size={8.5} anchor="start" />
-      <Rows
+      <PanelRows
         x={238}
         rows={[
           ['W', newtons(W), p.forceText],
@@ -266,7 +255,7 @@ function Forces({ fig, eta }: { fig: TubeFig; eta: number }) {
 
 /** The two balls magnified (× 10) side by side, with their weights; the big one's "?" until the question is answered. */
 function Weights({ fig }: { fig: TubeFig }) {
-  const { palette: p } = useTheme();
+  const { palette: p, material: m } = useTheme();
   return (
     <Group>
       <MonoLabel x={PX} y={22} text="× 10" color={p.label} size={8.5} anchor="start" />
@@ -278,8 +267,8 @@ function Weights({ fig }: { fig: TubeFig }) {
         return (
           <Group key={i}>
             <Ball look="steel" x={x} y={96} r={rr} />
-            <Line x1={x - rr} y1={96 + 30} x2={x + rr} y2={96 + 30} stroke={p.label} strokeWidth={0.9} />
-            <Path d={`M${x - rr},${126 - 4} v8 M${x + rr},${126 - 4} v8`} stroke={p.label} strokeWidth={0.9} />
+            <Line x1={x - rr} y1={96 + 30} x2={x + rr} y2={96 + 30} stroke={p.label} strokeWidth={stroke.hair} />
+            <Path d={`M${x - rr},${126 - 4} v8 M${x + rr},${126 - 4} v8`} stroke={p.label} strokeWidth={stroke.hair} />
             <MonoLabel x={x} y={142} text={mm(r)} color={p.label} size={8.5} />
             <MonoLabel x={x} y={170} text="W" color={p.forceText} size={8.5} />
             <MonoLabel x={x} y={186} text={asked ? '? N' : newtons(W)} color={p.forceText} size={9} />
@@ -292,7 +281,7 @@ function Weights({ fig }: { fig: TubeFig }) {
 
 /** A stopwatch whose hand goes round once every 10 s. */
 function Stopwatch({ x, y, t }: { x: number; y: number; t: number }) {
-  const { palette: p } = useTheme();
+  const { palette: p, material: m } = useTheme();
   const a = (t / 10) * 2 * Math.PI;
   const r = 15;
   const ticks: string[] = [];
@@ -303,9 +292,9 @@ function Stopwatch({ x, y, t }: { x: number; y: number; t: number }) {
   return (
     <Group>
       <Rect x={x - 3} y={y - r - 6} width={6} height={5} fill={p.draw} />
-      <Circle cx={x} cy={y} r={r} fill={p.paper} stroke={p.draw} strokeWidth={1.6} />
-      <Path d={ticks.join(' ')} stroke={p.label} strokeWidth={0.9} />
-      <Line x1={x} y1={y} x2={x + Math.sin(a) * (r - 4)} y2={y - Math.cos(a) * (r - 4)} stroke={p.ink} strokeWidth={1.6} strokeLinecap="round" />
+      <Circle cx={x} cy={y} r={r} fill={p.paper} stroke={p.draw} strokeWidth={stroke.body} />
+      <Path d={ticks.join(' ')} stroke={p.label} strokeWidth={stroke.hair} />
+      <Line x1={x} y1={y} x2={x + Math.sin(a) * (r - 4)} y2={y - Math.cos(a) * (r - 4)} stroke={p.ink} strokeWidth={stroke.body} strokeLinecap="round" />
       <Circle cx={x} cy={y} r={1.6} fill={p.ink} />
     </Group>
   );
@@ -313,7 +302,7 @@ function Stopwatch({ x, y, t }: { x: number; y: number; t: number }) {
 
 /** A thermometer from 0 to 50 °C, its column at T. */
 function Thermometer({ x, T }: { x: number; T: number }) {
-  const { palette: p } = useTheme();
+  const { palette: p, material: m } = useTheme();
   const top = 46;
   const bottom = 176;
   const yT = bottom - ((bottom - top) * T) / 50;
@@ -321,10 +310,10 @@ function Thermometer({ x, T }: { x: number; T: number }) {
   for (let c = 0; c <= 50; c += 10) marks.push(`M${x + 6},${bottom - ((bottom - top) * c) / 50} h5`);
   return (
     <Group>
-      <Rect x={x - 5} y={top - 6} width={10} height={bottom - top + 10} rx={5} fill={p.paper} stroke={p.draw} strokeWidth={1.4} />
+      <Rect x={x - 5} y={top - 6} width={10} height={bottom - top + 10} rx={5} fill={p.paper} stroke={p.draw} strokeWidth={stroke.thin} />
       <Rect x={x - 2.2} y={yT} width={4.4} height={bottom - yT + 6} fill={p.draw} />
       <Circle cx={x} cy={bottom + 12} r={9} fill={p.draw} />
-      <Path d={marks.join(' ')} stroke={p.label} strokeWidth={0.9} />
+      <Path d={marks.join(' ')} stroke={p.label} strokeWidth={stroke.hair} />
       {[0, 20, 40].map((c) => (
         <MonoLabel key={c} x={x - 9} y={bottom - ((bottom - top) * c) / 50 + 3} text={`${c}`} color={p.label} size={7.5} anchor="end" />
       ))}

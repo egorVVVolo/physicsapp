@@ -10,6 +10,7 @@ import { floatingDisplacement, RHO_WATER, volumeOf } from '@/physics/fluids';
 import { fixed, sig } from '@/physics/format';
 import type { TankFig } from '@/content/types';
 import { useTheme } from '@/theme/ThemeContext';
+import { stroke } from '@/theme/tokens';
 import { useReducedMotionPref } from '@/ui/parts';
 import { phaseOf, STILL, useLoopTime, type DrawClock } from './anim';
 import { Hatch, MonoLabel } from './draw';
@@ -107,7 +108,7 @@ export function TankFigure({ fig, live, playing, clock = STILL }: Props) {
 
 /** One tank at `k` viewBox units per cm, its inside left wall at `x0`. */
 function TankScene({ n, k, x0, state, clock, levels, ruler, title, note }: { n: Num; k: number; x0: number; state: State; clock: DrawClock; levels?: boolean; ruler?: boolean; title?: string; note?: string }) {
-  const { palette: p } = useTheme();
+  const { palette: p, material: m } = useTheme();
   const X = (cm: number) => x0 + cm * k;
   const Y = (cm: number) => FLOOR - cm * k;
   const w = n.width * k;
@@ -126,13 +127,13 @@ function TankScene({ n, k, x0, state, clock, levels, ruler, title, note }: { n: 
   return (
     <Group>
       {stage(clock, PEN.ground, <Hatch x1={x0 - 12} x2={x0 + w + 12} y={FLOOR + 4} color={p.draw} clock={clock} from={PEN.ground[0]} to={PEN.ground[1]} />)}
-      {stage(clock, PEN.water, <Rect x={x0} y={Y(L)} width={w} height={FLOOR - Y(L)} fill={p.drawFill} />)}
+      {stage(clock, PEN.water, <Rect x={x0} y={Y(L)} width={w} height={FLOOR - Y(L)} fill={m.water} />)}
       {stage(clock, PEN.boat, <Block x={X(bx)} yb={Y(by)} w={n.bw * k} h={n.bh * k} />)}
       {stage(clock, 
         PEN.boat,
         <Group>
-          <Path d={hull} fill={p.drawFillDark} stroke={p.draw} strokeWidth={1.5} strokeLinejoin="round" />
-          <Line x1={X(n.boatX) - (HULL.len * k) / 2 + 4} y1={Y(hullBottom + HULL.h) + 3} x2={X(n.boatX) + (HULL.len * k) / 2 - 2} y2={Y(hullBottom + HULL.h) + 3} stroke={p.draw} strokeWidth={0.8} opacity={0.5} />
+          <Path d={hull} fill={m.wood} stroke={p.draw} strokeWidth={stroke.body} strokeLinejoin="round" />
+          <Line x1={X(n.boatX) - (HULL.len * k) / 2 + 4} y1={Y(hullBottom + HULL.h) + 3} x2={X(n.boatX) + (HULL.len * k) / 2 - 2} y2={Y(hullBottom + HULL.h) + 3} stroke={p.draw} strokeWidth={stroke.hair} opacity={0.5} />
           {/* a bollard at the stern */}
           <Rect x={X(n.boatX) - (HULL.len * k) / 2 + 5} y={Y(hullBottom + HULL.h) - 5} width={4} height={5} fill={p.draw} />
         </Group>,
@@ -141,15 +142,15 @@ function TankScene({ n, k, x0, state, clock, levels, ruler, title, note }: { n: 
       {stage(clock, 
         PEN.water,
         <Group>
-          <Path d={dashes.join(' ')} stroke={p.label} strokeWidth={0.9} opacity={0.4} />
-          <Line x1={x0} y1={Y(L)} x2={x0 + w} y2={Y(L)} stroke={p.draw} strokeWidth={1.4} />
+          <Path d={dashes.join(' ')} stroke={p.label} strokeWidth={stroke.hair} opacity={0.4} />
+          <Line x1={x0} y1={Y(L)} x2={x0 + w} y2={Y(L)} stroke={p.draw} strokeWidth={stroke.thin} />
         </Group>,
       )}
       {stage(clock, 
         PEN.tank,
         <Group>
-          <Path d={`M${x0 - 2},${top} V${FLOOR + 2} H${x0 + w + 2} V${top}`} stroke={p.draw} strokeWidth={2.4} fill="none" strokeLinejoin="round" />
-          <Path d={`M${x0 + 3},${top + 6} V${top + 30} M${x0 + w - 3},${top + 6} V${top + 18}`} stroke={p.label} strokeWidth={1} opacity={0.5} />
+          <Path d={`M${x0 - 2},${top} V${FLOOR + 2} H${x0 + w + 2} V${top}`} stroke={p.draw} strokeWidth={stroke.force} fill="none" strokeLinejoin="round" />
+          <Path d={`M${x0 + 3},${top + 6} V${top + 30} M${x0 + w - 3},${top + 6} V${top + 18}`} stroke={p.label} strokeWidth={stroke.thin} opacity={0.5} />
           {ruler && <TankRuler x={x0 - 6} k={k} />}
         </Group>,
       )}
@@ -157,7 +158,7 @@ function TankScene({ n, k, x0, state, clock, levels, ruler, title, note }: { n: 
         stage(clock, 
           PEN.labels,
           <Group>
-            <Line x1={x0 - 2} y1={Y(oldLevel)} x2={x0 + w + 2} y2={Y(oldLevel)} stroke={p.ink} strokeWidth={1.1} strokeDasharray="5 3" />
+            <Line x1={x0 - 2} y1={Y(oldLevel)} x2={x0 + w + 2} y2={Y(oldLevel)} stroke={p.ink} strokeWidth={stroke.thin} strokeDasharray="5 3" />
             <Dim a={[x0 + w + 9, Y(oldLevel)]} b={[x0 + w + 9, Y(L)]} />
           </Group>,
         )}
@@ -183,32 +184,32 @@ function hullPath(x: number, yb: number, len: number, h: number): string {
 
 /** The steel block in flat 3D: a front face and a lighter top face. `x`: its middle, `yb`: its bottom. */
 function Block({ x, yb, w, h }: { x: number; yb: number; w: number; h: number }) {
-  const { palette: p } = useTheme();
+  const { palette: p, material: m } = useTheme();
   const d = Math.min(6, w * 0.18);
   return (
     <Group>
-      <Path d={`M${x - w / 2},${yb - h} l${d},${-d} h${w} l${-d},${d} Z`} fill={p.drawFill} stroke={p.draw} strokeWidth={1.2} strokeLinejoin="round" />
-      <Path d={`M${x + w / 2},${yb} l${d},${-d} v${-h} l${-d},${d} Z`} fill={p.label} stroke={p.draw} strokeWidth={1.2} strokeLinejoin="round" />
-      <Rect x={x - w / 2} y={yb - h} width={w} height={h} fill={p.drawFillDark} stroke={p.draw} strokeWidth={1.3} />
+      <Path d={`M${x - w / 2},${yb - h} l${d},${-d} h${w} l${-d},${d} Z`} fill={m.metal} stroke={p.draw} strokeWidth={stroke.thin} strokeLinejoin="round" />
+      <Path d={`M${x + w / 2},${yb} l${d},${-d} v${-h} l${-d},${d} Z`} fill={p.label} stroke={p.draw} strokeWidth={stroke.thin} strokeLinejoin="round" />
+      <Rect x={x - w / 2} y={yb - h} width={w} height={h} fill={m.metalSide} stroke={p.draw} strokeWidth={stroke.thin} />
     </Group>
   );
 }
 
 /** A cm scale on the outside of the tank's left wall, 0 to 20. */
 function TankRuler({ x, k }: { x: number; k: number }) {
-  const { palette: p } = useTheme();
+  const { palette: p, material: m } = useTheme();
   const ticks: RulerTick[] = [];
   for (let c = 0; c <= TANK_H; c++) ticks.push({ at: FLOOR - c * k, len: c % 5 === 0 ? 6 : 3, label: c % 10 === 0 ? String(c) : undefined });
   return (
     <Ruler axis="y" at={x} from={FLOOR} to={FLOOR - TANK_H * k} line={false} ticks={ticks} side={-1} labelAt={-8} labelDy={3} labelSize={7} labelAnchor="end" tickColor={p.label} tickWidth={0.9}>
-      <MonoLabel x={x - 8} y={FLOOR - TANK_H * k - 8} text="cm" color={p.label} size={7} anchor="end" />
+      <MonoLabel x={x - 8} y={FLOOR - TANK_H * k - 15} text="cm" color={p.label} size={7} anchor="end" />
     </Ruler>
   );
 }
 
 /** The numbers beside the tank: what the boat displaces, or the two levels. */
 function Panel({ fig, n, dropped, level }: { fig: TankFig; n: Num; dropped: boolean; level: number }) {
-  const { palette: p } = useTheme();
+  const { palette: p, material: m } = useTheme();
   const x = 232;
   const right = 334;
   const rows: [string, string, boolean?][] = [];
@@ -234,7 +235,7 @@ function Panel({ fig, n, dropped, level }: { fig: TankFig; n: Num; dropped: bool
         <Group key={k}>
           <MonoLabel x={x} y={84 + i * 26} text={k} color={p.label} size={8.5} anchor="start" />
           <MonoLabel x={right} y={84 + i * 26} text={val} color={p.ink} size={strong ? 11 : 10} anchor="end" />
-          <Line x1={x} y1={91 + i * 26} x2={right} y2={91 + i * 26} stroke={p.paperLine} strokeWidth={0.8} />
+          <Line x1={x} y1={91 + i * 26} x2={right} y2={91 + i * 26} stroke={p.paperLine} strokeWidth={stroke.hair} />
         </Group>
       ))}
     </Group>

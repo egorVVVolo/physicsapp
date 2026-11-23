@@ -9,9 +9,10 @@ import { apparentWeight, RHO_WATER, submergedVolume, upthrust, volumeOf } from '
 import { fixed, sig } from '@/physics/format';
 import type { DunkFig } from '@/content/types';
 import { useTheme } from '@/theme/ThemeContext';
+import { stroke } from '@/theme/tokens';
 import { STILL, type DrawClock } from './anim';
 import { ForceArrow, ForceLetter, Hatch, MonoLabel } from './draw';
-import { stage } from './kit';
+import { stage, Rows } from './kit';
 
 export const DUNK_VB = { w: 340, h: 230 };
 
@@ -44,7 +45,7 @@ export function dunkParams(fig: DunkFig, live?: number): string {
 type Props = { fig: DunkFig; live?: number; clock?: DrawClock };
 
 export function DunkFigure({ fig, live, clock = STILL }: Props) {
-  const { palette: p } = useTheme();
+  const { palette: p, material: m } = useTheme();
   const n = dunkNumbers(fig, live);
   const bw = n.side * K;
   const bh = fig.h * 100 * K;
@@ -80,11 +81,11 @@ export function DunkFigure({ fig, live, clock = STILL }: Props) {
         PEN.stand,
         <Group>
           {/* the stand: a base, a rod, a clamp at the newtonmeter's height */}
-          <Rect x={14} y={BENCH - 6} width={56} height={6} fill={p.drawFillDark} stroke={p.draw} strokeWidth={1.3} />
-          <Line x1={30} y1={BENCH - 6} x2={30} y2={6} stroke={p.draw} strokeWidth={3} />
-          <Rect x={25} y={armY - 5} width={10} height={10} rx={1.5} fill={p.drawFillDark} stroke={p.draw} strokeWidth={1.2} />
-          <Line x1={35} y1={armY} x2={CX + 4} y2={armY} stroke={p.draw} strokeWidth={2.2} />
-          <Path d={`M${CX},${armY} V${meterTop}`} stroke={p.draw} strokeWidth={1.3} />
+          <Rect x={14} y={BENCH - 6} width={56} height={6} fill={m.metalSide} stroke={p.draw} strokeWidth={stroke.thin} />
+          <Line x1={30} y1={BENCH - 6} x2={30} y2={6} stroke={p.draw} strokeWidth={stroke.force} />
+          <Rect x={25} y={armY - 5} width={10} height={10} rx={1.5} fill={m.metalSide} stroke={p.draw} strokeWidth={stroke.thin} />
+          <Line x1={35} y1={armY} x2={CX + 4} y2={armY} stroke={p.draw} strokeWidth={stroke.body} />
+          <Path d={`M${CX},${armY} V${meterTop}`} stroke={p.draw} strokeWidth={stroke.thin} />
         </Group>,
       )}
 
@@ -92,8 +93,8 @@ export function DunkFigure({ fig, live, clock = STILL }: Props) {
         PEN.can,
         <Group>
           {/* the can's water up to the spout, the overflow in the cylinder */}
-          <Rect x={CAN.x1} y={SURFACE} width={CAN.x2 - CAN.x1} height={CAN.bottom - SURFACE} fill={p.drawFill} />
-          <Rect x={CYL.x1} y={CYL.bottom - cylWater} width={CYL.x2 - CYL.x1} height={cylWater} fill={p.drawFill} />
+          <Rect x={CAN.x1} y={SURFACE} width={CAN.x2 - CAN.x1} height={CAN.bottom - SURFACE} fill={m.water} />
+          <Rect x={CYL.x1} y={CYL.bottom - cylWater} width={CYL.x2 - CYL.x1} height={cylWater} fill={m.water} />
         </Group>,
       )}
 
@@ -101,20 +102,20 @@ export function DunkFigure({ fig, live, clock = STILL }: Props) {
         PEN.hang,
         <Group>
           {/* the newtonmeter: a body with a window, a scale and a pointer; the string down to the block */}
-          <Rect x={CX - METER.w / 2} y={meterTop} width={METER.w} height={METER.h} rx={3} fill={p.drawFill} stroke={p.draw} strokeWidth={1.4} />
-          <Rect x={CX - 4} y={win.y1 - 2} width={8} height={win.y2 - win.y1 + 4} fill={p.paper} stroke={p.draw} strokeWidth={0.8} />
-          <Path d={ticks.join(' ')} stroke={p.label} strokeWidth={0.8} />
-          {fig.reading !== 'afterCheck' && <Line x1={CX - 6} y1={pointer} x2={CX + 6} y2={pointer} stroke={p.ink} strokeWidth={1.8} />}
-          <Line x1={CX} y1={meterTop + METER.h} x2={CX} y2={ytop} stroke={p.draw} strokeWidth={1.2} />
+          <Rect x={CX - METER.w / 2} y={meterTop} width={METER.w} height={METER.h} rx={3} fill={m.metal} stroke={p.draw} strokeWidth={stroke.thin} />
+          <Rect x={CX - 4} y={win.y1 - 2} width={8} height={win.y2 - win.y1 + 4} fill={p.paper} stroke={p.draw} strokeWidth={stroke.hair} />
+          <Path d={ticks.join(' ')} stroke={p.label} strokeWidth={stroke.hair} />
+          {fig.reading !== 'afterCheck' && <Line x1={CX - 6} y1={pointer} x2={CX + 6} y2={pointer} stroke={p.ink} strokeWidth={stroke.body} />}
+          <Line x1={CX} y1={meterTop + METER.h} x2={CX} y2={ytop} stroke={p.draw} strokeWidth={stroke.thin} />
           <Circle cx={CX} cy={ytop} r={1.6} fill={p.draw} />
           {/* the block, front face and a lighter top */}
-          <Path d={`M${CX - bw / 2},${ytop} l5,-5 h${bw} l-5,5 Z`} fill={p.drawFill} stroke={p.draw} strokeWidth={1.1} strokeLinejoin="round" />
-          <Path d={`M${CX + bw / 2},${yb} l5,-5 v${-bh} l-5,5 Z`} fill={p.label} stroke={p.draw} strokeWidth={1.1} strokeLinejoin="round" />
-          <Rect x={CX - bw / 2} y={ytop} width={bw} height={bh} fill={p.drawFillDark} stroke={p.draw} strokeWidth={1.3} />
+          <Path d={`M${CX - bw / 2},${ytop} l5,-5 h${bw} l-5,5 Z`} fill={m.metal} stroke={p.draw} strokeWidth={stroke.thin} strokeLinejoin="round" />
+          <Path d={`M${CX + bw / 2},${yb} l5,-5 v${-bh} l-5,5 Z`} fill={p.label} stroke={p.draw} strokeWidth={stroke.thin} strokeLinejoin="round" />
+          <Rect x={CX - bw / 2} y={ytop} width={bw} height={bh} fill={m.metalSide} stroke={p.draw} strokeWidth={stroke.thin} />
           {/* the reading, beside the newtonmeter */}
           {fig.reading && (
             <Group>
-              <Rect x={CX - 70} y={meterTop + METER.h / 2 - 11} width={52} height={20} rx={3} fill={p.paper} stroke={p.paperLine} strokeWidth={1} />
+              <Rect x={CX - 70} y={meterTop + METER.h / 2 - 11} width={52} height={20} rx={3} fill={p.paper} stroke={p.paperLine} strokeWidth={stroke.thin} />
               <MonoLabel x={CX - 44} y={meterTop + METER.h / 2 + 3} text={showReading ? `${sig(n.reading)} N` : '? N'} color={p.ink} size={10.5} />
             </Group>
           )}
@@ -125,15 +126,15 @@ export function DunkFigure({ fig, live, clock = STILL }: Props) {
         PEN.can,
         <Group>
           {/* the water's dashes and surface over the block, then the can and its spout, the cylinder and its scale */}
-          <Path d={dashes(CAN.x1, CAN.x2, SURFACE, CAN.bottom)} stroke={p.label} strokeWidth={0.9} opacity={0.4} />
-          <Line x1={CAN.x1} y1={SURFACE} x2={CAN.x2} y2={SURFACE} stroke={p.draw} strokeWidth={1.4} />
-          <Path d={`M${CAN.x1 - 2},${CAN.top} V${CAN.bottom + 2} H${CAN.x2 + 2} V${CAN.top}`} stroke={p.draw} strokeWidth={2.4} fill="none" strokeLinejoin="round" />
-          <Path d={`M${CAN.x2 + 2},${SURFACE - 3} L${CYL.x1 + 8},${SURFACE + 3} M${CAN.x2 + 2},${SURFACE + 3} L${CYL.x1 + 6},${SURFACE + 9}`} stroke={p.draw} strokeWidth={1.6} fill="none" />
-          {cm3 > 0.5 && <Path d={`M${CYL.x1 + 7},${SURFACE + 6} Q${CYL.x1 + 9},${SURFACE + 12} ${CYL.x1 + 9},${CYL.bottom - cylWater}`} stroke={p.label} strokeWidth={1.2} fill="none" opacity={n.depth * 100 * K < bh ? 0.7 : 0} />}
-          {cylWater > 0.5 && <Line x1={CYL.x1} y1={CYL.bottom - cylWater} x2={CYL.x2} y2={CYL.bottom - cylWater} stroke={p.draw} strokeWidth={1.2} />}
-          <Path d={`M${CYL.x1},${CYL.top} V${CYL.bottom} H${CYL.x2} V${CYL.top}`} stroke={p.draw} strokeWidth={1.8} fill="none" />
+          <Path d={dashes(CAN.x1, CAN.x2, SURFACE, CAN.bottom)} stroke={p.label} strokeWidth={stroke.hair} opacity={0.4} />
+          <Line x1={CAN.x1} y1={SURFACE} x2={CAN.x2} y2={SURFACE} stroke={p.draw} strokeWidth={stroke.thin} />
+          <Path d={`M${CAN.x1 - 2},${CAN.top} V${CAN.bottom + 2} H${CAN.x2 + 2} V${CAN.top}`} stroke={p.draw} strokeWidth={stroke.force} fill="none" strokeLinejoin="round" />
+          <Path d={`M${CAN.x2 + 2},${SURFACE - 3} L${CYL.x1 + 8},${SURFACE + 3} M${CAN.x2 + 2},${SURFACE + 3} L${CYL.x1 + 6},${SURFACE + 9}`} stroke={p.draw} strokeWidth={stroke.body} fill="none" />
+          {cm3 > 0.5 && <Path d={`M${CYL.x1 + 7},${SURFACE + 6} Q${CYL.x1 + 9},${SURFACE + 12} ${CYL.x1 + 9},${CYL.bottom - cylWater}`} stroke={p.label} strokeWidth={stroke.thin} fill="none" opacity={n.depth * 100 * K < bh ? 0.7 : 0} />}
+          {cylWater > 0.5 && <Line x1={CYL.x1} y1={CYL.bottom - cylWater} x2={CYL.x2} y2={CYL.bottom - cylWater} stroke={p.draw} strokeWidth={stroke.thin} />}
+          <Path d={`M${CYL.x1},${CYL.top} V${CYL.bottom} H${CYL.x2} V${CYL.top}`} stroke={p.draw} strokeWidth={stroke.body} fill="none" />
           <Rect x={CYL.x1 - 5} y={CYL.bottom} width={CYL.x2 - CYL.x1 + 10} height={3} fill={p.draw} />
-          {overflowShown && <Path d={cylTicks.join(' ')} stroke={p.label} strokeWidth={0.8} />}
+          {overflowShown && <Path d={cylTicks.join(' ')} stroke={p.label} strokeWidth={stroke.hair} />}
         </Group>,
       )}
 
@@ -156,7 +157,7 @@ export function DunkFigure({ fig, live, clock = STILL }: Props) {
 
 /** The numbers beside the can. */
 function Panel({ fig, n, cm3 }: { fig: DunkFig; n: ReturnType<typeof dunkNumbers>; cm3: number }) {
-  const { palette: p } = useTheme();
+  const { palette: p, material: m } = useTheme();
   const x = 228;
   const right = 334;
   const over = fig.overflow === 'shown' ? `${sig(cm3, cm3 < 10 ? 2 : 3)} cm³` : '? cm³';
@@ -170,14 +171,7 @@ function Panel({ fig, n, cm3 }: { fig: DunkFig; n: ReturnType<typeof dunkNumbers
   return (
     <Group>
       <MonoLabel x={x} y={40} text={fig.reading ? 'NEWTONMETER' : 'BLOCK'} color={p.label} size={8.5} anchor="start" />
-      {rows.map(([k, val, color], i) => (
-        <Group key={k}>
-          <MonoLabel x={x} y={64 + i * 26} text={k} color={p.label} size={8.5} anchor="start" />
-          <MonoLabel x={right} y={64 + i * 26} text={val} color={color ?? p.ink} size={10} anchor="end" />
-          <Line x1={x} y1={71 + i * 26} x2={right} y2={71 + i * 26} stroke={p.paperLine} strokeWidth={0.8} />
-        </Group>
-      ))}
-      {fig.forces && <MonoLabel x={x} y={70 + rows.length * 26} text="= U, the upthrust" color={p.forceText} size={8.5} anchor="start" />}
+      <Rows rows={rows} x={x} right={right} y0={64} step={26} note={fig.forces ? { text: '= U (upthrust)', color: p.forceText } : undefined} />
     </Group>
   );
 }
