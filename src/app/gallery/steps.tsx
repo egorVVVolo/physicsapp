@@ -7,6 +7,7 @@ import { samples } from '@/content/samples';
 import type { Screen } from '@/content/types';
 import { BuildView } from '@/lesson/screens/BuildView';
 import { OrderView } from '@/lesson/screens/OrderView';
+import { SortView } from '@/lesson/screens/SortView';
 import { SpotErrorView } from '@/lesson/screens/SpotErrorView';
 import { useTheme } from '@/theme/ThemeContext';
 import { font, radius, touch } from '@/theme/tokens';
@@ -53,6 +54,7 @@ function Live({ screen, onLog, onNext }: { screen: Screen; onLog: (line: string)
   if (screen.kind === 'build') return <BuildView screen={screen} {...graded} />;
   if (screen.kind === 'order') return <OrderView screen={screen} {...graded} />;
   if (screen.kind === 'spotError') return <SpotErrorView screen={screen} {...graded} />;
+  if (screen.kind === 'sort') return <SortView screen={screen} {...graded} />;
   return null;
 }
 

@@ -68,4 +68,23 @@ export const samples: { title: string; screen: Screen }[] = [
       why: `Work is force × distance along the force. The push acts along the ramp, so use its ${fixed(VAN.L, 1)}${NB}m length, not the height. ${sig(liftWork(VAN.m, VAN.h))}${NB}J = mgh, as it must be.`,
     },
   },
+  {
+    title: 'sort · Sort',
+    screen: {
+      id: 'sample-sort',
+      kind: 'sort',
+      prompt: 'Omar and Nadia cross the platform. Which of these forces do work on a suitcase?',
+      bins: [
+        { id: 'work', label: 'Does work' },
+        { id: 'none', label: 'No work' },
+      ],
+      items: [
+        { id: 'pull', label: "Omar's pull", bin: 'work', hint: 'Part of the pull, F cos θ, points along the motion, so it does work.' },
+        { id: 'hold', label: "Nadia's upward push", bin: 'none', hint: "Nadia's push is up, at 90° to the motion: cos 90° = 0, no work." },
+        { id: 'friction', label: 'Friction on the wheels', bin: 'work', hint: 'Friction acts along the line of motion, backwards. It does work: negative work.' },
+        { id: 'weight', label: "The suitcase's weight on the flat platform", bin: 'none', hint: 'The weight is down, the motion is sideways. The suitcase does not go up or down.' },
+      ],
+      why: 'A force does work only when the object moves along it. Forces at 90° to the motion do none; a force against the motion does negative work.',
+    },
+  },
 ];

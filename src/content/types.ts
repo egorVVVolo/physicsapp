@@ -1099,10 +1099,21 @@ export type SpotErrorScreen = Base & {
   why: string;
 };
 
-export type Screen = IntroScreen | TextScreen | PredictScreen | ChoiceScreen | ExploreScreen | TapFigScreen | BuildScreen | OrderScreen | SpotErrorScreen;
+/** Sort items into 2–3 bins: tap an item, then a bin. */
+export type SortScreen = Base & {
+  kind: 'sort';
+  prompt: string;
+  fig?: Fig;
+  bins: { id: string; label: string }[]; // 2–3
+  /** 4–6, shown shuffled (key = screen id). `hint` shows when the item is put in the wrong bin. */
+  items: { id: string; label: string; bin: string; hint?: string }[];
+  why: string;
+};
+
+export type Screen = IntroScreen | TextScreen | PredictScreen | ChoiceScreen | ExploreScreen | TapFigScreen | BuildScreen | OrderScreen | SpotErrorScreen | SortScreen;
 /** A graded question answered by picking one option (cards or places on the figure). */
 export type OptionQuestion = ChoiceScreen | TapFigScreen;
-export type Question = OptionQuestion | BuildScreen | OrderScreen | SpotErrorScreen;
+export type Question = OptionQuestion | BuildScreen | OrderScreen | SpotErrorScreen | SortScreen;
 
 export type Lesson = {
   id: string;
@@ -1128,4 +1139,4 @@ export type LessonRef = { id: string; title: string; spec: number[]; ready: bool
 export type Level = { id: string; title: string; lessons: LessonRef[] };
 export type Course = { title: string; subtitle: string; levels: Level[] };
 
-export const isQuestion = (s: Screen): s is Question => s.kind === 'choice' || s.kind === 'tapFig' || s.kind === 'build' || s.kind === 'order' || s.kind === 'spotError';
+export const isQuestion = (s: Screen): s is Question => s.kind === 'choice' || s.kind === 'tapFig' || s.kind === 'build' || s.kind === 'order' || s.kind === 'spotError' || s.kind === 'sort';

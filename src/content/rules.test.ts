@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import { lessons } from './lessons.ts';
 import { samples } from './samples.ts';
 import { boxesOf } from '../session/build.ts';
-import { ACC_IDS, BEAM_IDS, CANDIDATE_IDS, COMPARE_IDS, SKETCH_IDS, EQUATION_IDS, FLOW_IDS, LADDER_IDS, PAIR_IDS, POLE_IDS, SLEDGE_IDS, isQuestion, type BuildScreen, type Fig, type OrderScreen, type Screen, type SpotErrorScreen } from './types.ts';
+import { ACC_IDS, BEAM_IDS, CANDIDATE_IDS, COMPARE_IDS, SKETCH_IDS, EQUATION_IDS, FLOW_IDS, LADDER_IDS, PAIR_IDS, POLE_IDS, SLEDGE_IDS, isQuestion, type BuildScreen, type Fig, type OrderScreen, type Screen, type SortScreen, type SpotErrorScreen } from './types.ts';
 
 // **key words** are bold on screen: the stars do not count, but they must come in pairs
 const max = (text: string, n: number, where: string) => {
@@ -59,11 +59,31 @@ function checkSpotErrorScreen(s: SpotErrorScreen) {
   max(s.why, 170, `${s.id} why`);
 }
 
+/** A sort step: 2–3 bins, 4–6 items, each item's bin exists, no bin left empty. */
+function checkSortScreen(s: SortScreen) {
+  assert.ok(s.bins.length >= 2 && s.bins.length <= 3, `${s.id}: 2–3 bins`);
+  assert.ok(s.items.length >= 4 && s.items.length <= 6, `${s.id}: 4–6 items`);
+  const bins = new Set(s.bins.map((b) => b.id));
+  assert.equal(bins.size, s.bins.length, `${s.id}: bin ids are unique`);
+  assert.equal(new Set(s.items.map((x) => x.id)).size, s.items.length, `${s.id}: item ids are unique`);
+  for (const b of s.bins) {
+    max(b.label, s.bins.length === 3 ? 12 : 18, `${s.id}/${b.id} label`);
+    assert.ok(s.items.some((x) => x.bin === b.id), `${s.id}/${b.id}: every bin gets at least one item`);
+  }
+  for (const x of s.items) {
+    assert.ok(bins.has(x.bin), `${s.id}/${x.id}: bin ${x.bin} exists`);
+    max(x.label, 48, `${s.id}/${x.id}`);
+    if (x.hint) max(x.hint, 90, `${s.id}/${x.id} hint`);
+  }
+  max(s.why, 170, `${s.id} why`);
+}
+
 test('sample steps of the gallery fit together', () => {
   for (const { screen } of samples) {
     if (screen.kind === 'build') checkBuildScreen(screen);
     if (screen.kind === 'order') checkOrderScreen(screen);
     if (screen.kind === 'spotError') checkSpotErrorScreen(screen);
+    if (screen.kind === 'sort') checkSortScreen(screen);
   }
 });
 
@@ -168,6 +188,7 @@ for (const lesson of Object.values(lessons)) {
       if (s.kind === 'build') checkBuildScreen(s);
       if (s.kind === 'order') checkOrderScreen(s);
       if (s.kind === 'spotError') checkSpotErrorScreen(s);
+      if (s.kind === 'sort') checkSortScreen(s);
     }
   });
 
