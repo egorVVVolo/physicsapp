@@ -90,7 +90,7 @@ type LiftProps = {
 };
 
 export function LiftFigure({ fig, a, tap, clock = STILL, prev, shift: shiftNow }: LiftProps) {
-  const { palette: p } = useTheme();
+  const { palette: p, material: m, stroke, pick } = useTheme();
   const drawing = clock.on;
   const line = (d: string, len: number, pen: readonly [number, number], color: string, width: number, cap?: 'round') => (
     <DrawnPath clock={clock} len={len} from={pen[0]} to={pen[1]} d={d} stroke={color} strokeWidth={width} strokeLinecap={cap} fill="none" />
@@ -114,15 +114,15 @@ export function LiftFigure({ fig, a, tap, clock = STILL, prev, shift: shiftNow }
     <Group>
       <Group transform={shift ? `translate(${shift} 0)` : undefined}>
         {/* shaft walls; their marks slide in ShaftMarks, drawn over the SVG */}
-        {line(`M10,0 V${LIFT_VB.h}`, LIFT_VB.h, PEN.wallL, p.lineStrong, 1.4)}
-        {line(`M180,0 V${LIFT_VB.h}`, LIFT_VB.h, PEN.wallR, p.lineStrong, 1.4)}
+        {line(`M10,0 V${LIFT_VB.h}`, LIFT_VB.h, PEN.wallL, p.lineStrong, pick(stroke.thin, 1.4))}
+        {line(`M180,0 V${LIFT_VB.h}`, LIFT_VB.h, PEN.wallR, p.lineStrong, pick(stroke.thin, 1.4))}
         {/* cable, or its frayed end when it has snapped */}
         {a <= -G + 1e-9
-          ? line(`M${CX},${CAR.y} L${CX},20 L${CX - 4},16 M${CX},20 L${CX + 4},15`, 24, PEN.cable, p.draw, 2, 'round')
-          : line(`M${CX},0 V${CAR.y}`, CAR.y, PEN.cable, p.draw, 2)}
-        {/* the car: white box, a ceiling strip, the floor indicator and a handrail on the back wall */}
-        <DrawnShape clock={clock} pen={PEN.car} {...rectPath(CAR.x, CAR.y, CAR.w, CAR.h)} fill={p.page} stroke={p.draw} strokeWidth={2.4} />
-        <DrawnShape clock={clock} pen={PEN.ceiling} {...rectPath(CAR.x, CAR.y, CAR.w, 6)} fill={p.drawFill} stroke={p.draw} strokeWidth={1.2} />
+          ? line(`M${CX},${CAR.y} L${CX},20 L${CX - 4},16 M${CX},20 L${CX + 4},15`, 24, PEN.cable, p.draw, pick(stroke.body, 2), 'round')
+          : line(`M${CX},0 V${CAR.y}`, CAR.y, PEN.cable, p.draw, pick(stroke.body, 2))}
+        {/* the car: a plastic-panelled box, a ceiling strip, the floor indicator and a metal handrail on the back wall */}
+        <DrawnShape clock={clock} pen={PEN.car} {...rectPath(CAR.x, CAR.y, CAR.w, CAR.h)} fill={pick(m.plastic, p.page)} stroke={p.draw} strokeWidth={pick(stroke.body, 2.4)} />
+        <DrawnShape clock={clock} pen={PEN.ceiling} {...rectPath(CAR.x, CAR.y, CAR.w, 6)} fill={pick(m.plasticSide, p.drawFill)} stroke={p.draw} strokeWidth={stroke.thin} />
         <DrawnFade clock={clock} from={FILLS[0]} to={FILLS[1]}>
           <Rect x={CX - 14} y={CAR.y + 12} width={28} height={13} rx={3} fill={p.ink} />
           {motionDir ? (
@@ -131,9 +131,9 @@ export function LiftFigure({ fig, a, tap, clock = STILL, prev, shift: shiftNow }
             <Line x1={CX - 5} y1={CAR.y + 18.5} x2={CX + 5} y2={CAR.y + 18.5} stroke={p.page} strokeWidth={2} strokeLinecap="round" />
           )}
         </DrawnFade>
-        {line(`M${CAR.x + 8},148 H${CAR.x + CAR.w - 8}`, CAR.w - 16, PEN.rail, p.lineStrong, 3, 'round')}
-        {line(`M${CAR.x + 14},148 V155`, 7, PEN.rail, p.lineStrong, 2)}
-        {line(`M${CAR.x + CAR.w - 14},148 V155`, 7, PEN.rail, p.lineStrong, 2)}
+        {line(`M${CAR.x + 8},148 H${CAR.x + CAR.w - 8}`, CAR.w - 16, PEN.rail, pick(m.metalSide, p.lineStrong), pick(stroke.force, 3), 'round')}
+        {line(`M${CAR.x + 14},148 V155`, 7, PEN.rail, pick(m.metalSide, p.lineStrong), pick(stroke.body, 2))}
+        {line(`M${CAR.x + CAR.w - 14},148 V155`, 7, PEN.rail, pick(m.metalSide, p.lineStrong), pick(stroke.body, 2))}
         <Hatch x1={CAR.x} x2={CAR.x + CAR.w} y={FLOOR} color={p.draw} clock={clock} from={PEN.floor[0]} to={PEN.floor[1]} />
         <Display fig={fig} n={N} clock={clock} from={readingFrom} />
         <Person x={CX} y={SOLES} clock={clock} pen={PEN.person} />
@@ -164,7 +164,7 @@ export function LiftFigure({ fig, a, tap, clock = STILL, prev, shift: shiftNow }
           {showN && !fig.unknownN && <NForce n={N} k={k} values={!!fig.values} drawing={drawing} from={nPrev} fromK={prevK} kept={!!prev} />}
           {showN && fig.unknownN && (
             <DrawnFade clock={clock} from={PEN.marks[0]} to={PEN.marks[1]}>
-              <Line x1={DOT.x} y1={DOT.y} x2={DOT.x} y2={DOT.y - STUB} stroke={p.force} strokeWidth={2.6} strokeDasharray="4 4" />
+              <Line x1={DOT.x} y1={DOT.y} x2={DOT.x} y2={DOT.y - STUB} stroke={p.force} strokeWidth={stroke.force} strokeDasharray="4 4" />
               <ForceLetter x={DOT.x - 12} y={DOT.y - 20} text="N" color={p.forceText} anchor="end" />
               <ForceLetter x={DOT.x} y={DOT.y - 42} text="?" color={p.forceText} size={20} />
             </DrawnFade>

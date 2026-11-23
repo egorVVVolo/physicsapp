@@ -1,6 +1,6 @@
 // Drawing-sheet primitives: arrows (force = solid, motion = outline, acceleration = double chevron),
 // a centre-of-gravity mark and mono labels. Coordinates are in each figure's viewBox units.
-import type { ReactNode } from 'react';
+import { createContext, useContext, type ReactNode } from 'react';
 import Animated, { useAnimatedProps, type SharedValue } from 'react-native-reanimated';
 import { Circle, G, Line, Path, Polygon, Text as SvgText, type PathProps } from 'react-native-svg';
 import { useTheme } from '@/theme/ThemeContext';
@@ -157,10 +157,23 @@ export function CgMark({ x, y, color }: { x: number; y: number; color: string })
   );
 }
 
+/**
+ * How many screen points one viewBox unit takes on the sheet, for figures in the new style (0: leave sizes alone).
+ * Labels use it so that on the screen they are never smaller than MONO_MIN / LETTER_MIN points.
+ */
+export const SheetScale = createContext(0);
+const MONO_MIN = 10.5;
+const LETTER_MIN = 13;
+function useReadable(size: number, min: number): number {
+  const k = useContext(SheetScale);
+  return k > 0 ? Math.max(size, min / k) : size;
+}
+
 /** A small label in the drawing-sheet voice (IBM Plex Mono). */
 export function MonoLabel({ x, y, text, color, size = 10, anchor = 'middle' }: { x: number; y: number; text: string; color: string; size?: number; anchor?: 'start' | 'middle' | 'end' }) {
+  const fontSize = useReadable(size, MONO_MIN);
   return (
-    <SvgText x={x} y={y} fontSize={size} fill={color} fontFamily={svgMono} textAnchor={anchor} letterSpacing={0.6}>
+    <SvgText x={x} y={y} fontSize={fontSize} fill={color} fontFamily={svgMono} textAnchor={anchor} letterSpacing={0.6}>
       {text}
     </SvgText>
   );
@@ -168,8 +181,9 @@ export function MonoLabel({ x, y, text, color, size = 10, anchor = 'middle' }: {
 
 /** The letter naming a force (W, N, P, E), in Space Grotesk. */
 export function ForceLetter({ x, y, text, color, size = 17, anchor = 'middle' }: { x: number; y: number; text: string; color: string; size?: number; anchor?: 'start' | 'middle' | 'end' }) {
+  const fontSize = useReadable(size, LETTER_MIN);
   return (
-    <SvgText x={x} y={y} fontSize={size} fill={color} fontFamily={svgLetter} textAnchor={anchor}>
+    <SvgText x={x} y={y} fontSize={fontSize} fill={color} fontFamily={svgLetter} textAnchor={anchor}>
       {text}
     </SvgText>
   );

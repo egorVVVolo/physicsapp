@@ -97,7 +97,7 @@ const sceneZoom = (fig: CrateFig) => (hasFbd(fig) ? 1 : 1.4);
 type Props = { fig: CrateFig; live?: number; playing: boolean; clock?: DrawClock; prev?: CrateFig };
 
 export function CrateFigure({ fig, live, playing, clock = STILL, prev }: Props) {
-  const { palette: p } = useTheme();
+  const { palette: p, material: m, stroke, pick } = useTheme();
   const angle = fig.slider === 'force' ? fig.angle : (live ?? fig.angle);
   const f = crateForces(fig, live);
   const flat = fig.friction !== undefined;
@@ -175,8 +175,9 @@ export function CrateFigure({ fig, live, playing, clock = STILL, prev }: Props) 
       {stage(clock, 
         PEN.floor,
         <Group>
-          <Line x1={8} y1={FLOOR} x2={floorEnd} y2={FLOOR} stroke={p.draw} strokeWidth={2} />
-          <Path d={ticks.join(' ')} stroke={p.draw} strokeWidth={1} opacity={0.55} />
+          <Rect x={8} y={FLOOR} width={floorEnd - 8} height={8} fill={pick(m.floor, 'none')} />
+          <Line x1={8} y1={FLOOR} x2={floorEnd} y2={FLOOR} stroke={p.draw} strokeWidth={pick(stroke.body, 2)} />
+          <Path d={ticks.join(' ')} stroke={p.draw} strokeWidth={pick(stroke.thin, 1)} opacity={0.55} />
         </Group>,
       )}
 
@@ -185,10 +186,10 @@ export function CrateFigure({ fig, live, playing, clock = STILL, prev }: Props) 
       {stage(clock, 
         PEN.crate,
         <Group>
-          <Path d={`M${x0},${top} L${x0 + 7},${top - 6} H${x0 + BOX.w + 7} L${x0 + BOX.w},${top} Z`} fill={p.drawFillDark} stroke={p.draw} strokeWidth={1.6} strokeLinejoin="round" />
-          <Rect x={x0} y={top} width={BOX.w} height={BOX.h} rx={1.5} fill={p.drawFill} stroke={p.draw} strokeWidth={1.8} />
-          <Path d={`M${x0 + 2},${top + BOX.h / 3} H${x0 + BOX.w - 2} M${x0 + 2},${top + (2 * BOX.h) / 3} H${x0 + BOX.w - 2}`} stroke={p.draw} strokeWidth={1} opacity={0.5} />
-          <Path d={`M${x0 + 6},${FLOOR - 4} L${x0 + BOX.w - 6},${top + 4}`} stroke={p.draw} strokeWidth={1.2} opacity={0.6} />
+          <Path d={`M${x0},${top} L${x0 + 7},${top - 6} H${x0 + BOX.w + 7} L${x0 + BOX.w},${top} Z`} fill={pick(m.woodSide, p.drawFillDark)} stroke={p.draw} strokeWidth={pick(stroke.body, 1.6)} strokeLinejoin="round" />
+          <Rect x={x0} y={top} width={BOX.w} height={BOX.h} rx={1.5} fill={pick(m.wood, p.drawFill)} stroke={p.draw} strokeWidth={stroke.body} />
+          <Path d={`M${x0 + 2},${top + BOX.h / 3} H${x0 + BOX.w - 2} M${x0 + 2},${top + (2 * BOX.h) / 3} H${x0 + BOX.w - 2}`} stroke={p.draw} strokeWidth={pick(stroke.thin, 1)} opacity={0.5} />
+          <Path d={`M${x0 + 6},${FLOOR - 4} L${x0 + BOX.w - 6},${top + 4}`} stroke={p.draw} strokeWidth={stroke.thin} opacity={0.6} />
           <CgMark x={cg[0]} y={cg[1]} color={p.draw} />
         </Group>,
       )}
@@ -199,7 +200,7 @@ export function CrateFigure({ fig, live, playing, clock = STILL, prev }: Props) 
         <Group>
           {fig.by === 'rope' && (
             <Group>
-              <Line x1={hitch[0]} y1={hitch[1]} x2={mitten[0]} y2={mitten[1]} stroke={p.draw} strokeWidth={1.6} />
+              <Line x1={hitch[0]} y1={hitch[1]} x2={mitten[0]} y2={mitten[1]} stroke={pick(m.rubber, p.draw)} strokeWidth={pick(stroke.body, 1.6)} />
               <Circle cx={hitch[0]} cy={hitch[1]} r={2.4} fill={p.draw} />
               <Mitten x={mitten[0]} y={mitten[1]} dx={d[0]} dy={d[1]} />
               <MonoLabel x={mitten[0] + (angle < 15 ? -2 : 6)} y={mitten[1] + (angle < 15 ? -14 : 18)} text="ROSE" color={p.label} size={9} anchor={angle < 15 ? 'middle' : 'start'} />
@@ -208,7 +209,7 @@ export function CrateFigure({ fig, live, playing, clock = STILL, prev }: Props) 
           {fig.by === 'pole' && (
             <Group>
               <Line x1={hand[0]} y1={hand[1]} x2={poleEnd[0]} y2={poleEnd[1]} stroke={p.draw} strokeWidth={5} strokeLinecap="round" />
-              <Line x1={hand[0]} y1={hand[1]} x2={poleEnd[0]} y2={poleEnd[1]} stroke={p.drawFillDark} strokeWidth={2.4} strokeLinecap="round" />
+              <Line x1={hand[0]} y1={hand[1]} x2={poleEnd[0]} y2={poleEnd[1]} stroke={pick(m.wood, p.drawFillDark)} strokeWidth={2.4} strokeLinecap="round" />
               <Mitten x={hand[0]} y={hand[1]} dx={-d[0]} dy={-d[1]} />
               <MonoLabel x={hand[0] + 4} y={hand[1] - 16} text="ROSE" color={p.label} size={9} />
             </Group>
@@ -217,8 +218,8 @@ export function CrateFigure({ fig, live, playing, clock = STILL, prev }: Props) 
             <Path
               d={`M${hitch[0]},${hitch[1]} Q${hitch[0] + 10},${FLOOR - 2} ${hitch[0] + 22},${FLOOR - 1.2} H${hitch[0] + 38}`}
               fill="none"
-              stroke={p.draw}
-              strokeWidth={1.6}
+              stroke={pick(m.rubber, p.draw)}
+              strokeWidth={pick(stroke.body, 1.6)}
             />
           )}
           {fig.play && <MotionTag x={cg[0]} y={top - 20} text={accelerates ? (run.v === 0 ? 'stopped' : `v = ${fixed(run.v, 1)} m s⁻¹`) : fig.by === 'none' ? 'slowing down' : 'steady speed'} />}

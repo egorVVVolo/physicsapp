@@ -172,6 +172,63 @@ export const darkPalette: Palette = {
 };
 
 /**
+ * Figure style 2.0 (V2 plan 3.1): flat fills by material instead of grey, each with the thin ink outline of the
+ * drawing. Never a saturated blue (force), green or red (verdict) or yellow (earned): tokens.test.ts checks the hues.
+ * Heroes: A wears plum, B grey-teal; car A is plum, car B sand.
+ */
+export const material = {
+  wood: '#D9A86C',
+  woodSide: '#B98648',
+  metal: '#B3BDC9',
+  metalSide: '#8D99A8',
+  rubber: '#2F343C',
+  water: '#CFE8EF',
+  waterLine: '#8CC7D6',
+  plastic: '#EADCC6',
+  plasticSide: '#CDB998',
+  floor: '#E6E1D8',
+  skinA: '#EBC8AA',
+  skinB: '#A8754F',
+  hairA: '#3B4049',
+  hairB: '#6B4A2E',
+  clothA: '#8C6A9F',
+  clothB: '#5E8C87',
+  trousers: '#4A5468',
+  carA: '#8C6A9F',
+  carB: '#CDB48E',
+  ball: '#F2EEE6',
+};
+export type Material = typeof material;
+
+/** The same materials on the dark sheet: darker, a little less saturated. */
+export const darkMaterial: Material = {
+  wood: '#9C7445',
+  woodSide: '#7A5833',
+  metal: '#6B7685',
+  metalSide: '#525C69',
+  rubber: '#0E1115',
+  water: '#1D3D47',
+  waterLine: '#3E7A8A',
+  plastic: '#5A5243',
+  plasticSide: '#463F33',
+  floor: '#262C34',
+  skinA: '#C9A285',
+  skinB: '#8A5F40',
+  hairA: '#14171C',
+  hairB: '#4A321E',
+  clothA: '#735885',
+  clothB: '#4C736F',
+  trousers: '#2E3544',
+  carA: '#735885',
+  carB: '#9C8868',
+  ball: '#D9D4CA',
+};
+
+/** The three line weights of a figure: dimensions and grids, outlines of bodies, forces. No other numbers. */
+export const stroke = { thin: 1.2, body: 1.8, force: 2.6 } as const;
+export type Stroke = { thin: number; body: number; force: number };
+
+/**
  * Motion tokens (ms). Interface eases out and never bounces; only drawn physical objects bounce, and they
  * follow the model. `stagger` is the delay between blocks that rise one after another.
  */

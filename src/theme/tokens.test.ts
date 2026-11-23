@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { themed } from './themed.ts';
-import { darkPalette as d, levelColors, levelPalette, palette as p, reward } from './tokens.ts';
+import { darkMaterial, darkPalette as d, levelColors, levelPalette, material, palette as p, reward } from './tokens.ts';
 
 function luminance(hex: string) {
   const c = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255);
@@ -75,4 +75,40 @@ test('dark theme passes the same checks as the light one', () => {
     check(t.text, t.soft, 4.5, `${id} level text on its dark tint`);
     check(d.ink, t.soft, 4.5, `${id} ink on its dark tint`);
   }
+});
+
+/** Hue (degrees) and saturation (0–1) in HSL. */
+function hsl(hex: string): { h: number; s: number } {
+  const [r, g, b] = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255);
+  const max = Math.max(r, g, b);
+  const min = Math.min(r, g, b);
+  const l = (max + min) / 2;
+  const c = max - min;
+  if (c === 0) return { h: 0, s: 0 };
+  const s = c / (1 - Math.abs(2 * l - 1));
+  const h = max === r ? ((g - b) / c) % 6 : max === g ? (b - r) / c + 2 : (r - g) / c + 4;
+  return { h: (h * 60 + 360) % 360, s };
+}
+const hueGap = (a: number, b: number) => Math.min(Math.abs(a - b), 360 - Math.abs(a - b));
+
+// Earth tones (wood, skin, sand) sit near the reward's hue by nature; they never read as "earned" because they are much
+// duller than its pure yellow. So for the reward a material may instead be clearly duller (under 2/3 of its saturation).
+test('materials never borrow a meaning: far in hue from force, verdict and reward, or nearly grey', () => {
+  for (const [mats, pal, name] of [[material, p, 'light'], [darkMaterial, d, 'dark']] as const) {
+    const meanings = { force: pal.force, ok: pal.ok, bad: pal.bad, reward: reward.face };
+    for (const [k, c] of Object.entries(mats)) {
+      const m = hsl(c);
+      if (m.s < 0.35) continue;
+      for (const [what, mc] of Object.entries(meanings)) {
+        const gap = hueGap(m.h, hsl(mc).h);
+        if (what === 'reward' && m.s < (2 / 3) * hsl(mc).s) continue;
+        assert.ok(gap > 25, `${name} ${k} ${c} is ${gap.toFixed(0)}° from ${what} ${mc}`);
+      }
+    }
+  }
+});
+
+test('every material shows its edge: the ink outline stands out from the fill, or the fill from the paper', () => {
+  for (const [mats, pal, name] of [[material, p, 'light'], [darkMaterial, d, 'dark']] as const)
+    for (const [k, c] of Object.entries(mats)) assert.ok(contrast(pal.draw, c) >= 1.5 || contrast(c, pal.paper) >= 3, `${name} ${k} ${c}: outline ${contrast(pal.draw, c).toFixed(2)}, on paper ${contrast(c, pal.paper).toFixed(2)}`);
 });

@@ -213,14 +213,14 @@ function Sledge({ x, y, s, flip }: { x: number; y: number; s: number; flip?: boo
 }
 
 /** A gloved hand at (x, y) with the sleeve going off along (dx, dy): the person is off the drawing. */
-export function Mitten({ x, y, dx, dy }: { x: number; y: number; dx: number; dy: number }) {
-  const { palette: p } = useTheme();
+export function Mitten({ x, y, dx, dy, who = 'A' }: { x: number; y: number; dx: number; dy: number; who?: 'A' | 'B' }) {
+  const { palette: p, material: m, stroke, pick } = useTheme();
   const [ex, ey] = [x + dx * 18, y + dy * 18];
   return (
     <Group>
       <Line x1={x} y1={y} x2={ex} y2={ey} stroke={p.draw} strokeWidth={10.5} strokeLinecap="round" />
-      <Line x1={x} y1={y} x2={ex} y2={ey} stroke={p.shirt} strokeWidth={7.5} strokeLinecap="round" />
-      <Circle cx={x} cy={y} r={5.5} fill={p.skin} stroke={p.draw} strokeWidth={1.6} />
+      <Line x1={x} y1={y} x2={ex} y2={ey} stroke={pick(who === 'A' ? m.clothA : m.clothB, p.shirt)} strokeWidth={7.5} strokeLinecap="round" />
+      <Circle cx={x} cy={y} r={5.5} fill={pick(who === 'A' ? m.skinA : m.skinB, p.skin)} stroke={p.draw} strokeWidth={pick(stroke.body, 1.6)} />
     </Group>
   );
 }

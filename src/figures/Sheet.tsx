@@ -8,6 +8,7 @@ import { useTheme } from '@/theme/ThemeContext';
 import { font, motion, radius } from '@/theme/tokens';
 import { useReducedMotionPref } from '@/ui/parts';
 import { fixed } from '@/physics/format';
+import { SheetScale } from './draw';
 import { LIFT_VB, LiftFigure, liftMoves, liftParams, liftShiftX, liftTargets, ShaftMarks } from './LiftFigure';
 import { LIFT_PAIR_VB, LiftPairFigure } from './LiftPairFigure';
 import { SCALES_VB, ScalesFigure } from './ScalesFigure';
@@ -74,7 +75,12 @@ type Props = {
   caption?: string;
   /** A smaller, still copy of a figure already seen (a text screen carrying the last figure): no pen, no motion, no taps. */
   compact?: boolean;
+  /** Full size but still: no pen, no motion, no taps (check pages that compare drawings). */
+  still?: boolean;
 };
+
+/** Figures already in style 2.0 (V2 tasks C2–C8): their labels grow to stay readable on the screen. */
+const STYLE_2 = new Set<Fig['kind']>(['lift', 'crate', 'collide', 'road']);
 
 /** Every figure is drawn at the same size on every screen, so the drawing never jumps between screens. */
 const MAX_H = 270;
@@ -83,9 +89,10 @@ const COMPACT = 0.6;
 /** The figures that draw themselves the first time their kind appears in a lesson. */
 const DRAWS_ITSELF: Fig['kind'][] = ['scales', 'lift', 'pairs', 'throw', 'throwVt', 'fallGraph', 'road', 'brakeVt', 'equations', 'graph', 'chase', 'track', 'vectors', 'sledge', 'hill', 'resolve', 'bench', 'kick', 'crate', 'ladder', 'particle', 'pulley', 'fall', 'wall', 'bodies', 'collide', 'spanner', 'pole', 'bar', 'beam', 'broom', 'platform', 'ramp', 'kinetic', 'height', 'cliff', 'slide', 'ride', 'winch', 'tank', 'dunk', 'tube', 'flow', 'spring', 'wire', 'material', 'launcher'];
 
-export function Sheet({ fig, n, live, tap: tapIn, caption, compact = false }: Props) {
-  const tap = compact ? undefined : tapIn;
-  const { palette: p } = useTheme();
+export function Sheet({ fig, n, live, tap: tapIn, caption, compact = false, still: stillProp = false }: Props) {
+  const still = compact || stillProp;
+  const tap = still ? undefined : tapIn;
+  const { palette: p, classic } = useTheme();
   const memory = useContext(LessonFigs);
   // the screen before showed this kind of figure: the sheet is already drawn at its width and changes from `prev`
   const shared = useContext(SharedSheet);
@@ -95,7 +102,7 @@ export function Sheet({ fig, n, live, tap: tapIn, caption, compact = false }: Pr
   const reduced = useReducedMotionPref();
   // the first figure of each kind in a lesson draws itself; the pen starts once the sheet knows its size
   const first = useFirstShow(fig.kind);
-  const clock = useDrawIn(!compact && first && width > 0 && DRAWS_ITSELF.includes(fig.kind));
+  const clock = useDrawIn(!still && first && width > 0 && DRAWS_ITSELF.includes(fig.kind));
   const vb = { lift: LIFT_VB, pairs: PAIRS_VB, vt: VT_VB, scales: SCALES_VB, liftPair: LIFT_PAIR_VB, throw: THROW_VB, throwVt: THROW_VT_VB, fallGraph: FALL_VB, road: ROAD_VB, brakeVt: BRAKE_VT_VB, equations: EQUATIONS_VB, graph: GRAPH_VB, chase: CHASE_VB, track: TRACK_VB, vectors: VECTORS_VB, sledge: SLEDGE_VB, hill: HILL_VB, resolve: RESOLVE_VB, bench: BENCH_VB, kick: KICK_VB, crate: CRATE_VB, ladder: LADDER_VB, particle: PARTICLE_VB, pulley: PULLEY_VB, fall: AIR_FALL_VB, wall: WALL_VB, bodies: BODIES_VB, collide: COLLIDE_VB, spanner: SPANNER_VB, pole: POLE_VB, bar: BAR_VB, beam: BEAM_VB, broom: BROOM_VB, platform: PLATFORM_VB, ramp: RAMP_VB, kinetic: KINETIC_VB, height: HEIGHT_VB, cliff: CLIFF_VB, slide: SLIDE_VB, ride: RIDE_VB, winch: WINCH_VB, tank: TANK_VB, dunk: DUNK_VB, tube: TUBE_VB, flow: FLOW_VB, spring: SPRING_VB, wire: WIRE_VB, material: MATERIAL_VB, launcher: LAUNCHER_VB }[fig.kind];
   const aNow = fig.kind === 'lift' ? (live ?? fig.a) : 0;
   // a lift with nothing drawn beside it stands in the middle; kept from the screen before, it glides aside to make room
@@ -113,7 +120,7 @@ export function Sheet({ fig, n, live, tap: tapIn, caption, compact = false }: Pr
   }
   const scale = w / vb.w;
   const animates = !reduced && ((fig.kind === 'lift' && liftMoves(fig, aNow)) || fig.kind === 'scales' || (fig.kind === 'throw' && throwPlays(fig)) || (fig.kind === 'road' && roadPlays(fig)) || (fig.kind === 'chase' && chasePlays(fig)) || (fig.kind === 'track' && trackPlays(fig) && live === undefined) || (fig.kind === 'bench' && benchPlays(fig) && live === undefined) || (fig.kind === 'kick' && kickPlays(fig) && live === undefined) || (fig.kind === 'crate' && cratePlays(fig) && (live === undefined || cratePlaysLive(fig))) || (fig.kind === 'pulley' && pulleyPlays(fig)) || (fig.kind === 'fall' && fallPlays(fig) && live === undefined) || (fig.kind === 'wall' && wallPlays(fig)) || (fig.kind === 'collide' && collidePlays(fig)) || (fig.kind === 'platform' && platformPlays(fig) && live === undefined) || (fig.kind === 'kinetic' && kineticPlays(fig)) || (fig.kind === 'cliff' && cliffPlays(fig) && live === undefined) || (fig.kind === 'slide' && slidePlays(fig) && live === undefined) || (fig.kind === 'ride' && ridePlays(fig)) || (fig.kind === 'winch' && (winchPlays(fig) || live !== undefined)) || (fig.kind === 'tank' && tankPlays(fig)) || (fig.kind === 'tube' && (tubePlays(fig) || live !== undefined)) || fig.kind === 'flow' || (fig.kind === 'spring' && live !== undefined));
-  const run = playing && !reduced && !compact;
+  const run = playing && !reduced && !still;
   const targets = !tap ? [] : fig.kind === 'lift' ? liftTargets(fig) : fig.kind === 'pairs' ? pairsTargets() : fig.kind === 'vt' ? vtTargets(fig) : fig.kind === 'throw' ? throwTargets(fig) : fig.kind === 'equations' ? equationsTargets(fig) : fig.kind === 'graph' ? graphTargets(fig) : fig.kind === 'sledge' ? sledgeTargets(fig, live) : fig.kind === 'ladder' ? ladderTargets(fig) : fig.kind === 'pole' ? poleTargets(fig) : fig.kind === 'beam' ? beamTargets(fig) : fig.kind === 'flow' ? flowTargets() : fig.kind === 'spring' ? springTargets(fig) : fig.kind === 'material' ? materialTargets(fig) : [];
   const params = caption ?? paramsOf(fig, aNow, live);
 
@@ -124,7 +131,7 @@ export function Sheet({ fig, n, live, tap: tapIn, caption, compact = false }: Pr
         <Text style={[styles.params, { color: p.label }]} numberOfLines={1}>
           {params}
         </Text>
-        {animates && !compact && (
+        {animates && !still && (
           <Pressable
             accessibilityRole="button"
             accessibilityLabel={playing ? 'Pause the animation' : 'Play the animation'}
@@ -156,9 +163,10 @@ export function Sheet({ fig, n, live, tap: tapIn, caption, compact = false }: Pr
         {width > 0 && (
           <View style={{ width: w, height: h, alignSelf: 'center' }}>
             <Svg width={w} height={h} viewBox={`0 0 ${vb.w} ${vb.h}`}>
+              <SheetScale.Provider value={STYLE_2.has(fig.kind) && !classic ? scale : 0}>
               {fig.kind === 'lift' && <LiftFigure fig={fig} a={aNow} tap={tap} clock={clock} prev={prev?.kind === 'lift' ? prev : undefined} shift={shift} />}
               {fig.kind === 'scales' && <ScalesFigure fig={fig} playing={run} clock={clock} />}
-              {fig.kind === 'liftPair' && <LiftPairFigure fig={fig} playing={!reduced && !compact} />}
+              {fig.kind === 'liftPair' && <LiftPairFigure fig={fig} playing={!reduced && !still} />}
               {fig.kind === 'pairs' && <PairsFigure fig={fig} tap={tap} clock={clock} kept={prev !== undefined} />}
               {fig.kind === 'vt' && <VtFigure fig={fig} tap={tap} />}
               {fig.kind === 'throw' && <ThrowFigure fig={fig} live={live} playing={run} tap={tap} clock={clock} />}
@@ -205,6 +213,7 @@ export function Sheet({ fig, n, live, tap: tapIn, caption, compact = false }: Pr
               {fig.kind === 'wire' && <WireFigure fig={fig} live={live} clock={clock} />}
               {fig.kind === 'material' && <MaterialFigure fig={fig} live={live} tap={tap} clock={clock} />}
               {fig.kind === 'launcher' && <LauncherFigure fig={fig} live={live} clock={clock} />}
+              </SheetScale.Provider>
             </Svg>
             {fig.kind === 'lift' && <ShaftMarks fig={fig} a={aNow} scale={scale} playing={run} clock={clock} shift={shift} />}
             {targets.map((t) => (

@@ -1,5 +1,5 @@
 // The person and the bathroom scales, drawn once and reused by every figure.
-// Flat shapes with an ink outline, quiet colours (never blue: blue is for forces).
+// Flat shapes with an ink outline, never blue (blue is for forces). Two heroes: A in plum, B in grey-teal (`who`).
 // The scales are drawn in the same flat "vector 3D" as the pucks on the map: a light top face and a darker front.
 // Both can draw themselves: pass the running clock and the stretch of the draw-in (`pen`) their outlines take.
 import { G, Rect } from 'react-native-svg';
@@ -27,9 +27,13 @@ const HEAD = circlePath(0, -123, 12.5);
 const HAIR = { d: 'M-12.34,-121 A12.5,12.5 0 1 1 12.34,-121 Q12,-125.5 8,-126.5 Q1,-128 -4,-126 Q-9,-127 -12.34,-121 Z', len: 76 };
 
 /** A person standing, soles at (x, y). Drawn by the pen: legs, arms, shirt, head, then the fills, then the CG mark. */
-export function Person({ x, y, scale = 1, cg = true, clock = STILL, pen = [0, 1] }: { x: number; y: number; scale?: number; cg?: boolean; clock?: DrawClock; pen?: Pen }) {
-  const { palette: p } = useTheme();
-  const line = { stroke: p.draw, strokeWidth: 1.8, strokeLinejoin: 'round' as const };
+export function Person({ x, y, scale = 1, cg = true, who = 'A', clock = STILL, pen = [0, 1] }: { x: number; y: number; scale?: number; cg?: boolean; who?: 'A' | 'B'; clock?: DrawClock; pen?: Pen }) {
+  const { palette: p, material: m, stroke, pick } = useTheme();
+  const line = { stroke: p.draw, strokeWidth: stroke.body, strokeLinejoin: 'round' as const };
+  const skin = pick(who === 'A' ? m.skinA : m.skinB, p.skin);
+  const shirt = pick(who === 'A' ? m.clothA : m.clothB, p.shirt);
+  const hair = pick(who === 'A' ? m.hairA : m.hairB, p.hair);
+  const trousers = pick(m.trousers, p.trousers);
   const part = (i: number) => penPart(pen, i, 6);
   return (
     <G transform={`translate(${x} ${y}) scale(${scale})`}>
@@ -39,19 +43,19 @@ export function Person({ x, y, scale = 1, cg = true, clock = STILL, pen = [0, 1]
         <Rect x={2} y={-7} width={14} height={7} rx={3.5} fill={p.shoe} />
       </DrawnFade>
       {/* trousers: one shape with a gap between the legs */}
-      <DrawnShape clock={clock} pen={part(0)} {...TROUSERS} fill={p.trousers} {...line} />
+      <DrawnShape clock={clock} pen={part(0)} {...TROUSERS} fill={trousers} {...line} />
       {/* arms behind the shirt, hands below the cuffs */}
-      <DrawnShape clock={clock} pen={part(1)} {...ARM_L} fill={p.shirt} {...line} />
-      <DrawnShape clock={clock} pen={part(1)} {...ARM_R} fill={p.shirt} {...line} />
-      <DrawnShape clock={clock} pen={part(2)} {...HAND_L} fill={p.skin} {...line} />
-      <DrawnShape clock={clock} pen={part(2)} {...HAND_R} fill={p.skin} {...line} />
+      <DrawnShape clock={clock} pen={part(1)} {...ARM_L} fill={shirt} {...line} />
+      <DrawnShape clock={clock} pen={part(1)} {...ARM_R} fill={shirt} {...line} />
+      <DrawnShape clock={clock} pen={part(2)} {...HAND_L} fill={skin} {...line} />
+      <DrawnShape clock={clock} pen={part(2)} {...HAND_R} fill={skin} {...line} />
       {/* neck and shirt */}
-      <DrawnShape clock={clock} pen={part(3)} {...NECK} fill={p.skin} {...line} />
-      <DrawnShape clock={clock} pen={part(3)} {...SHIRT} fill={p.shirt} {...line} />
-      <DrawnPath clock={clock} from={part(3)[0]} to={part(3)[1]} {...COLLAR} fill="none" stroke={p.draw} strokeWidth={1.4} strokeLinejoin="round" />
+      <DrawnShape clock={clock} pen={part(3)} {...NECK} fill={skin} {...line} />
+      <DrawnShape clock={clock} pen={part(3)} {...SHIRT} fill={shirt} {...line} />
+      <DrawnPath clock={clock} from={part(3)[0]} to={part(3)[1]} {...COLLAR} fill="none" stroke={p.draw} strokeWidth={pick(stroke.thin, 1.4)} strokeLinejoin="round" />
       {/* head with a short fringe of hair */}
-      <DrawnShape clock={clock} pen={part(4)} {...HEAD} fill={p.skin} {...line} />
-      <DrawnShape clock={clock} pen={part(5)} {...HAIR} fill={p.hair} {...line} />
+      <DrawnShape clock={clock} pen={part(4)} {...HEAD} fill={skin} {...line} />
+      <DrawnShape clock={clock} pen={part(5)} {...HAIR} fill={hair} {...line} />
       {cg && (
         <DrawnFade clock={clock} from={CG_MARK[0]} to={CG_MARK[1]}>
           <CgMark x={0} y={-PERSON_CG} color={p.draw} />
@@ -72,7 +76,7 @@ export const SCALES_H = 30;
  * ("60.0 kg", or "- - -" when it is hidden); with `reading` null the front face is plain.
  */
 export function Scales({ x, y, reading, width = 96, clock = STILL, pen = [0, 1] }: { x: number; y: number; reading: string | null; width?: number; clock?: DrawClock; pen?: Pen }) {
-  const { palette: p } = useTheme();
+  const { palette: p, material: m, stroke, pick } = useTheme();
   const w = width / 2;
   const front = 23; // front face height
   const top = y - front;
@@ -80,12 +84,12 @@ export function Scales({ x, y, reading, width = 96, clock = STILL, pen = [0, 1] 
   return (
     <G>
       {/* top face, seen slightly from above */}
-      <DrawnShape clock={clock} pen={penPart(pen, 0, 3)} {...topFace} fill={p.scalesTop} stroke={p.draw} strokeWidth={1.8} strokeLinejoin="round" />
+      <DrawnShape clock={clock} pen={penPart(pen, 0, 3)} {...topFace} fill={pick(m.metal, p.scalesTop)} stroke={p.draw} strokeWidth={stroke.body} strokeLinejoin="round" />
       {/* front face with the display */}
-      <DrawnShape clock={clock} pen={penPart(pen, 1, 3)} {...rectPath(x - w, top, width, front, 3)} fill={p.scalesFront} stroke={p.draw} strokeWidth={1.8} />
+      <DrawnShape clock={clock} pen={penPart(pen, 1, 3)} {...rectPath(x - w, top, width, front, 3)} fill={pick(m.metalSide, p.scalesFront)} stroke={p.draw} strokeWidth={stroke.body} />
       {reading !== null && (
         <G>
-          <DrawnShape clock={clock} pen={penPart(pen, 2, 3)} {...rectPath(x - 31, top + 4, 62, 15, 3)} fill={p.page} stroke={p.draw} strokeWidth={1.2} />
+          <DrawnShape clock={clock} pen={penPart(pen, 2, 3)} {...rectPath(x - 31, top + 4, 62, 15, 3)} fill={p.page} stroke={p.draw} strokeWidth={stroke.thin} />
           {/* the reading appears with the fills, never before (a hidden reading stays "- - -") */}
           <DrawnFade clock={clock} from={FILLS[0]} to={FILLS[1]}>
             <MonoLabel x={x} y={top + 15.5} text={reading} color={p.ink} size={11} />
