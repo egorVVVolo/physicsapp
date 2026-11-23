@@ -6,7 +6,7 @@
 // both push up through the centre, so F is stacked on U and the two together match W); the two balls side by side with
 // their weights; a stopwatch that runs while the ball is between the bands; or, on the explore screen (the slider =
 // temperature), a thermometer with η and the ball's speed, the ball drifting down at that speed.
-import { useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 import { Circle, G as Group, Line, Path, Rect } from 'react-native-svg';
 import { fixed, sci, sig } from '@/physics/format';
 import { glycerolViscosity, RHO_GLYCEROL, sphereUpthrust, sphereWeight, stokesDrag, stokesFall, stokesTerminal } from '@/physics/viscosity';
@@ -14,7 +14,7 @@ import type { TubeFig } from '@/content/types';
 import { useTheme } from '@/theme/ThemeContext';
 import { stroke } from '@/theme/tokens';
 import { useReducedMotionPref } from '@/ui/parts';
-import { STILL, useLoopTime, type DrawClock } from './anim';
+import { STILL, useFrame, useLoopTime, type DrawClock } from './anim';
 import { ForceArrow, ForceLetter, Hatch, MonoLabel } from './draw';
 import { Ball, stage, Rows as KitRows } from './kit';
 
@@ -54,23 +54,12 @@ export function tubeParams(fig: TubeFig, live?: number): string {
 /** The explore screen: the ball drifts down at its speed now (cm s⁻¹), starting again at the top near the bottom. */
 function useDrift(v: number, running: boolean, length: number): number {
   const [s, setS] = useState(length * 0.3);
-  const speed = useRef(v);
-  speed.current = v;
-  useEffect(() => {
-    if (!running) return;
-    let raf = 0;
-    let last = performance.now();
-    let pos = length * 0.3;
-    const step = (now: number) => {
-      pos += speed.current * Math.min(0.05, (now - last) / 1000);
-      last = now;
-      if (pos > length) pos = 0;
-      setS(pos);
-      raf = requestAnimationFrame(step);
-    };
-    raf = requestAnimationFrame(step);
-    return () => cancelAnimationFrame(raf);
-  }, [running, length]);
+  const [ball] = useState(() => ({ pos: length * 0.3 }));
+  useFrame(running, (dt) => {
+    ball.pos += v * dt;
+    if (ball.pos > length) ball.pos = 0;
+    setS(ball.pos);
+  });
   return s;
 }
 

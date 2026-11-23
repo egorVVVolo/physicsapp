@@ -6,10 +6,11 @@
 // where it was: it stays (gliding back if the screen was scrolled) and only the text and the button move in.
 import { Children, useContext, useEffect, useRef, useState, type ComponentRef, type ReactNode } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
-import { LessonFigs, SharedSheet } from '@/figures/anim';
+import { LessonFigs, SharedSheet, SheetVisible } from '@/figures/anim';
 import { Glide, Rise, ScreenEnter, useReducedMotionPref } from '@/ui/motion';
 
 export const CONTENT_MAX = 560;
+const PAD_TOP = 12; // the content's top padding: the figure starts this far down
 
 /**
  * `figFirst`: when the verdict sheet comes up, keep the figure in view instead of scrolling to the answer cards
@@ -37,6 +38,9 @@ export function Frame({ children, footer, sheet, center, fig, figFirst, figStill
   const scroll = useRef<ComponentRef<typeof ScrollView>>(null);
   const [footerH, setFooterH] = useState(0);
   const [sheetH, setSheetH] = useState(0);
+  // the figure's height and whether it is still in view: scrolled more than 70 % of it above the top, its loops pause
+  const [figH, setFigH] = useState(0);
+  const [figInView, setFigInView] = useState(true);
   // how far the sheet reaches above the footer, into the scrolling content
   const cover = sheet ? Math.max(0, sheetH - footerH) : 0;
 
@@ -71,11 +75,20 @@ export function Frame({ children, footer, sheet, center, fig, figFirst, figStill
         keyboardShouldPersistTaps="handled"
         scrollEventThrottle={32}
         onScroll={(e) => {
-          if (memory) memory.scrollY = e.nativeEvent.contentOffset.y;
+          const y = e.nativeEvent.contentOffset.y;
+          if (memory) memory.scrollY = y;
+          const inView = figH === 0 || y < PAD_TOP + figH * 0.7;
+          if (inView !== figInView) setFigInView(inView);
         }}
       >
         <View style={styles.column}>
-          {fig ? kept ? <Glide fromY={shared?.fromY ?? 0}>{fig}</Glide> : figStill ? fig : <Rise delay={90}>{fig}</Rise> : null}
+          {fig ? (
+            <SheetVisible.Provider value={figInView}>
+              <View onLayout={(e) => setFigH(e.nativeEvent.layout.height)}>
+                {kept ? <Glide fromY={shared?.fromY ?? 0}>{fig}</Glide> : figStill ? fig : <Rise delay={90}>{fig}</Rise>}
+              </View>
+            </SheetVisible.Provider>
+          ) : null}
           {/* the blocks of a screen rise in one after another (a block added later rises when it appears) */}
           <ScreenEnter still={!kept} style={styles.blocks}>
             {Children.map(children, (child, i) => (child ? <Rise delay={90 + (i + first) * 80}>{child}</Rise> : null))}
@@ -101,7 +114,7 @@ export function Frame({ children, footer, sheet, center, fig, figFirst, figStill
 const styles = StyleSheet.create({
   root: { flex: 1 },
   scroll: { flex: 1 },
-  content: { paddingHorizontal: 20, paddingTop: 12, flexGrow: 1 },
+  content: { paddingHorizontal: 20, paddingTop: PAD_TOP, flexGrow: 1 },
   center: { justifyContent: 'center' },
   column: { width: '100%', maxWidth: CONTENT_MAX, alignSelf: 'center', gap: 20 },
   blocks: { gap: 20 },

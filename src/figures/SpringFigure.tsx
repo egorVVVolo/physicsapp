@@ -5,7 +5,7 @@
 // On the right: the readings (one column per spring), the halves (a paint mark on the middle coil, read on the ruler
 // with no load and loaded), or a force–extension graph traced by the explore's point (the slider = the load).
 // `view: 'lines'`: only a large force–extension graph, one line per stiffness; the letters at the line ends are tap targets.
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Circle, G as Group, Line, Path, Rect } from 'react-native-svg';
 import { fixed, sig } from '@/physics/format';
 import { bobOmega, bobStep, cutStiffness, extensionFor, type Bob } from '@/physics/springs';
@@ -13,7 +13,7 @@ import type { SpringFig, SpringHang } from '@/content/types';
 import { useTheme } from '@/theme/ThemeContext';
 import { stroke } from '@/theme/tokens';
 import { useReducedMotionPref } from '@/ui/parts';
-import { STILL, type DrawClock } from './anim';
+import { STILL, useFrame, type DrawClock } from './anim';
 import { DrawnFade, ForceArrow, ForceLetter, Hatch, MonoLabel } from './draw';
 import type { TapProps, TapTarget } from './Sheet';
 import { stage, TapBoxes, Rows } from './kit';
@@ -50,35 +50,30 @@ function springNumbers(fig: SpringFig, s: SpringHang, live?: number) {
 /** Each spring's extension now: it follows its resting extension like a load on a spring, bobbing and settling. */
 function useBobs(targets: number[], omegas: number[], running: boolean): number[] {
   const reduced = useReducedMotionPref();
-  const bobs = useRef<Bob[]>(targets.map((x) => ({ x, v: 0 })));
-  const goal = useRef({ targets, omegas });
-  goal.current = { targets, omegas };
+  const [state] = useState(() => ({ bobs: targets.map((x): Bob => ({ x, v: 0 })), calm: 0 }));
   const [xs, setXs] = useState(targets);
   const key = targets.map((x) => x.toFixed(5)).join(',');
+  const still = reduced || !running;
   useEffect(() => {
-    if (reduced || !running) {
-      bobs.current = goal.current.targets.map((x) => ({ x, v: 0 }));
-      setXs(goal.current.targets);
-      return;
-    }
-    let raf = 0;
-    let last = performance.now();
-    let calm = 0;
-    const step = (now: number) => {
-      const dt = Math.min(0.05, (now - last) / 1000);
-      last = now;
-      const { targets: tg, omegas: om } = goal.current;
-      bobs.current = tg.map((x, i) => bobStep(bobs.current[i] ?? { x, v: 0 }, x, om[i], ZETA, dt));
-      setXs(bobs.current.map((b) => b.x));
-      const still = bobs.current.every((b, i) => Math.abs(b.x - tg[i]) < 1e-5 && Math.abs(b.v) < 1e-4);
-      calm = still ? calm + 1 : 0;
-      if (calm > 10) return; // settled: stop until the target moves again
-      raf = requestAnimationFrame(step);
-    };
-    raf = requestAnimationFrame(step);
-    return () => cancelAnimationFrame(raf);
-  }, [key, reduced, running]);
-  return reduced || !running ? targets : xs;
+    state.calm = 0;
+    if (!still) return;
+    state.bobs = targets.map((x) => ({ x, v: 0 }));
+    setXs(targets);
+    // `targets` is read through `key`
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [key, still, state]);
+  useFrame(
+    !still,
+    (dt) => {
+      state.bobs = targets.map((x, i) => bobStep(state.bobs[i] ?? { x, v: 0 }, x, omegas[i], ZETA, dt));
+      setXs(state.bobs.map((b) => b.x));
+      const calm = state.bobs.every((b, i) => Math.abs(b.x - targets[i]) < 1e-5 && Math.abs(b.v) < 1e-4);
+      state.calm = calm ? state.calm + 1 : 0;
+      return state.calm <= 10; // settled: stop until the target moves again
+    },
+    key,
+  );
+  return still ? targets : xs;
 }
 
 type Props = { fig: SpringFig; live?: number; playing: boolean; tap?: TapProps; clock?: DrawClock };

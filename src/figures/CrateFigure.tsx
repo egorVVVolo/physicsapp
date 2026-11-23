@@ -5,7 +5,7 @@
 // Played, the floor slides past at a steady speed; once Rose lets go the crate slides on and stops (friction μN).
 // A force the question asks about is a dashed "?" stub until Check; arrows grow when they first appear and change
 // smoothly when the sheet is kept for the next screen.
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Circle, G as Group, Line, Path, Rect } from 'react-native-svg';
 import { acceleration, normalWithPull, weight, frictionCoefficient } from '@/physics/dynamics';
 import { brakingPosition, G, stoppingTime } from '@/physics/kinematics';
@@ -14,7 +14,7 @@ import { fixed } from '@/physics/format';
 import type { CrateFig, CrateForce } from '@/content/types';
 import { useTheme } from '@/theme/ThemeContext';
 import { stroke } from '@/theme/tokens';
-import { CHANGE_DELAY, STILL, useLoopTime, useTween, type DrawClock } from './anim';
+import { CHANGE_DELAY, STILL, useFrame, useLoopTime, useTweens, type DrawClock } from './anim';
 import { CgMark, ForceArrow, ForceLetter, MonoLabel, useLineStep } from './draw';
 import { Mitten } from './SledgeFigure';
 import { stage, Tag } from './kit';
@@ -118,16 +118,20 @@ export function CrateFigure({ fig, live, playing, clock = STILL, prev }: Props) 
   const from = (k: CrateForce) => (prev && prevF && shown(k, prev) ? prevF[k] * kf : 0);
   const ms = live !== undefined ? 160 : 420;
   const wait = (i: number) => (kept ? CHANGE_DELAY : 300 + i * 220);
-  const len = {
-    W: useTween(target('W'), from('W'), ms, wait(0)),
-    N: useTween(target('N'), from('N'), ms, wait(1)),
-    F: useTween(target('F'), from('F'), ms, wait(2)),
-    T: useTween(target('T'), from('T'), ms, wait(3)),
-  };
-  const split = useTween(fig.split ? 1 : 0, prev?.split ? 1 : 0, 420, kept ? CHANGE_DELAY : 1100);
-  const shift = useTween(sceneShift(fig), prev ? sceneShift(prev) : undefined, 420, kept ? CHANGE_DELAY : 0);
-  const zoom = useTween(sceneZoom(fig), prev ? sceneZoom(prev) : undefined, 420, kept ? CHANGE_DELAY : 0);
-  const floorEnd = useTween(hasFbd(fig) ? divide - 8 : 332, prev ? (hasFbd(prev) ? divide - 8 : 332) : undefined, 420, kept ? CHANGE_DELAY : 0);
+  // everything that changes on the sheet eases on one clock: the arrows, the split, the scene sliding aside and zooming
+  const change = kept ? CHANGE_DELAY : 0;
+  const floorTo = (of: CrateFig) => (hasFbd(of) ? divide - 8 : 332);
+  const [lW, lN, lF, lT, split, shift, zoom, floorEnd] = useTweens([
+    { to: target('W'), from: from('W'), ms, delay: wait(0) },
+    { to: target('N'), from: from('N'), ms, delay: wait(1) },
+    { to: target('F'), from: from('F'), ms, delay: wait(2) },
+    { to: target('T'), from: from('T'), ms, delay: wait(3) },
+    { to: fig.split ? 1 : 0, from: prev?.split ? 1 : 0, delay: kept ? CHANGE_DELAY : 1100 },
+    { to: sceneShift(fig), from: prev ? sceneShift(prev) : undefined, delay: change },
+    { to: sceneZoom(fig), from: prev ? sceneZoom(prev) : undefined, delay: change },
+    { to: floorTo(fig), from: prev ? floorTo(prev) : undefined, delay: change },
+  ]);
+  const len = { W: lW, N: lN, F: lF, T: lT };
 
   // the motion: the floor slides past (steady), or the crate slides on and stops (let go)
   const braking = { u: LET_GO_V, a: -f.mu * G, react: 0 };
@@ -333,36 +337,19 @@ function AccMark({ x, y, back }: { x: number; y: number; back: boolean }) {
  */
 function useAccelerating(running: boolean, a: number): { s: number; v: number } {
   const [state, setState] = useState({ s: 0, v: ACC_U });
-  const acc = useRef(a);
+  // stopped: when a slowing crate came to rest; it waits a moment, then the clip starts again
+  const [clip] = useState(() => ({ t: 0, s: 0, v: ACC_U, stopped: -1 }));
   useEffect(() => {
-    acc.current = a;
-  }, [a]);
-  useEffect(() => {
-    if (!running) return;
-    let raf = 0;
-    let last = performance.now();
-    let t = 0;
-    let s = 0;
-    let v = ACC_U;
-    let stopped = -1; // when a slowing crate came to rest: it waits a moment, then the clip starts again
-    const step = (now: number) => {
-      const dt = Math.min(0.05, (now - last) / 1000);
-      last = now;
-      t += dt;
-      if (t > ACC_RUN || (stopped >= 0 && t - stopped > 0.6)) {
-        t = 0;
-        v = ACC_U;
-        stopped = -1;
-      }
-      const v1 = Math.max(0, v + acc.current * dt);
-      s += ((v + v1) / 2) * dt; // exact for a constant a
-      v = v1;
-      if (v === 0 && stopped < 0) stopped = t;
-      setState({ s, v });
-      raf = requestAnimationFrame(step);
-    };
-    raf = requestAnimationFrame(step);
-    return () => cancelAnimationFrame(raf);
-  }, [running]);
+    if (running) Object.assign(clip, { t: 0, s: 0, v: ACC_U, stopped: -1 });
+  }, [running, clip]);
+  useFrame(running, (dt) => {
+    clip.t += dt;
+    if (clip.t > ACC_RUN || (clip.stopped >= 0 && clip.t - clip.stopped > 0.6)) Object.assign(clip, { t: 0, v: ACC_U, stopped: -1 });
+    const v1 = Math.max(0, clip.v + a * dt);
+    clip.s += ((clip.v + v1) / 2) * dt; // exact for a constant a
+    clip.v = v1;
+    if (v1 === 0 && clip.stopped < 0) clip.stopped = clip.t;
+    setState({ s: clip.s, v: clip.v });
+  });
   return state;
 }

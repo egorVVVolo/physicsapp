@@ -6,7 +6,7 @@
 // own energies.
 // HeightFigure: a tower crane holds the car over the road by a height ruler; two bars to one scale compare its gain in
 // GPE, mgh, with its kinetic energy at a given speed.
-import { useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 import { Circle, G as Group, Line, Path, Rect } from 'react-native-svg';
 import { kineticEnergy, potentialChange } from '@/physics/energy';
 import { fixed, sig } from '@/physics/format';
@@ -14,7 +14,7 @@ import type { HeightFig, KineticFig } from '@/content/types';
 import { useTheme } from '@/theme/ThemeContext';
 import { stroke } from '@/theme/tokens';
 import { useReducedMotionPref } from '@/ui/parts';
-import { STILL, useLoopTime, useTween, type DrawClock } from './anim';
+import { STILL, useFrame, useLoopTime, useTween, type DrawClock } from './anim';
 import { Hatch, MonoLabel } from './draw';
 import { Car, WHEEL_R, HollowArrow, stage, Tag } from './kit';
 
@@ -45,22 +45,11 @@ export const kineticPlays = (fig: KineticFig): boolean => fig.v > 0;
 /** Distance (viewBox units) the road has slid, at a speed that may change, while `running`. */
 function useScroll(speed: number, running: boolean): number {
   const [x, setX] = useState(0);
-  const pos = useRef(0);
-  const v = useRef(speed);
-  v.current = speed;
-  useEffect(() => {
-    if (!running) return;
-    let raf = 0;
-    let last = performance.now();
-    const step = (now: number) => {
-      pos.current += v.current * Math.min(0.05, (now - last) / 1000);
-      last = now;
-      setX(pos.current);
-      raf = requestAnimationFrame(step);
-    };
-    raf = requestAnimationFrame(step);
-    return () => cancelAnimationFrame(raf);
-  }, [running]);
+  const [road] = useState(() => ({ pos: 0 }));
+  useFrame(running, (dt) => {
+    road.pos += speed * dt;
+    setX(road.pos);
+  });
   return x;
 }
 

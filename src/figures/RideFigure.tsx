@@ -5,7 +5,7 @@
 // With `perSecond` the posts stand v × 1 s apart, so she passes one each second; with `power` her power P = Dv is
 // written in (or "P = ?"); with `compare` two lanes ride at two speeds, one above the other.
 // On the explore screen the slider sets the speed: D grows as v², so twice the speed draws four times the arrow.
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import { Circle, G as Group, Line, Path, Rect } from 'react-native-svg';
 import { dragForce } from '@/physics/drag';
 import { powerFromForce } from '@/physics/power';
@@ -14,7 +14,7 @@ import type { RideFig } from '@/content/types';
 import { useTheme } from '@/theme/ThemeContext';
 import { stroke } from '@/theme/tokens';
 import { useReducedMotionPref } from '@/ui/parts';
-import { STILL, useTween, type DrawClock } from './anim';
+import { STILL, useFrame, useTween, type DrawClock } from './anim';
 import { DrawnFade, ForceArrow, MonoLabel } from './draw';
 import { Dim, HollowArrow, stage, Tag } from './kit';
 
@@ -58,22 +58,11 @@ export function rideParams(fig: RideFig, live?: number): string {
 /** Distance (viewBox units) the road has slid, at a speed that may change, while `running`. */
 function useScroll(speed: number, running: boolean): number {
   const [x, setX] = useState(0);
-  const pos = useRef(0);
-  const v = useRef(speed);
-  v.current = speed;
-  useEffect(() => {
-    if (!running) return;
-    let raf = 0;
-    let last = performance.now();
-    const step = (now: number) => {
-      pos.current += v.current * Math.min(0.05, (now - last) / 1000);
-      last = now;
-      setX(pos.current);
-      raf = requestAnimationFrame(step);
-    };
-    raf = requestAnimationFrame(step);
-    return () => cancelAnimationFrame(raf);
-  }, [running]);
+  const [road] = useState(() => ({ pos: 0 }));
+  useFrame(running, (dt) => {
+    road.pos += speed * dt;
+    setX(road.pos);
+  });
   return x;
 }
 

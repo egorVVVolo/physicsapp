@@ -61,24 +61,32 @@ function frontOffset(along: number, offset: number): number {
 
 const WAKE = 1.0; // lines that start closer to the axis than this (in radii) break away into the wake
 
+type WakePoint = { y: number; along: number; d: number };
+
 /**
  * A sketch of turbulent flow: smooth round the front of the ball (ideal flow), then the line breaks away beside it. Lines
- * near the axis end at the ball's side; the outer ones are pushed out by the widening wake and waver more and more.
+ * near the axis end at the ball's side; the outer ones are pushed out by the widening wake. This is the still shape, worked
+ * out once (the ideal-flow solve is the costly part); `wavering` adds the motion each frame.
  */
-function turbulentLine(cx: number, offset: number, side: 1 | -1, t: number): string {
-  const pts: string[] = [];
+function turbulentShape(offset: number): WakePoint[] {
+  const pts: WakePoint[] = [];
   const atSide = frontOffset(0, offset);
   for (let y = BOTTOM; y >= TOP; y -= 4) {
     const along = (CY - y) / A;
     if (along > 0 && offset < WAKE) break;
     let d = along <= 0 ? frontOffset(along, offset) : atSide;
-    if (along > 0) {
-      const wake = 1.05 + 0.13 * along;
-      d = Math.max(d - 0.2 * Math.min(1, along / 2), wake + (offset - WAKE) * 0.9);
-      d += (Math.sin(along * 1.7 - t * 2.6 + offset * 2 + (side > 0 ? 0 : 1.6)) * Math.min(0.4, along * 0.11) * 1.4) / Math.max(1, offset);
-    }
-    pts.push(`${(cx + side * d * A).toFixed(1)},${y}`);
+    if (along > 0) d = Math.max(d - 0.2 * Math.min(1, along / 2), 1.05 + 0.13 * along + (offset - WAKE) * 0.9);
+    pts.push({ y, along, d });
   }
+  return pts;
+}
+
+/** The turbulent line at time t: behind the ball it wavers, more and more further back. */
+function wavering(shape: WakePoint[], cx: number, offset: number, side: 1 | -1, t: number): string {
+  const pts = shape.map(({ y, along, d }) => {
+    const w = along > 0 ? (Math.sin(along * 1.7 - t * 2.6 + offset * 2 + (side > 0 ? 0 : 1.6)) * Math.min(0.4, along * 0.11) * 1.4) / Math.max(1, offset) : 0;
+    return `${(cx + side * (d + w) * A).toFixed(1)},${y}`;
+  });
   return `M${pts.join(' L')}`;
 }
 
@@ -102,11 +110,13 @@ export function FlowFigure({ fig, playing, tap, clock = STILL }: Props) {
   const vG = stokesTerminal(fig.r, fig.rho, RHO_GLYCEROL, glycerolViscosity(fig.T));
   const vW = turbulentTerminal(fig.r, fig.rho, 1000);
   const shift = -(t / LOOP) * DASH * 2; // the dashes stream upwards: each line is drawn from the bottom
+  // the still geometry is worked out once; each frame only moves the dashes, the wavering wake and the eddies
   const laminar = useMemo(() => OFFSETS.flatMap((o) => ([1, -1] as const).map((side) => stokesLine(CX.glycerol, o, side))), []);
+  const wake = useMemo(() => OFFSETS.map((o) => turbulentShape(o)), []);
   const lines = (cx: number, turbulent: boolean) =>
     OFFSETS.flatMap((o, i) =>
       ([1, -1] as const).map((side, j) => {
-        const d = turbulent ? turbulentLine(cx, o, side, t) : laminar[i * 2 + j];
+        const d = turbulent ? wavering(wake[i], cx, o, side, t) : laminar[i * 2 + j];
         return (
           <Group key={`${o}${side}`}>
             <Path d={d} stroke={p.label} strokeWidth={stroke.thin} fill="none" opacity={0.55} />

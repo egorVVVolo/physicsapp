@@ -1,7 +1,7 @@
 // Small animation clocks for figures. They run on requestAnimationFrame and re-render only the
 // component that uses them (a few SVG lines), which is cheap enough for Expo Go and works on the web.
 // With reduced motion turned on, values jump straight to their target and loops stay still.
-import { createContext, useContext, useEffect, useRef, useState } from 'react';
+import { createContext, useContext, useEffect, useState } from 'react';
 import { Easing, useSharedValue, withDelay, withTiming, type SharedValue } from 'react-native-reanimated';
 import type { Fig } from '@/content/types';
 import { motion } from '@/theme/tokens';
@@ -69,36 +69,95 @@ export const SharedSheet = createContext<SharedFig | null>(null);
 /** On a sheet that stays, the change waits this long, so the eye is on the figure when it happens. */
 export const CHANGE_DELAY = motion.base;
 
+// ── Clocks that stop when nobody can see them ──
+
+/**
+ * Whether the sheet is in view: false when the screen is scrolled so the sheet is mostly above the top (Frame), on a
+ * compact sheet (a still reminder), and while the app is in the background (Sheet). Loops pause on the frame they are at;
+ * short one-off changes (tweens, once-clips) simply finish. Outside a sheet it is true.
+ */
+export const SheetVisible = createContext(true);
+
+/**
+ * The one frame clock every figure uses: calls `step(dt)` on each animation frame while `running` and the sheet is in
+ * view (dt in seconds, never more than 0.05, so a long gap never jumps far). `step` returning false stops the clock until
+ * `wake` changes (or `running` / visibility turn it on again).
+ */
+export function useFrame(running: boolean, step: (dt: number) => boolean | void, wake?: unknown): void {
+  const visible = useContext(SheetVisible);
+  const [box] = useState(() => ({ step }));
+  box.step = step;
+  const active = running && visible;
+  useEffect(() => {
+    if (!active) return;
+    let raf = 0;
+    let last = performance.now();
+    const tick = (now: number) => {
+      const dt = Math.min(0.05, (now - last) / 1000);
+      last = now;
+      if (box.step(dt) === false) return;
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [active, wake, box]);
+}
+
+/** One eased number: where it goes, where it starts (default: already there), how long (ms), and a wait before its first move. */
+export type TweenSpec = { to: number; from?: number; ms?: number; delay?: number };
+
+/**
+ * Several numbers that each ease to their `to` whenever it changes (ease-out cubic), all on one frame clock.
+ * `delay` holds only each number's very first move, so a figure can wait until its screen has slid in.
+ * Reduced motion or a sheet out of view: the numbers are simply at their targets.
+ */
+export function useTweens(specs: TweenSpec[]): number[] {
+  const reduced = useReducedMotionPref();
+  const visible = useContext(SheetVisible);
+  const snap = reduced || !visible;
+  const [parts] = useState(() => {
+    const now = performance.now();
+    return specs.map((s) => ({ start: s.from ?? s.to, to: s.to, at: s.from ?? s.to, t0: now + (s.delay ?? 0) }));
+  });
+  const [values, setValues] = useState(() => parts.map((q) => q.at));
+  const key = specs.map((s) => s.to).join(',');
+  useEffect(() => {
+    const now = performance.now();
+    specs.forEach((s, i) => {
+      const q = parts[i];
+      if (!q) return;
+      if (snap) Object.assign(q, { start: s.to, to: s.to, at: s.to });
+      else if (q.to !== s.to) Object.assign(q, { start: q.at, to: s.to, t0: Math.max(now, q.t0) });
+    });
+    if (snap) setValues(parts.map((q) => q.at));
+    // `specs` is read through `key`: only a new target matters
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [key, snap, parts]);
+  const ms = specs.map((s) => s.ms ?? 420);
+  useFrame(
+    !snap,
+    () => {
+      const now = performance.now();
+      let moving = false;
+      parts.forEach((q, i) => {
+        const k = Math.max(0, Math.min(1, (now - q.t0) / ms[i]));
+        q.at = q.start + (q.to - q.start) * (1 - (1 - k) ** 3);
+        if (k < 1) moving = true;
+      });
+      setValues(parts.map((q) => q.at));
+      return moving;
+    },
+    key,
+  );
+  return snap ? specs.map((s) => s.to) : values;
+}
+
 /**
  * A number that eases to `target` whenever it changes (ease-out cubic). Starts at `from` if given.
  * `delay` (ms) holds only the very first animation, so a figure can wait until its screen has slid in.
  */
 export function useTween(target: number, from?: number, ms = 420, delay = 0): number {
-  const reduced = useReducedMotionPref();
-  const [value, setValue] = useState(from ?? target);
-  const current = useRef(from ?? target);
-  const first = useRef(true);
-  useEffect(() => {
-    if (reduced) {
-      current.current = target;
-      setValue(target);
-      return;
-    }
-    const start = current.current;
-    const t0 = performance.now() + (first.current ? delay : 0);
-    first.current = false;
-    let raf = 0;
-    const step = (now: number) => {
-      const k = Math.max(0, Math.min(1, (now - t0) / ms));
-      const x = start + (target - start) * (1 - (1 - k) ** 3);
-      current.current = x;
-      setValue(x);
-      if (k < 1) raf = requestAnimationFrame(step);
-    };
-    raf = requestAnimationFrame(step);
-    return () => cancelAnimationFrame(raf);
-  }, [target, reduced, ms, delay]);
-  return value;
+  return useTweens([{ to: target, from, ms, delay }])[0];
 }
 
 /**
@@ -109,30 +168,21 @@ export const SheetReplay = createContext(0);
 
 /**
  * Time in seconds inside a repeating clip: runs 0 → `length`, holds the last frame for `hold`, starts again.
- * `running` false pauses on the current frame; a new `restartKey` goes back to 0.
+ * `running` false (or the sheet out of view) pauses on the current frame; a new `restartKey` goes back to 0.
  */
 export function useLoopTime(running: boolean, length: number, restartKey: unknown, hold = 0.7): number {
   const replay = useContext(SheetReplay);
   const [t, setT] = useState(0);
-  const time = useRef(0);
+  const [clip] = useState(() => ({ time: 0 }));
   useEffect(() => {
-    time.current = 0;
+    clip.time = 0;
     setT(0);
-  }, [restartKey, replay]);
-  useEffect(() => {
-    if (!running || length <= 0) return;
-    let raf = 0;
-    let last = performance.now();
-    const step = (now: number) => {
-      time.current += Math.min(0.05, (now - last) / 1000); // a long gap (tab hidden) never jumps far
-      last = now;
-      if (time.current > length + hold) time.current = 0;
-      setT(Math.min(time.current, length));
-      raf = requestAnimationFrame(step);
-    };
-    raf = requestAnimationFrame(step);
-    return () => cancelAnimationFrame(raf);
-  }, [running, length, hold, restartKey, replay]);
+  }, [restartKey, replay, clip]);
+  useFrame(running && length > 0, (dt) => {
+    clip.time += dt;
+    if (clip.time > length + hold) clip.time = 0;
+    setT(Math.min(clip.time, length));
+  });
   return t;
 }
 
@@ -143,50 +193,49 @@ export function useLoopTime(running: boolean, length: number, restartKey: unknow
 export function useWave(period = 1.6, running = true): number {
   const reduced = useReducedMotionPref();
   const [w, setW] = useState(0);
-  useEffect(() => {
-    if (reduced || !running) return;
-    let raf = 0;
-    let last = 0;
-    const t0 = performance.now();
-    const step = (now: number) => {
-      if (now - last > 33) {
-        last = now;
-        setW(Math.sin(((now - t0) / 1000 / period) * 2 * Math.PI));
-      }
-      raf = requestAnimationFrame(step);
-    };
-    raf = requestAnimationFrame(step);
-    return () => cancelAnimationFrame(raf);
-  }, [period, reduced, running]);
-  return w;
+  const [clip] = useState(() => ({ time: 0, since: 0 }));
+  useFrame(!reduced && running, (dt) => {
+    clip.time += dt;
+    clip.since += dt;
+    if (clip.since < 0.033) return;
+    clip.since = 0;
+    setW(Math.sin((clip.time / period) * 2 * Math.PI));
+  });
+  return reduced ? 0 : w;
 }
 
 /**
  * Seconds since the component appeared (or since `start` became true), counting up to `length` once and then staying there.
- * Reduced motion, or `done` (the figure was already on the screen before): `length` at once.
+ * Reduced motion, `done` (the figure was already on the screen before) or a sheet out of view: `length` at once.
  */
 export function useOnceTime(length: number, start = true, doneIn = false): number {
   const reduced = useReducedMotionPref();
+  const visible = useContext(SheetVisible);
   const replay = useContext(SheetReplay);
   const done = doneIn && replay === 0; // a replay plays it even if it was already on the screen before
-  const [t, setT] = useState(done ? length : 0);
+  const finished = reduced || done;
+  const [t, setT] = useState(finished ? length : 0);
+  const [clip] = useState(() => ({ time: 0 }));
   useEffect(() => {
-    if (reduced || done) {
-      setT(length);
-      return;
-    }
-    if (!start) return;
-    let raf = 0;
-    const t0 = performance.now();
-    const step = (now: number) => {
-      const x = Math.min(length, (now - t0) / 1000);
-      setT(x);
-      if (x < length) raf = requestAnimationFrame(step);
-    };
-    raf = requestAnimationFrame(step);
-    return () => cancelAnimationFrame(raf);
-  }, [length, reduced, start, done, replay]);
-  return t;
+    clip.time = finished ? length : 0;
+    setT(clip.time);
+  }, [length, finished, replay, clip]);
+  // out of view the clip finishes (and stays finished when it comes back into view)
+  useEffect(() => {
+    if (visible) return;
+    clip.time = length;
+    setT(length);
+  }, [visible, length, clip]);
+  useFrame(
+    start && !finished,
+    (dt) => {
+      clip.time = Math.min(length, clip.time + dt);
+      setT(clip.time);
+      return clip.time < length;
+    },
+    `${length}-${replay}`,
+  );
+  return finished ? length : t;
 }
 
 /** 0 → 1 between `start` and `start + dur` seconds, eased out (cubic). */

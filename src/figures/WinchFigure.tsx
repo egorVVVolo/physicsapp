@@ -5,7 +5,7 @@
 // the motor; "?" until the question is answered.
 // On the explore screen the slider sets the load and the useful power stays the same, so the pallet rises at
 // v = P ÷ mg: the cable's pull T (= mg at a steady speed) grows and the speed falls. A panel works out P = Tv.
-import { useEffect, useRef, useState } from 'react';
+import { useContext, useEffect, useState } from 'react';
 import { Circle, G as Group, Line, Path, Rect } from 'react-native-svg';
 import { weight } from '@/physics/dynamics';
 import { potentialChange } from '@/physics/energy';
@@ -15,7 +15,7 @@ import type { WinchFig } from '@/content/types';
 import { useTheme } from '@/theme/ThemeContext';
 import { stroke } from '@/theme/tokens';
 import { useReducedMotionPref } from '@/ui/parts';
-import { STILL, useTween, type DrawClock } from './anim';
+import { SheetReplay, STILL, useFrame, useTween, type DrawClock } from './anim';
 import { ForceArrow, ForceLetter, Hatch, MonoLabel } from './draw';
 import { Dim, HollowArrow, stage } from './kit';
 
@@ -54,31 +54,24 @@ export function winchParams(fig: WinchFig, live?: number): string {
 
 /** Height (m) of the pallet: it rises at v from the ground to h, rests, and starts again, while `running`. */
 function useRise(v: number, h: number, running: boolean): number {
+  const replay = useContext(SheetReplay);
   const [s, setS] = useState(0);
-  const pos = useRef(0);
-  const rest = useRef(0);
-  const speed = useRef(v);
-  speed.current = v;
+  const [pallet] = useState(() => ({ pos: 0, rest: 0 }));
   useEffect(() => {
-    if (!running) return;
-    let raf = 0;
-    let last = performance.now();
-    const step = (now: number) => {
-      const dt = Math.min(0.05, (now - last) / 1000);
-      last = now;
-      if (pos.current >= h) {
-        rest.current += dt;
-        if (rest.current > HOLD) {
-          pos.current = 0;
-          rest.current = 0;
-        }
-      } else pos.current = Math.min(h, pos.current + speed.current * dt);
-      setS(pos.current);
-      raf = requestAnimationFrame(step);
-    };
-    raf = requestAnimationFrame(step);
-    return () => cancelAnimationFrame(raf);
-  }, [running, h]);
+    pallet.pos = 0;
+    pallet.rest = 0;
+    setS(0);
+  }, [replay, h, pallet]);
+  useFrame(running, (dt) => {
+    if (pallet.pos >= h) {
+      pallet.rest += dt;
+      if (pallet.rest > HOLD) {
+        pallet.pos = 0;
+        pallet.rest = 0;
+      }
+    } else pallet.pos = Math.min(h, pallet.pos + v * dt);
+    setS(pallet.pos);
+  });
   return s;
 }
 

@@ -1,7 +1,7 @@
 // The drawing sheet: every figure sits on pale drafting paper with a FIG number and its given values.
 // It sizes the SVG to the available width and lays tap targets (if any) over the drawing.
 import { useContext, useEffect, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { AppState, Pressable, StyleSheet, Text, View } from 'react-native';
 import Svg, { Path, Rect } from 'react-native-svg';
 import type { Fig } from '@/content/types';
 import { useTheme } from '@/theme/ThemeContext';
@@ -13,7 +13,7 @@ import { LIFT_VB, LiftFigure, liftMoves, liftParams, liftShiftX, liftTargets, Sh
 import { LIFT_PAIR_VB, LiftPairFigure } from './LiftPairFigure';
 import { SCALES_VB, ScalesFigure } from './ScalesFigure';
 import { PAIRS_MAX_H, PAIRS_VB, PairsFigure, pairsTargets } from './PairsFigure';
-import { LessonFigs, SharedSheet, SheetReplay, useDrawIn, useFirstShow, useTween } from './anim';
+import { LessonFigs, SharedSheet, SheetReplay, SheetVisible, useDrawIn, useFirstShow, useTween } from './anim';
 import { VT_VB, VtFigure, vtTargets } from './VtFigure';
 import { THROW_VB, ThrowFigure, throwParams, throwPlays, throwTargets } from './ThrowFigure';
 import { FALL_VB, FallGraphFigure, THROW_VT_VB, ThrowVtFigure } from './ThrowGraphs';
@@ -97,8 +97,8 @@ const STYLE_2 = new Set<Fig['kind']>([
   'spring', 'wire', 'material', 'launcher',
 ]);
 
-/** Moving figures with no clip to start again: endless flows, or figures that keep their own clock (see C11). */
-const NO_REPLAY: Fig['kind'][] = ['lift', 'liftPair', 'flow', 'ride', 'winch', 'spring'];
+/** Moving figures with no clip to start again: endless flows, or a load that only settles. */
+const NO_REPLAY: Fig['kind'][] = ['lift', 'liftPair', 'flow', 'ride', 'spring'];
 
 /** Every figure is drawn at the same size on every screen, so the drawing never jumps between screens. */
 const MAX_H = 270;
@@ -106,6 +106,16 @@ const MAX_H = 270;
 const COMPACT = 0.6;
 /** The figures that draw themselves the first time their kind appears in a lesson. */
 const DRAWS_ITSELF: Fig['kind'][] = ['scales', 'lift', 'pairs', 'throw', 'throwVt', 'fallGraph', 'road', 'brakeVt', 'equations', 'graph', 'chase', 'track', 'vectors', 'sledge', 'hill', 'resolve', 'bench', 'kick', 'crate', 'ladder', 'particle', 'pulley', 'fall', 'wall', 'bodies', 'collide', 'spanner', 'pole', 'bar', 'beam', 'broom', 'platform', 'ramp', 'kinetic', 'height', 'cliff', 'slide', 'ride', 'winch', 'tank', 'dunk', 'tube', 'flow', 'spring', 'wire', 'material', 'launcher'];
+
+/** False while the app is in the background: nothing on a sheet animates then. */
+function useAppActive(): boolean {
+  const [active, setActive] = useState(AppState.currentState !== 'background');
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (state) => setActive(state === 'active'));
+    return () => sub.remove();
+  }, []);
+  return active;
+}
 
 export function Sheet({ fig, n, live, tap: tapIn, caption, compact = false, still: stillProp = false }: Props) {
   const still = compact || stillProp;
@@ -119,6 +129,9 @@ export function Sheet({ fig, n, live, tap: tapIn, caption, compact = false, stil
   const [playing, setPlaying] = useState(true);
   const [replays, setReplays] = useState(0);
   const reduced = useReducedMotionPref();
+  // scrolled mostly out of view (Frame), a compact reminder, or the app in the background: loops pause, changes finish
+  const appActive = useAppActive();
+  const inView = useContext(SheetVisible) && !compact && appActive;
   // the first figure of each kind in a lesson draws itself; the pen starts once the sheet knows its size
   const first = useFirstShow(fig.kind);
   const clock = useDrawIn(!still && first && width > 0 && DRAWS_ITSELF.includes(fig.kind));
@@ -147,6 +160,7 @@ export function Sheet({ fig, n, live, tap: tapIn, caption, compact = false, stil
   const params = caption ?? paramsOf(fig, aNow, live);
 
   return (
+    <SheetVisible.Provider value={inView}>
     <View style={[styles.sheet, { backgroundColor: p.paper, borderColor: p.paperLine }]}>
       <View style={styles.head}>
         <Text style={[styles.fig, { color: p.label }]}>FIG. {n}</Text>
@@ -272,6 +286,7 @@ export function Sheet({ fig, n, live, tap: tapIn, caption, compact = false, stil
         )}
       </View>
     </View>
+    </SheetVisible.Provider>
   );
 }
 
