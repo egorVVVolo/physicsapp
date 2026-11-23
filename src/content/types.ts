@@ -1147,7 +1147,20 @@ export type GraphPickScreen = Base & {
   why: string;
 };
 
-export type Screen = IntroScreen | TextScreen | PredictScreen | ChoiceScreen | ExploreScreen | TapFigScreen | BuildScreen | OrderScreen | SpotErrorScreen | SortScreen | EstimateScreen | WorkedScreen | GraphPickScreen;
+/** The command word of an exam question: it says what kind of answer earns the marks. */
+export type Command = 'State' | 'Calculate' | 'Explain' | 'Show that' | 'Describe' | 'Determine';
+/** One part of an exam-style card, answered once. `marks`: what it is worth. */
+export type ExamPart =
+  | { id: string; command: Command; text: string; marks: number; kind: 'choice'; options: Option[]; why: string }
+  | { id: string; command: Command; text: string; marks: number; kind: 'build'; build: Omit<BuildScreen, 'id' | 'kind' | 'prompt' | 'fig' | 'why' | 'choose'>; why: string }
+  | { id: string; command: Command; text: string; marks: number; kind: 'order'; steps: { id: string; text: string }[]; why: string };
+/**
+ * An exam-style card: a context, a figure, then 2–3 parts with command words and marks, one under another.
+ * Only last in a Skill check. Each part is its own question (`${id}.${part.id}`) with one try.
+ */
+export type ExamCardScreen = Base & { kind: 'examCard'; context: string; fig?: Fig; parts: ExamPart[] };
+
+export type Screen = IntroScreen | TextScreen | PredictScreen | ChoiceScreen | ExploreScreen | TapFigScreen | BuildScreen | OrderScreen | SpotErrorScreen | SortScreen | EstimateScreen | WorkedScreen | GraphPickScreen | ExamCardScreen;
 /** A graded question answered by picking one option (cards or places on the figure). */
 export type OptionQuestion = ChoiceScreen | TapFigScreen;
 export type Question = OptionQuestion | BuildScreen | OrderScreen | SpotErrorScreen | SortScreen | EstimateScreen | GraphPickScreen;
@@ -1161,7 +1174,8 @@ export type Lesson = {
   /** Three chapters of the story; `from` is the id of a chapter's first screen (the first chapter starts at the intro). */
   chapters?: { title: string; from: string }[];
   /** Exam-level questions at the end: one try each, "Why?" only after the answer. */
-  skillCheck: Question[];
+  /** Graded questions; an exam-style card may come last. */
+  skillCheck: (Question | ExamCardScreen)[];
   youCanNow: string[];
   /** The last screen: the puzzle, solved, as one figure with one sentence. */
   recap: { fig: Fig; text: string };
@@ -1175,5 +1189,8 @@ export type Lesson = {
 export type LessonRef = { id: string; title: string; spec: number[]; ready: boolean; about: string };
 export type Level = { id: string; title: string; lessons: LessonRef[] };
 export type Course = { title: string; subtitle: string; levels: Level[] };
+
+/** The ids under which a screen's answers are kept: its own, or one per part of an exam-style card. */
+export const questionIds = (s: Screen): string[] => (s.kind === 'examCard' ? s.parts.map((p) => `${s.id}.${p.id}`) : isQuestion(s) ? [s.id] : []);
 
 export const isQuestion = (s: Screen): s is Question => s.kind === 'choice' || s.kind === 'tapFig' || s.kind === 'build' || s.kind === 'order' || s.kind === 'spotError' || s.kind === 'sort' || s.kind === 'estimate' || s.kind === 'graphPick';

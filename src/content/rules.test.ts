@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import { lessons } from './lessons.ts';
 import { samples } from './samples.ts';
 import { boxesOf } from '../session/build.ts';
-import { ACC_IDS, BEAM_IDS, CANDIDATE_IDS, COMPARE_IDS, SKETCH_IDS, EQUATION_IDS, FLOW_IDS, LADDER_IDS, PAIR_IDS, POLE_IDS, SLEDGE_IDS, isQuestion, type BuildScreen, type Fig, type OrderScreen, type Screen, type EstimateScreen, type GraphPickScreen, type SortScreen, type SpotErrorScreen, type WorkedScreen } from './types.ts';
+import { ACC_IDS, BEAM_IDS, CANDIDATE_IDS, COMPARE_IDS, SKETCH_IDS, EQUATION_IDS, FLOW_IDS, LADDER_IDS, PAIR_IDS, POLE_IDS, SLEDGE_IDS, isQuestion, type BuildScreen, type Fig, type OrderScreen, type Screen, type EstimateScreen, type ExamCardScreen, type GraphPickScreen, type SortScreen, type SpotErrorScreen, type WorkedScreen } from './types.ts';
 
 // **key words** are bold on screen: the stars do not count, but they must come in pairs
 const max = (text: string, n: number, where: string) => {
@@ -118,6 +118,31 @@ function checkGraphPickScreen(s: GraphPickScreen) {
   max(s.why, 170, `${s.id} why`);
 }
 
+/** An exam-style card: 2–3 parts of 1–4 marks with a command word; each part fits like its own kind of step. */
+const COMMANDS = ['State', 'Calculate', 'Explain', 'Show that', 'Describe', 'Determine'];
+function checkExamCard(s: ExamCardScreen) {
+  assert.ok(s.parts.length >= 2 && s.parts.length <= 3, `${s.id}: 2–3 parts`);
+  assert.equal(new Set(s.parts.map((x) => x.id)).size, s.parts.length, `${s.id}: part ids are unique`);
+  max(s.context, 220, `${s.id} context`);
+  for (const x of s.parts) {
+    const where = `${s.id}.${x.id}`;
+    assert.ok(COMMANDS.includes(x.command), `${where}: a command word`);
+    assert.ok(Number.isInteger(x.marks) && x.marks >= 1 && x.marks <= 4, `${where}: 1–4 marks`);
+    assert.ok(!x.text.startsWith(x.command), `${where}: the text does not repeat the command word`);
+    max(x.text, 140, where);
+    max(x.why, 170, `${where} why`);
+    if (x.kind === 'choice') {
+      assert.equal(x.options.filter((o) => o.correct).length, 1, `${where}: one right option`);
+      assert.ok(x.options.every((o) => !o.hint), `${where}: no hints in an exam part`);
+    }
+    if (x.kind === 'build') {
+      assert.ok(x.marks <= boxesOf(x.build.equation).length, `${where}: no more marks than boxes`);
+      checkBuildScreen({ ...x.build, id: where, kind: 'build', prompt: x.text, why: x.why });
+    }
+    if (x.kind === 'order') checkOrderScreen({ id: where, kind: 'order', prompt: x.text, steps: x.steps, hint: '-', why: x.why });
+  }
+}
+
 test('sample steps of the gallery fit together', () => {
   for (const { screen } of samples) {
     if (screen.kind === 'build') checkBuildScreen(screen);
@@ -127,6 +152,7 @@ test('sample steps of the gallery fit together', () => {
     if (screen.kind === 'estimate') checkEstimateScreen(screen);
     if (screen.kind === 'worked') checkWorkedScreen(screen);
     if (screen.kind === 'graphPick') checkGraphPickScreen(screen);
+    if (screen.kind === 'examCard') checkExamCard(screen);
   }
 });
 
@@ -235,7 +261,15 @@ for (const lesson of Object.values(lessons)) {
       if (s.kind === 'estimate') checkEstimateScreen(s);
       if (s.kind === 'worked') checkWorkedScreen(s);
       if (s.kind === 'graphPick') checkGraphPickScreen(s);
+      if (s.kind === 'examCard') checkExamCard(s);
     }
+  });
+
+  test(`${lesson.id}: an exam-style card only last in the Skill check`, () => {
+    assert.ok(lesson.story.every((x) => x.kind !== 'examCard'), 'no exam-style card in the story');
+    lesson.skillCheck.forEach((x, i) => {
+      if (x.kind === 'examCard') assert.equal(i, lesson.skillCheck.length - 1, `${x.id}: last in the Skill check`);
+    });
   });
 
   test(`${lesson.id}: chapters, if any, are three and follow the story in order`, () => {

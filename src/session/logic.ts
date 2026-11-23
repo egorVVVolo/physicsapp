@@ -1,5 +1,5 @@
 // Pure lesson logic: which screen is on, the honest outcome of each question, what is saved. No React.
-import { isQuestion, type Fig, type Lesson, type Screen } from '../content/types.ts';
+import { questionIds, type Fig, type Lesson, type Screen } from '../content/types.ts';
 import { revealed } from './reveal.ts';
 
 /** independent: right first time · assisted: right after a hint · revealed: the answer was shown. */
@@ -96,6 +96,8 @@ export type LessonState = {
   wrong: Record<string, string[]>; // question id → option ids picked wrongly, in order
   activeMs: number; // time on screens, each gap capped at 3 minutes
   lastAt: number | null; // when the last screen was opened
+  /** Exam-style parts: part question id → [marks got, marks it is worth]. Missing in saves from before exam cards. */
+  marks?: Record<string, [number, number]>;
 };
 
 export const startState: LessonState = { index: 0, outcomes: {}, picks: {}, finished: false, wrong: {}, activeMs: 0, lastAt: null };
@@ -111,6 +113,24 @@ export function recordOutcome(s: LessonState, id: string, outcome: Outcome): Les
 
 export function recordPick(s: LessonState, predictId: string, optionId: string): LessonState {
   return { ...s, picks: { ...s.picks, [predictId]: optionId } };
+}
+
+/** The marks of an exam-style part (the first answer counts, like the outcome). */
+export function recordMarks(s: LessonState, partId: string, marks: [number, number]): LessonState {
+  if (s.marks?.[partId]) return s;
+  return { ...s, marks: { ...s.marks, [partId]: marks } };
+}
+
+/**
+ * The honest outcome of one screen. An exam-style card has one only once every part is answered:
+ * independent if every part was right, revealed if none was, assisted in between.
+ */
+export function screenOutcome(s: LessonState, screen: Screen): Outcome | undefined {
+  if (screen.kind !== 'examCard') return s.outcomes[screen.id];
+  const parts = questionIds(screen).map((id) => s.outcomes[id]);
+  if (parts.some((o) => o === undefined)) return undefined;
+  if (parts.every((o) => o === 'independent')) return 'independent';
+  return parts.every((o) => o === 'revealed') ? 'revealed' : 'assisted';
 }
 
 export function recordWrong(s: LessonState, questionId: string, optionId: string): LessonState {
@@ -153,7 +173,7 @@ export function progressOf(s: LessonState, lesson: Lesson): { story: number; cha
   const n = lesson.story.length;
   const story = Math.min(1, s.index / n);
   const chapters = chapterSpans(lesson).map((c) => ({ share: Math.min(1, Math.max(0, (s.index - c.start) / (c.end - c.start))) }));
-  const checkDone = lesson.skillCheck.filter((q) => s.outcomes[q.id] !== undefined).length;
+  const checkDone = lesson.skillCheck.filter((q) => screenOutcome(s, q) !== undefined).length;
   return { story, chapters, checkDone, checkTotal: lesson.skillCheck.length };
 }
 
@@ -168,6 +188,8 @@ export type Run = {
   /** The lesson's first prediction: what was picked and whether the puzzle bore it out. */
   prediction: { id: string; pick: string; right: boolean } | null;
   feel: 'easy' | 'right' | 'hard' | null;
+  /** Exam-style parts: part id → [got, of]. */
+  marks: Record<string, [number, number]>;
 };
 
 export function runOf(lesson: Lesson, s: LessonState, now: number): Run {
@@ -180,6 +202,7 @@ export function runOf(lesson: Lesson, s: LessonState, now: number): Run {
     wrong: s.wrong,
     prediction: predict && pick ? { id: predict.id, pick, right: predict.options.some((o) => o.id === pick && o.correct === true) } : null,
     feel: null,
+    marks: s.marks ?? {},
   };
 }
 
@@ -194,7 +217,7 @@ export function parseProgress(json: string | null, lesson: Lesson): SavedProgres
     const p = JSON.parse(json) as SavedProgress;
     const st = p.state;
     const all = [...lesson.story, ...lesson.skillCheck];
-    const questions = new Set(all.filter(isQuestion).map((q) => q.id));
+    const questions = new Set(all.flatMap(questionIds));
     const predicts = new Set(all.filter((x) => x.kind === 'predict').map((x) => x.id));
     if (p.v !== 2 || p.lessonId !== lesson.id || !st || typeof st.outcomes !== 'object' || typeof st.picks !== 'object') return null;
     const outcomesOk = Object.entries(st.outcomes).every(([id, o]) => questions.has(id) && ['independent', 'assisted', 'revealed'].includes(o));
@@ -211,6 +234,7 @@ export function parseProgress(json: string | null, lesson: Lesson): SavedProgres
       wrong: wrongOk ? st.wrong : {},
       activeMs: Number.isFinite(st.activeMs) && st.activeMs >= 0 ? st.activeMs : 0,
       lastAt: Number.isFinite(st.lastAt) ? st.lastAt : null,
+      ...(st.marks && typeof st.marks === 'object' ? { marks: st.marks } : {}),
     };
     return { ...p, state };
   } catch {

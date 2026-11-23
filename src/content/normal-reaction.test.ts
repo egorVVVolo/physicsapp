@@ -92,5 +92,5 @@ test('the return to the puzzle is a new question, not the prediction again', () 
 
 test('no Skill check question repeats a story prompt', () => {
   const story = new Set(L.story.map((x) => ('prompt' in x ? x.prompt : '')));
-  for (const s of L.skillCheck) assert.ok(!story.has(s.prompt), s.id);
+  for (const s of L.skillCheck) if ('prompt' in s) assert.ok(!story.has(s.prompt), s.id);
 });

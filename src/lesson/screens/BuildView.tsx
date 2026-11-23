@@ -41,7 +41,6 @@ export function BuildView({ screen, figN, phase, onOutcome, onWrong, onNext }: P
   const { palette: p } = useTheme();
   const reduced = useReducedMotionPref();
   const tries = phase === 'check' ? 1 : STORY_TRIES;
-  const pieces = useMemo(() => parseEquation(screen.equation), [screen]);
   const options = useMemo(() => (screen.choose ? shuffled(screen.choose.options, screen.id) : []), [screen]);
   const rightEq = screen.choose?.options.find((o) => o.correct);
 
@@ -61,18 +60,7 @@ export function BuildView({ screen, figN, phase, onOutcome, onWrong, onNext }: P
   const locked = status === 'right' || status === 'revealed';
 
   // the result counts up from 0 once the boxes are right (or the solution is shown), then the sheet comes up
-  const [count, setCount] = useState(0);
-  useEffect(() => {
-    if (!locked) return;
-    if (reduced) return setCount(1);
-    const start = Date.now();
-    const id = setInterval(() => {
-      const k = Math.min(1, (Date.now() - start) / motion.celebrate);
-      setCount(1 - (1 - k) ** 3);
-      if (k >= 1) clearInterval(id);
-    }, 30);
-    return () => clearInterval(id);
-  }, [locked, reduced]);
+  const count = useCountUp(locked, reduced);
 
   const record = (n: number) => {
     if (decided) return;
@@ -178,8 +166,6 @@ export function BuildView({ screen, figN, phase, onOutcome, onWrong, onNext }: P
     return filled[b] === null ? 'empty' : 'filled';
   };
   const used = new Set(Object.values(filled).filter((c): c is string => c !== null));
-  const label = (chipId: string | null) => screen.chips.find((c) => c.id === chipId)?.label ?? null;
-  const dp = (sig(screen.result.value, screen.result.sf ?? 3).split('.')[1] ?? '').length;
 
   const footer =
     stage === 'choose' ? (
@@ -216,41 +202,73 @@ export function BuildView({ screen, figN, phase, onOutcome, onWrong, onNext }: P
       ) : null}
       {stage === 'fill' ? <Instruction>Tap a value to put it in the next empty box. Tap a box to empty it.</Instruction> : null}
       {stage === 'fill' ? (
-        <View style={[styles.sheet, { backgroundColor: p.paper, borderColor: p.paperLine }]}>
-          <View style={styles.equation}>
-            {lineItems(pieces).map((item, i) => {
-              const box = item.box;
-              const boxEl = box !== undefined && (
-                <Box key="box" name={box} label={label(filled[box])} state={boxState(box)} disabled={status !== 'answering'} onPress={() => tapBox(box)} />
-              );
-              const textEl = item.text !== undefined && (
-                <Text key="text" style={[styles.eqText, { color: p.ink }]}>
-                  {item.text}
-                </Text>
-              );
-              return (
-                <View key={i} style={styles.glue}>
-                  {textEl}
-                  {boxEl}
-                </View>
-              );
-            })}
-          </View>
-          {locked && (
-            <Text style={[styles.result, { color: p.ink }]} accessibilityLabel={result} accessibilityLiveRegion="polite">
-              {`${screen.result.symbol} = ${count >= 1 ? sig(screen.result.value, screen.result.sf ?? 3) : fixed(screen.result.value * count, dp)} ${screen.result.unit}`}
-            </Text>
-          )}
-        </View>
+        <EquationBoard build={screen} filled={filled} boxState={boxState} disabled={status !== 'answering'} onTapBox={tapBox} count={locked ? count : null} />
       ) : null}
-      {stage === 'fill' ? (
-        <View style={styles.chips} accessibilityLabel="Values">
-          {screen.chips.map((c) => (
-            <ChipCard key={c.id} label={c.label} used={used.has(c.id)} dim={locked} disabled={status !== 'answering' || used.has(c.id)} onPress={() => tapChip(c.id)} />
-          ))}
-        </View>
-      ) : null}
+      {stage === 'fill' ? <ChipRow chips={screen.chips} used={used} dim={locked} disabled={status !== 'answering'} onTap={tapChip} /> : null}
     </Frame>
+  );
+}
+
+/** Counts from 0 to 1 over `motion.celebrate` once `on` (eased out); at once with reduced motion. */
+export function useCountUp(on: boolean, reduced: boolean): number {
+  const [count, setCount] = useState(0);
+  useEffect(() => {
+    if (!on) return setCount(0);
+    if (reduced) return setCount(1);
+    const start = Date.now();
+    const id = setInterval(() => {
+      const k = Math.min(1, (Date.now() - start) / motion.celebrate);
+      setCount(1 - (1 - k) ** 3);
+      if (k >= 1) clearInterval(id);
+    }, 30);
+    return () => clearInterval(id);
+  }, [on, reduced]);
+  return count;
+}
+
+type BuildParts = Pick<BuildScreen, 'equation' | 'chips' | 'result'>;
+
+/**
+ * The equation on drawing paper with its boxes, and once `count` is given, the result counting up under it.
+ * The fill stage of a build step, and the body of a build part of an exam-style card.
+ */
+export function EquationBoard({ build, filled, boxState, disabled, onTapBox, count }: { build: BuildParts; filled: Filled; boxState: (box: string) => BoxState; disabled: boolean; onTapBox: (box: string) => void; count: number | null }) {
+  const { palette: p } = useTheme();
+  const pieces = useMemo(() => parseEquation(build.equation), [build.equation]);
+  const label = (chipId: string | null) => build.chips.find((c) => c.id === chipId)?.label ?? null;
+  const r = build.result;
+  const dp = (sig(r.value, r.sf ?? 3).split('.')[1] ?? '').length;
+  const result = `${r.symbol} = ${resultText(r)}`;
+  return (
+    <View style={[styles.sheet, { backgroundColor: p.paper, borderColor: p.paperLine }]}>
+      <View style={styles.equation}>
+        {lineItems(pieces).map((item, i) => {
+          const box = item.box;
+          return (
+            <View key={i} style={styles.glue}>
+              {item.text !== undefined && <Text style={[styles.eqText, { color: p.ink }]}>{item.text}</Text>}
+              {box !== undefined && <Box name={box} label={label(filled[box])} state={boxState(box)} disabled={disabled} onPress={() => onTapBox(box)} />}
+            </View>
+          );
+        })}
+      </View>
+      {count !== null && (
+        <Text style={[styles.result, { color: p.ink }]} accessibilityLabel={result} accessibilityLiveRegion="polite">
+          {`${r.symbol} = ${count >= 1 ? sig(r.value, r.sf ?? 3) : fixed(r.value * count, dp)} ${r.unit}`}
+        </Text>
+      )}
+    </View>
+  );
+}
+
+/** The values to place, in a wrapping row. */
+export function ChipRow({ chips, used, dim, disabled, onTap }: { chips: BuildScreen['chips']; used: Set<string>; dim: boolean; disabled: boolean; onTap: (chipId: string) => void }) {
+  return (
+    <View style={styles.chips} accessibilityLabel="Values">
+      {chips.map((c) => (
+        <ChipCard key={c.id} label={c.label} used={used.has(c.id)} dim={dim} disabled={disabled || used.has(c.id)} onPress={() => onTap(c.id)} />
+      ))}
+    </View>
   );
 }
 
@@ -272,7 +290,7 @@ function lineItems(pieces: ReturnType<typeof parseEquation>): { text?: string; b
   return items;
 }
 
-type BoxState = 'empty' | 'active' | 'filled' | 'wrong' | 'right' | 'shown';
+export type BoxState = 'empty' | 'active' | 'filled' | 'wrong' | 'right' | 'shown';
 
 /** One box of the equation: dashed while empty, blue when chosen, red and shaking after a wrong Check. */
 function Box({ name, label, state, disabled, onPress }: { name: string; label: string | null; state: BoxState; disabled: boolean; onPress: () => void }) {

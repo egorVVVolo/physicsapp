@@ -145,4 +145,48 @@ export const samples: { title: string; screen: Screen }[] = [
       why: `From rest, steady acceleration: a straight line from zero. Its gradient is the acceleration, ${fixed(AB, 1)}${NB}m${NB}s⁻², so it reaches ${fixed(tripVelocity(T_END, TRIP_B), 1)}${NB}m${NB}s⁻¹ at ${T_END}${NB}s.`,
     },
   },
+  {
+    title: 'examCard · Exam-style',
+    screen: {
+      id: 'sample-exam',
+      kind: 'examCard',
+      context: `Omar pulls his ${TRIP.m}${NB}kg suitcase ${TRIP.s}${NB}m along a flat platform at a steady speed. His pull is ${OMAR.F}${NB}N at ${OMAR.angle}° to the floor.`,
+      fig: { kind: 'platform', header: `suitcase ${TRIP.m} kg, steady speed`, lanes: [{ name: 'OMAR', how: 'pull', load: 'suitcase', F: OMAR.F, angle: OMAR.angle }], dist: TRIP.s, forces: true },
+      parts: [
+        {
+          id: 'a',
+          command: 'State',
+          text: 'why the weight of the suitcase does no work on it.',
+          marks: 1,
+          kind: 'choice',
+          options: [
+            { id: 'right', label: 'It acts at 90° to the motion', correct: true },
+            { id: 'balanced', label: 'It is balanced by the push of the floor' },
+            { id: 'steady', label: 'The suitcase moves at a steady speed' },
+          ],
+          why: 'Work = F s cos θ. The weight is straight down and the suitcase moves along the floor: θ = 90°, cos 90° = 0.',
+        },
+        {
+          id: 'b',
+          command: 'Calculate',
+          text: 'the work done by the pull.',
+          marks: 2,
+          kind: 'build',
+          build: {
+            equation: 'W = {F} × {s} × cos {θ}',
+            boxes: { F: 'pull', s: 'dist', θ: 'angle' },
+            chips: [
+              { id: 'pull', label: `${OMAR.F}${NB}N` },
+              { id: 'dist', label: `${TRIP.s}${NB}m` },
+              { id: 'angle', label: `${OMAR.angle}°` },
+              { id: 'weight', label: `${sig(weight(TRIP.m))}${NB}N`, hint: "That is the suitcase's weight. F is Omar's pull." },
+              { id: 'comp', label: `${90 - OMAR.angle}°`, hint: 'θ is the angle between the pull and the motion, along the floor.' },
+            ],
+            result: { symbol: 'W', value: workDone(OMAR.F, TRIP.s, OMAR.angle), unit: 'J' },
+          },
+          why: `W = ${OMAR.F} × ${TRIP.s} × cos ${OMAR.angle}° = ${sig(workDone(OMAR.F, TRIP.s, OMAR.angle))}${NB}J. One mark for the right values in the equation, one for the answer with its unit.`,
+        },
+      ],
+    },
+  },
 ];

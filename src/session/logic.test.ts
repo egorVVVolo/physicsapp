@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { carriedFig, chapterOf, countOutcomes, estimateOutcome, figNumbers, figOf, shownFigOf, itemsOf, MAX_GAP_MS, next, outcomeOf, parseProgress, progressOf, recordOutcome, recordPick, recordWrong, runOf, startState, tick } from './logic.ts';
+import { carriedFig, chapterOf, countOutcomes, estimateOutcome, recordMarks, screenOutcome, figNumbers, figOf, shownFigOf, itemsOf, MAX_GAP_MS, next, outcomeOf, parseProgress, progressOf, recordOutcome, recordPick, recordWrong, runOf, startState, tick } from './logic.ts';
 import { normalReaction as L } from '../content/normal-reaction.ts';
 import { workDoneLesson as W } from '../content/work-done.ts';
 import { revealed } from './reveal.ts';
@@ -104,6 +104,7 @@ test('a run keeps the time, outcomes, wrong picks and whether the prediction was
     wrong: { calc: ['home'] },
     prediction: { id: 'hook', pick: 'more', right: true },
     feel: null,
+    marks: {},
   });
   assert.equal(runOf(L, recordPick(s, 'hook', 'less'), 0).prediction?.right, false);
   assert.equal(runOf(L, startState, 0).prediction, null);
@@ -153,4 +154,15 @@ test('estimate: within the tolerance, a near miss in the story, everything else 
   assert.equal(estimateOutcome(380, 471, 50, 'story'), 'assisted');
   assert.equal(estimateOutcome(600, 471, 50, 'story'), 'revealed');
   assert.equal(estimateOutcome(550, 471, 50, 'check'), 'revealed');
+});
+
+test('exam card: one outcome once every part is answered; the first marks stay', () => {
+  const card = { id: 'exam', kind: 'examCard' as const, context: '', parts: ['a', 'b'].map((id) => ({ id, command: 'State' as const, text: '', marks: 1, kind: 'choice' as const, options: [], why: '' })) };
+  let s = recordOutcome(startState, 'exam.a', 'independent');
+  assert.equal(screenOutcome(s, card), undefined);
+  assert.equal(screenOutcome(recordOutcome(s, 'exam.b', 'independent'), card), 'independent');
+  assert.equal(screenOutcome(recordOutcome(s, 'exam.b', 'revealed'), card), 'assisted');
+  assert.equal(screenOutcome(recordOutcome(recordOutcome(startState, 'exam.a', 'revealed'), 'exam.b', 'revealed'), card), 'revealed');
+  s = recordMarks(recordMarks(s, 'exam.b', [1, 2]), 'exam.b', [2, 2]);
+  assert.deepEqual(s.marks, { 'exam.b': [1, 2] });
 });

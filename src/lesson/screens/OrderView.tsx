@@ -21,7 +21,6 @@ type Props = { screen: OrderScreen; figN: number; phase: Phase; onOutcome: (o: O
 type Status = 'answering' | 'retry' | 'right' | 'revealed';
 
 export function OrderView({ screen, figN, phase, onOutcome, onWrong, onNext }: Props) {
-  const { palette: p } = useTheme();
   const reduced = useReducedMotionPref();
   const tries = phase === 'check' ? 1 : STORY_TRIES;
   const pool = useMemo(() => shuffled(screen.steps, screen.id), [screen]);
@@ -116,18 +115,7 @@ export function OrderView({ screen, figN, phase, onOutcome, onWrong, onNext }: P
           {pool
             .filter((s) => !placed.has(s.id))
             .map((s) => (
-              <Pressable
-                key={s.id}
-                accessibilityRole="button"
-                accessibilityLabel={s.text}
-                disabled={status !== 'answering'}
-                onPress={() => tapCard(s.id)}
-                style={({ pressed }) => [styles.card, { borderColor: p.line, backgroundColor: pressed ? p.selectBg : p.page, borderBottomWidth: 2 + LIP }]}
-              >
-                <Text style={[styles.cardText, { color: p.ink }]} maxFontSizeMultiplier={1.3}>
-                  {s.text}
-                </Text>
-              </Pressable>
+              <StatementCard key={s.id} text={s.text} disabled={status !== 'answering'} onPress={() => tapCard(s.id)} />
             ))}
         </View>
       )}
@@ -135,10 +123,10 @@ export function OrderView({ screen, figN, phase, onOutcome, onWrong, onNext }: P
   );
 }
 
-type RowState = 'empty' | 'filled' | 'wrong' | 'right' | 'shown';
+export type RowState = 'empty' | 'filled' | 'wrong' | 'right' | 'shown';
 
 /** A numbered row: dashed while empty; red and shaking when wrong; green, one row after another, when right. */
-function Row({ n, text, itemKey, state, greenDelay, disabled, onPress }: { n: number; text: string | null; itemKey: string; state: RowState; greenDelay: number; disabled: boolean; onPress: () => void }) {
+export function Row({ n, text, itemKey, state, greenDelay, disabled, onPress }: { n: number; text: string | null; itemKey: string; state: RowState; greenDelay: number; disabled: boolean; onPress: () => void }) {
   const { palette: p } = useTheme();
   // green comes a little later for each row down the list
   const [green, setGreen] = useState(false);
@@ -179,6 +167,24 @@ function Row({ n, text, itemKey, state, greenDelay, disabled, onPress }: { n: nu
         )}
       </Shake>
     </View>
+  );
+}
+
+/** A statement waiting to be put in a row. */
+export function StatementCard({ text, disabled, onPress }: { text: string; disabled: boolean; onPress: () => void }) {
+  const { palette: p } = useTheme();
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={text}
+      disabled={disabled}
+      onPress={onPress}
+      style={({ pressed }) => [styles.card, { borderColor: p.line, backgroundColor: pressed ? p.selectBg : p.page, borderBottomWidth: 2 + LIP }]}
+    >
+      <Text style={[styles.cardText, { color: p.ink }]} maxFontSizeMultiplier={1.3}>
+        {text}
+      </Text>
+    </Pressable>
   );
 }
 

@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from 'react';
 import { BackHandler, Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { Fig, Lesson } from '@/content/types';
-import { carriedFig, chapterOf, figNumbers, figOf, itemsOf, next, progressOf, recordOutcome, recordPick, recordWrong, type LessonState, type Outcome } from '@/session/logic';
+import { carriedFig, chapterOf, figNumbers, figOf, itemsOf, next, progressOf, recordMarks, recordOutcome, recordPick, recordWrong, type LessonState, type Outcome } from '@/session/logic';
 import { LessonFigs, SharedSheet, type FigMemory, type SharedFig } from '@/figures/anim';
 import { useTheme } from '@/theme/ThemeContext';
 import { colorOfLesson } from '@/theme/levelColor';
@@ -17,6 +17,7 @@ import { CONTENT_MAX } from './Frame';
 import { LEAVE_SHEET_OUT, LeaveSheet } from './LeaveSheet';
 import { BuildView } from './screens/BuildView';
 import { EstimateView } from './screens/EstimateView';
+import { ExamCardView } from './screens/ExamCardView';
 import { ExploreView } from './screens/ExploreView';
 import { GraphPickView } from './screens/GraphPickView';
 import { OrderView } from './screens/OrderView';
@@ -96,6 +97,18 @@ export function LessonPlayer({ lesson, state, onChange, onClose }: Props) {
     if (s.kind === 'predict') body = <PredictView screen={s} figN={n} picked={state.picks[s.id]} onPick={(id) => change((st) => recordPick(st, s.id, id))} onNext={go} />;
     if (s.kind === 'explore') body = <ExploreView screen={s} figN={n} onNext={go} />;
     if (s.kind === 'worked') body = <WorkedView screen={s} figN={n} onNext={go} />;
+    if (s.kind === 'examCard') {
+      const q = (partId: string) => `${s.id}.${partId}`;
+      body = (
+        <ExamCardView
+          screen={s}
+          figN={n}
+          onPart={(partId, o, marks) => change((st) => recordMarks(recordOutcome(st, q(partId), o), q(partId), marks))}
+          onWrong={(partId, id) => change((st) => recordWrong(st, q(partId), id))}
+          onNext={go}
+        />
+      );
+    }
     if (s.kind === 'build' || s.kind === 'order' || s.kind === 'spotError' || s.kind === 'sort' || s.kind === 'estimate' || s.kind === 'graphPick') {
       const graded = { figN: n, phase: item.phase, onOutcome: (o: Outcome) => change((st) => recordOutcome(st, s.id, o)), onWrong: (o: string) => change((st) => recordWrong(st, s.id, o)), onNext: go };
       if (s.kind === 'build') body = <BuildView screen={s} {...graded} />;

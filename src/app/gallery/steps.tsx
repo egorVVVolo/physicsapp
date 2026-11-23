@@ -6,6 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { samples } from '@/content/samples';
 import type { Screen } from '@/content/types';
 import { BuildView } from '@/lesson/screens/BuildView';
+import { ExamCardView } from '@/lesson/screens/ExamCardView';
 import { EstimateView } from '@/lesson/screens/EstimateView';
 import { GraphPickView } from '@/lesson/screens/GraphPickView';
 import { OrderView } from '@/lesson/screens/OrderView';
@@ -60,6 +61,8 @@ function Live({ screen, onLog, onNext }: { screen: Screen; onLog: (line: string)
   if (screen.kind === 'sort') return <SortView screen={screen} {...graded} />;
   if (screen.kind === 'estimate') return <EstimateView screen={screen} {...graded} />;
   if (screen.kind === 'graphPick') return <GraphPickView screen={screen} {...graded} />;
+  if (screen.kind === 'examCard')
+    return <ExamCardView screen={screen} figN={1} onPart={(id, o, m) => onLog(`${id}: ${o} ${m[0]}/${m[1]}`)} onWrong={(id, w) => onLog(`wrong ${id}: ${w}`)} onNext={onNext} />;
   if (screen.kind === 'worked') return <WorkedView screen={screen} figN={1} onNext={onNext} />;
   return null;
 }

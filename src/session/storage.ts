@@ -86,7 +86,9 @@ const RUNS_KEPT = 5;
 export async function loadRuns(lessonId: string): Promise<Run[]> {
   try {
     const raw: unknown = JSON.parse((await AsyncStorage.getItem(runsKey(lessonId))) ?? '[]');
-    return Array.isArray(raw) ? raw.filter((r): r is Run => typeof r === 'object' && r !== null && typeof r.at === 'number' && typeof r.ms === 'number') : [];
+    if (!Array.isArray(raw)) return [];
+    // runs saved before exam cards have no marks
+    return raw.filter((r): r is Run => typeof r === 'object' && r !== null && typeof r.at === 'number' && typeof r.ms === 'number').map((r) => ({ ...r, marks: r.marks ?? {} }));
   } catch {
     return [];
   }
