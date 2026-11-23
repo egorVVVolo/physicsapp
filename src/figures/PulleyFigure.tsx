@@ -134,7 +134,8 @@ export function PulleyFigure({ fig, live, playing, clock = STILL }: Props) {
           <MonoLabel x={back + TROLLEY.w / 2} y={top + 12} text={`${fixed(fig.trolley, 2)} kg`} color={p.label} size={9} />
           <Path d={`M${DROP_X - BLOCK_W / 2},${blockTop} L${DROP_X - BLOCK_W / 2 + 5},${blockTop - 4} H${DROP_X + BLOCK_W / 2 + 5} L${DROP_X + BLOCK_W / 2},${blockTop} Z`} fill={m.metalSide} stroke={p.draw} strokeWidth={stroke.thin} strokeLinejoin="round" />
           <Rect x={DROP_X - BLOCK_W / 2} y={blockTop} width={BLOCK_W} height={hb} rx={1.5} fill={m.metal} stroke={p.draw} strokeWidth={stroke.body} />
-          <MonoLabel x={DROP_X} y={blockTop + hb + 13} text={`${fixed(x.m, 2)} kg`} color={p.label} size={8} />
+          {/* with the forces drawn the block's W arrow takes this place; its mass is in the sheet header */}
+          {!fig.forces && <MonoLabel x={DROP_X} y={blockTop + hb + 13} text={`${fixed(x.m, 2)} kg`} color={p.label} size={8} />}
         </Group>,
       )}
 
