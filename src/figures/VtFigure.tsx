@@ -3,6 +3,7 @@
 import { G as Group, Line, Polyline, Rect } from 'react-native-svg';
 import type { VtFig } from '@/content/types';
 import { useTheme } from '@/theme/ThemeContext';
+import { stroke } from '@/theme/tokens';
 import { ForceLetter } from './draw';
 import { Axes } from './kit';
 import type { TapProps, TapTarget } from './Sheet';
@@ -34,7 +35,7 @@ export function vtTargets(fig: VtFig): TapTarget[] {
 }
 
 export function VtFigure({ fig, tap }: { fig: VtFig; tap?: TapProps }) {
-  const { palette: p } = useTheme();
+  const { palette: p, material: m } = useTheme();
   const { total, pts, X, Y } = layout(fig);
   const ticks: number[] = [];
   for (let t = 0; t <= total; t += 2) ticks.push(t);
@@ -48,9 +49,9 @@ export function VtFigure({ fig, tap }: { fig: VtFig; tap?: TapProps }) {
         const x2 = X(pts[i + 1].t);
         return (
           <Group key={ph.id}>
-            <Rect x={x1 + 1} y={O.y - PLOT_H - 24} width={x2 - x1 - 2} height={PLOT_H + 24} rx={6} fill={fill} stroke={on || m ? (m === 'right' ? p.ok : m === 'wrong' ? p.bad : p.select) : 'none'} strokeWidth={2} />
+            <Rect x={x1 + 1} y={O.y - PLOT_H - 24} width={x2 - x1 - 2} height={PLOT_H + 24} rx={6} fill={fill} stroke={on || m ? (m === 'right' ? p.ok : m === 'wrong' ? p.bad : p.select) : 'none'} strokeWidth={stroke.body} />
             <ForceLetter x={(x1 + x2) / 2} y={O.y - PLOT_H - 6} text={ph.id} color={p.ink} size={16} />
-            {i > 0 && <Line x1={x1} y1={O.y} x2={x1} y2={O.y - PLOT_H - 24} stroke={p.lineStrong} strokeWidth={1} strokeDasharray="3 4" />}
+            {i > 0 && <Line x1={x1} y1={O.y} x2={x1} y2={O.y - PLOT_H - 24} stroke={p.lineStrong} strokeWidth={stroke.thin} strokeDasharray="3 4" />}
           </Group>
         );
       })}
@@ -63,7 +64,7 @@ export function VtFigure({ fig, tap }: { fig: VtFig; tap?: TapProps }) {
         xTitle={{ x: O.x + PLOT_W + 4, y: O.y + 32, text: 't / s', anchor: 'end' }}
         yTitle={{ x: O.x - 6, y: O.y - PLOT_H - 30, text: 'v / m s⁻¹', anchor: 'start' }}
       />
-      <Polyline points={pts.map((q) => `${X(q.t)},${Y(q.v)}`).join(' ')} fill="none" stroke={p.ink} strokeWidth={3} strokeLinejoin="round" />
+      <Polyline points={pts.map((q) => `${X(q.t)},${Y(q.v)}`).join(' ')} fill="none" stroke={p.ink} strokeWidth={stroke.force} strokeLinejoin="round" />
     </Group>
   );
 }

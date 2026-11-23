@@ -7,8 +7,9 @@ import { ladderWallPush, weight } from '@/physics/dynamics';
 import { fixed } from '@/physics/format';
 import { LADDER_IDS, type LadderFig } from '@/content/types';
 import { useTheme } from '@/theme/ThemeContext';
+import { stroke } from '@/theme/tokens';
 import { STILL, type DrawClock } from './anim';
-import { CgMark, ForceArrow, ForceLetter, Hatch, MonoLabel } from './draw';
+import { CgMark, ForceArrow, ForceLetter, Hatch, MonoLabel, useLineStep } from './draw';
 import type { TapProps, TapTarget } from './Sheet';
 import { stage, Tag, TapBoxes } from './kit';
 
@@ -59,7 +60,8 @@ export function ladderTargets(fig: LadderFig): TapTarget[] {
 }
 
 export function LadderFigure({ fig, tap, clock = STILL }: { fig: LadderFig; tap?: TapProps; clock?: DrawClock }) {
-  const { palette: p } = useTheme();
+  const { palette: p, material: m } = useTheme();
+  const step9 = useLineStep(9); // two-line labels: the distance between their lines
   const { u, n, top, foot, cg, contact } = geometry(fig);
   const f = ladderForces(fig);
   const has = (k: 'W' | 'S' | 'N' | 'F') => fig.forces.includes(k);
@@ -99,7 +101,7 @@ export function LadderFigure({ fig, tap, clock = STILL }: { fig: LadderFig; tap?
           <Group transform={`translate(${WALL} ${FLOOR}) rotate(-90)`}>
             <Hatch x1={0} x2={FLOOR - 10} y={0} color={p.draw} clock={clock} from={PEN.walls[0]} to={PEN.walls[1]} />
           </Group>
-          <MonoLabel x={WALL + 40} y={118} text="SMOOTH" color={p.label} size={9} />
+          <MonoLabel x={WALL + 40} y={129 - step9} text="SMOOTH" color={p.label} size={9} />
           <MonoLabel x={WALL + 40} y={129} text="WALL" color={p.label} size={9} />
           <MonoLabel x={60} y={FLOOR + 16} text="ROUGH FLOOR" color={p.label} size={9} />
         </Group>,
@@ -110,9 +112,9 @@ export function LadderFigure({ fig, tap, clock = STILL }: { fig: LadderFig; tap?
       {stage(clock, 
         PEN.ladder,
         <Group>
-          <Path d={rungs.join(' ')} stroke={p.draw} strokeWidth={1.6} />
-          <Path d={rails.join(' ')} stroke={p.draw} strokeWidth={2.4} strokeLinecap="round" />
-          <Path d={arcPath} fill="none" stroke={p.label} strokeWidth={1.2} />
+          <Path d={rungs.join(' ')} stroke={p.draw} strokeWidth={stroke.body} />
+          <Path d={rails.join(' ')} stroke={p.draw} strokeWidth={stroke.force} strokeLinecap="round" />
+          <Path d={arcPath} fill="none" stroke={p.label} strokeWidth={stroke.thin} />
           <MonoLabel x={foot[0] + bis[0] * (arc - 13)} y={foot[1] + bis[1] * (arc - 13) + 3} text={`${fixed(fig.angle, 0)}°`} color={p.ink} size={9} />
           <CgMark x={cg[0]} y={cg[1]} color={p.draw} />
         </Group>,
@@ -138,11 +140,11 @@ export function LadderFigure({ fig, tap, clock = STILL }: { fig: LadderFig; tap?
         PEN.labels,
         <Group>
           {has('W') && <ForceLetter x={cg[0] + 8} y={cg[1] + f.W * KL * 0.4} text="W" color={p.force} size={14} anchor="start" />}
-          {has('W') && fig.values && <MonoLabel x={cg[0] + 7} y={cg[1] + f.W * KL * 0.4 + 12} text={value(f.W)} color={p.ink} size={9} anchor="start" />}
+          {has('W') && fig.values && <MonoLabel x={cg[0] + 7} y={cg[1] + f.W * KL * 0.4 + step9 + 3} text={value(f.W)} color={p.ink} size={9} anchor="start" />}
           {has('S') && <ForceLetter x={sTip[0] + 4} y={contact[1] - 8} text="S" color={p.force} size={14} />}
           {has('S') && fig.values && <MonoLabel x={sTip[0] - 6} y={contact[1] + 3} text={value(f.S)} color={p.ink} size={9} anchor="end" />}
           {has('N') && <ForceLetter x={foot[0] - 8} y={nTip[1] + 11} text="N" color={p.force} size={14} anchor="end" />}
-          {has('N') && fig.values && <MonoLabel x={foot[0] - 8} y={nTip[1] + 24} text={value(f.N)} color={p.ink} size={9} anchor="end" />}
+          {has('N') && fig.values && <MonoLabel x={foot[0] - 8} y={nTip[1] + 11 + step9 + 3} text={value(f.N)} color={p.ink} size={9} anchor="end" />}
           {showF && <Tag x={foot[0] + 22} y={FLOOR + 16} text={fig.values ? `F ${value(f.F)}` : 'F'} />}
           {has('F') && fig.askF !== undefined && <Tag x={foot[0] + 14} y={FLOOR + 16} text="F = ?" />}
         </Group>,

@@ -6,6 +6,7 @@ import { normalInLift, scaleKg } from '@/physics/dynamics';
 import { fixed } from '@/physics/format';
 import type { LiftPairFig } from '@/content/types';
 import { useTheme } from '@/theme/ThemeContext';
+import { stroke } from '@/theme/tokens';
 import { useTween } from './anim';
 import { AccChevrons, ForceArrow, ForceLetter, Hatch, MonoLabel } from './draw';
 import { Person, Scales, SCALES_H } from './people';
@@ -32,15 +33,15 @@ export function LiftPairFigure({ fig, playing }: { fig: LiftPairFig; playing: bo
 }
 
 function MiniLift({ x, n, caption, acc }: { x: number; n: number; caption: string; acc?: boolean }) {
-  const { palette: p } = useTheme();
+  const { palette: p, material: m } = useTheme();
   const cx = x + CAR.w / 2;
   const kg = `${fixed(scaleKg(n), 1)} kg`;
   const arrowX = x + CAR.w + 18;
   const soles = FLOOR - (SCALES_H - 3) * S;
   return (
     <Group>
-      <Line x1={cx} y1={0} x2={cx} y2={TOP} stroke={p.draw} strokeWidth={1.6} />
-      <Rect x={x} y={TOP} width={CAR.w} height={CAR.h} fill={p.page} stroke={p.draw} strokeWidth={2} />
+      <Line x1={cx} y1={0} x2={cx} y2={TOP} stroke={p.draw} strokeWidth={stroke.body} />
+      <Rect x={x} y={TOP} width={CAR.w} height={CAR.h} fill={p.page} stroke={p.draw} strokeWidth={stroke.body} />
       <Hatch x1={x} x2={x + CAR.w} y={FLOOR} color={p.draw} />
       <Group transform={`translate(${cx} ${FLOOR}) scale(${S}) translate(${-cx} ${-FLOOR})`}>
         <Scales x={cx} y={FLOOR} reading={kg} />

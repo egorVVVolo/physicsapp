@@ -11,6 +11,7 @@
 import { G as Group, Circle, Path, Rect, Text as SvgText } from 'react-native-svg';
 import type { PairsFig } from '@/content/types';
 import { useTheme } from '@/theme/ThemeContext';
+import { stroke } from '@/theme/tokens';
 import { svgLetter } from '@/theme/svgFont';
 import { phaseOf, STILL, useOnceTime, type DrawClock } from './anim';
 import { CgMark, DrawnFade, DrawnPath, DrawnShape, FILLS, ForceArrow, MonoLabel, rectPath } from './draw';
@@ -80,7 +81,7 @@ export function pairsTargets(): TapTarget[] {
 
 /** `kept`: the screen before showed these bodies and arrows already, so they are simply there. */
 export function PairsFigure({ fig, tap, clock = STILL, kept = false }: { fig: PairsFig; tap?: TapProps; clock?: DrawClock; kept?: boolean }) {
-  const { palette: p } = useTheme();
+  const { palette: p, material: m } = useTheme();
   // the timeline (seconds): bodies move apart, zones appear, arrows grow one by one. It waits while the figure draws itself.
   const explode = !!fig.explode;
   const t = useOnceTime(explode ? 3.2 : 1.4, !clock.on, kept);
@@ -114,15 +115,15 @@ export function PairsFigure({ fig, tap, clock = STILL, kept = false }: { fig: Pa
     return (
       <Group key={id} transform={dy ? `translate(0 ${dy})` : undefined} opacity={Math.min(1, k * 2)}>
         {/* chosen: a soft blue box, like a chosen answer card */}
-        {on && <Rect x={b.x} y={b.y} width={b.w} height={b.h} rx={10} fill={p.selectBg} fillOpacity={0.85} stroke={p.select} strokeWidth={1.6} />}
+        {on && <Rect x={b.x} y={b.y} width={b.w} height={b.h} rx={10} fill={p.selectBg} fillOpacity={0.85} stroke={p.select} strokeWidth={stroke.body} />}
         {/* a white halo keeps the arrow readable over the drawing */}
         <ForceArrow x1={f.x} y1={f.y} x2={f.x} y2={y2} color={p.page} width={on ? 8.5 : 7} />
         <ForceArrow x1={f.x} y1={f.y} x2={f.x} y2={y2} color={c} width={on ? 4.4 : 3.2} />
         {/* the point where the force acts */}
-        <Circle cx={f.x} cy={f.y} r={3.6} fill={c} stroke={p.page} strokeWidth={1.4} />
+        <Circle cx={f.x} cy={f.y} r={3.6} fill={c} stroke={p.page} strokeWidth={stroke.thin} />
         {k > 0.6 && (
           <Group>
-            <Circle cx={f.bx} cy={f.by} r={10} fill={given ? c : p.page} stroke={c} strokeWidth={1.6} />
+            <Circle cx={f.bx} cy={f.by} r={10} fill={given ? c : p.page} stroke={c} strokeWidth={stroke.body} />
             <SvgText x={f.bx} y={f.by + 5} fontSize={14} fill={given ? p.page : textOf(c)} fontFamily={svgLetter} textAnchor="middle">
               {id}
             </SvgText>
@@ -134,7 +135,7 @@ export function PairsFigure({ fig, tap, clock = STILL, kept = false }: { fig: Pa
 
   const zone = (z: (typeof ZONE)[keyof typeof ZONE]) => (
     <Group key={z.tag} opacity={zones}>
-      <DrawnShape clock={explode ? STILL : clock} pen={PEN.zones} {...rectPath(Z_X, z.y, Z_W, z.h, 10)} fill={p.page} stroke={p.paperLine} strokeWidth={1.2} />
+      <DrawnShape clock={explode ? STILL : clock} pen={PEN.zones} {...rectPath(Z_X, z.y, Z_W, z.h, 10)} fill={p.page} stroke={p.paperLine} strokeWidth={stroke.thin} />
       <MonoLabel x={Z_X + 10} y={z.y + 16} text={z.tag} color={p.label} size={9} anchor="start" />
     </Group>
   );
@@ -154,7 +155,7 @@ export function PairsFigure({ fig, tap, clock = STILL, kept = false }: { fig: Pa
         />
       </DrawnFade>
       {/* the arc is a little longer than its chord of 298 */}
-      <DrawnPath clock={clock} len={306} from={PEN.earth[0]} to={PEN.earth[1]} d={`M${Z_X + 1},${EARTH_EDGE} Q${Z_X + Z_W / 2},${EARTH_CTRL} ${Z_X + Z_W - 1},${EARTH_EDGE}`} fill="none" stroke={p.draw} strokeWidth={2} />
+      <DrawnPath clock={clock} len={306} from={PEN.earth[0]} to={PEN.earth[1]} d={`M${Z_X + 1},${EARTH_EDGE} Q${Z_X + Z_W / 2},${EARTH_CTRL} ${Z_X + Z_W - 1},${EARTH_EDGE}`} fill="none" stroke={p.draw} strokeWidth={stroke.body} />
 
       {/* the scales, floating in their zone (no display: here only the push on them matters) */}
       <Group transform={`translate(${PX} ${SCALES_BASE + scalesDy}) scale(${SCALES_S})`}>
@@ -190,7 +191,7 @@ function PairBracket({ color, text }: { color: string; text: string }) {
   const lines = ['THIRD-LAW PAIR', 'same size,', 'opposite', 'direction'];
   return (
     <Group opacity={k}>
-      <Path d={`M${x - 8},${mid - h} L${x},${mid - h} L${x},${mid + h} L${x - 8},${mid + h}`} fill="none" stroke={color} strokeWidth={2} strokeLinejoin="round" />
+      <Path d={`M${x - 8},${mid - h} L${x},${mid - h} L${x},${mid + h} L${x - 8},${mid + h}`} fill="none" stroke={color} strokeWidth={stroke.body} strokeLinejoin="round" />
       {lines.map((s, i) => (
         <MonoLabel key={s} x={x - 8} y={y1 - 12 - (lines.length - 1 - i) * 13} text={s} color={text} size={9} anchor="start" />
       ))}

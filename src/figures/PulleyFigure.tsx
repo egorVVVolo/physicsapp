@@ -8,6 +8,7 @@ import { connectedAcceleration, pulleyRun, stringTension, weight } from '@/physi
 import { fixed } from '@/physics/format';
 import type { PulleyFig } from '@/content/types';
 import { useTheme } from '@/theme/ThemeContext';
+import { stroke } from '@/theme/tokens';
 import { STILL, useLoopTime, type DrawClock } from './anim';
 import { ForceArrow, ForceLetter, Hatch, MonoLabel } from './draw';
 import { HollowArrow, stage, Tag } from './kit';
@@ -59,7 +60,7 @@ export const pulleyPlays = (fig: PulleyFig): boolean => fig.play === true;
 type Props = { fig: PulleyFig; live?: number; playing: boolean; clock?: DrawClock };
 
 export function PulleyFigure({ fig, live, playing, clock = STILL }: Props) {
-  const { palette: p } = useTheme();
+  const { palette: p, material: m } = useTheme();
   const x = model(fig, live);
   // the clip stops where the mass lands, so it never answers what the trolley does next; only the screen that asks
   // about it (`at: 'landed'`) plays on, once answered, to show the trolley rolling on
@@ -105,14 +106,14 @@ export function PulleyFigure({ fig, live, playing, clock = STILL }: Props) {
         PEN.bench,
         <Group>
           {BENCH.legs.map((lx) => (
-            <Rect key={lx} x={lx} y={BENCH.top + BENCH.slab} width={6} height={FLOOR - BENCH.top - BENCH.slab} fill={p.drawFillDark} stroke={p.draw} strokeWidth={1.2} />
+            <Rect key={lx} x={lx} y={BENCH.top + BENCH.slab} width={6} height={FLOOR - BENCH.top - BENCH.slab} fill={m.metalSide} stroke={p.draw} strokeWidth={stroke.thin} />
           ))}
-          <Rect x={BENCH.x1} y={BENCH.top} width={BENCH.x2 - BENCH.x1} height={BENCH.slab} fill={p.drawFill} stroke={p.draw} strokeWidth={1.6} />
-          <Path d={`M${BENCH.x2},${BENCH.top + 1} L${PULLEY.x},${PULLEY.y} L${BENCH.x2},${BENCH.top + BENCH.slab - 1}`} fill={p.drawFillDark} stroke={p.draw} strokeWidth={1.2} strokeLinejoin="round" />
-          <Circle cx={PULLEY.x} cy={PULLEY.y} r={PULLEY.r} fill={p.drawFill} stroke={p.draw} strokeWidth={1.6} />
+          <Rect x={BENCH.x1} y={BENCH.top} width={BENCH.x2 - BENCH.x1} height={BENCH.slab} fill={m.wood} stroke={p.draw} strokeWidth={stroke.body} />
+          <Path d={`M${BENCH.x2},${BENCH.top + 1} L${PULLEY.x},${PULLEY.y} L${BENCH.x2},${BENCH.top + BENCH.slab - 1}`} fill={m.metalSide} stroke={p.draw} strokeWidth={stroke.thin} strokeLinejoin="round" />
+          <Circle cx={PULLEY.x} cy={PULLEY.y} r={PULLEY.r} fill={m.metal} stroke={p.draw} strokeWidth={stroke.body} />
           <Circle cx={PULLEY.x} cy={PULLEY.y} r={2} fill={p.draw} />
           {marks.map((mx, i) => (
-            <Line key={i} x1={mx} y1={BENCH.top + 1.5} x2={mx} y2={BENCH.top + BENCH.slab - 1.5} stroke={p.ink} strokeWidth={1.4} />
+            <Line key={i} x1={mx} y1={BENCH.top + 1.5} x2={mx} y2={BENCH.top + BENCH.slab - 1.5} stroke={p.ink} strokeWidth={stroke.thin} />
           ))}
         </Group>,
       )}
@@ -121,28 +122,28 @@ export function PulleyFigure({ fig, live, playing, clock = STILL }: Props) {
       {stage(clock, 
         PEN.bodies,
         <Group>
-          <Path d={`M${back},${top} L${back + 6},${top - 5} H${front + 6} L${front},${top} Z`} fill={p.drawFillDark} stroke={p.draw} strokeWidth={1.4} strokeLinejoin="round" />
-          <Rect x={back} y={top} width={TROLLEY.w} height={TROLLEY.h} rx={2} fill={p.drawFill} stroke={p.draw} strokeWidth={1.7} />
-          <Line x1={back + 4} y1={top + 17} x2={front - 4} y2={top + 17} stroke={p.draw} strokeWidth={1} opacity={0.45} />
+          <Path d={`M${back},${top} L${back + 6},${top - 5} H${front + 6} L${front},${top} Z`} fill={m.plasticSide} stroke={p.draw} strokeWidth={stroke.thin} strokeLinejoin="round" />
+          <Rect x={back} y={top} width={TROLLEY.w} height={TROLLEY.h} rx={2} fill={m.plastic} stroke={p.draw} strokeWidth={stroke.body} />
+          <Line x1={back + 4} y1={top + 17} x2={front - 4} y2={top + 17} stroke={p.draw} strokeWidth={stroke.thin} opacity={0.45} />
           {[back + 16, front - 16].map((wx) => (
             <Group key={wx}>
-              <Circle cx={wx} cy={BENCH.top - TROLLEY.wheel} r={TROLLEY.wheel} fill={p.drawFillDark} stroke={p.draw} strokeWidth={1.4} />
-              <Circle cx={wx} cy={BENCH.top - TROLLEY.wheel} r={1.4} fill={p.draw} />
+              <Circle cx={wx} cy={BENCH.top - TROLLEY.wheel} r={TROLLEY.wheel} fill={m.rubber} stroke={p.draw} strokeWidth={stroke.thin} />
+              <Circle cx={wx} cy={BENCH.top - TROLLEY.wheel} r={1.8} fill={m.metal} />
             </Group>
           ))}
           <MonoLabel x={back + TROLLEY.w / 2} y={top + 12} text={`${fixed(fig.trolley, 2)} kg`} color={p.label} size={9} />
-          <Path d={`M${DROP_X - BLOCK_W / 2},${blockTop} L${DROP_X - BLOCK_W / 2 + 5},${blockTop - 4} H${DROP_X + BLOCK_W / 2 + 5} L${DROP_X + BLOCK_W / 2},${blockTop} Z`} fill={p.drawFillDark} stroke={p.draw} strokeWidth={1.3} strokeLinejoin="round" />
-          <Rect x={DROP_X - BLOCK_W / 2} y={blockTop} width={BLOCK_W} height={hb} rx={1.5} fill={p.drawFill} stroke={p.draw} strokeWidth={1.7} />
-          <MonoLabel x={DROP_X + BLOCK_W / 2 + 4} y={blockTop + hb - 3} text={`${fixed(x.m, 2)} kg`} color={p.label} size={8} anchor="start" />
+          <Path d={`M${DROP_X - BLOCK_W / 2},${blockTop} L${DROP_X - BLOCK_W / 2 + 5},${blockTop - 4} H${DROP_X + BLOCK_W / 2 + 5} L${DROP_X + BLOCK_W / 2},${blockTop} Z`} fill={m.metalSide} stroke={p.draw} strokeWidth={stroke.thin} strokeLinejoin="round" />
+          <Rect x={DROP_X - BLOCK_W / 2} y={blockTop} width={BLOCK_W} height={hb} rx={1.5} fill={m.metal} stroke={p.draw} strokeWidth={stroke.body} />
+          <MonoLabel x={DROP_X} y={blockTop + hb + 13} text={`${fixed(x.m, 2)} kg`} color={p.label} size={8} />
         </Group>,
       )}
 
       {stage(clock, 
         PEN.string,
         <Group>
-          <Path d={level} fill="none" stroke={p.draw} strokeWidth={1.3} />
-          <Path d={down} fill="none" stroke={p.draw} strokeWidth={1.3} />
-          <Path d={`M${PULLEY.x},${HOOK_Y} A${PULLEY.r},${PULLEY.r} 0 0 1 ${DROP_X},${PULLEY.y}`} fill="none" stroke={p.draw} strokeWidth={1.3} />
+          <Path d={level} fill="none" stroke={p.draw} strokeWidth={stroke.thin} />
+          <Path d={down} fill="none" stroke={p.draw} strokeWidth={stroke.thin} />
+          <Path d={`M${PULLEY.x},${HOOK_Y} A${PULLEY.r},${PULLEY.r} 0 0 1 ${DROP_X},${PULLEY.y}`} fill="none" stroke={p.draw} strokeWidth={stroke.thin} />
           <Circle cx={front} cy={HOOK_Y} r={2.2} fill={p.draw} />
         </Group>,
       )}
@@ -178,7 +179,7 @@ export function PulleyFigure({ fig, live, playing, clock = STILL }: Props) {
             <MonoLabel key={line} x={LEGEND.x} y={LEGEND.y + i * LEGEND.step} text={line} color={p.ink} size={9} anchor="start" />
           ))}
           {fig.play !== undefined && marks.length > 0 && (
-            <MonoLabel x={40} y={BENCH.top + BENCH.slab + 14} text="½ SPEED · A MARK EVERY 0.1 s" color={p.label} size={8} anchor="start" />
+            <MonoLabel x={(BENCH.legs[0] + BENCH.legs[1]) / 2} y={FLOOR - 8} text="½ SPEED · MARK EVERY 0.1 s" color={p.label} size={8} />
           )}
         </Group>,
       )}
@@ -191,8 +192,8 @@ function Chevrons({ x, y, color }: { x: number; y: number; color: string }) {
   const one = (cx: number) => `M${cx - 4},${y - 6} L${cx + 4},${y} L${cx - 4},${y + 6}`;
   return (
     <Group>
-      <Path d={one(x - 5)} fill="none" stroke={color} strokeWidth={2.4} strokeLinecap="round" strokeLinejoin="round" />
-      <Path d={one(x + 4)} fill="none" stroke={color} strokeWidth={2.4} strokeLinecap="round" strokeLinejoin="round" />
+      <Path d={one(x - 5)} fill="none" stroke={color} strokeWidth={stroke.force} strokeLinecap="round" strokeLinejoin="round" />
+      <Path d={one(x + 4)} fill="none" stroke={color} strokeWidth={stroke.force} strokeLinecap="round" strokeLinejoin="round" />
     </Group>
   );
 }

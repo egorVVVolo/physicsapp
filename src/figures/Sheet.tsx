@@ -85,6 +85,8 @@ const STYLE_2 = new Set<Fig['kind']>([
   'lift', 'crate', 'collide', 'road',
   // Motion (C3)
   'track', 'graph', 'equations', 'chase', 'brakeVt', 'throw', 'throwVt', 'fallGraph', 'sledge', 'hill', 'resolve', 'vectors', 'bench', 'kick',
+  // Forces (C4)
+  'ladder', 'particle', 'pulley', 'liftPair', 'scales', 'pairs', 'vt', 'fall',
 ]);
 
 /** Every figure is drawn at the same size on every screen, so the drawing never jumps between screens. */

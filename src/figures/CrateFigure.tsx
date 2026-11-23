@@ -13,6 +13,7 @@ import { components } from '@/physics/vectors';
 import { fixed } from '@/physics/format';
 import type { CrateFig, CrateForce } from '@/content/types';
 import { useTheme } from '@/theme/ThemeContext';
+import { stroke } from '@/theme/tokens';
 import { CHANGE_DELAY, STILL, useLoopTime, useTween, type DrawClock } from './anim';
 import { CgMark, ForceArrow, ForceLetter, MonoLabel, useLineStep } from './draw';
 import { Mitten } from './SledgeFigure';
@@ -209,7 +210,7 @@ export function CrateFigure({ fig, live, playing, clock = STILL, prev }: Props) 
           {fig.by === 'pole' && (
             <Group>
               <Line x1={hand[0]} y1={hand[1]} x2={poleEnd[0]} y2={poleEnd[1]} stroke={p.draw} strokeWidth={5} strokeLinecap="round" />
-              <Line x1={hand[0]} y1={hand[1]} x2={poleEnd[0]} y2={poleEnd[1]} stroke={pick(m.wood, p.drawFillDark)} strokeWidth={2.4} strokeLinecap="round" />
+              <Line x1={hand[0]} y1={hand[1]} x2={poleEnd[0]} y2={poleEnd[1]} stroke={pick(m.wood, p.drawFillDark)} strokeWidth={stroke.force} strokeLinecap="round" />
               <Mitten x={hand[0]} y={hand[1]} dx={-d[0]} dy={-d[1]} />
               <MonoLabel x={hand[0] + 4} y={hand[1] - 16} text="ROSE" color={p.label} size={9} />
             </Group>
@@ -239,17 +240,17 @@ export function CrateFigure({ fig, live, playing, clock = STILL, prev }: Props) 
         stage(clock, 
           PEN.fbd,
           <Group>
-            <Line x1={divide} y1={14} x2={divide} y2={216} stroke={p.paperLine} strokeWidth={1.2} strokeDasharray="4 4" />
+            <Line x1={divide} y1={14} x2={divide} y2={216} stroke={p.paperLine} strokeWidth={stroke.thin} strokeDasharray="4 4" />
             <MonoLabel x={flat ? 332 : divide + 6} y={(flat ? 211 : 203) - step9} text="CRATE" color={p.label} size={9} anchor={flat ? 'end' : 'start'} />
             <MonoLabel x={flat ? 332 : divide + 6} y={flat ? 211 : 203} text="ALONE" color={p.label} size={9} anchor={flat ? 'end' : 'start'} />
-            <Rect x={dot.x - 7} y={dot.y - 7} width={14} height={14} rx={2} fill="none" stroke={p.label} strokeWidth={1} strokeDasharray="3 3" />
+            <Rect x={dot.x - 7} y={dot.y - 7} width={14} height={14} rx={2} fill="none" stroke={p.label} strokeWidth={stroke.thin} strokeDasharray="3 3" />
             {!fbd && <MonoLabel x={dot.x + 18} y={dot.y - 14} text="?" color={p.ink} size={12} />}
             {fig.split && split > 0 && (
               <Path
                 d={`M${tip.T[0]},${tip.T[1]} V${fwdTip[1]} M${tip.T[0]},${tip.T[1]} H${dot.x}`}
                 fill="none"
                 stroke={p.label}
-                strokeWidth={1.1}
+                strokeWidth={stroke.thin}
                 strokeDasharray="3 3"
                 opacity={split}
               />
@@ -288,7 +289,7 @@ export function CrateFigure({ fig, live, playing, clock = STILL, prev }: Props) 
 
 /** The force a question asks about: a short dashed arrow from the dot with its letter and "?". */
 function AskStub({ force }: { force: 'N' | 'F' }) {
-  const { palette: p } = useTheme();
+  const { palette: p, material: m } = useTheme();
   const up = force === 'N';
   const end: [number, number] = up ? [DOT.x, DOT.y - 30] : [DOT.x - 26, DOT.y];
   return (
@@ -301,12 +302,12 @@ function AskStub({ force }: { force: 'N' | 'F' }) {
 
 /** "steady speed →": an outline arrow along the motion with a tag above it. */
 function MotionTag({ x, y, text }: { x: number; y: number; text: string }) {
-  const { palette: p } = useTheme();
+  const { palette: p, material: m } = useTheme();
   const [a, b] = [x - 24, x + 24];
   const d = `M${a},${y - 3} H${b - 10} V${y - 8} L${b},${y} L${b - 10},${y + 8} V${y + 3} H${a} Z`;
   return (
     <Group>
-      <Path d={d} fill="none" stroke={p.label} strokeWidth={1.6} strokeLinejoin="round" />
+      <Path d={d} fill="none" stroke={p.label} strokeWidth={stroke.body} strokeLinejoin="round" />
       <Tag x={x} y={y - 12} text={text} />
     </Group>
   );
@@ -314,13 +315,13 @@ function MotionTag({ x, y, text }: { x: number; y: number; text: string }) {
 
 /** The acceleration on the free-body diagram: two chevrons pointing forward (or back, when the crate slows down). */
 function AccMark({ x, y, back }: { x: number; y: number; back: boolean }) {
-  const { palette: p } = useTheme();
+  const { palette: p, material: m } = useTheme();
   const d = back ? -4 : 4; // half the width of one chevron, signed by its direction
   const one = (cx: number) => `M${cx - d},${y - 7} L${cx + d},${y} L${cx - d},${y + 7}`;
   return (
     <Group>
-      <Path d={one(x - 5)} fill="none" stroke={p.draw} strokeWidth={2.6} strokeLinecap="round" strokeLinejoin="round" />
-      <Path d={one(x + 5)} fill="none" stroke={p.draw} strokeWidth={2.6} strokeLinecap="round" strokeLinejoin="round" />
+      <Path d={one(x - 5)} fill="none" stroke={p.draw} strokeWidth={stroke.force} strokeLinecap="round" strokeLinejoin="round" />
+      <Path d={one(x + 5)} fill="none" stroke={p.draw} strokeWidth={stroke.force} strokeLinecap="round" strokeLinejoin="round" />
     </Group>
   );
 }

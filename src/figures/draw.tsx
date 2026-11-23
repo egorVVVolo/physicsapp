@@ -169,6 +169,11 @@ function useReadable(size: number, min: number): number {
   return k > 0 ? Math.max(size, min / k) : size;
 }
 
+/** The size a mono label of `size` is drawn at on this sheet (labels grow to stay readable). */
+export function useMonoSize(size: number): number {
+  return useReadable(size, MONO_MIN);
+}
+
 /** The distance from one line of a two-line mono label to the next, for labels of this size (they may have grown). */
 export function useLineStep(size: number): number {
   return useReadable(size, MONO_MIN) * 1.25;

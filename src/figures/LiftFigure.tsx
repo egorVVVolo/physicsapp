@@ -14,6 +14,7 @@ import { normalInLift, scaleKg, weight } from '@/physics/dynamics';
 import { fixed, signed } from '@/physics/format';
 import { CANDIDATE_IDS, type LiftFig } from '@/content/types';
 import { useTheme } from '@/theme/ThemeContext';
+import { stroke } from '@/theme/tokens';
 import { CHANGE_DELAY, DRAWN_MS, STILL, useTween, useWave, type DrawClock } from './anim';
 import { AccChevrons, DrawnFade, DrawnPath, DrawnShape, FILLS, ForceArrow, ForceLetter, Hatch, MonoLabel, MotionArrow, rectPath, useLineStep } from './draw';
 import { Person, Scales, SCALES_H } from './people';
@@ -129,7 +130,7 @@ export function LiftFigure({ fig, a, tap, clock = STILL, prev, shift: shiftNow }
           {motionDir ? (
             <Polygon points={motionDir === 'up' ? `${CX - 5},${CAR.y + 22} ${CX + 5},${CAR.y + 22} ${CX},${CAR.y + 15}` : `${CX - 5},${CAR.y + 15} ${CX + 5},${CAR.y + 15} ${CX},${CAR.y + 22}`} fill={p.page} />
           ) : (
-            <Line x1={CX - 5} y1={CAR.y + 18.5} x2={CX + 5} y2={CAR.y + 18.5} stroke={p.page} strokeWidth={2} strokeLinecap="round" />
+            <Line x1={CX - 5} y1={CAR.y + 18.5} x2={CX + 5} y2={CAR.y + 18.5} stroke={p.page} strokeWidth={stroke.body} strokeLinecap="round" />
           )}
         </DrawnFade>
         {line(`M${CAR.x + 8},148 H${CAR.x + CAR.w - 8}`, CAR.w - 16, PEN.rail, pick(m.metalSide, p.lineStrong), pick(stroke.force, 3), 'round')}
@@ -183,7 +184,7 @@ export function LiftFigure({ fig, a, tap, clock = STILL, prev, shift: shiftNow }
                 </DrawnFade>
               );
             })}
-          {fig.candidates && stage(clock, PEN.marks, <Line x1={222} y1={DOT.y} x2={322} y2={DOT.y} stroke={p.lineStrong} strokeWidth={1} strokeDasharray="2 3" />)}
+          {fig.candidates && stage(clock, PEN.marks, <Line x1={222} y1={DOT.y} x2={322} y2={DOT.y} stroke={p.lineStrong} strokeWidth={stroke.thin} strokeDasharray="2 3" />)}
           {stage(clock, PEN.marks, <Circle cx={DOT.x} cy={DOT.y} r={5} fill={p.draw} />)}
         </Group>
       )}
@@ -197,7 +198,7 @@ export function LiftFigure({ fig, a, tap, clock = STILL, prev, shift: shiftNow }
  * so it gives nothing away about the size of N.
  */
 function NOnPerson({ drawing }: { drawing: boolean }) {
-  const { palette: p } = useTheme();
+  const { palette: p, material: m } = useTheme();
   // on a lift that draws itself it grows out of the soles once the drawing is done; otherwise it is simply there
   const [from] = useState(drawing ? 0 : 34); // decided once: it must not jump when the drawing ends
   const len = useTween(34, from, 420, DRAWN_MS);
@@ -206,9 +207,9 @@ function NOnPerson({ drawing }: { drawing: boolean }) {
     <Group>
       <ForceArrow x1={CX} y1={SOLES} x2={CX} y2={SOLES - len} color={p.page} width={8} />
       <ForceArrow x1={CX} y1={SOLES} x2={CX} y2={SOLES - len} color={p.force} />
-      <Circle cx={CX} cy={SOLES} r={3.6} fill={p.force} stroke={p.page} strokeWidth={1.4} />
+      <Circle cx={CX} cy={SOLES} r={3.6} fill={p.force} stroke={p.page} strokeWidth={stroke.thin} />
       <ForceLetter x={CX + 30} y={SOLES - 12} text="N" color={p.forceText} size={15} />
-      <Line x1={CX + 24} y1={SOLES - 16} x2={CX + 5} y2={SOLES - 18} stroke={p.forceText} strokeWidth={1.2} />
+      <Line x1={CX + 24} y1={SOLES - 16} x2={CX + 5} y2={SOLES - 18} stroke={p.forceText} strokeWidth={stroke.thin} />
     </Group>
   );
 }
@@ -229,7 +230,7 @@ function Display({ fig, n, clock, from }: { fig: LiftFig; n: number; clock: Draw
 
 /** The W arrow of the free-body diagram: grows out of the dot when the figure appears (from `from` on a kept sheet). */
 function WForce({ len: full, w, values, drawing, from, kept }: { len: number; w: number; values: boolean; drawing: boolean; from: number; kept: boolean }) {
-  const { palette: p } = useTheme();
+  const { palette: p, material: m } = useTheme();
   const [delay] = useState(drawing ? DRAWN_MS : kept ? CHANGE_DELAY : 380); // decided once, when the arrow appears
   const len = useTween(full, from, 560, delay);
   if (len < 1) return null;
@@ -248,7 +249,7 @@ function WForce({ len: full, w, values, drawing, from, kept }: { len: number; w:
  */
 type NProps = { n: number; k: number; values: boolean; drawing: boolean; from?: number; fromK: number; kept: boolean };
 function NForce({ n, k, values, drawing, from, fromK, kept }: NProps) {
-  const { palette: p } = useTheme();
+  const { palette: p, material: m } = useTheme();
   const [delay] = useState(drawing ? DRAWN_MS + 140 : kept ? CHANGE_DELAY : 520); // decided once, when the arrow appears
   const len = useTween(n * k, from !== undefined ? from * fromK : STUB, 520, delay);
   const shown = useTween(n, from, 360, from !== undefined ? CHANGE_DELAY : 0);
@@ -279,7 +280,7 @@ const STRIP_W = 12;
  */
 type ShaftProps = { fig: LiftFig; a: number; scale: number; playing: boolean; clock?: DrawClock; shift?: number };
 export function ShaftMarks({ fig, a, scale, playing, clock = STILL, shift: shiftNow }: ShaftProps) {
-  const { palette: p } = useTheme();
+  const { palette: p, material: m } = useTheme();
   // while the lift draws itself the marks fade in with the walls and the shaft stays still
   const full = useSharedValue(1);
   const pen = clock.on ? clock.t : full;
@@ -360,7 +361,7 @@ export function ShaftMarks({ fig, a, scale, playing, clock = STILL, shift: shift
         y % PERIOD === 0 ? (
           <Rect key={y} x={0} y={y - 1.5} width={STRIP_W} height={3} fill={p.lineStrong} />
         ) : (
-          <Line key={y} x1={edge} y1={y} x2={edge + inward * 5} y2={y} stroke={p.lineStrong} strokeWidth={1.4} />
+          <Line key={y} x1={edge} y1={y} x2={edge + inward * 5} y2={y} stroke={p.lineStrong} strokeWidth={stroke.thin} />
         ),
       );
     }

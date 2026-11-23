@@ -3,6 +3,7 @@
 import { Circle, G as Group, Rect } from 'react-native-svg';
 import type { ParticleFig } from '@/content/types';
 import { useTheme } from '@/theme/ThemeContext';
+import { stroke } from '@/theme/tokens';
 import { STILL, type DrawClock } from './anim';
 import { DrawnFade, ForceArrow, MonoLabel } from './draw';
 
@@ -11,11 +12,11 @@ const DOT = { x: 170, y: 118 };
 const RAD = Math.PI / 180;
 
 export function ParticleFigure({ fig, clock = STILL }: { fig: ParticleFig; clock?: DrawClock }) {
-  const { palette: p } = useTheme();
+  const { palette: p, material: m } = useTheme();
   return (
     <Group>
       <DrawnFade clock={clock} from={0} to={0.4}>
-        <Rect x={DOT.x - 12} y={DOT.y - 12} width={24} height={24} rx={2} fill="none" stroke={p.label} strokeWidth={1} strokeDasharray="3 3" />
+        <Rect x={DOT.x - 12} y={DOT.y - 12} width={24} height={24} rx={2} fill="none" stroke={p.label} strokeWidth={stroke.thin} strokeDasharray="3 3" />
       </DrawnFade>
       <DrawnFade clock={clock} from={0.3} to={0.75}>
         {fig.forces.map((f) => {
