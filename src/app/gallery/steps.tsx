@@ -6,6 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { samples } from '@/content/samples';
 import type { Screen } from '@/content/types';
 import { BuildView } from '@/lesson/screens/BuildView';
+import { EstimateView } from '@/lesson/screens/EstimateView';
 import { OrderView } from '@/lesson/screens/OrderView';
 import { SortView } from '@/lesson/screens/SortView';
 import { SpotErrorView } from '@/lesson/screens/SpotErrorView';
@@ -55,6 +56,7 @@ function Live({ screen, onLog, onNext }: { screen: Screen; onLog: (line: string)
   if (screen.kind === 'order') return <OrderView screen={screen} {...graded} />;
   if (screen.kind === 'spotError') return <SpotErrorView screen={screen} {...graded} />;
   if (screen.kind === 'sort') return <SortView screen={screen} {...graded} />;
+  if (screen.kind === 'estimate') return <EstimateView screen={screen} {...graded} />;
   return null;
 }
 

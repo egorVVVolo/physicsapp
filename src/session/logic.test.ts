@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { carriedFig, chapterOf, countOutcomes, figNumbers, figOf, shownFigOf, itemsOf, MAX_GAP_MS, next, outcomeOf, parseProgress, progressOf, recordOutcome, recordPick, recordWrong, runOf, startState, tick } from './logic.ts';
+import { carriedFig, chapterOf, countOutcomes, estimateOutcome, figNumbers, figOf, shownFigOf, itemsOf, MAX_GAP_MS, next, outcomeOf, parseProgress, progressOf, recordOutcome, recordPick, recordWrong, runOf, startState, tick } from './logic.ts';
 import { normalReaction as L } from '../content/normal-reaction.ts';
 import { workDoneLesson as W } from '../content/work-done.ts';
 import { revealed } from './reveal.ts';
@@ -143,4 +143,13 @@ test('a text screen without a figure carries the last one, answered, under the s
       assert.equal(nums[s.id], nums[src.id], `${s.id}: same FIG number as ${src.id}`);
     });
   }
+});
+
+test('estimate: within the tolerance, a near miss in the story, everything else shown', () => {
+  assert.equal(estimateOutcome(500, 471, 50, 'story'), 'independent');
+  assert.equal(estimateOutcome(421, 471, 50, 'check'), 'independent');
+  assert.equal(estimateOutcome(550, 471, 50, 'story'), 'assisted');
+  assert.equal(estimateOutcome(380, 471, 50, 'story'), 'assisted');
+  assert.equal(estimateOutcome(600, 471, 50, 'story'), 'revealed');
+  assert.equal(estimateOutcome(550, 471, 50, 'check'), 'revealed');
 });

@@ -1110,10 +1110,26 @@ export type SortScreen = Base & {
   why: string;
 };
 
-export type Screen = IntroScreen | TextScreen | PredictScreen | ChoiceScreen | ExploreScreen | TapFigScreen | BuildScreen | OrderScreen | SpotErrorScreen | SortScreen;
+/** Estimate on a scale; once checked, the figure plays the truth and its mark drops onto the ruler. */
+export type EstimateScreen = Base & {
+  kind: 'estimate';
+  prompt: string;
+  /** Shows the set-up only: it must not give the answer away. */
+  fig: Fig;
+  /** The same figure once checked (for example played, or with its numbers shown): the truth. */
+  after: Fig;
+  scale: { min: number; max: number; step: number; tick: number; unit: string; symbol: string; dp: number; label: string };
+  /** From src/physics. */
+  answer: number;
+  /** In the scale's units: within it counts as right. */
+  tolerance: number;
+  why: string;
+};
+
+export type Screen = IntroScreen | TextScreen | PredictScreen | ChoiceScreen | ExploreScreen | TapFigScreen | BuildScreen | OrderScreen | SpotErrorScreen | SortScreen | EstimateScreen;
 /** A graded question answered by picking one option (cards or places on the figure). */
 export type OptionQuestion = ChoiceScreen | TapFigScreen;
-export type Question = OptionQuestion | BuildScreen | OrderScreen | SpotErrorScreen | SortScreen;
+export type Question = OptionQuestion | BuildScreen | OrderScreen | SpotErrorScreen | SortScreen | EstimateScreen;
 
 export type Lesson = {
   id: string;
@@ -1139,4 +1155,4 @@ export type LessonRef = { id: string; title: string; spec: number[]; ready: bool
 export type Level = { id: string; title: string; lessons: LessonRef[] };
 export type Course = { title: string; subtitle: string; levels: Level[] };
 
-export const isQuestion = (s: Screen): s is Question => s.kind === 'choice' || s.kind === 'tapFig' || s.kind === 'build' || s.kind === 'order' || s.kind === 'spotError' || s.kind === 'sort';
+export const isQuestion = (s: Screen): s is Question => s.kind === 'choice' || s.kind === 'tapFig' || s.kind === 'build' || s.kind === 'order' || s.kind === 'spotError' || s.kind === 'sort' || s.kind === 'estimate';

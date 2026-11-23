@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import { lessons } from './lessons.ts';
 import { samples } from './samples.ts';
 import { boxesOf } from '../session/build.ts';
-import { ACC_IDS, BEAM_IDS, CANDIDATE_IDS, COMPARE_IDS, SKETCH_IDS, EQUATION_IDS, FLOW_IDS, LADDER_IDS, PAIR_IDS, POLE_IDS, SLEDGE_IDS, isQuestion, type BuildScreen, type Fig, type OrderScreen, type Screen, type SortScreen, type SpotErrorScreen } from './types.ts';
+import { ACC_IDS, BEAM_IDS, CANDIDATE_IDS, COMPARE_IDS, SKETCH_IDS, EQUATION_IDS, FLOW_IDS, LADDER_IDS, PAIR_IDS, POLE_IDS, SLEDGE_IDS, isQuestion, type BuildScreen, type Fig, type OrderScreen, type Screen, type EstimateScreen, type SortScreen, type SpotErrorScreen } from './types.ts';
 
 // **key words** are bold on screen: the stars do not count, but they must come in pairs
 const max = (text: string, n: number, where: string) => {
@@ -78,12 +78,25 @@ function checkSortScreen(s: SortScreen) {
   max(s.why, 170, `${s.id} why`);
 }
 
+/** An estimate: the answer inside the scale, a tolerance above zero and at most 15 % of the scale, one figure before and after. */
+function checkEstimateScreen(s: EstimateScreen) {
+  const { min, max: top, step } = s.scale;
+  assert.ok(s.answer >= min && s.answer <= top, `${s.id}: the answer is on the scale`);
+  assert.ok(s.tolerance > 0 && s.tolerance <= 0.15 * (top - min), `${s.id}: tolerance above 0 and at most 15 % of the scale`);
+  assert.ok(s.tolerance >= step, `${s.id}: the tolerance is at least one step of the slider`);
+  assert.equal(s.fig.kind, s.after.kind, `${s.id}: the same figure before and after`);
+  assert.notDeepEqual(s.fig, s.after, `${s.id}: the figure changes once checked`);
+  max(s.scale.label, 30, `${s.id} scale label`);
+  max(s.why, 170, `${s.id} why`);
+}
+
 test('sample steps of the gallery fit together', () => {
   for (const { screen } of samples) {
     if (screen.kind === 'build') checkBuildScreen(screen);
     if (screen.kind === 'order') checkOrderScreen(screen);
     if (screen.kind === 'spotError') checkSpotErrorScreen(screen);
     if (screen.kind === 'sort') checkSortScreen(screen);
+    if (screen.kind === 'estimate') checkEstimateScreen(screen);
   }
 });
 
@@ -189,6 +202,7 @@ for (const lesson of Object.values(lessons)) {
       if (s.kind === 'order') checkOrderScreen(s);
       if (s.kind === 'spotError') checkSpotErrorScreen(s);
       if (s.kind === 'sort') checkSortScreen(s);
+      if (s.kind === 'estimate') checkEstimateScreen(s);
     }
   });
 

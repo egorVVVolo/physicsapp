@@ -16,6 +16,17 @@ export function outcomeOf(wrong: number, phase: Phase): Outcome {
 
 export type Phase = 'story' | 'check';
 
+/**
+ * An estimate has one try. Within the tolerance: independent. A miss shows the truth: in the story a near miss
+ * (less than two tolerances off) counts as assisted; a far miss, or any miss in the Skill check, as revealed.
+ */
+export function estimateOutcome(guess: number, answer: number, tolerance: number, phase: Phase): Outcome {
+  const off = Math.abs(guess - answer);
+  if (off <= tolerance + 1e-9) return 'independent';
+  if (phase === 'story' && off < 2 * tolerance) return 'assisted';
+  return 'revealed';
+}
+
 /** What the player shows, in order: the story, the "Skill check" splash, the Skill check questions. */
 export type Item = { kind: 'screen'; screen: Screen; phase: Phase } | { kind: 'checkIntro' };
 
@@ -42,6 +53,7 @@ export function carriedFig(lesson: Lesson, index: number): Fig | undefined {
   for (let j = index - 1; j >= 0; j--) {
     const s = lesson.story[j];
     if (!('fig' in s) || !s.fig) continue;
+    if (s.kind === 'estimate') return s.after;
     return s.kind === 'choice' || s.kind === 'tapFig' ? revealed(s.fig) : s.fig;
   }
   return undefined;

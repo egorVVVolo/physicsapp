@@ -87,4 +87,18 @@ export const samples: { title: string; screen: Screen }[] = [
       why: 'A force does work only when the object moves along it. Forces at 90° to the motion do none; a force against the motion does negative work.',
     },
   },
+  {
+    title: 'estimate · Estimate',
+    screen: {
+      id: 'sample-estimate',
+      kind: 'estimate',
+      prompt: `Movers push a ${VAN.m}${NB}kg washing machine up a ${fixed(VAN.L, 1)}${NB}m ramp into a van, ${fixed(VAN.h, 1)}${NB}m up. Roughly how much work does the push do?`,
+      fig: { kind: 'ramp', m: VAN.m, h: VAN.h, L: VAN.L, push: 'unknown' },
+      after: { kind: 'ramp', m: VAN.m, h: VAN.h, L: VAN.L, push: 'shown', work: true },
+      scale: { min: 0, max: 1000, step: 10, tick: 100, unit: 'J', symbol: 'W', dp: 0, label: 'Work done by the push' },
+      answer: liftWork(VAN.m, VAN.h),
+      tolerance: 50,
+      why: `On a smooth ramp all the work goes into raising the machine: W = mgh = ${VAN.m} × 9.81 × ${fixed(VAN.h, 1)} = ${sig(liftWork(VAN.m, VAN.h))}${NB}J, however long the ramp.`,
+    },
+  },
 ];
