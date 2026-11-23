@@ -10,6 +10,7 @@ import { tripAcceleration, tripDisplacement, tripDuration, tripPosition, tripVel
 import { fixed } from '@/physics/format';
 import type { GraphFig } from '@/content/types';
 import { useTheme } from '@/theme/ThemeContext';
+import { stroke } from '@/theme/tokens';
 import { STILL, type DrawClock } from './anim';
 import { DrawnFade, DrawnPath, FILLS, ForceLetter, MonoLabel } from './draw';
 import type { TapProps, TapTarget } from './Sheet';
@@ -19,6 +20,7 @@ export const GRAPH_VB = { w: 340, h: 224 };
 
 const PLOT = { x: 50, top: 26, w: 266, bottom: 188 };
 const AXES: readonly [number, number] = [0, 0.36];
+const LETTER_GAP = 18; // the least distance between the letters of two lines, viewBox units
 const LINES: readonly [number, number] = [0.36, 0.7];
 const MARKS: readonly [number, number] = [0.8, 0.95];
 const TITLE = { s: 's / m', v: 'v / m s⁻¹', a: 'a / m s⁻²' } as const;
@@ -88,7 +90,7 @@ export function graphTargets(fig: GraphFig): TapTarget[] {
 type Props = { fig: GraphFig; live?: number; tap?: TapProps; clock?: DrawClock };
 
 export function GraphFigure({ fig, live, tap, clock = STILL }: Props) {
-  const { palette: p } = useTheme();
+  const { palette: p, material: m } = useTheme();
   const { yMin, X, Y, value, lineOf, untilOf } = frame(fig);
   const fills = (children: ReactNode) => (
     <DrawnFade clock={clock} from={FILLS[0]} to={FILLS[1]}>
@@ -106,6 +108,22 @@ export function GraphFigure({ fig, live, tap, clock = STILL }: Props) {
   /** The area between a line and the time axis from → to, as a closed polygon. */
   const under = (trip: Trip, from: number, to: number): Pt[] => [...samples(fig, trip, from, to), { x: X(to), y: axisY }, { x: X(from), y: axisY }];
 
+  // where each line's letter goes: just past its end, and at least LETTER_GAP from the other line's letter
+  const letters = fig.lines.map((line) => {
+    const pts = samples(fig, line.trip, 0, untilOf(line));
+    const end = pts[pts.length - 1];
+    const edge = end.x + 5 > GRAPH_VB.w - 12;
+    return { x: Math.min(end.x + 5, GRAPH_VB.w - 12), y: end.y + (edge ? -8 : 5) };
+  });
+  if (letters.length === 2 && Math.abs(letters[0].x - letters[1].x) < 24) {
+    const gap = Math.abs(letters[0].y - letters[1].y);
+    if (gap < LETTER_GAP) {
+      const [hi, lo] = letters[0].y < letters[1].y ? [0, 1] : [1, 0];
+      letters[hi].y -= (LETTER_GAP - gap) / 2;
+      letters[lo].y += (LETTER_GAP - gap) / 2;
+    }
+  }
+
   return (
     <Group>
       {/* lettered parts to tap: bands behind everything */}
@@ -117,9 +135,9 @@ export function GraphFigure({ fig, live, tap, clock = STILL }: Props) {
         const x2 = X(part.to);
         return (
           <Group key={part.id}>
-            <Rect x={x1 + 1} y={PLOT.top - 4} width={x2 - x1 - 2} height={PLOT.bottom - PLOT.top + 4} rx={6} fill={fill} stroke={on || mark ? (mark === 'right' ? p.ok : mark === 'wrong' ? p.bad : p.select) : 'none'} strokeWidth={2} />
+            <Rect x={x1 + 1} y={PLOT.top - 4} width={x2 - x1 - 2} height={PLOT.bottom - PLOT.top + 4} rx={6} fill={fill} stroke={on || mark ? (mark === 'right' ? p.ok : mark === 'wrong' ? p.bad : p.select) : 'none'} strokeWidth={stroke.body} />
             {fills(<ForceLetter x={(x1 + x2) / 2} y={PLOT.top + 13} text={part.id} color={p.ink} size={15} />)}
-            {i > 0 && fills(<Line x1={x1} y1={PLOT.bottom} x2={x1} y2={PLOT.top - 4} stroke={p.lineStrong} strokeWidth={1} strokeDasharray="3 4" />)}
+            {i > 0 && fills(<Line x1={x1} y1={PLOT.bottom} x2={x1} y2={PLOT.top - 4} stroke={p.lineStrong} strokeWidth={stroke.thin} strokeDasharray="3 4" />)}
           </Group>
         );
       })}
@@ -135,7 +153,7 @@ export function GraphFigure({ fig, live, tap, clock = STILL }: Props) {
           return (
             <Group key={i}>
               <Path d={pathOf(poly) + ' Z'} fill={i % 2 === 0 ? p.drawFill : p.drawFillDark} />
-              {hatch.length > 0 && <Path d={hatch.join(' ')} stroke={p.draw} strokeWidth={1} opacity={0.5} fill="none" />}
+              {hatch.length > 0 && <Path d={hatch.join(' ')} stroke={p.draw} strokeWidth={stroke.thin} opacity={0.5} fill="none" />}
             </Group>
           );
         }),
@@ -169,14 +187,13 @@ export function GraphFigure({ fig, live, tap, clock = STILL }: Props) {
         pen={AXES}
       />
 
-      {/* the lines themselves */}
+      {/* the lines themselves, each with its letter at its end (two letters close together are moved apart) */}
       {fig.lines.map((line, i) => {
         const pts = samples(fig, line.trip, 0, untilOf(line));
-        const end = pts[pts.length - 1];
         return (
           <Group key={line.id || i}>
-            <DrawnPath clock={clock} len={lengthOf(pts)} from={LINES[0] + i * 0.1} to={LINES[1] + i * 0.1} d={pathOf(pts)} stroke={p.ink} strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" fill="none" />
-            {line.id !== '' && stage(clock, MARKS, <ForceLetter x={Math.min(end.x + 5, GRAPH_VB.w - 12)} y={end.y + (end.x + 5 > GRAPH_VB.w - 12 ? -8 : 5)} text={line.id} color={p.ink} size={15} anchor="start" />)}
+            <DrawnPath clock={clock} len={lengthOf(pts)} from={LINES[0] + i * 0.1} to={LINES[1] + i * 0.1} d={pathOf(pts)} stroke={p.ink} strokeWidth={stroke.force} strokeLinecap="round" strokeLinejoin="round" fill="none" />
+            {line.id !== '' && stage(clock, MARKS, <ForceLetter x={letters[i].x} y={letters[i].y} text={line.id} color={p.ink} size={15} anchor="start" />)}
           </Group>
         );
       })}
@@ -208,17 +225,17 @@ export function GraphFigure({ fig, live, tap, clock = STILL }: Props) {
           })}
           {fig.gradient && <Gradient fig={fig} />}
           {fig.tangent && <Tangent fig={fig} />}
-          {fig.ring && <Circle cx={X(fig.ring.at)} cy={Y(value(lineOf(fig.ring.line).trip, fig.ring.at))} r={7.5} fill="none" stroke={p.ink} strokeWidth={2} />}
+          {fig.ring && <Circle cx={X(fig.ring.at)} cy={Y(value(lineOf(fig.ring.line).trip, fig.ring.at))} r={7.5} fill="none" stroke={p.ink} strokeWidth={stroke.body} />}
         </Group>,
       )}
 
       {/* explore: the time cursor, and the area under each line so far */}
       {cursor !== null && (
         <Group>
-          <Line x1={X(cursor)} y1={PLOT.top - 6} x2={X(cursor)} y2={PLOT.bottom} stroke={p.ink} strokeWidth={1.4} strokeDasharray="4 3" />
+          <Line x1={X(cursor)} y1={PLOT.top - 6} x2={X(cursor)} y2={PLOT.bottom} stroke={p.ink} strokeWidth={stroke.thin} strokeDasharray="4 3" />
           {fig.lines.map((line, i) => (
             <Group key={line.id}>
-              <Rect x={PLOT.x + 12} y={PLOT.top + 2 + i * 16} width={9} height={9} rx={2} fill={i % 2 === 0 ? p.drawFill : p.drawFillDark} stroke={p.draw} strokeWidth={1} />
+              <Rect x={PLOT.x + 12} y={PLOT.top + 2 + i * 16} width={9} height={9} rx={2} fill={i % 2 === 0 ? p.drawFill : p.drawFillDark} stroke={p.draw} strokeWidth={stroke.thin} />
               <MonoLabel x={PLOT.x + 27} y={PLOT.top + 10 + i * 16} text={`${line.id}: ${fixed(tripPosition(Math.min(cursor, untilOf(line)), line.trip), 1)} m`} color={p.ink} size={10} anchor="start" />
             </Group>
           ))}
@@ -230,7 +247,7 @@ export function GraphFigure({ fig, live, tap, clock = STILL }: Props) {
 
 /** A rise-over-run triangle under a line, with both sides labelled. */
 function Gradient({ fig }: { fig: GraphFig }) {
-  const { palette: p } = useTheme();
+  const { palette: p, material: m } = useTheme();
   const { X, Y, value, lineOf } = frame(fig);
   if (!fig.gradient) return null;
   const { from, to } = fig.gradient;
@@ -239,7 +256,7 @@ function Gradient({ fig }: { fig: GraphFig }) {
   const y2 = value(trip, to);
   return (
     <Group>
-      <Path d={`M${X(from)},${Y(y1)} H${X(to)} V${Y(y2)}`} fill="none" stroke={p.label} strokeWidth={1.3} strokeDasharray="4 3" />
+      <Path d={`M${X(from)},${Y(y1)} H${X(to)} V${Y(y2)}`} fill="none" stroke={p.label} strokeWidth={stroke.thin} strokeDasharray="4 3" />
       <MonoLabel x={(X(from) + X(to)) / 2} y={Y(y1) + 13} text={`${fixed(to - from, 1)} s`} color={p.ink} size={9.5} />
       {/* a third of the way up, clear of a line that may cross the middle */}
       <MonoLabel x={X(to) + 6} y={Y(y1 + (y2 - y1) * 0.3) + 3.5} text={`${fixed(y2 - y1, 1)} ${UNIT[fig.y]}`} color={p.ink} size={9.5} anchor="start" />
@@ -249,7 +266,7 @@ function Gradient({ fig }: { fig: GraphFig }) {
 
 /** The tangent to a line at one time: a straight line with the gradient the curve has there. */
 function Tangent({ fig }: { fig: GraphFig }) {
-  const { palette: p } = useTheme();
+  const { palette: p, material: m } = useTheme();
   const { yMin, X, Y, value, lineOf } = frame(fig);
   if (!fig.tangent) return null;
   const { at } = fig.tangent;
@@ -262,8 +279,8 @@ function Tangent({ fig }: { fig: GraphFig }) {
   const yAt = (t: number) => y0 + slope * (t - at);
   return (
     <Group>
-      <Line x1={X(t1)} y1={Y(yAt(t1))} x2={X(t2)} y2={Y(yAt(t2))} stroke={p.label} strokeWidth={1.6} />
-      <Circle cx={X(at)} cy={Y(y0)} r={4} fill={p.page} stroke={p.ink} strokeWidth={2} />
+      <Line x1={X(t1)} y1={Y(yAt(t1))} x2={X(t2)} y2={Y(yAt(t2))} stroke={p.label} strokeWidth={stroke.body} />
+      <Circle cx={X(at)} cy={Y(y0)} r={4} fill={p.page} stroke={p.ink} strokeWidth={stroke.body} />
       <MonoLabel x={X(t2) + 5} y={Y(yAt(t2)) + 3} text="TANGENT" color={p.label} size={8.5} anchor="start" />
     </Group>
   );

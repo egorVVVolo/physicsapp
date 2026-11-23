@@ -9,10 +9,11 @@ import { flightTime, projectilePosition, projectileRange, projectileVelocity, ty
 import { fixed } from '@/physics/format';
 import type { BenchFig } from '@/content/types';
 import { useTheme } from '@/theme/ThemeContext';
+import { stroke } from '@/theme/tokens';
 import { useReducedMotionPref } from '@/ui/parts';
 import { STILL, useLoopTime, type DrawClock } from './anim';
 import { DrawnFade, DrawnShape, FILLS, ForceLetter, Hatch, MonoLabel, rectPath } from './draw';
-import { HollowArrow, stage, Tag } from './kit';
+import { Ball, HollowArrow, stage, Tag } from './kit';
 
 export const BENCH_VB = { w: 340, h: 252 };
 
@@ -66,7 +67,7 @@ export function benchParams(fig: BenchFig, t?: number): string {
 type Props = { fig: BenchFig; live?: number; playing: boolean; clock?: DrawClock };
 
 export function BenchFigure({ fig, live, playing, clock = STILL }: Props) {
-  const { palette: p } = useTheme();
+  const { palette: p, material: m } = useTheme();
   const reduced = useReducedMotionPref();
   const plays = benchPlays(fig);
   const length = Math.max(...fig.balls.map((b) => flightTime(launchOf(fig, b.u))));
@@ -88,9 +89,9 @@ export function BenchFigure({ fig, live, playing, clock = STILL }: Props) {
 
       {/* the bench: a slab on two legs; its top is h above the floor */}
       {/* the balls start just past its ends (x1 and x2 are their centres), so a falling ball never runs into a leg */}
-      <DrawnShape clock={clock} pen={PEN.bench} {...rectPath(BENCH.x1 + R, top, BENCH.x2 - BENCH.x1 - 2 * R, BENCH.slab, 1.5)} fill={p.drawFillDark} stroke={p.draw} strokeWidth={1.6} />
+      <DrawnShape clock={clock} pen={PEN.bench} {...rectPath(BENCH.x1 + R, top, BENCH.x2 - BENCH.x1 - 2 * R, BENCH.slab, 1.5)} fill={m.wood} stroke={p.draw} strokeWidth={stroke.body} />
       {[BENCH.x1 + R + 6, BENCH.x2 - R - 6 - BENCH.leg].map((x) => (
-        <DrawnShape key={x} clock={clock} pen={PEN.bench} {...rectPath(x, top + BENCH.slab, BENCH.leg, GROUND - top - BENCH.slab)} fill={p.drawFill} stroke={p.draw} strokeWidth={1.4} />
+        <DrawnShape key={x} clock={clock} pen={PEN.bench} {...rectPath(x, top + BENCH.slab, BENCH.leg, GROUND - top - BENCH.slab)} fill={m.metal} stroke={p.draw} strokeWidth={stroke.thin} />
       ))}
 
       {/* while it plays: how much slower than real time, and the clock */}
@@ -102,14 +103,14 @@ export function BenchFigure({ fig, live, playing, clock = STILL }: Props) {
         moments.map((m) => {
           const a = ballAt(fig, slowest.u, m);
           const b = ballAt(fig, far.u, m);
-          return <Line key={`l${m}`} x1={a.x + R} y1={a.y} x2={b.x - R} y2={b.y} stroke={p.lineStrong} strokeWidth={1} strokeDasharray="3 3" />;
+          return <Line key={`l${m}`} x1={a.x + R} y1={a.y} x2={b.x - R} y2={b.y} stroke={p.lineStrong} strokeWidth={stroke.thin} strokeDasharray="3 3" />;
         })}
 
       {/* the strobe copies */}
       {fig.balls.flatMap((b) =>
         moments.map((m) => {
           const at = ballAt(fig, b.u, m);
-          return <Circle key={`${b.id}${m}`} cx={at.x} cy={at.y} r={R} fill="none" stroke={p.label} strokeWidth={1.1} opacity={0.6} />;
+          return <Circle key={`${b.id}${m}`} cx={at.x} cy={at.y} r={R} fill="none" stroke={p.label} strokeWidth={stroke.thin} opacity={0.6} />;
         }),
       )}
 
@@ -121,9 +122,7 @@ export function BenchFigure({ fig, live, playing, clock = STILL }: Props) {
         const at = ballAt(fig, b.u, t);
         return (
           <DrawnFade key={b.id} clock={clock} from={FILLS[0]} to={FILLS[1]}>
-            <Circle cx={at.x} cy={at.y} r={R} fill={p.drawFillDark} />
-            <Circle cx={at.x - 1.5} cy={at.y - 1.5} r={R * 0.55} fill={p.drawFill} />
-            <Circle cx={at.x} cy={at.y} r={R} fill="none" stroke={p.draw} strokeWidth={1.5} />
+            <Ball x={at.x} y={at.y} r={R} />
             {b.u === 0 ? (
               <ForceLetter x={at.x - R - 4} y={at.y + 5} text={b.id} color={p.ink} size={14} anchor="end" />
             ) : (
@@ -140,13 +139,13 @@ export function BenchFigure({ fig, live, playing, clock = STILL }: Props) {
 
 /** A dimension line under the floor, from below the end of the bench to where the ball lands, with its length. */
 function RangeLine({ fig, u }: { fig: BenchFig; u: number }) {
-  const { palette: p } = useTheme();
+  const { palette: p, material: m } = useTheme();
   const x2 = BENCH.x2 + projectileRange(launchOf(fig, u)) * K;
   const y = GROUND + 18;
   return (
     <Group>
-      <Path d={`M${BENCH.x2},${topY(fig)} V${GROUND}`} stroke={p.lineStrong} strokeWidth={1} strokeDasharray="3 3" />
-      <Path d={`M${BENCH.x2},${y - 5} V${y + 5} M${x2},${y - 5} V${y + 5} M${BENCH.x2},${y} H${x2}`} stroke={p.label} strokeWidth={1.2} />
+      <Path d={`M${BENCH.x2},${topY(fig)} V${GROUND}`} stroke={p.lineStrong} strokeWidth={stroke.thin} strokeDasharray="3 3" />
+      <Path d={`M${BENCH.x2},${y - 5} V${y + 5} M${x2},${y - 5} V${y + 5} M${BENCH.x2},${y} H${x2}`} stroke={p.label} strokeWidth={stroke.thin} />
       <Tag x={(BENCH.x2 + x2) / 2} y={y + 3.5} text={`${fixed(projectileRange(launchOf(fig, u)), 2)} m`} />
     </Group>
   );
@@ -154,7 +153,7 @@ function RangeLine({ fig, u }: { fig: BenchFig; u: number }) {
 
 /** B's velocity at time t, drawn apart from the ball as its two parts from one dot: sideways stays, downward grows. */
 function VelocityInset({ fig, u, id, t }: { fig: BenchFig; u: number; id: string; t: number }) {
-  const { palette: p } = useTheme();
+  const { palette: p, material: m } = useTheme();
   const tt = Math.min(t, flightTime(launchOf(fig, u)));
   const v = projectileVelocity(tt, launchOf(fig, u));
   const [x, y] = INSET;
@@ -166,7 +165,8 @@ function VelocityInset({ fig, u, id, t }: { fig: BenchFig; u: number; id: string
       {down * KV > 2 && <HollowArrow from={[x, y]} to={[x, y + down * KV]} color={p.draw} weight="thin" />}
       <Circle cx={x} cy={y} r={2.6} fill={p.draw} />
       <MonoLabel x={x + v.vx * KV + 6} y={y + 3.5} text={`${fixed(v.vx, 1)} m s⁻¹`} color={p.ink} size={9} anchor="start" />
-      <MonoLabel x={x + 9} y={y + Math.max(14, down * KV - 2)} text={`${fixed(down, 1)} m s⁻¹`} color={p.ink} size={9} anchor="start" />
+      {/* the downward part only once the ball is falling: at the edge it is zero and has no arrow */}
+      {down * KV > 2 && <MonoLabel x={x + 9} y={y + Math.max(20, down * KV - 2)} text={`${fixed(down, 1)} m s⁻¹`} color={p.ink} size={9} anchor="start" />}
     </Group>
   );
 }

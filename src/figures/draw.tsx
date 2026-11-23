@@ -169,6 +169,11 @@ function useReadable(size: number, min: number): number {
   return k > 0 ? Math.max(size, min / k) : size;
 }
 
+/** The distance from one line of a two-line mono label to the next, for labels of this size (they may have grown). */
+export function useLineStep(size: number): number {
+  return useReadable(size, MONO_MIN) * 1.25;
+}
+
 /** A small label in the drawing-sheet voice (IBM Plex Mono). */
 export function MonoLabel({ x, y, text, color, size = 10, anchor = 'middle' }: { x: number; y: number; text: string; color: string; size?: number; anchor?: 'start' | 'middle' | 'end' }) {
   const fontSize = useReadable(size, MONO_MIN);

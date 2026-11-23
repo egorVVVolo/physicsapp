@@ -7,6 +7,7 @@ import { G, velocity } from '@/physics/kinematics';
 import { fixed, signed } from '@/physics/format';
 import type { FallGraphFig, ThrowVtFig } from '@/content/types';
 import { useTheme } from '@/theme/ThemeContext';
+import { stroke } from '@/theme/tokens';
 import { STILL, type DrawClock } from './anim';
 import { DrawnFade, DrawnPath, MonoLabel } from './draw';
 
@@ -36,19 +37,19 @@ export function ThrowVtFigure({ fig, clock = STILL }: { fig: ThrowVtFig; clock?:
   return (
     <Group>
       {/* axes: v up the left, t along v = 0 */}
-      <DrawnPath clock={clock} len={VT.h + 8} from={AXES[0]} to={AXES[1]} d={`M${VT.x},${VT.top + VT.h} V${VT.top - 8}`} stroke={p.draw} strokeWidth={1.8} />
-      <DrawnPath clock={clock} len={VT.w + 10} from={AXES[0] + 0.1} to={AXES[1]} d={`M${VT.x},${Y(0)} H${VT.x + VT.w + 10}`} stroke={p.draw} strokeWidth={1.8} />
+      <DrawnPath clock={clock} len={VT.h + 8} from={AXES[0]} to={AXES[1]} d={`M${VT.x},${VT.top + VT.h} V${VT.top - 8}`} stroke={p.draw} strokeWidth={stroke.body} />
+      <DrawnPath clock={clock} len={VT.w + 10} from={AXES[0] + 0.1} to={AXES[1]} d={`M${VT.x},${Y(0)} H${VT.x + VT.w + 10}`} stroke={p.draw} strokeWidth={stroke.body} />
       <DrawnFade clock={clock} from={AXES[1] - 0.1} to={AXES[1] + 0.1}>
         {ticks.map((t) => (
           <Group key={t}>
-            <Line x1={X(t)} y1={Y(0)} x2={X(t)} y2={Y(0) + 5} stroke={p.draw} strokeWidth={1.4} />
+            <Line x1={X(t)} y1={Y(0)} x2={X(t)} y2={Y(0) + 5} stroke={p.draw} strokeWidth={stroke.thin} />
             <MonoLabel x={X(t)} y={Y(0) + 17} text={fixed(t, 1)} color={p.label} />
           </Group>
         ))}
         {[fig.u, -fig.u].map((v) => (
           <Group key={v}>
-            <Line x1={VT.x - 5} y1={Y(v)} x2={VT.x} y2={Y(v)} stroke={p.draw} strokeWidth={1.4} />
-            <Line x1={VT.x} y1={Y(v)} x2={VT.x + VT.w} y2={Y(v)} stroke={p.lineStrong} strokeWidth={1} strokeDasharray="2 4" />
+            <Line x1={VT.x - 5} y1={Y(v)} x2={VT.x} y2={Y(v)} stroke={p.draw} strokeWidth={stroke.thin} />
+            <Line x1={VT.x} y1={Y(v)} x2={VT.x + VT.w} y2={Y(v)} stroke={p.lineStrong} strokeWidth={stroke.thin} strokeDasharray="2 4" />
             <MonoLabel x={VT.x - 8} y={Y(v) + 3.5} text={signed(v, 1)} color={p.label} anchor="end" />
           </Group>
         ))}
@@ -57,10 +58,10 @@ export function ThrowVtFigure({ fig, clock = STILL }: { fig: ThrowVtFig; clock?:
         <MonoLabel x={VT.x + 6} y={VT.top - 4} text="v / m s⁻¹" color={p.label} anchor="start" />
       </DrawnFade>
       {/* the flight: one straight line, gradient −g */}
-      <DrawnPath clock={clock} len={lineLen} from={LINE[0]} to={LINE[1]} d={`M${X(0)},${Y(fig.u)} L${x2},${Y(vEnd)}`} stroke={p.ink} strokeWidth={3} strokeLinecap="round" />
+      <DrawnPath clock={clock} len={lineLen} from={LINE[0]} to={LINE[1]} d={`M${X(0)},${Y(fig.u)} L${x2},${Y(vEnd)}`} stroke={p.ink} strokeWidth={stroke.force} strokeLinecap="round" />
       {/* the top: v = 0 for an instant, the line goes straight through */}
       <DrawnFade clock={clock} from={MARKS[0]} to={MARKS[1]}>
-        <Circle cx={X(tTop)} cy={Y(0)} r={4.5} fill={p.page} stroke={p.ink} strokeWidth={2} />
+        <Circle cx={X(tTop)} cy={Y(0)} r={4.5} fill={p.page} stroke={p.ink} strokeWidth={stroke.body} />
         <MonoLabel x={X(tTop) + 8} y={Y(0) - 10} text="TOP: v = 0" color={p.ink} size={9.5} anchor="start" />
         {/* between the line and the axis: above it the ball moves up, below it the ball moves down */}
         <MonoLabel x={X(fig.tEnd * 0.05)} y={Y(0) - 8} text="MOVING UP" color={p.label} size={9} anchor="start" />
@@ -84,7 +85,7 @@ const HEIGHTS = [0.2, 0.4, 0.6, 0.8, 1.0, 1.2];
 const SCATTER = [0.002, -0.003, 0.003, -0.002, 0.002, -0.002];
 
 export function FallGraphFigure({ fig, clock = STILL }: { fig: FallGraphFig; clock?: DrawClock }) {
-  const { palette: p } = useTheme();
+  const { palette: p, material: m } = useTheme();
   const X = (t2: number) => FG.x + (t2 / T2_MAX) * FG.w;
   const Y = (h: number) => FG.top + FG.h - (h / H_MAX) * FG.h;
   const t2End = Math.min(T2_MAX, (H_MAX * 1.04) / fig.gradient);
@@ -95,18 +96,18 @@ export function FallGraphFigure({ fig, clock = STILL }: { fig: FallGraphFig; clo
   const tri = `M${X(a)},${Y(fig.gradient * a)} H${X(b)} V${Y(fig.gradient * b)}`;
   return (
     <Group>
-      <DrawnPath clock={clock} len={FG.h + 8} from={AXES[0]} to={AXES[1]} d={`M${FG.x},${FG.top + FG.h} V${FG.top - 8}`} stroke={p.draw} strokeWidth={1.8} />
-      <DrawnPath clock={clock} len={FG.w + 8} from={AXES[0] + 0.1} to={AXES[1]} d={`M${FG.x},${FG.top + FG.h} H${FG.x + FG.w + 8}`} stroke={p.draw} strokeWidth={1.8} />
+      <DrawnPath clock={clock} len={FG.h + 8} from={AXES[0]} to={AXES[1]} d={`M${FG.x},${FG.top + FG.h} V${FG.top - 8}`} stroke={p.draw} strokeWidth={stroke.body} />
+      <DrawnPath clock={clock} len={FG.w + 8} from={AXES[0] + 0.1} to={AXES[1]} d={`M${FG.x},${FG.top + FG.h} H${FG.x + FG.w + 8}`} stroke={p.draw} strokeWidth={stroke.body} />
       <DrawnFade clock={clock} from={AXES[1] - 0.1} to={AXES[1] + 0.1}>
         {[0.05, 0.1, 0.15, 0.2, 0.25].map((t2) => (
           <Group key={t2}>
-            <Line x1={X(t2)} y1={FG.top + FG.h} x2={X(t2)} y2={FG.top + FG.h + 5} stroke={p.draw} strokeWidth={1.4} />
+            <Line x1={X(t2)} y1={FG.top + FG.h} x2={X(t2)} y2={FG.top + FG.h + 5} stroke={p.draw} strokeWidth={stroke.thin} />
             <MonoLabel x={X(t2)} y={FG.top + FG.h + 17} text={fixed(t2, 2)} color={p.label} />
           </Group>
         ))}
         {[0.4, 0.8, 1.2].map((h) => (
           <Group key={h}>
-            <Line x1={FG.x - 5} y1={Y(h)} x2={FG.x} y2={Y(h)} stroke={p.draw} strokeWidth={1.4} />
+            <Line x1={FG.x - 5} y1={Y(h)} x2={FG.x} y2={Y(h)} stroke={p.draw} strokeWidth={stroke.thin} />
             <MonoLabel x={FG.x - 8} y={Y(h) + 3.5} text={fixed(h, 1)} color={p.label} anchor="end" />
           </Group>
         ))}
@@ -117,13 +118,13 @@ export function FallGraphFigure({ fig, clock = STILL }: { fig: FallGraphFig; clo
         {HEIGHTS.map((h, i) => {
           const cx = X(h / fig.gradient + SCATTER[i]);
           const cy = Y(h);
-          return <Path key={h} d={`M${cx - 4},${cy - 4} L${cx + 4},${cy + 4} M${cx - 4},${cy + 4} L${cx + 4},${cy - 4}`} stroke={p.draw} strokeWidth={1.6} />;
+          return <Path key={h} d={`M${cx - 4},${cy - 4} L${cx + 4},${cy + 4} M${cx - 4},${cy + 4} L${cx + 4},${cy - 4}`} stroke={p.draw} strokeWidth={stroke.body} />;
         })}
       </DrawnFade>
       {/* best-fit line through the origin */}
-      <DrawnPath clock={clock} len={lineLen} from={LINE[0]} to={LINE[1]} d={`M${X(0)},${Y(0)} L${X(t2End)},${Y(fig.gradient * t2End)}`} stroke={p.ink} strokeWidth={2.4} strokeLinecap="round" />
+      <DrawnPath clock={clock} len={lineLen} from={LINE[0]} to={LINE[1]} d={`M${X(0)},${Y(0)} L${X(t2End)},${Y(fig.gradient * t2End)}`} stroke={p.ink} strokeWidth={stroke.force} strokeLinecap="round" />
       <DrawnFade clock={clock} from={MARKS[0]} to={MARKS[1]}>
-        <Path d={tri} fill="none" stroke={p.label} strokeWidth={1.2} strokeDasharray="4 3" />
+        <Path d={tri} fill="none" stroke={p.label} strokeWidth={stroke.thin} strokeDasharray="4 3" />
         <MonoLabel x={(X(a) + X(b)) / 2} y={Y(fig.gradient * a) + 14} text="Δt²" color={p.label} size={9.5} />
         <MonoLabel x={X(b) + 6} y={(Y(fig.gradient * a) + Y(fig.gradient * b)) / 2 + 3} text="Δh" color={p.label} size={9.5} anchor="start" />
       </DrawnFade>

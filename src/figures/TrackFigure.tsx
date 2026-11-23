@@ -12,11 +12,12 @@ import { tripDistance, tripDuration, tripPosition, tripVelocity, type Trip } fro
 import { fixed, signed } from '@/physics/format';
 import type { TrackFig } from '@/content/types';
 import { useTheme } from '@/theme/ThemeContext';
+import { stroke } from '@/theme/tokens';
 import { useReducedMotionPref } from '@/ui/parts';
 import { STILL, useLoopTime, type DrawClock } from './anim';
 import { DrawnFade, DrawnPath, FILLS, ForceArrow, ForceLetter, Hatch, MonoLabel } from './draw';
 import { Person } from './people';
-import { Ruler, stage, Tag, type RulerTick } from './kit';
+import { HollowArrow, Ruler, stage, Tag, type RulerTick } from './kit';
 
 export const TRACK_VB = { w: 340, h: 230 };
 
@@ -92,7 +93,7 @@ type Props = {
 };
 
 export function TrackFigure({ fig, live, playing, clock = STILL }: Props) {
-  const { palette: p } = useTheme();
+  const { palette: p, material: m } = useTheme();
   const reduced = useReducedMotionPref();
   const [lo, hi] = extent(fig);
   const k = (XR - XL) / (hi - lo);
@@ -116,7 +117,7 @@ export function TrackFigure({ fig, live, playing, clock = STILL }: Props) {
       ))}
       <TrackRuler lo={lo} hi={hi} X={X} plus={fig.plus} numbers={fig.numbers === true} clock={clock} />
       {/* the lamp post on the top lane, and a dashed line down from it through every lane to the 0 of the ruler */}
-      <DrawnPath clock={clock} len={RULER_Y - topGround} from={PEN.post[0]} to={PEN.post[1]} d={`M${x0},${topGround} V${RULER_Y}`} stroke={p.lineStrong} strokeWidth={1.2} strokeDasharray="3 4" fill="none" />
+      <DrawnPath clock={clock} len={RULER_Y - topGround} from={PEN.post[0]} to={PEN.post[1]} d={`M${x0},${topGround} V${RULER_Y}`} stroke={p.lineStrong} strokeWidth={stroke.thin} strokeDasharray="3 4" fill="none" />
       <LampPost x={x0} y={topGround} clock={clock} />
 
       {/* runner A's legs: one arrow per part of its run, stacked above its lane, joined where it turns */}
@@ -137,9 +138,9 @@ export function TrackFigure({ fig, live, playing, clock = STILL }: Props) {
         const vAt: [number, number] = groundOf(fig, r.id) === Math.min(...fig.runners.map((q) => groundOf(fig, q.id))) ? [X(s) + dx * 0.5, arrowY - 11] : [X(s) + dx + Math.sign(v) * ((vText.length * 5.4 + 8) / 2 + 4), arrowY + 3];
         return (
           <Group key={r.id}>
-            <Person x={X(s)} y={y} scale={SCALE} cg={false} clock={clock} pen={PEN.runner} />
+            <Person x={X(s)} y={y} scale={SCALE} cg={false} who={r.id} clock={clock} pen={PEN.runner} />
             {stage(clock, PEN.marks, <ForceLetter x={X(s) + 14} y={y - 40} text={r.id} color={p.ink} size={13} anchor="start" />)}
-            {moving && Math.abs(v) > 1e-9 && stage(clock, PEN.marks, <HArrow x={X(s)} y={arrowY} dx={dx} color={p.draw} />)}
+            {moving && Math.abs(v) > 1e-9 && stage(clock, PEN.marks, <HollowArrow from={[X(s), arrowY]} to={[X(s) + dx, arrowY]} color={p.draw} weight="track" />)}
             {moving && fig.values && stage(clock, PEN.marks, <Tag x={vAt[0]} y={vAt[1]} text={vText} />)}
             {showDisp && stage(clock, PEN.marks, <Displacement x1={x0} x2={X(tripPosition(fig.tEnd, r.trip))} y={y + 17} text={fig.disp === 'shown' ? `s = ${signedMetres(sign * tripPosition(fig.tEnd, r.trip))}` : 's = ?'} unknown={fig.disp !== 'shown'} />)}
           </Group>
@@ -160,7 +161,7 @@ function signedMetres(s: number): string {
  * Its arrowhead and + sit at the end the lesson calls positive; W and E mark the two ends.
  */
 function TrackRuler({ lo, hi, X, plus, numbers, clock }: { lo: number; hi: number; X: (s: number) => number; plus: 'east' | 'west'; numbers: boolean; clock: DrawClock }) {
-  const { palette: p } = useTheme();
+  const { palette: p, material: m } = useTheme();
   const sign = plus === 'east' ? 1 : -1;
   const ticks: RulerTick[] = [];
   for (let s = lo; s <= hi + 1e-9; s += 50) {
@@ -179,14 +180,14 @@ function TrackRuler({ lo, hi, X, plus, numbers, clock }: { lo: number; hi: numbe
 
 /** A street lamp standing on the ground at (x, y): a pole, an arm and a lamp head. */
 function LampPost({ x, y, clock }: { x: number; y: number; clock: DrawClock }) {
-  const { palette: p } = useTheme();
+  const { palette: p, material: m } = useTheme();
   const top = y - 60;
   return (
     <Group>
-      <DrawnPath clock={clock} len={60 + 14} from={PEN.post[0]} to={PEN.post[1]} d={`M${x},${y} V${top} H${x + 14}`} stroke={p.draw} strokeWidth={2.4} strokeLinejoin="round" fill="none" />
+      <DrawnPath clock={clock} len={60 + 14} from={PEN.post[0]} to={PEN.post[1]} d={`M${x},${y} V${top} H${x + 14}`} stroke={p.draw} strokeWidth={stroke.force} strokeLinejoin="round" fill="none" />
       <DrawnFade clock={clock} from={FILLS[0]} to={FILLS[1]}>
         <Rect x={x - 5} y={y - 4} width={10} height={4} fill={p.draw} />
-        <Path d={`M${x + 8},${top + 1} H${x + 22} L${x + 19},${top + 7} H${x + 11} Z`} fill={p.drawFillDark} stroke={p.draw} strokeWidth={1.4} strokeLinejoin="round" />
+        <Path d={`M${x + 8},${top + 1} H${x + 22} L${x + 19},${top + 7} H${x + 11} Z`} fill={m.metalSide} stroke={p.draw} strokeWidth={stroke.thin} strokeLinejoin="round" />
       </DrawnFade>
     </Group>
   );
@@ -194,7 +195,7 @@ function LampPost({ x, y, clock }: { x: number; y: number; clock: DrawClock }) {
 
 /** Each part of a run as an arrow, stacked one under the next and joined where the runner turns, with its length. */
 function Legs({ trip, tEnd, top, X }: { trip: Trip; tEnd: number; top: number; X: (s: number) => number }) {
-  const { palette: p } = useTheme();
+  const { palette: p, material: m } = useTheme();
   const ts = corners(trip, Math.min(tEnd, tripDuration(trip)));
   const parts = ts.slice(1).map((t, i) => ({ from: tripPosition(ts[i], trip), to: tripPosition(t, trip) }));
   return (
@@ -205,7 +206,7 @@ function Legs({ trip, tEnd, top, X }: { trip: Trip; tEnd: number; top: number; X
         const len = Math.abs(part.to - part.from);
         return (
           <Group key={i}>
-            {i > 0 && <Line x1={X(part.from)} y1={y - 20} x2={X(part.from)} y2={y} stroke={p.label} strokeWidth={1.1} strokeDasharray="2 3" />}
+            {i > 0 && <Line x1={X(part.from)} y1={y - 20} x2={X(part.from)} y2={y} stroke={p.label} strokeWidth={stroke.thin} strokeDasharray="2 3" />}
             <ForceArrow x1={X(part.from)} y1={y} x2={X(part.to)} y2={y} color={p.draw} width={1.8} />
             <Tag x={(X(part.from) + X(part.to)) / 2} y={y - 5} text={`${fixed(len, 0)} m ${east ? 'E' : 'W'}`} />
           </Group>
@@ -217,23 +218,14 @@ function Legs({ trip, tEnd, top, X }: { trip: Trip; tEnd: number; top: number; X
 
 /** The displacement: a solid ink arrow from the lamp post to where the run ends, dashed while it is asked for. */
 function Displacement({ x1, x2, y, text, unknown }: { x1: number; x2: number; y: number; text: string; unknown: boolean }) {
-  const { palette: p } = useTheme();
+  const { palette: p, material: m } = useTheme();
   if (Math.abs(x2 - x1) < 1) return <Tag x={x1} y={y + 4} text={text} />;
   return (
     <Group>
-      <ForceArrow x1={x1} y1={y} x2={x2} y2={y} color={p.ink} width={2.6} dashed={unknown} />
-      <Tag x={(x1 + x2) / 2} y={y + 13} text={text} />
+      <ForceArrow x1={x1} y1={y} x2={x2} y2={y} color={p.ink} width={stroke.force} dashed={unknown} />
+      {/* the size on the arrow's own line, past its tail, so it never drops into the lane below */}
+      <Tag x={x2 < x1 ? x1 + 8 : x1 - 8} y={y + 3.5} text={text} anchor={x2 < x1 ? 'start' : 'end'} />
     </Group>
   );
 }
 
-/** A hollow horizontal arrow from x, `dx` long (negative points west): the velocity. */
-function HArrow({ x, y, dx, color }: { x: number; y: number; dx: number; color: string }) {
-  const s = Math.sign(dx);
-  const len = Math.abs(dx);
-  const head = Math.min(8, len * 0.55);
-  const tip = x + dx;
-  const neck = tip - s * head;
-  const d = `M${x},${y - 2.4} L${neck},${y - 2.4} L${neck},${y - 6} L${tip},${y} L${neck},${y + 6} L${neck},${y + 2.4} L${x},${y + 2.4} Z`;
-  return <Path d={d} fill="none" stroke={color} strokeWidth={1.6} strokeLinejoin="round" />;
-}

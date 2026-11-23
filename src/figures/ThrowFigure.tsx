@@ -9,6 +9,7 @@ import { G, position, velocity, type Motion } from '@/physics/kinematics';
 import { fixed, signed } from '@/physics/format';
 import { ACC_IDS, type ThrowFig } from '@/content/types';
 import { useTheme } from '@/theme/ThemeContext';
+import { stroke } from '@/theme/tokens';
 import { useReducedMotionPref } from '@/ui/parts';
 import { STILL, useLoopTime, type DrawClock } from './anim';
 import { AccChevrons, DrawnFade, DrawnPath, DrawnShape, FILLS, ForceLetter, Hatch, MonoLabel, rectPath } from './draw';
@@ -96,7 +97,7 @@ type Props = {
 };
 
 export function ThrowFigure({ fig, live, playing, tap, clock = STILL }: Props) {
-  const { palette: p } = useTheme();
+  const { palette: p, material: m } = useTheme();
   const reduced = useReducedMotionPref();
   const col = columnsOf(fig);
   const plays = throwPlays(fig);
@@ -119,22 +120,22 @@ export function ThrowFigure({ fig, live, playing, tap, clock = STILL }: Props) {
       <ThrowRuler fig={fig} clock={clock} />
 
       {/* the building, its windows and the door onto the balcony */}
-      <DrawnShape clock={clock} pen={PEN.building} {...rectPath(BUILDING.x, BUILDING.top, BUILDING.w, GROUND - BUILDING.top)} fill={p.drawFill} stroke={p.draw} strokeWidth={1.8} />
+      <DrawnShape clock={clock} pen={PEN.building} {...rectPath(BUILDING.x, BUILDING.top, BUILDING.w, GROUND - BUILDING.top)} fill={p.page} stroke={p.draw} strokeWidth={stroke.body} />
       <DrawnFade clock={clock} from={FILLS[0]} to={FILLS[1]}>
         {[2, 5, 8].flatMap((h) =>
-          [BUILDING.x + 9, BUILDING.x + 31].map((x) => <Rect key={`${h}-${x}`} x={x} y={yOf(h) - 10} width={12} height={18} rx={1.5} fill={p.drawFillDark} />),
+          [BUILDING.x + 9, BUILDING.x + 31].map((x) => <Rect key={`${h}-${x}`} x={x} y={yOf(h) - 10} width={12} height={18} rx={1.5} fill={p.drawFill} />),
         )}
-        <Rect x={BUILDING.x + 28} y={slabY - 30} width={16} height={30} rx={1.5} fill={p.drawFillDark} />
-        <Rect x={BUILDING.x + 9} y={BUILDING.top + 10} width={12} height={18} rx={1.5} fill={p.drawFillDark} />
+        <Rect x={BUILDING.x + 28} y={slabY - 30} width={16} height={30} rx={1.5} fill={p.drawFill} />
+        <Rect x={BUILDING.x + 9} y={BUILDING.top + 10} width={12} height={18} rx={1.5} fill={p.drawFill} />
       </DrawnFade>
       {/* the balcony: a slab and a rail at the height of your hand */}
-      <DrawnShape clock={clock} pen={PEN.slab} {...rectPath(BUILDING.x + BUILDING.w, slabY, SLAB.x2 - BUILDING.x - BUILDING.w, SLAB.h)} fill={p.drawFillDark} stroke={p.draw} strokeWidth={1.6} />
-      {line(`M${BUILDING.x + BUILDING.w},${handY} H${SLAB.x2}`, SLAB.x2 - BUILDING.x - BUILDING.w, PEN.rail, p.draw, 2.2)}
+      <DrawnShape clock={clock} pen={PEN.slab} {...rectPath(BUILDING.x + BUILDING.w, slabY, SLAB.x2 - BUILDING.x - BUILDING.w, SLAB.h)} fill={p.drawFillDark} stroke={p.draw} strokeWidth={stroke.body} />
+      {line(`M${BUILDING.x + BUILDING.w},${handY} H${SLAB.x2}`, SLAB.x2 - BUILDING.x - BUILDING.w, PEN.rail, p.draw, stroke.body)}
       {[100, 108, SLAB.x2 - 1].map((x) => (
-        <Group key={x}>{line(`M${x},${handY} V${slabY}`, RAIL_H, PEN.rail, p.draw, 1.4)}</Group>
+        <Group key={x}>{line(`M${x},${handY} V${slabY}`, RAIL_H, PEN.rail, p.draw, stroke.thin)}</Group>
       ))}
       {/* the height of your hand, across to where the balls fly */}
-      {line(`M${SLAB.x2 + 4},${handY} H332`, 332 - SLAB.x2 - 4, PEN.hand, p.lineStrong, 1.2, { strokeDasharray: '3 4' })}
+      {line(`M${SLAB.x2 + 4},${handY} H332`, 332 - SLAB.x2 - 4, PEN.hand, p.lineStrong, stroke.thin, { strokeDasharray: '3 4' })}
 
       {/* faint copies of ball A along its path so far */}
       {fig.trail && stage(clock, PEN.marks, <Trail fig={fig} x={col.A} t={live ?? startOf(fig, 'A') + clipT} />)}
@@ -151,14 +152,14 @@ export function ThrowFigure({ fig, live, playing, tap, clock = STILL }: Props) {
 
 /** The axis on the left: a tick every 2 m, a number every 4 m, the arrow and "+" at the top. Bolder on the signs screen. */
 function ThrowRuler({ fig, clock }: { fig: ThrowFig; clock: DrawClock }) {
-  const { palette: p } = useTheme();
+  const { palette: p, material: m } = useTheme();
   const top = yOf(16.6);
   const ticks: RulerTick[] = [];
   for (let h = 0; h <= 16; h += 2) ticks.push({ at: yOf(h), len: h % 4 === 0 ? 6 : 4, label: h % 4 === 0 ? (h === 16 ? '16 m' : String(h)) : undefined, dy: h === 0 ? -7.5 : 0 });
   return (
     <Ruler axis="y" at={RULER_X} from={GROUND} to={top} arrow="end" ticks={ticks} side={1} labelAt={9} labelDy={3.5} labelAnchor="start" color={fig.signs ? p.ink : p.draw} width={fig.signs ? 2.4 : 1.6} clock={clock} pen={PEN.ruler}>
-      <ForceLetter x={RULER_X + 9} y={top + 4} text="+" color={fig.signs ? p.ink : p.label} size={fig.signs ? 19 : 15} anchor="start" />
-      {fig.signs && <MonoLabel x={RULER_X + 24} y={top + 1} text="UP" color={p.ink} size={9} anchor="start" />}
+      <ForceLetter x={RULER_X + 9} y={top - (fig.signs ? 8 : 3)} text="+" color={fig.signs ? p.ink : p.label} size={fig.signs ? 19 : 15} anchor="start" />
+      {fig.signs && <MonoLabel x={RULER_X + 26} y={top - 10} text="UP" color={p.ink} size={9} anchor="start" />}
     </Ruler>
   );
 }
@@ -197,7 +198,7 @@ function FlyingBall({ fig, ball, x, t, still, clock }: { fig: ThrowFig; ball: 'A
  * (above it going up, below it going down) so they never collide; above the ball once it has landed.
  */
 function ValueLabel({ x, y, arrowX, v, len, landed, beside }: { x: number; y: number; arrowX: number; v: number; len: number; landed: boolean; beside: boolean }) {
-  const { palette: p } = useTheme();
+  const { palette: p, material: m } = useTheme();
   const text = `${signed(v, 1)} m s⁻¹`;
   if (landed) return <MonoLabel x={x} y={y - R - 8} text={text} color={p.ink} size={9} />;
   if (len <= 1.5 || Math.abs(v) < 0.05) return <Tag x={arrowX - 6} y={y + 3.5} text="v = 0" color={p.ink} anchor="start" />;
@@ -218,7 +219,7 @@ function VelocityArrow({ x, y, v, len, color }: { x: number; y: number; v: numbe
 
 /** The acceleration of ball A: two chevrons pointing down and a small "a". It is the same everywhere in the flight. */
 function AccMark({ x, y }: { x: number; y: number }) {
-  const { palette: p } = useTheme();
+  const { palette: p, material: m } = useTheme();
   return (
     <Group>
       <AccChevrons x={x} y={y} dir="down" color={p.draw} />
@@ -254,7 +255,7 @@ function Trail({ fig, x, t }: { fig: ThrowFig; x: number; t: number }) {
 
 /** Three answers to "which way is a at the top?": up chevrons, a = 0, down chevrons. Chosen = blue; after Check, the verdict colours. */
 function Candidates({ fig, tap }: { fig: ThrowFig; tap?: TapProps }) {
-  const { palette: p } = useTheme();
+  const { palette: p, material: m } = useTheme();
   const y = yOf(fig.h + (fig.u * fig.u) / (2 * G));
   return (
     <Group>

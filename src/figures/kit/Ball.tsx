@@ -1,18 +1,11 @@
-// A ball, flat: `shaded` (a dark disc with a lighter offset cap), `steel` (a dark disc with a paper highlight),
+// A ball, flat: `shaded` (a plain ball, one flat fill and an outline), `steel` (a dark disc with a paper highlight),
 // `cricket` (pale, with a seam) or `bowling` (dark, three finger holes).
 import { Circle, G as Group, Path } from 'react-native-svg';
 import { useTheme } from '@/theme/ThemeContext';
 
 export function Ball({ x, y, r, look = 'shaded' }: { x: number; y: number; r: number; look?: 'shaded' | 'steel' | 'cricket' | 'bowling' }) {
-  const { palette: p } = useTheme();
-  if (look === 'shaded')
-    return (
-      <Group>
-        <Circle cx={x} cy={y} r={r} fill={p.drawFillDark} />
-        <Circle cx={x - 1.8} cy={y - 1.8} r={r * 0.55} fill={p.drawFill} />
-        <Circle cx={x} cy={y} r={r} fill="none" stroke={p.draw} strokeWidth={1.6} />
-      </Group>
-    );
+  const { palette: p, material: m, stroke } = useTheme();
+  if (look === 'shaded') return <Circle cx={x} cy={y} r={r} fill={m.ball} stroke={p.draw} strokeWidth={stroke.body} />;
   if (look === 'steel')
     return (
       <Group>

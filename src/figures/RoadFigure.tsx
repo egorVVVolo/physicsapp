@@ -12,6 +12,7 @@ import { brakingPosition, brakingTimeAt, brakingVelocity, stoppingTime, thinking
 import { fixed } from '@/physics/format';
 import type { RoadFig } from '@/content/types';
 import { useTheme } from '@/theme/ThemeContext';
+import { stroke } from '@/theme/tokens';
 import { useReducedMotionPref } from '@/ui/parts';
 import { STILL, useLoopTime, type DrawClock } from './anim';
 import { DrawnPath, ForceLetter, Hatch, MonoLabel } from './draw';
@@ -78,7 +79,7 @@ type Props = {
 };
 
 export function RoadFigure({ fig, live, playing, clock = STILL }: Props) {
-  const { palette: p } = useTheme();
+  const { palette: p, material: m } = useTheme();
   const reduced = useReducedMotionPref();
   const k = scaleOf(fig);
   const X = (s: number) => X0 + s * k;
@@ -104,12 +105,12 @@ export function RoadFigure({ fig, live, playing, clock = STILL }: Props) {
       <RoadRuler span={fig.span} clock={clock} />
 
       {/* where the clock starts: the brakes come on, or the driver first sees the hazard */}
-      <DrawnPath clock={clock} len={RULER_Y - top} from={PEN.start[0]} to={PEN.start[1]} d={`M${X0},${top} V${RULER_Y}`} stroke={p.lineStrong} strokeWidth={1.2} strokeDasharray="3 4" fill="none" />
+      <DrawnPath clock={clock} len={RULER_Y - top} from={PEN.start[0]} to={PEN.start[1]} d={`M${X0},${top} V${RULER_Y}`} stroke={p.lineStrong} strokeWidth={stroke.thin} strokeDasharray="3 4" fill="none" />
       {stage(clock, PEN.marks, <MonoLabel x={X0 + 4} y={13} text={react > 0 ? 'SEES IT' : 'BRAKES ON'} color={p.label} size={8.5} anchor="start" />)}
       {/* with a reaction time the brakes come on later, further along the road */}
       {brakesOn && (
         <Group>
-          <Line x1={X(think)} y1={top} x2={X(think)} y2={RULER_Y} stroke={p.lineStrong} strokeWidth={1.2} strokeDasharray="3 4" />
+          <Line x1={X(think)} y1={top} x2={X(think)} y2={RULER_Y} stroke={p.lineStrong} strokeWidth={stroke.thin} strokeDasharray="3 4" />
           <MonoLabel x={X(think) + 4} y={13} text="BRAKES ON" color={p.label} size={8.5} anchor="start" />
         </Group>
       )}
@@ -160,7 +161,7 @@ export function RoadFigure({ fig, live, playing, clock = STILL }: Props) {
  * A short road has a tick every 2 m and a number every 10 m; a long one a tick every 10 m and a number every 20 m.
  */
 export function RoadRuler({ span, clock }: { span: number; clock: DrawClock }) {
-  const { palette: p } = useTheme();
+  const { palette: p, material: m } = useTheme();
   const k = roadScale(span);
   const end = X0 + span * k;
   const long = span > 60;
@@ -179,13 +180,13 @@ export function RoadRuler({ span, clock }: { span: number; clock: DrawClock }) {
 
 /** The acceleration: two chevrons, pointing backward while braking (their tips left of x) or forward when `forward`. */
 export function AccMark({ x, y, forward }: { x: number; y: number; forward?: boolean }) {
-  const { palette: p } = useTheme();
+  const { palette: p, material: m } = useTheme();
   const d = forward ? 7 : -7;
   const one = (cx: number) => `M${cx - d},${y - 6} L${cx},${y} L${cx - d},${y + 6}`;
   return (
     <Group>
-      <Path d={one(forward ? x : x - 7)} fill="none" stroke={p.draw} strokeWidth={2.4} strokeLinecap="round" strokeLinejoin="round" />
-      <Path d={one(forward ? x - 8 : x - 15)} fill="none" stroke={p.draw} strokeWidth={2.4} strokeLinecap="round" strokeLinejoin="round" />
+      <Path d={one(forward ? x : x - 7)} fill="none" stroke={p.draw} strokeWidth={stroke.force} strokeLinecap="round" strokeLinejoin="round" />
+      <Path d={one(forward ? x - 8 : x - 15)} fill="none" stroke={p.draw} strokeWidth={stroke.force} strokeLinecap="round" strokeLinejoin="round" />
       <MonoLabel x={x - 21} y={y + 3.2} text="a" color={p.label} size={9.5} />
     </Group>
   );
@@ -198,7 +199,7 @@ export function AccMark({ x, y, forward }: { x: number; y: number; forward?: boo
  * stopped) to car B's road, with "v = ?" on it, or the speed once the question is answered.
  */
 function Ask({ fig, x }: { fig: RoadFig; x: number }) {
-  const { palette: p } = useTheme();
+  const { palette: p, material: m } = useTheme();
   if (!fig.ask) return null;
   const yB = laneOf(fig, 'B');
   const yTop = fig.cars.length > 1 ? laneOf(fig, 'A') : yB - 60;
@@ -207,7 +208,7 @@ function Ask({ fig, x }: { fig: RoadFig; x: number }) {
   const text = fig.ask.shown && tAt !== null ? `${fixed(brakingVelocity(tAt, b), 1)} m s⁻¹` : 'v = ?';
   return (
     <Group>
-      <Line x1={x} y1={yTop} x2={x} y2={yB} stroke={p.label} strokeWidth={1.2} strokeDasharray="3 4" />
+      <Line x1={x} y1={yTop} x2={x} y2={yB} stroke={p.label} strokeWidth={stroke.thin} strokeDasharray="3 4" />
       <Circle cx={x} cy={yB} r={3} fill={p.ink} />
       <Tag x={x} y={yB - 52} text={text} />
     </Group>
@@ -219,7 +220,7 @@ function Ask({ fig, x }: { fig: RoadFig; x: number }) {
  * the gaps shrink as the car slows.
  */
 function Trail({ fig, t, X }: { fig: RoadFig; t: number; X: (s: number) => number }) {
-  const { palette: p } = useTheme();
+  const { palette: p, material: m } = useTheme();
   const car = fig.cars[fig.cars.length - 1];
   const b = brakingOf(fig, car.u);
   const y = laneOf(fig, car.id);
@@ -232,7 +233,7 @@ function Trail({ fig, t, X }: { fig: RoadFig; t: number; X: (s: number) => numbe
         const before = k > 0 ? brakingPosition(k - 1, b) : 0;
         return (
           <Group key={k}>
-            <Line x1={X(s)} y1={y} x2={X(s)} y2={y + 36} stroke={p.label} strokeWidth={1.1} />
+            <Line x1={X(s)} y1={y} x2={X(s)} y2={y + 36} stroke={p.label} strokeWidth={stroke.thin} />
             {k > 0 && <Dim a={[X(before), y + 31]} b={[X(s), y + 31]} text={`${fixed(s - before, 1)} m`} fit="below" />}
           </Group>
         );
@@ -246,19 +247,19 @@ function Trail({ fig, t, X }: { fig: RoadFig; t: number; X: (s: number) => numbe
 
 /** A fallen tree across the road, seen end-on: the trunk's rings and a broken branch. The distance to it is given. */
 function Tree({ x, y, from, text }: { x: number; y: number; from: number; text: string }) {
-  const { palette: p } = useTheme();
+  const { palette: p, material: m } = useTheme();
   const r = 12;
   const cx = x + r;
   const cy = y - r;
   return (
     <Group>
       {/* a branch still on the trunk, with its leaves */}
-      <Path d={`M${cx + 7},${cy - 8} L${cx + 17},${cy - 21}`} stroke={p.draw} strokeWidth={2.2} strokeLinecap="round" fill="none" />
-      <Circle cx={cx + 19} cy={cy - 25} r={5} fill={p.drawFillDark} />
-      <Circle cx={cx + 25} cy={cy - 19} r={3.8} fill={p.drawFillDark} />
-      <Circle cx={cx} cy={cy} r={r} fill={p.drawFill} stroke={p.draw} strokeWidth={1.8} />
-      <Circle cx={cx} cy={cy} r={7.5} fill="none" stroke={p.draw} strokeWidth={1} opacity={0.55} />
-      <Circle cx={cx} cy={cy} r={3.2} fill="none" stroke={p.draw} strokeWidth={1} opacity={0.55} />
+      <Path d={`M${cx + 7},${cy - 8} L${cx + 17},${cy - 21}`} stroke={p.draw} strokeWidth={stroke.body} strokeLinecap="round" fill="none" />
+      <Circle cx={cx + 19} cy={cy - 25} r={5} fill={m.clothB} />
+      <Circle cx={cx + 25} cy={cy - 19} r={3.8} fill={m.clothB} />
+      <Circle cx={cx} cy={cy} r={r} fill={m.wood} stroke={p.draw} strokeWidth={stroke.body} />
+      <Circle cx={cx} cy={cy} r={7.5} fill="none" stroke={p.draw} strokeWidth={stroke.thin} opacity={0.55} />
+      <Circle cx={cx} cy={cy} r={3.2} fill="none" stroke={p.draw} strokeWidth={stroke.thin} opacity={0.55} />
       <MonoLabel x={cx - 5} y={y - 2 * r - 7} text="TREE" color={p.label} size={8.5} />
       <Dim a={[from, y + DIM_DY]} b={[x, y + DIM_DY]} text={text} fit="below" />
     </Group>

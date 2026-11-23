@@ -8,6 +8,7 @@ import { brakingDistance } from '@/physics/kinematics';
 import { fixed } from '@/physics/format';
 import type { BrakeVtFig } from '@/content/types';
 import { useTheme } from '@/theme/ThemeContext';
+import { stroke } from '@/theme/tokens';
 import { STILL, type DrawClock } from './anim';
 import { DrawnFade, DrawnPath, FILLS, ForceLetter, MonoLabel } from './draw';
 
@@ -19,7 +20,7 @@ const LINES: readonly [number, number] = [0.36, 0.62];
 const MARKS: readonly [number, number] = [0.8, 0.95];
 
 export function BrakeVtFigure({ fig, clock = STILL }: { fig: BrakeVtFig; clock?: DrawClock }) {
-  const { palette: p } = useTheme();
+  const { palette: p, material: m } = useTheme();
   const cars = [...fig.cars].sort((m, n) => m.u - n.u); // slowest first
   const fast = cars[cars.length - 1];
   const slow = cars[0];
@@ -43,18 +44,18 @@ export function BrakeVtFigure({ fig, clock = STILL }: { fig: BrakeVtFig; clock?:
       </DrawnFade>
 
       {/* axes: v up the left, t along the bottom */}
-      <DrawnPath clock={clock} len={PLOT.h + 16} from={AXES[0]} to={AXES[1]} d={`M${PLOT.x},${PLOT.y} V${PLOT.y - PLOT.h - 16}`} stroke={p.draw} strokeWidth={1.8} fill="none" />
-      <DrawnPath clock={clock} len={PLOT.w + 22} from={AXES[0] + 0.08} to={AXES[1]} d={`M${PLOT.x},${PLOT.y} H${PLOT.x + PLOT.w + 22}`} stroke={p.draw} strokeWidth={1.8} fill="none" />
+      <DrawnPath clock={clock} len={PLOT.h + 16} from={AXES[0]} to={AXES[1]} d={`M${PLOT.x},${PLOT.y} V${PLOT.y - PLOT.h - 16}`} stroke={p.draw} strokeWidth={stroke.body} fill="none" />
+      <DrawnPath clock={clock} len={PLOT.w + 22} from={AXES[0] + 0.08} to={AXES[1]} d={`M${PLOT.x},${PLOT.y} H${PLOT.x + PLOT.w + 22}`} stroke={p.draw} strokeWidth={stroke.body} fill="none" />
       <DrawnFade clock={clock} from={AXES[1] - 0.1} to={AXES[1] + 0.1}>
         {ticks.map((t) => (
           <Group key={t}>
-            <Line x1={X(t)} y1={PLOT.y} x2={X(t)} y2={PLOT.y + 5} stroke={p.draw} strokeWidth={1.4} />
+            <Line x1={X(t)} y1={PLOT.y} x2={X(t)} y2={PLOT.y + 5} stroke={p.draw} strokeWidth={stroke.thin} />
             <MonoLabel x={X(t)} y={PLOT.y + 17} text={fixed(t, 1)} color={p.label} />
           </Group>
         ))}
         {cars.map((c) => (
           <Group key={c.id}>
-            <Line x1={PLOT.x - 5} y1={Y(c.u)} x2={PLOT.x} y2={Y(c.u)} stroke={p.draw} strokeWidth={1.4} />
+            <Line x1={PLOT.x - 5} y1={Y(c.u)} x2={PLOT.x} y2={Y(c.u)} stroke={p.draw} strokeWidth={stroke.thin} />
             <MonoLabel x={PLOT.x - 8} y={Y(c.u) + 3.5} text={fixed(c.u, 1)} color={p.label} anchor="end" />
           </Group>
         ))}
@@ -75,7 +76,7 @@ export function BrakeVtFigure({ fig, clock = STILL }: { fig: BrakeVtFig; clock?:
             to={LINES[1] + i * 0.12}
             d={`M${X(0)},${Y(c.u)} L${X(tOf(c.u))},${Y(0)}`}
             stroke={p.ink}
-            strokeWidth={3}
+            strokeWidth={stroke.force}
             strokeLinecap="round"
             fill="none"
           />
@@ -85,7 +86,7 @@ export function BrakeVtFigure({ fig, clock = STILL }: { fig: BrakeVtFig; clock?:
       <DrawnFade clock={clock} from={MARKS[0]} to={MARKS[1]}>
         {four && (
           <Group>
-            <Path d={`M${X(tS)},${Y(0)} V${Y(slow.u)} H${X(0)}`} fill="none" stroke={p.label} strokeWidth={1.3} strokeDasharray="4 3" />
+            <Path d={`M${X(tS)},${Y(0)} V${Y(slow.u)} H${X(0)}`} fill="none" stroke={p.label} strokeWidth={stroke.thin} strokeDasharray="4 3" />
             {[
               [tS / 3, slow.u / 3],
               [tS + tS / 3, slow.u / 3],

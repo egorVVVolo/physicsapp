@@ -14,7 +14,7 @@ import { fixed } from '@/physics/format';
 import type { CrateFig, CrateForce } from '@/content/types';
 import { useTheme } from '@/theme/ThemeContext';
 import { CHANGE_DELAY, STILL, useLoopTime, useTween, type DrawClock } from './anim';
-import { CgMark, ForceArrow, ForceLetter, MonoLabel } from './draw';
+import { CgMark, ForceArrow, ForceLetter, MonoLabel, useLineStep } from './draw';
 import { Mitten } from './SledgeFigure';
 import { stage, Tag } from './kit';
 
@@ -98,6 +98,7 @@ type Props = { fig: CrateFig; live?: number; playing: boolean; clock?: DrawClock
 
 export function CrateFigure({ fig, live, playing, clock = STILL, prev }: Props) {
   const { palette: p, material: m, stroke, pick } = useTheme();
+  const step9 = useLineStep(9); // two-line labels: the distance between their lines
   const angle = fig.slider === 'force' ? fig.angle : (live ?? fig.angle);
   const f = crateForces(fig, live);
   const flat = fig.friction !== undefined;
@@ -175,7 +176,6 @@ export function CrateFigure({ fig, live, playing, clock = STILL, prev }: Props) 
       {stage(clock, 
         PEN.floor,
         <Group>
-          <Rect x={8} y={FLOOR} width={floorEnd - 8} height={8} fill={pick(m.floor, 'none')} />
           <Line x1={8} y1={FLOOR} x2={floorEnd} y2={FLOOR} stroke={p.draw} strokeWidth={pick(stroke.body, 2)} />
           <Path d={ticks.join(' ')} stroke={p.draw} strokeWidth={pick(stroke.thin, 1)} opacity={0.55} />
         </Group>,
@@ -240,7 +240,7 @@ export function CrateFigure({ fig, live, playing, clock = STILL, prev }: Props) 
           PEN.fbd,
           <Group>
             <Line x1={divide} y1={14} x2={divide} y2={216} stroke={p.paperLine} strokeWidth={1.2} strokeDasharray="4 4" />
-            <MonoLabel x={flat ? 332 : divide + 6} y={flat ? 200 : 192} text="CRATE" color={p.label} size={9} anchor={flat ? 'end' : 'start'} />
+            <MonoLabel x={flat ? 332 : divide + 6} y={(flat ? 211 : 203) - step9} text="CRATE" color={p.label} size={9} anchor={flat ? 'end' : 'start'} />
             <MonoLabel x={flat ? 332 : divide + 6} y={flat ? 211 : 203} text="ALONE" color={p.label} size={9} anchor={flat ? 'end' : 'start'} />
             <Rect x={dot.x - 7} y={dot.y - 7} width={14} height={14} rx={2} fill="none" stroke={p.label} strokeWidth={1} strokeDasharray="3 3" />
             {!fbd && <MonoLabel x={dot.x + 18} y={dot.y - 14} text="?" color={p.ink} size={12} />}
@@ -274,7 +274,7 @@ export function CrateFigure({ fig, live, playing, clock = STILL, prev }: Props) 
             {accLabel !== null && (
               <Group>
                 <MonoLabel x={ACC_MARK.x} y={ACC_MARK.y + 24} text={accLabel === '?' ? 'a = ?' : `a = ${fixed(f.a, 2)}`} color={p.ink} size={10} />
-                {accLabel !== '?' && <MonoLabel x={ACC_MARK.x} y={ACC_MARK.y + 36} text="m s⁻²" color={p.label} size={9} />}
+                {accLabel !== '?' && <MonoLabel x={ACC_MARK.x} y={ACC_MARK.y + 24 + step9} text="m s⁻²" color={p.label} size={9} />}
               </Group>
             )}
             {legend.map((line, i) => (

@@ -224,9 +224,11 @@ export const darkMaterial: Material = {
   ball: '#D9D4CA',
 };
 
-/** The three line weights of a figure: dimensions and grids, outlines of bodies, forces. No other numbers. */
-export const stroke = { thin: 1.2, body: 1.8, force: 2.6 } as const;
-export type Stroke = { thin: number; body: number; force: number };
+/**
+ * The line weights of a figure: a hairline for grids and hatching, thin for dimensions and marks, body for outlines,
+ * force for forces and the lines of graphs. No other numbers.
+ */
+export const stroke = { hair: 0.8, thin: 1.2, body: 1.8, force: 2.6 } as const;
 
 /**
  * Motion tokens (ms). Interface eases out and never bounces; only drawn physical objects bounce, and they

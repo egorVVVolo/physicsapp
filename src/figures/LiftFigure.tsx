@@ -15,7 +15,7 @@ import { fixed, signed } from '@/physics/format';
 import { CANDIDATE_IDS, type LiftFig } from '@/content/types';
 import { useTheme } from '@/theme/ThemeContext';
 import { CHANGE_DELAY, DRAWN_MS, STILL, useTween, useWave, type DrawClock } from './anim';
-import { AccChevrons, DrawnFade, DrawnPath, DrawnShape, FILLS, ForceArrow, ForceLetter, Hatch, MonoLabel, MotionArrow, rectPath } from './draw';
+import { AccChevrons, DrawnFade, DrawnPath, DrawnShape, FILLS, ForceArrow, ForceLetter, Hatch, MonoLabel, MotionArrow, rectPath, useLineStep } from './draw';
 import { Person, Scales, SCALES_H } from './people';
 import { type TapProps, type TapTarget } from './Sheet';
 import { stage } from './kit';
@@ -91,6 +91,7 @@ type LiftProps = {
 
 export function LiftFigure({ fig, a, tap, clock = STILL, prev, shift: shiftNow }: LiftProps) {
   const { palette: p, material: m, stroke, pick } = useTheme();
+  const step9 = useLineStep(9); // two-line labels: the distance between their lines
   const drawing = clock.on;
   const line = (d: string, len: number, pen: readonly [number, number], color: string, width: number, cap?: 'round') => (
     <DrawnPath clock={clock} len={len} from={pen[0]} to={pen[1]} d={d} stroke={color} strokeWidth={width} strokeLinecap={cap} fill="none" />
@@ -120,8 +121,8 @@ export function LiftFigure({ fig, a, tap, clock = STILL, prev, shift: shiftNow }
         {a <= -G + 1e-9
           ? line(`M${CX},${CAR.y} L${CX},20 L${CX - 4},16 M${CX},20 L${CX + 4},15`, 24, PEN.cable, p.draw, pick(stroke.body, 2), 'round')
           : line(`M${CX},0 V${CAR.y}`, CAR.y, PEN.cable, p.draw, pick(stroke.body, 2))}
-        {/* the car: a plastic-panelled box, a ceiling strip, the floor indicator and a metal handrail on the back wall */}
-        <DrawnShape clock={clock} pen={PEN.car} {...rectPath(CAR.x, CAR.y, CAR.w, CAR.h)} fill={pick(m.plastic, p.page)} stroke={p.draw} strokeWidth={pick(stroke.body, 2.4)} />
+        {/* the car: a white box, a plastic ceiling strip, the floor indicator and a metal handrail on the back wall */}
+        <DrawnShape clock={clock} pen={PEN.car} {...rectPath(CAR.x, CAR.y, CAR.w, CAR.h)} fill={p.page} stroke={p.draw} strokeWidth={pick(stroke.body, 2.4)} />
         <DrawnShape clock={clock} pen={PEN.ceiling} {...rectPath(CAR.x, CAR.y, CAR.w, 6)} fill={pick(m.plasticSide, p.drawFill)} stroke={p.draw} strokeWidth={stroke.thin} />
         <DrawnFade clock={clock} from={FILLS[0]} to={FILLS[1]}>
           <Rect x={CX - 14} y={CAR.y + 12} width={28} height={13} rx={3} fill={p.ink} />
@@ -145,7 +146,7 @@ export function LiftFigure({ fig, a, tap, clock = STILL, prev, shift: shiftNow }
         <Group opacity={room}>
           <MotionArrow x={MID_X} y={118} dir={motionDir} length={62} color={p.draw} clock={clock} pen={PEN.motion} />
           {splitLabel(fig.motion.text).map((line, i) => (
-            <MonoLabel key={i} x={MID_X} y={168 + i * 12} text={line} color={p.label} size={9} />
+            <MonoLabel key={i} x={MID_X} y={168 + i * step9} text={line} color={p.label} size={9} />
           ))}
         </Group>
       )}

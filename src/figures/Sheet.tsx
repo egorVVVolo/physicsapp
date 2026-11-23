@@ -80,7 +80,12 @@ type Props = {
 };
 
 /** Figures already in style 2.0 (V2 tasks C2–C8): their labels grow to stay readable on the screen. */
-const STYLE_2 = new Set<Fig['kind']>(['lift', 'crate', 'collide', 'road']);
+const STYLE_2 = new Set<Fig['kind']>([
+  // the pilot (C2)
+  'lift', 'crate', 'collide', 'road',
+  // Motion (C3)
+  'track', 'graph', 'equations', 'chase', 'brakeVt', 'throw', 'throwVt', 'fallGraph', 'sledge', 'hill', 'resolve', 'vectors', 'bench', 'kick',
+]);
 
 /** Every figure is drawn at the same size on every screen, so the drawing never jumps between screens. */
 const MAX_H = 270;

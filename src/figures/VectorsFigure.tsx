@@ -8,6 +8,7 @@ import { angleFromFirst, sizeAtRightAngles } from '@/physics/vectors';
 import { fixed } from '@/physics/format';
 import type { VectorsFig } from '@/content/types';
 import { useTheme } from '@/theme/ThemeContext';
+import { stroke } from '@/theme/tokens';
 import { STILL, type DrawClock } from './anim';
 import { DrawnFade, ForceArrow, ForceLetter, MonoLabel } from './draw';
 import { Tag } from './kit';
@@ -34,7 +35,7 @@ export function vectorsResult(fig: VectorsFig): { size: number; angle: number } 
 }
 
 export function VectorsFigure({ fig, clock = STILL }: { fig: VectorsFig; clock?: DrawClock }) {
-  const { palette: p } = useTheme();
+  const { palette: p, material: m } = useTheme();
   // the corners of the path, in the figure's unit: the start, then the tip of each leg
   const pts: [number, number][] = [[0, 0]];
   for (const leg of fig.legs) {
@@ -90,15 +91,15 @@ export function VectorsFigure({ fig, clock = STILL }: { fig: VectorsFig; clock?:
     <Group>
       <DrawnFade clock={clock} from={0} to={0.3}>
         {xs.map((x) => (
-          <Line key={`x${x}`} x1={x} y1={4} x2={x} y2={226} stroke={p.paperLine} strokeWidth={0.8} />
+          <Line key={`x${x}`} x1={x} y1={4} x2={x} y2={226} stroke={p.paperLine} strokeWidth={stroke.hair} />
         ))}
         {ys.map((y) => (
-          <Line key={`y${y}`} x1={4} y1={y} x2={336} y2={y} stroke={p.paperLine} strokeWidth={0.8} />
+          <Line key={`y${y}`} x1={4} y1={y} x2={336} y2={y} stroke={p.paperLine} strokeWidth={stroke.hair} />
         ))}
         {/* north is up */}
         {fig.compass && (
           <Group>
-            <Path d="M22,50 V22" stroke={p.draw} strokeWidth={1.6} />
+            <Path d="M22,50 V22" stroke={p.draw} strokeWidth={stroke.body} />
             <Path d="M17,29 L22,19 L27,29 Z" fill={p.draw} />
             <ForceLetter x={22} y={64} text="N" color={p.ink} size={12} />
           </Group>
@@ -114,7 +115,7 @@ export function VectorsFigure({ fig, clock = STILL }: { fig: VectorsFig; clock?:
 
       <DrawnFade clock={clock} from={0.66} to={0.82}>
         <ForceArrow x1={start[0]} y1={start[1]} x2={end[0]} y2={end[1]} color={p.ink} width={3.2} dashed={fig.resultant !== 'shown'} />
-        {fig.angle !== undefined && <Path d={arc} fill="none" stroke={p.label} strokeWidth={1.3} />}
+        {fig.angle !== undefined && <Path d={arc} fill="none" stroke={p.label} strokeWidth={stroke.thin} />}
       </DrawnFade>
 
       <DrawnFade clock={clock} from={0.8} to={0.95}>

@@ -6,6 +6,7 @@ import { Circle, G as Group, Line, Path } from 'react-native-svg';
 import { QUANTITIES, RELATIONS, leftOut } from '@/physics/kinematics';
 import { EQUATION_IDS, type EquationsFig } from '@/content/types';
 import { useTheme } from '@/theme/ThemeContext';
+import { stroke } from '@/theme/tokens';
 import { STILL, type DrawClock } from './anim';
 import { DrawnFade, DrawnPath, FILLS, ForceLetter, MonoLabel, penPart, rectPath } from './draw';
 import type { TapProps, TapTarget } from './Sheet';
@@ -29,7 +30,7 @@ export function equationsTargets(fig: EquationsFig): TapTarget[] {
 }
 
 export function EquationsFigure({ fig, tap, clock = STILL }: { fig: EquationsFig; tap?: TapProps; clock?: DrawClock }) {
-  const { palette: p } = useTheme();
+  const { palette: p, material: m } = useTheme();
   const x = eqX(fig);
   const w = eqW(fig);
   const wide = !fig.list;
@@ -44,7 +45,7 @@ export function EquationsFigure({ fig, tap, clock = STILL }: { fig: EquationsFig
         const mark = tap?.marks?.[id];
         const on = tap?.selected === id;
         const focus = fig.focus === id;
-        const stroke = mark === 'right' ? p.ok : mark === 'wrong' ? p.bad : on ? p.select : focus ? p.ink : p.lineStrong;
+        const edge = mark === 'right' ? p.ok : mark === 'wrong' ? p.bad : on ? p.select : focus ? p.ink : p.lineStrong;
         const fill = mark === 'right' ? p.okBg : mark === 'wrong' ? p.badBg : on ? p.selectBg : p.page;
         const frame = rectPath(x, y, w, EQ.h, 9);
         const pen = penPart(PEN.rows, i, EQUATION_IDS.length);
@@ -56,7 +57,7 @@ export function EquationsFigure({ fig, tap, clock = STILL }: { fig: EquationsFig
             <DrawnFade clock={clock} from={FILLS[0]} to={FILLS[1]}>
               <Path d={frame.d} fill={fill} />
             </DrawnFade>
-            <DrawnPath clock={clock} len={frame.len} from={pen[0]} to={pen[1]} d={frame.d} fill="none" stroke={stroke} strokeWidth={mark || on || focus ? 2 : 1.3} />
+            <DrawnPath clock={clock} len={frame.len} from={pen[0]} to={pen[1]} d={frame.d} fill="none" stroke={edge} strokeWidth={mark || on || focus ? 2 : 1.3} />
             <DrawnFade clock={clock} from={FILLS[0]} to={FILLS[1]}>
               <ForceLetter x={x + (wide ? 20 : 14)} y={cy + (wide ? 5.8 : 5.2)} text={RELATIONS[id].text} color={p.ink} size={wide ? 17 : 15} anchor="start" />
             </DrawnFade>
@@ -64,9 +65,9 @@ export function EquationsFigure({ fig, tap, clock = STILL }: { fig: EquationsFig
             {fig.leftOut === 'shown' && (
               <DrawnFade clock={clock} from={PEN.marks[0]} to={PEN.marks[1]}>
                 <MonoLabel x={cx - 15} y={cy + 3.2} text="NO" color={p.label} size={8.5} anchor="end" />
-                <Circle cx={cx} cy={cy} r={10.5} fill={p.paper} stroke={p.label} strokeWidth={1.3} strokeDasharray="3 3" />
+                <Circle cx={cx} cy={cy} r={10.5} fill={p.paper} stroke={p.label} strokeWidth={stroke.thin} strokeDasharray="3 3" />
                 <ForceLetter x={cx} y={cy + 4.4} text={out} color={p.ink} size={13} />
-                <Line x1={cx - 8} y1={cy + 8} x2={cx + 8} y2={cy - 8} stroke={p.label} strokeWidth={1.4} />
+                <Line x1={cx - 8} y1={cy + 8} x2={cx + 8} y2={cy - 8} stroke={p.label} strokeWidth={stroke.thin} />
               </DrawnFade>
             )}
           </Group>
@@ -78,7 +79,7 @@ export function EquationsFigure({ fig, tap, clock = STILL }: { fig: EquationsFig
 
 /** Your list: one row per quantity. Known ones carry their value, the wanted one a "?", the fifth is "not given". */
 function List({ fig, clock }: { fig: EquationsFig; clock: DrawClock }) {
-  const { palette: p } = useTheme();
+  const { palette: p, material: m } = useTheme();
   if (!fig.list) return null;
   const { known, want } = fig.list;
   return (

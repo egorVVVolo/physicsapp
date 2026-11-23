@@ -7,6 +7,7 @@ import { position, velocity } from '@/physics/kinematics';
 import { fixed } from '@/physics/format';
 import type { ChaseFig } from '@/content/types';
 import { useTheme } from '@/theme/ThemeContext';
+import { stroke } from '@/theme/tokens';
 import { useReducedMotionPref } from '@/ui/parts';
 import { STILL, useLoopTime, type DrawClock } from './anim';
 import { DrawnPath, Hatch, MonoLabel } from './draw';
@@ -29,7 +30,7 @@ export function chaseParams(fig: ChaseFig): string {
 }
 
 export function ChaseFigure({ fig, playing, clock = STILL }: { fig: ChaseFig; playing: boolean; clock?: DrawClock }) {
-  const { palette: p } = useTheme();
+  const { palette: p, material: m } = useTheme();
   const reduced = useReducedMotionPref();
   const k = roadScale(fig.span);
   const X = (s: number) => X0 + s * k;
@@ -53,20 +54,20 @@ export function ChaseFigure({ fig, playing, clock = STILL }: { fig: ChaseFig; pl
         <Hatch key={c.id} x1={6} x2={334} y={c.y} color={p.draw} clock={clock} from={PEN.road[0]} to={PEN.road[1]} />
       ))}
       <RoadRuler span={fig.span} clock={clock} />
-      <DrawnPath clock={clock} len={RULER_Y - 20} from={PEN.start[0]} to={PEN.start[1]} d={`M${X0},20 V${RULER_Y}`} stroke={p.lineStrong} strokeWidth={1.2} strokeDasharray="3 4" fill="none" />
+      <DrawnPath clock={clock} len={RULER_Y - 20} from={PEN.start[0]} to={PEN.start[1]} d={`M${X0},20 V${RULER_Y}`} stroke={p.lineStrong} strokeWidth={stroke.thin} strokeDasharray="3 4" fill="none" />
       {stage(clock, PEN.marks, <MonoLabel x={X0 + 4} y={13} text="SIDE BY SIDE" color={p.label} size={8.5} anchor="start" />)}
 
       {/* the last frame: how far apart the cars are, or that they are level */}
       {ended && gap > 0.05 && (
         <Group>
-          <Line x1={X(front)} y1={leader.y} x2={X(front)} y2={leader.y < GAP_Y ? GAP_Y + 4 : GAP_Y - 4} stroke={p.label} strokeWidth={1.1} strokeDasharray="3 4" />
-          <Line x1={X(back)} y1={chaser.y} x2={X(back)} y2={chaser.y < GAP_Y ? GAP_Y + 4 : GAP_Y - 4} stroke={p.label} strokeWidth={1.1} strokeDasharray="3 4" />
+          <Line x1={X(front)} y1={leader.y} x2={X(front)} y2={leader.y < GAP_Y ? GAP_Y + 4 : GAP_Y - 4} stroke={p.label} strokeWidth={stroke.thin} strokeDasharray="3 4" />
+          <Line x1={X(back)} y1={chaser.y} x2={X(back)} y2={chaser.y < GAP_Y ? GAP_Y + 4 : GAP_Y - 4} stroke={p.label} strokeWidth={stroke.thin} strokeDasharray="3 4" />
           <Dim a={[X(back), GAP_Y]} b={[X(front), GAP_Y]} text={`${fixed(gap, 1)} m`} fit="below" />
         </Group>
       )}
       {ended && gap <= 0.05 && (
         <Group>
-          <Line x1={X(front)} y1={30} x2={X(front)} y2={RULER_Y} stroke={p.label} strokeWidth={1.1} strokeDasharray="3 4" />
+          <Line x1={X(front)} y1={30} x2={X(front)} y2={RULER_Y} stroke={p.label} strokeWidth={stroke.thin} strokeDasharray="3 4" />
           <Tag x={X(front)} y={26} text={`LEVEL AT ${fixed(front, 1)} m`} />
         </Group>
       )}

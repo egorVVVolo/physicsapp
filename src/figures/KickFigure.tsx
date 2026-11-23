@@ -10,10 +10,11 @@ import { flightTime, launchParts, projectilePosition, projectileRange, timeToTop
 import { fixed } from '@/physics/format';
 import type { KickFig } from '@/content/types';
 import { useTheme } from '@/theme/ThemeContext';
+import { stroke } from '@/theme/tokens';
 import { useReducedMotionPref } from '@/ui/parts';
 import { STILL, useLoopTime, type DrawClock } from './anim';
 import { DrawnFade, DrawnPath, FILLS, Hatch, MonoLabel } from './draw';
-import { HollowArrow, stage, Tag } from './kit';
+import { Ball, HollowArrow, stage, Tag } from './kit';
 
 export const KICK_VB = { w: 340, h: 248 };
 
@@ -64,7 +65,7 @@ export function kickParams(fig: KickFig, angle?: number): string {
 type Props = { fig: KickFig; live?: number; playing: boolean; clock?: DrawClock };
 
 export function KickFigure({ fig, live, playing, clock = STILL }: Props) {
-  const { palette: p } = useTheme();
+  const { palette: p, material: m } = useTheme();
   const reduced = useReducedMotionPref();
   const kicks = kicksOf(fig, live);
   const plays = kickPlays(fig) && live === undefined;
@@ -84,7 +85,7 @@ export function KickFigure({ fig, live, playing, clock = STILL }: Props) {
         const until = fig.path === 'shown' ? T : fig.path === 'toTop' ? timeToTop(l) : plays ? Math.min(timeOf(l), T) : 0;
         if (until <= 0) return null;
         const { d, len } = pathOf(l, until);
-        return <DrawnPath key={`p${k.id}`} clock={clock} len={len} from={PEN.path[0]} to={PEN.path[1]} d={d} fill="none" stroke={p.label} strokeWidth={1.3} strokeDasharray="4 4" />;
+        return <DrawnPath key={`p${k.id}`} clock={clock} len={len} from={PEN.path[0]} to={PEN.path[1]} d={d} fill="none" stroke={p.label} strokeWidth={stroke.thin} strokeDasharray="4 4" />;
       })}
 
       {/* names at the tops of the paths, when two paths are drawn */}
@@ -116,9 +117,7 @@ export function KickFigure({ fig, live, playing, clock = STILL }: Props) {
         const [x, y] = pointAt(l, timeOf(l));
         return (
           <DrawnFade key={`b${k.id}`} clock={clock} from={FILLS[0]} to={FILLS[1]}>
-            <Circle cx={x} cy={y} r={R} fill={p.drawFillDark} />
-            <Circle cx={x - 1.3} cy={y - 1.3} r={R * 0.55} fill={p.drawFill} />
-            <Circle cx={x} cy={y} r={R} fill="none" stroke={p.draw} strokeWidth={1.5} />
+            <Ball x={x} y={y} r={R} />
           </DrawnFade>
         );
       })}
@@ -150,7 +149,7 @@ function pathOf(l: Launch, until: number): { d: string; len: number } {
  * The angle is written at `labelAt` degrees: in the wedge between this arrow and the one below it, so it never sits on an arrow.
  */
 function LaunchArrow({ u, angle, name, parts, arc, labelAt }: { u: number; angle: number; name: string; parts: boolean; arc: number; labelAt: number }) {
-  const { palette: p } = useTheme();
+  const { palette: p, material: m } = useTheme();
   const c = launchParts(launchOf(u, angle));
   const kv = parts ? KV_PARTS : KV;
   const tip: [number, number] = [O[0] + c.ux * kv, O[1] - c.uy * kv];
@@ -162,12 +161,12 @@ function LaunchArrow({ u, angle, name, parts, arc, labelAt }: { u: number; angle
     <Group>
       {parts && (
         <Group>
-          <Path d={`M${O[0]},${tip[1]} H${tip[0]} V${O[1]}`} fill="none" stroke={p.label} strokeWidth={1.1} strokeDasharray="4 3" />
+          <Path d={`M${O[0]},${tip[1]} H${tip[0]} V${O[1]}`} fill="none" stroke={p.label} strokeWidth={stroke.thin} strokeDasharray="4 3" />
           <HollowArrow from={O} to={[tip[0], O[1]]} color={p.draw} weight="thin" />
           <HollowArrow from={O} to={[O[0], tip[1]]} color={p.draw} weight="thin" />
         </Group>
       )}
-      <Path d={arcD} fill="none" stroke={p.label} strokeWidth={1.1} />
+      <Path d={arcD} fill="none" stroke={p.label} strokeWidth={stroke.thin} />
       <MonoLabel x={O[0] + (arc + 11) * Math.cos(mid)} y={O[1] - (arc + 11) * Math.sin(mid) + 3} text={`${fixed(angle, 0)}°`} color={p.ink} size={8.5} />
       <HollowArrow from={O} to={tip} color={p.draw} />
       <Circle cx={O[0]} cy={O[1]} r={2.6} fill={p.draw} />
@@ -184,7 +183,7 @@ function LaunchArrow({ u, angle, name, parts, arc, labelAt }: { u: number; angle
 
 /** How far each ball lands from the kick, as a dimension line under the ground ("?" until answered). Equal ones are drawn once. */
 function RangeLines({ fig, kicks, label }: { fig: KickFig; kicks: { angle: number }[]; label: 'unknown' | 'afterCheck' | 'shown' }) {
-  const { palette: p } = useTheme();
+  const { palette: p, material: m } = useTheme();
   // with two kicks, one line with "?" would already tell that they land at the same spot: draw nothing until answered
   if (label !== 'shown' && kicks.length > 1) return null;
   const ranges = [...new Set(kicks.map((k) => fixed(projectileRange(launchOf(fig.u, k.angle)), 1)))];
@@ -195,7 +194,7 @@ function RangeLines({ fig, kicks, label }: { fig: KickFig; kicks: { angle: numbe
         const y = GROUND + 18 + i * 14;
         return (
           <Group key={r}>
-            <Path d={`M${O[0]},${y - 5} V${y + 5} M${x2},${y - 5} V${y + 5} M${O[0]},${y} H${x2}`} stroke={p.label} strokeWidth={1.2} />
+            <Path d={`M${O[0]},${y - 5} V${y + 5} M${x2},${y - 5} V${y + 5} M${O[0]},${y} H${x2}`} stroke={p.label} strokeWidth={stroke.thin} />
             <Tag x={(O[0] + x2) / 2} y={y + 3.5} text={label === 'shown' ? `${r} m` : '?'} />
           </Group>
         );
@@ -206,13 +205,13 @@ function RangeLines({ fig, kicks, label }: { fig: KickFig; kicks: { angle: numbe
 
 /** How high the ball rises: a dashed line down from the top of its path to the ground, with its length ("?" until answered). */
 function HeightLine({ l, label }: { l: Launch; label: 'unknown' | 'afterCheck' | 'shown' }) {
-  const { palette: p } = useTheme();
+  const { palette: p, material: m } = useTheme();
   const [x, y] = pointAt(l, timeToTop(l));
   const yTop = y + R; // the bottom of the ball at the top, so the line meets the ground at the same height it starts
   return (
     <Group>
-      <Path d={`M${x},${yTop} V${GROUND}`} stroke={p.label} strokeWidth={1.2} strokeDasharray="4 3" />
-      <Path d={`M${x - 5},${GROUND} H${x + 5}`} stroke={p.label} strokeWidth={1.2} />
+      <Path d={`M${x},${yTop} V${GROUND}`} stroke={p.label} strokeWidth={stroke.thin} strokeDasharray="4 3" />
+      <Path d={`M${x - 5},${GROUND} H${x + 5}`} stroke={p.label} strokeWidth={stroke.thin} />
       <Tag x={x + 8 + (label === 'shown' ? 24 : 6)} y={(yTop + GROUND) / 2 + 3} text={label === 'shown' ? `${fixed(topHeight(l), 1)} m` : '?'} />
     </Group>
   );
@@ -220,7 +219,7 @@ function HeightLine({ l, label }: { l: Launch; label: 'unknown' | 'afterCheck' |
 
 /** The velocity at the top: only its sideways part is left, an outline arrow along the ground ("v = ?" until answered). */
 function TopVelocity({ l, label }: { l: Launch; label: 'unknown' | 'afterCheck' | 'shown' }) {
-  const { palette: p } = useTheme();
+  const { palette: p, material: m } = useTheme();
   const [x, y] = pointAt(l, timeToTop(l));
   const ux = launchParts(l).ux;
   if (label !== 'shown') return <Tag x={x + R + 22} y={y + 3.5} text="v = ?" />;

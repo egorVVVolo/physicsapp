@@ -1,4 +1,4 @@
-// A hidden page for checks: every figure of the course, still (compact sheets: no pen, no motion, no taps).
+// A hidden page for checks: every figure of the course, full size but still (no pen, no motion, no taps).
 // Open /gallery/figs in the web version. Used to compare drawings before and after a change to the figure kit,
 // and to look over a style change level by level. Nothing in the app links here.
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
@@ -40,7 +40,7 @@ export default function FigGallery() {
       {FIGS.map(({ where, fig }, i) => (
         <View key={where} style={styles.item} testID={`fig-${i}`}>
           <Text style={[styles.where, { color: p.muted }]}>{`${i + 1} · ${fig.kind} · ${where}`}</Text>
-          <Sheet fig={fig} n={i + 1} compact />
+          <Sheet fig={fig} n={i + 1} still />
         </View>
       ))}
     </ScrollView>

@@ -12,6 +12,7 @@ import { components, onSlope } from '@/physics/vectors';
 import { fixed } from '@/physics/format';
 import { SLEDGE_IDS, type HillFig, type PartLabel, type SledgeFig } from '@/content/types';
 import { useTheme } from '@/theme/ThemeContext';
+import { stroke } from '@/theme/tokens';
 import { STILL, type DrawClock } from './anim';
 import { CgMark, ForceArrow, Hatch, MonoLabel } from './draw';
 import type { TapProps, TapTarget } from './Sheet';
@@ -93,7 +94,7 @@ export function sledgeTargets(fig: SledgeFig, angle = fig.angle): TapTarget[] {
 type Props = { fig: SledgeFig; live?: number; tap?: TapProps; clock?: DrawClock };
 
 export function SledgeFigure({ fig, live, tap, clock = STILL }: Props) {
-  const { palette: p } = useTheme();
+  const { palette: p, material: m } = useTheme();
   const angle = live ?? fig.angle;
   const g = geometry(fig, angle);
   const { v, hitch, d, tip, c, fwd, up } = g;
@@ -135,7 +136,7 @@ export function SledgeFigure({ fig, live, tap, clock = STILL }: Props) {
       {stage(clock, 
         PEN.rope,
         <Group>
-          <Line x1={hitch[0]} y1={hitch[1]} x2={mitten[0]} y2={mitten[1]} stroke={p.draw} strokeWidth={1.6} />
+          <Line x1={hitch[0]} y1={hitch[1]} x2={mitten[0]} y2={mitten[1]} stroke={p.draw} strokeWidth={stroke.body} />
           <Mitten x={mitten[0]} y={mitten[1]} dx={d[0]} dy={d[1]} />
           <MonoLabel x={mitten[0] + n[0] * 17} y={mitten[1] + n[1] * 17 + 3} text="ANA" color={p.label} size={9} />
         </Group>,
@@ -144,7 +145,7 @@ export function SledgeFigure({ fig, live, tap, clock = STILL }: Props) {
         stage(clock, 
           PEN.rope,
           <Group>
-            <Mitten x={benPush[0] - 7} y={benPush[1]} dx={-1} dy={0} />
+            <Mitten x={benPush[0] - 7} y={benPush[1]} dx={-1} dy={0} who="B" />
             <MonoLabel x={benPush[0] - 20} y={benPush[1] - 14} text="BEN" color={p.label} size={9} />
           </Group>,
         )}
@@ -155,9 +156,9 @@ export function SledgeFigure({ fig, live, tap, clock = STILL }: Props) {
           PEN.parts,
           <Group>
             {split === 'box' && (
-              <Path d={`M${upTip[0]},${upTip[1]} H${tip[0]} V${fwdTip[1]}`} fill="none" stroke={p.label} strokeWidth={1.1} strokeDasharray="4 3" />
+              <Path d={`M${upTip[0]},${upTip[1]} H${tip[0]} V${fwdTip[1]}`} fill="none" stroke={p.label} strokeWidth={stroke.thin} strokeDasharray="4 3" />
             )}
-            {split === 'forward' && <Path d={`M${tip[0]},${tip[1]} V${fwdTip[1]}`} fill="none" stroke={p.label} strokeWidth={1.1} strokeDasharray="4 3" />}
+            {split === 'forward' && <Path d={`M${tip[0]},${tip[1]} V${fwdTip[1]}`} fill="none" stroke={p.label} strokeWidth={stroke.thin} strokeDasharray="4 3" />}
             <ForceArrow x1={hitch[0]} y1={hitch[1]} x2={fwdTip[0]} y2={fwdTip[1]} color={p.force} width={2.4} />
             {split === 'box' && <ForceArrow x1={hitch[0]} y1={hitch[1]} x2={upTip[0]} y2={upTip[1]} color={p.force} width={2.4} />}
             {split === 'chain' && <ForceArrow x1={fwdTip[0]} y1={fwdTip[1]} x2={tip[0]} y2={tip[1]} color={p.force} width={2.4} />}
@@ -176,7 +177,7 @@ export function SledgeFigure({ fig, live, tap, clock = STILL }: Props) {
               <Circle cx={benPush[0]} cy={benPush[1]} r={3.2} fill={p.force} />
             </Group>
           )}
-          {showArc && <Path d={arc} fill="none" stroke={p.label} strokeWidth={1.2} />}
+          {showArc && <Path d={arc} fill="none" stroke={p.label} strokeWidth={stroke.thin} />}
         </Group>,
       )}
 
@@ -201,13 +202,13 @@ export function SledgeFigure({ fig, live, tap, clock = STILL }: Props) {
 
 /** A sledge: a flat deck on two struts and a runner that curls up at the front. Back of the runner at (x, y), facing right. */
 function Sledge({ x, y, s, flip }: { x: number; y: number; s: number; flip?: boolean }) {
-  const { palette: p } = useTheme();
+  const { palette: p, material: m } = useTheme();
   return (
     <Group transform={`translate(${x} ${y}) scale(${flip ? -s : s} ${s})`}>
-      <Path d="M14,-7 V0 M52,-7 V0" stroke={p.draw} strokeWidth={1.6} />
-      <Rect x={4} y={-15} width={58} height={8} rx={2} fill={p.drawFillDark} stroke={p.draw} strokeWidth={1.6} />
-      <Path d="M24,-15 V-7 M43,-15 V-7" stroke={p.draw} strokeWidth={1} opacity={0.6} />
-      <Path d={`M0,0 H64 Q${SLEDGE_LEN},0 ${SLEDGE_LEN},-9 Q${SLEDGE_LEN},-15 68,-15`} fill="none" stroke={p.draw} strokeWidth={2.2} strokeLinecap="round" />
+      <Path d="M14,-7 V0 M52,-7 V0" stroke={p.draw} strokeWidth={stroke.body} />
+      <Rect x={4} y={-15} width={58} height={8} rx={2} fill={m.wood} stroke={p.draw} strokeWidth={stroke.body} />
+      <Path d="M24,-15 V-7 M43,-15 V-7" stroke={p.draw} strokeWidth={stroke.thin} opacity={0.6} />
+      <Path d={`M0,0 H64 Q${SLEDGE_LEN},0 ${SLEDGE_LEN},-9 Q${SLEDGE_LEN},-15 68,-15`} fill="none" stroke={p.draw} strokeWidth={stroke.body} strokeLinecap="round" />
     </Group>
   );
 }
@@ -236,7 +237,7 @@ export function hillParams(fig: HillFig): string {
 }
 
 export function HillFigure({ fig, clock = STILL }: { fig: HillFig; clock?: DrawClock }) {
-  const { palette: p } = useTheme();
+  const { palette: p, material: m } = useTheme();
   const th = fig.angle * RAD;
   const tan = Math.tan(th);
   const yAt = (x: number) => HILL.footY - (x - HILL.foot) * tan;
@@ -272,8 +273,8 @@ export function HillFigure({ fig, clock = STILL }: { fig: HillFig; clock?: DrawC
           <Group transform={`translate(6 ${yAt(6)}) rotate(${-fig.angle})`}>
             <Hatch x1={0} x2={(334 - 6) / Math.cos(th)} y={0} color={p.draw} />
           </Group>
-          <Path d={`M${M[0]},${M[1]} H${M[0] + R + 26}`} stroke={p.label} strokeWidth={1.1} strokeDasharray="4 3" />
-          <Path d={arcFoot} fill="none" stroke={p.label} strokeWidth={1.2} />
+          <Path d={`M${M[0]},${M[1]} H${M[0] + R + 26}`} stroke={p.label} strokeWidth={stroke.thin} strokeDasharray="4 3" />
+          <Path d={arcFoot} fill="none" stroke={p.label} strokeWidth={stroke.thin} />
           <MonoLabel x={M[0] + (R + 14) * Math.cos(th / 2)} y={M[1] - (R + 14) * Math.sin(th / 2) + 3} text={`${fixed(fig.angle, 0)}°`} color={p.ink} size={9} />
         </Group>,
       )}
@@ -287,10 +288,10 @@ export function HillFigure({ fig, clock = STILL }: { fig: HillFig; clock?: DrawC
       {stage(clock, 
         PEN.parts,
         <Group>
-          <Path d={`M${aTip[0]},${aTip[1]} L${wTip[0]},${wTip[1]} L${iTip[0]},${iTip[1]}`} fill="none" stroke={p.label} strokeWidth={1.1} strokeDasharray="4 3" />
+          <Path d={`M${aTip[0]},${aTip[1]} L${wTip[0]},${wTip[1]} L${iTip[0]},${iTip[1]}`} fill="none" stroke={p.label} strokeWidth={stroke.thin} strokeDasharray="4 3" />
           <ForceArrow x1={cg[0]} y1={cg[1]} x2={aTip[0]} y2={aTip[1]} color={p.force} width={2.4} />
           <ForceArrow x1={cg[0]} y1={cg[1]} x2={iTip[0]} y2={iTip[1]} color={p.force} width={2.4} />
-          <Path d={arcW} fill="none" stroke={p.label} strokeWidth={1.2} />
+          <Path d={arcW} fill="none" stroke={p.label} strokeWidth={stroke.thin} />
         </Group>,
       )}
       {stage(clock, 

@@ -8,6 +8,7 @@ import { components } from '@/physics/vectors';
 import { fixed } from '@/physics/format';
 import type { ResolveFig } from '@/content/types';
 import { useTheme } from '@/theme/ThemeContext';
+import { stroke } from '@/theme/tokens';
 import { STILL, type DrawClock } from './anim';
 import { ForceArrow, MonoLabel } from './draw';
 import { HollowArrow, stage, Tag } from './kit';
@@ -27,7 +28,7 @@ export function resolveParts(fig: ResolveFig): { x: number; y: number } {
 }
 
 export function ResolveFigure({ fig, clock = STILL }: { fig: ResolveFig; clock?: DrawClock }) {
-  const { palette: p } = useTheme();
+  const { palette: p, material: m } = useTheme();
   const phi = (fig.from === 'horizontal' ? fig.angle : 90 - fig.angle) * RAD; // above the horizontal
   const d: [number, number] = [Math.cos(phi), -Math.sin(phi)];
   const tip: [number, number] = [O[0] + d[0] * L, O[1] + d[1] * L];
@@ -61,20 +62,20 @@ export function ResolveFigure({ fig, clock = STILL }: { fig: ResolveFig; clock?:
         [0, 0.3],
         <Group>
           {xs.map((x) => (
-            <Line key={`x${x}`} x1={x} y1={4} x2={x} y2={226} stroke={p.paperLine} strokeWidth={0.8} />
+            <Line key={`x${x}`} x1={x} y1={4} x2={x} y2={226} stroke={p.paperLine} strokeWidth={stroke.hair} />
           ))}
           {ys.map((y) => (
-            <Line key={`y${y}`} x1={4} y1={y} x2={336} y2={y} stroke={p.paperLine} strokeWidth={0.8} />
+            <Line key={`y${y}`} x1={4} y1={y} x2={336} y2={y} stroke={p.paperLine} strokeWidth={stroke.hair} />
           ))}
           {/* the reference lines through the tail */}
-          <Path d={`M${O[0] - 30},${O[1]} H${O[0] + L + 30} M${O[0]},${O[1] + 24} V${O[1] - L - 20}`} stroke={p.label} strokeWidth={1} />
+          <Path d={`M${O[0] - 30},${O[1]} H${O[0] + L + 30} M${O[0]},${O[1] + 24} V${O[1] - L - 20}`} stroke={p.label} strokeWidth={stroke.thin} />
         </Group>,
       )}
       {stage(
         clock,
         [0.62, 0.8],
         <Group>
-          <Path d={`M${yTip[0]},${yTip[1]} H${tip[0]} V${xTip[1]}`} fill="none" stroke={p.label} strokeWidth={1.1} strokeDasharray="4 3" />
+          <Path d={`M${yTip[0]},${yTip[1]} H${tip[0]} V${xTip[1]}`} fill="none" stroke={p.label} strokeWidth={stroke.thin} strokeDasharray="4 3" />
           {fig.velocity ? (
             <Group>
               <HollowArrow from={O} to={xTip} color={color} weight="thin" />
@@ -94,7 +95,7 @@ export function ResolveFigure({ fig, clock = STILL }: { fig: ResolveFig; clock?:
         <Group>
           {fig.velocity ? <HollowArrow from={O} to={tip} color={color} /> : <ForceArrow x1={O[0]} y1={O[1]} x2={tip[0]} y2={tip[1]} color={color} width={3.4} />}
           <Circle cx={O[0]} cy={O[1]} r={3.2} fill={color} />
-          <Path d={arc} fill="none" stroke={p.label} strokeWidth={1.2} />
+          <Path d={arc} fill="none" stroke={p.label} strokeWidth={stroke.thin} />
         </Group>,
       )}
       {stage(
