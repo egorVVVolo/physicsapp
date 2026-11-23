@@ -135,7 +135,8 @@ test('a text screen without a figure carries the last one, answered, under the s
       const carried = carriedFig(lesson, i);
       if (s.kind !== 'text' || s.fig) return assert.equal(carried, undefined, `${s.id}: only text screens without a figure carry one`);
       let j = i - 1;
-      while (j >= 0 && !('fig' in lesson.story[j] && lesson.story[j].fig)) j--;
+      const hasFig = (x: (typeof lesson.story)[number]) => 'fig' in x && !!x.fig;
+      while (j >= 0 && !hasFig(lesson.story[j])) j--;
       if (j < 0) return assert.equal(carried, undefined);
       const src = lesson.story[j];
       const fig = 'fig' in src ? src.fig! : undefined;

@@ -18,6 +18,7 @@ import { LEAVE_SHEET_OUT, LeaveSheet } from './LeaveSheet';
 import { BuildView } from './screens/BuildView';
 import { EstimateView } from './screens/EstimateView';
 import { ExploreView } from './screens/ExploreView';
+import { GraphPickView } from './screens/GraphPickView';
 import { OrderView } from './screens/OrderView';
 import { SortView } from './screens/SortView';
 import { SpotErrorView } from './screens/SpotErrorView';
@@ -95,13 +96,14 @@ export function LessonPlayer({ lesson, state, onChange, onClose }: Props) {
     if (s.kind === 'predict') body = <PredictView screen={s} figN={n} picked={state.picks[s.id]} onPick={(id) => change((st) => recordPick(st, s.id, id))} onNext={go} />;
     if (s.kind === 'explore') body = <ExploreView screen={s} figN={n} onNext={go} />;
     if (s.kind === 'worked') body = <WorkedView screen={s} figN={n} onNext={go} />;
-    if (s.kind === 'build' || s.kind === 'order' || s.kind === 'spotError' || s.kind === 'sort' || s.kind === 'estimate') {
+    if (s.kind === 'build' || s.kind === 'order' || s.kind === 'spotError' || s.kind === 'sort' || s.kind === 'estimate' || s.kind === 'graphPick') {
       const graded = { figN: n, phase: item.phase, onOutcome: (o: Outcome) => change((st) => recordOutcome(st, s.id, o)), onWrong: (o: string) => change((st) => recordWrong(st, s.id, o)), onNext: go };
       if (s.kind === 'build') body = <BuildView screen={s} {...graded} />;
       if (s.kind === 'order') body = <OrderView screen={s} {...graded} />;
       if (s.kind === 'spotError') body = <SpotErrorView screen={s} {...graded} />;
       if (s.kind === 'sort') body = <SortView screen={s} {...graded} />;
       if (s.kind === 'estimate') body = <EstimateView screen={s} {...graded} />;
+      if (s.kind === 'graphPick') body = <GraphPickView screen={s} {...graded} />;
     }
     if (s.kind === 'choice' || s.kind === 'tapFig') {
       const earlier = s.kind === 'choice' && s.revisitOf ? lesson.story.find((x) => x.id === s.revisitOf) : undefined;

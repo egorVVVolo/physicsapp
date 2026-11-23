@@ -1136,10 +1136,21 @@ export type WorkedScreen = Base & {
   last?: { prompt: string; options: Option[] };
 };
 
-export type Screen = IntroScreen | TextScreen | PredictScreen | ChoiceScreen | ExploreScreen | TapFigScreen | BuildScreen | OrderScreen | SpotErrorScreen | SortScreen | EstimateScreen | WorkedScreen;
+/** Pick the matching graph: three graphs, one at a time on the full sheet; an optional small scene of the motion above. */
+export type GraphPickScreen = Base & {
+  kind: 'graphPick';
+  prompt: string;
+  /** A figure of the motion, shown small and still above the graphs. */
+  scene?: Fig;
+  /** Exactly three graph figures (graph, throwVt, brakeVt, material…); one correct, the others with a hint. */
+  graphs: { id: 'A' | 'B' | 'C'; fig: Fig; correct?: true; hint?: string }[];
+  why: string;
+};
+
+export type Screen = IntroScreen | TextScreen | PredictScreen | ChoiceScreen | ExploreScreen | TapFigScreen | BuildScreen | OrderScreen | SpotErrorScreen | SortScreen | EstimateScreen | WorkedScreen | GraphPickScreen;
 /** A graded question answered by picking one option (cards or places on the figure). */
 export type OptionQuestion = ChoiceScreen | TapFigScreen;
-export type Question = OptionQuestion | BuildScreen | OrderScreen | SpotErrorScreen | SortScreen | EstimateScreen;
+export type Question = OptionQuestion | BuildScreen | OrderScreen | SpotErrorScreen | SortScreen | EstimateScreen | GraphPickScreen;
 
 export type Lesson = {
   id: string;
@@ -1165,4 +1176,4 @@ export type LessonRef = { id: string; title: string; spec: number[]; ready: bool
 export type Level = { id: string; title: string; lessons: LessonRef[] };
 export type Course = { title: string; subtitle: string; levels: Level[] };
 
-export const isQuestion = (s: Screen): s is Question => s.kind === 'choice' || s.kind === 'tapFig' || s.kind === 'build' || s.kind === 'order' || s.kind === 'spotError' || s.kind === 'sort' || s.kind === 'estimate';
+export const isQuestion = (s: Screen): s is Question => s.kind === 'choice' || s.kind === 'tapFig' || s.kind === 'build' || s.kind === 'order' || s.kind === 'spotError' || s.kind === 'sort' || s.kind === 'estimate' || s.kind === 'graphPick';

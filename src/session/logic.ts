@@ -40,6 +40,7 @@ export function itemsOf(lesson: Lesson): Item[] {
 
 /** The figure an item shows, if any (the Skill check splash shows none). */
 export function figOf(item: Item | undefined): Fig | undefined {
+  if (item?.kind === 'screen' && item.screen.kind === 'graphPick') return item.screen.scene ?? item.screen.graphs[0].fig;
   return item?.kind === 'screen' && 'fig' in item.screen ? item.screen.fig : undefined;
 }
 
@@ -52,6 +53,7 @@ export function carriedFig(lesson: Lesson, index: number): Fig | undefined {
   if (!here || here.kind !== 'text' || here.fig) return undefined;
   for (let j = index - 1; j >= 0; j--) {
     const s = lesson.story[j];
+    if (s.kind === 'graphPick') return s.graphs.find((g) => g.correct)?.fig;
     if (!('fig' in s) || !s.fig) continue;
     if (s.kind === 'estimate') return s.after;
     return s.kind === 'choice' || s.kind === 'tapFig' ? revealed(s.fig) : s.fig;
@@ -77,6 +79,11 @@ export function figNumbers(lesson: Lesson): { of: Record<string, number>; count:
     if (fig && fig.kind !== last) n += 1;
     if (fig && item.kind === 'screen') of[item.screen.id] = n;
     last = fig?.kind;
+    // a graph pick with a scene shows two sheets: the scene, then the graphs under the next number
+    if (item.kind === 'screen' && item.screen.kind === 'graphPick' && item.screen.scene) {
+      n += 1;
+      last = item.screen.graphs[0].fig.kind;
+    }
   }
   return { of, count: n };
 }

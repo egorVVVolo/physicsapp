@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import { lessons } from './lessons.ts';
 import { samples } from './samples.ts';
 import { boxesOf } from '../session/build.ts';
-import { ACC_IDS, BEAM_IDS, CANDIDATE_IDS, COMPARE_IDS, SKETCH_IDS, EQUATION_IDS, FLOW_IDS, LADDER_IDS, PAIR_IDS, POLE_IDS, SLEDGE_IDS, isQuestion, type BuildScreen, type Fig, type OrderScreen, type Screen, type EstimateScreen, type SortScreen, type SpotErrorScreen, type WorkedScreen } from './types.ts';
+import { ACC_IDS, BEAM_IDS, CANDIDATE_IDS, COMPARE_IDS, SKETCH_IDS, EQUATION_IDS, FLOW_IDS, LADDER_IDS, PAIR_IDS, POLE_IDS, SLEDGE_IDS, isQuestion, type BuildScreen, type Fig, type OrderScreen, type Screen, type EstimateScreen, type GraphPickScreen, type SortScreen, type SpotErrorScreen, type WorkedScreen } from './types.ts';
 
 // **key words** are bold on screen: the stars do not count, but they must come in pairs
 const max = (text: string, n: number, where: string) => {
@@ -105,6 +105,19 @@ function checkWorkedScreen(s: WorkedScreen) {
   }
 }
 
+/** A graph pick: exactly three graphs A, B, C, one correct, a hint on each wrong one, all drawn as graphs. */
+const GRAPH_KINDS: Fig['kind'][] = ['graph', 'throwVt', 'brakeVt', 'fallGraph', 'vt', 'material'];
+function checkGraphPickScreen(s: GraphPickScreen) {
+  assert.deepEqual(s.graphs.map((g) => g.id), ['A', 'B', 'C'], `${s.id}: graphs A, B and C`);
+  assert.equal(s.graphs.filter((g) => g.correct).length, 1, `${s.id}: one right graph`);
+  for (const g of s.graphs) {
+    assert.ok(GRAPH_KINDS.includes(g.fig.kind), `${s.id}/${g.id}: a graph figure`);
+    if (!g.correct) assert.ok(g.hint, `${s.id}/${g.id}: a wrong graph needs a hint`);
+    if (g.hint) max(g.hint, 90, `${s.id}/${g.id} hint`);
+  }
+  max(s.why, 170, `${s.id} why`);
+}
+
 test('sample steps of the gallery fit together', () => {
   for (const { screen } of samples) {
     if (screen.kind === 'build') checkBuildScreen(screen);
@@ -113,6 +126,7 @@ test('sample steps of the gallery fit together', () => {
     if (screen.kind === 'sort') checkSortScreen(screen);
     if (screen.kind === 'estimate') checkEstimateScreen(screen);
     if (screen.kind === 'worked') checkWorkedScreen(screen);
+    if (screen.kind === 'graphPick') checkGraphPickScreen(screen);
   }
 });
 
@@ -220,6 +234,7 @@ for (const lesson of Object.values(lessons)) {
       if (s.kind === 'sort') checkSortScreen(s);
       if (s.kind === 'estimate') checkEstimateScreen(s);
       if (s.kind === 'worked') checkWorkedScreen(s);
+      if (s.kind === 'graphPick') checkGraphPickScreen(s);
     }
   });
 

@@ -3,11 +3,18 @@
 import { weight } from '../physics/dynamics.ts';
 import { fixed, sig } from '../physics/format.ts';
 import { liftWork, rampPush, workDone } from '../physics/work.ts';
-import type { Screen } from './types.ts';
+import { tripVelocity, type Trip } from '../physics/kinematics.ts';
+import { AB, TRIP_A, TRIP_B, VA } from './reading-motion-graphs.ts';
+import type { GraphFig, Screen } from './types.ts';
 import { OMAR, TRIP, VAN } from './work-done.ts';
 
 const NB = ' '; // a no-break space: a number never parts from its unit
 const push = rampPush(VAN.m, VAN.h, VAN.L);
+
+// The chase of "Reading motion graphs": car A cruises at VA, car B sets off from rest beside it at AB.
+const T_END = 9;
+const SLOWING: Trip = { u: tripVelocity(T_END, TRIP_B), phases: [{ dt: T_END, a: -AB }] }; // the same line, mirrored in time
+const vtOf = (id: string, trip: Trip): GraphFig => ({ kind: 'graph', y: 'v', header: `graph ${id}`, lines: [{ id: '', trip }], tMax: T_END, tTick: 2, yMax: 25, yTick: 5 });
 
 export const samples: { title: string; screen: Screen }[] = [
   {
@@ -121,6 +128,21 @@ export const samples: { title: string; screen: Screen }[] = [
           { id: 'weight', label: `W = ${sig(weight(VAN.m) * VAN.L)}${NB}J` },
         ],
       },
+    },
+  },
+  {
+    title: 'graphPick · Which graph',
+    screen: {
+      id: 'sample-graph',
+      kind: 'graphPick',
+      prompt: `Car A passes car B at a steady ${fixed(VA, 1)}${NB}m${NB}s⁻¹. At that moment car B sets off from rest at ${fixed(AB, 1)}${NB}m${NB}s⁻². Which v–t graph is car B's?`,
+      scene: { kind: 'chase', cars: [{ id: 'A', u: VA, a: 0 }, { id: 'B', u: 0, a: AB }], span: 90, until: 4, values: true },
+      graphs: [
+        { id: 'A', fig: vtOf('A', TRIP_A), hint: `A flat line is a steady velocity: that is car A at ${fixed(VA, 1)}${NB}m${NB}s⁻¹.` },
+        { id: 'B', fig: vtOf('B', SLOWING), hint: 'This line slopes down: the car is slowing. Car B starts from rest and speeds up.' },
+        { id: 'C', fig: vtOf('C', TRIP_B), correct: true },
+      ],
+      why: `From rest, steady acceleration: a straight line from zero. Its gradient is the acceleration, ${fixed(AB, 1)}${NB}m${NB}s⁻², so it reaches ${fixed(tripVelocity(T_END, TRIP_B), 1)}${NB}m${NB}s⁻¹ at ${T_END}${NB}s.`,
     },
   },
 ];
