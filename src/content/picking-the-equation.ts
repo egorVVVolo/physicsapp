@@ -13,6 +13,7 @@ import {
   stoppingDistance,
   stoppingTime,
   thinkingDistance,
+  timesForDisplacement,
   type Braking,
   type RelationId,
 } from '../physics/kinematics.ts';
@@ -51,7 +52,9 @@ const carBReacting: Braking = { u: UB, a: A, react: REACT };
 // Skill check numbers
 export const TRAIN = { u: 30, v: 10, t: 25 }; // a train slowing steadily
 export const WET_A = -4; // m s⁻², car B on a wet road
-export const CYCLIST = { u: 6, a: 0.5, t: 8 }; // a cyclist speeding up
+export const CYCLIST = { u: 6, a: 0.5, t: 8 }; // a cyclist speeding up (older Skill check)
+export const RIDER = { u: 4, a: 2, s: 12 }; // a rider speeding up: how long to cover 12.0 m? (a quadratic, one root is negative)
+export const DRIVER = { u: 20, a: -5, react: 0.5 }; // the exam card: thinking and braking distance
 
 /** Distances, speeds and named mistakes, used by the screens and re-checked by picking-the-equation.test.ts. */
 export const ANSWERS = (() => {
@@ -97,6 +100,16 @@ export const ANSWERS = (() => {
       wrongSign: speedAfter(UB, -A, left)!, // a taken as positive: faster than it started
     },
     train: distanceFromAverage(TRAIN.u, TRAIN.v, TRAIN.t),
+    trainA: (TRAIN.v - TRAIN.u) / TRAIN.t, // the acceleration, not needed
+    trainAverage: (TRAIN.u + TRAIN.v) / 2,
+    rider: (() => {
+      const [late, early] = timesForDisplacement(RIDER.s, RIDER.u, RIDER.a); // largest first
+      return { right: late, negative: early };
+    })(),
+    driver: {
+      thinking: thinkingDistance({ u: DRIVER.u, a: DRIVER.a, react: DRIVER.react }),
+      braking: brakingDistance(DRIVER.u, DRIVER.a),
+    },
     wet: { right: brakingDistance(UB, WET_A), same: sB, quadrupled: 4 * sB },
     cyclist: {
       right: position(CYCLIST.t, { s0: 0, u: CYCLIST.u, a: CYCLIST.a }),
@@ -129,12 +142,22 @@ const equations = (right: RelationId, hints: Partial<Record<RelationId, string>>
 
 const NEEDS_T = 'It needs t, and the problem never mentions the time.';
 const NEEDS_S = 'It needs s too. Prefer given values: a calculated one can carry a mistake.';
+const NEEDS_A = 'It needs a, and the problem never gives the acceleration.';
+const NO_S = 'It has no s in it, and s is what you want.';
+/** "0 m s⁻¹": the hidden known of a body that stops */
+const zero = `0${NB}m${NB}s⁻¹`;
 
 export const pickingTheEquation: Lesson = {
   id: 'suvat',
   title: 'Picking the equation',
   spec: [1],
   minutes: 12,
+  chapters: [
+    { title: 'The puzzle', from: 'intro' },
+    { title: 'Picking an equation', from: 'five' },
+    { title: 'Back to the cars', from: 'hook-again' },
+  ],
+  cast: ['Tariq'],
   story: [
     {
       id: 'intro',
@@ -187,52 +210,50 @@ export const pickingTheEquation: Lesson = {
       ],
     },
     {
-      id: 'knowns',
-      kind: 'choice',
-      prompt: 'Car A brakes until it stops. You are given u and a. What else do you know?',
-      fig: road({ cars: ONLY_A, values: true, showAcc: true }),
-      options: [
-        { id: 'nothing', label: 'Nothing else', hint: 'Read it again: the car stops. That word fixes one more quantity.' },
-        { id: 't', label: 'The time: t = 0', hint: 't = 0 is only when the braking starts. How long it lasts is not given.' },
-        { id: 'v', label: 'The final velocity: v = 0', correct: true },
-        { id: 's', label: 'The displacement: s = 0', hint: 's is how far the car travels while braking. That is what we want.' },
-      ],
-      why: `"Stops" means ${is('v', '0')}. Words like "stops", "from rest" and "dropped" hide a known value, so read for them first.`,
-    },
-    {
-      id: 'pick',
-      kind: 'tapFig',
-      prompt: 'You know u, v and a, and you want s. Which equation fits?',
-      instruction: 'Tap the equation you would use.',
-      fig: { kind: 'equations', list: { known: { u: speed(UA), v: '0', a: acc(A) }, want: 's' }, leftOut: 'shown' },
-      options: equations('v2as', { vuat: 'It has no s in it, and s is what you want.', sut: NEEDS_T, suvt: NEEDS_T }),
-      why: 'Time is the quantity nobody mentions, so use the equation without t. v² = u² + 2as has exactly u, v, a and s.',
-    },
-    {
       id: 'brake-a',
-      kind: 'choice',
-      prompt: `Put the numbers in: ${whole(`0 = ${fixed(UA, 1)}² + 2 × (${fixed(A, 1)}) × s`)}. How far does car A travel before it stops?`,
+      kind: 'build',
+      prompt: `Car A slows at ${acc(-A)} from ${speed(UA)} until it stops. Pick the equation, then build how far it travels.`,
       fig: road({ cars: ONLY_A, values: true, showAcc: true, play: 'afterCheck' }),
-      options: [
-        { id: 'time', label: metres(x.brakeA.time), hint: `${fixed(UA, 1)} ÷ ${fixed(-A, 1)} = ${fixed(x.brakeA.time, 1)} is the braking time in seconds. u has to be squared.` },
-        { id: 'right', label: metres(x.brakeA.right), correct: true },
-        { id: 'lost-two', label: metres(x.brakeA.lostTwo), hint: "That's u² ÷ a. Don't lose the 2 in 2as." },
+      choose: {
+        prompt: 'You know u and a, and "stops" gives you v. You want s. Which equation fits?',
+        options: equations('v2as', { vuat: NO_S, sut: NEEDS_T, suvt: NEEDS_T }),
+      },
+      equation: 's = ({v}² − {u}²) ÷ (2 × {a})',
+      boxes: { v: 'v0', u: 'uA', a: 'aSigned' },
+      chips: [
+        { id: 'v0', label: zero },
+        { id: 'uA', label: speed(UA) },
+        { id: 'aSigned', label: `${fixed(A, 1)}${NB}m${NB}s⁻²` },
+        { id: 'aPlus', label: acc(-A), hint: 'The car is slowing down, so a is negative.' },
+        { id: 'uB', label: speed(UB), hint: `That is car B's speed. Car A does ${speed(UA)}.` },
+        { id: 'time', label: secs(x.tA), hint: 'That is the braking time. The equation needs speeds and a.' },
       ],
-      why: `0 = ${fixed(UA * UA, 0)} − ${fixed(-2 * A, 1)}s, so s = ${metres(x.brakeA.right)}. From ${speed(UA)}, car A needs ${metres(x.brakeA.right)} of road to stop.`,
+      result: { symbol: 's', value: x.brakeA.right, unit: 'm', sf: 2 },
+      why: `"Stops" means v = 0. Then s = (0 − ${fixed(UA * UA, 0)}) ÷ (2 × (${fixed(A, 1)})) = ${metres(x.brakeA.right)}. From ${speed(UA)}, car A needs ${metres(x.brakeA.right)} of road.`,
+    },
+    {
+      id: 'guess',
+      kind: 'estimate',
+      prompt: `Car A stops in ${metres(x.brakeA.right)}. Car B is twice as fast. Drag to where car B stops.`,
+      fig: road({ values: true, showAcc: true }),
+      after: road({ values: true, showAcc: true, play: true }),
+      scale: { min: 0, max: 50, step: 1, tick: 10, unit: 'm', symbol: 's', dp: 0, label: 'Where car B stops' },
+      answer: x.brakeB.right,
+      tolerance: 3,
+      why: `0 = ${fixed(UB, 1)}² + 2 × (${fixed(A, 1)}) × s gives s = ${metres(x.brakeB.right)}: four times car A's ${metres(x.brakeA.right)}.`,
     },
     {
       id: 'hook-again',
       kind: 'choice',
       revisitOf: 'hook',
-      prompt: `Back to the puzzle. Car B brakes from ${speed(UB)} at the same rate. How far does it travel?`,
-      fig: road({ values: true, showAcc: true, play: 'afterCheck' }),
+      prompt: 'Back to the two cars. Why does car B need four times the road, not twice?',
+      fig: road({ values: true, showAcc: true }),
       options: [
-        { id: 'doubled', label: metres(x.brakeB.doubled), hint: `That is twice car A's ${metres(x.brakeA.right)}. But u is squared in the equation.` },
-        { id: 'tripled', label: metres(x.brakeB.tripled), hint: 'Double u and u² becomes four times as large, not three times.' },
-        { id: 'right', label: metres(x.brakeB.right), correct: true },
-        { id: 'lost-two', label: metres(x.brakeB.lostTwo), hint: "That's u² ÷ a. Don't lose the 2 in 2as." },
+        { id: 'twice', label: 'It has to lose twice the speed, so it needs twice the road', hint: 'It is also moving faster as it brakes. The road grows with u², not u.' },
+        { id: 'brakes', label: "Car B's brakes work less well at high speed", hint: `Both cars slow at the same ${acc(-A)}. Only the speed differs.` },
+        { id: 'square', label: 'u is squared: s = u² ÷ (−2a), so twice u gives four times s', correct: true },
       ],
-      why: `0 = ${fixed(UB, 1)}² + 2 × (${fixed(A, 1)}) × s gives s = ${metres(x.brakeB.right)}: four times car A's ${metres(x.brakeA.right)}. u is squared, so twice the speed needs four times the road.`,
+      why: `s = u² ÷ (−2a) with the same a: double u and u² is four times as large. ${metres(x.brakeA.right)} becomes ${metres(x.brakeB.right)}.`,
     },
     {
       id: 'time',
@@ -248,19 +269,6 @@ export const pickingTheEquation: Lesson = {
       kind: 'text',
       body: ["Distance is the **area** under a v–t line. Car B's triangle holds four of car A's."],
       fig: { kind: 'brakeVt', a: A, cars: BOTH },
-    },
-    {
-      id: 'still-fast',
-      kind: 'choice',
-      prompt: `Car B passes the spot where car A stopped, ${metres(x.brakeA.right)} after braking began. How fast is car B moving there?`,
-      fig: road({ values: true, showAcc: true, parkedA: true, ask: { at: x.brakeA.right }, play: 'afterCheck' }),
-      options: [
-        { id: 'half', label: speed(x.passing.half), hint: `It has not lost half its speed yet. Use v² = u² + 2as with s = ${metres(x.brakeA.right)}.` },
-        { id: 'even', label: speed(x.passing.evenWithDistance), hint: 'Speed does not fall evenly with distance. Use v² = u² + 2as.' },
-        { id: 'right', label: speed(x.passing.right), correct: true },
-        { id: 'lost-two', label: speed(x.passing.lostTwo), hint: `Keep the 2 in 2as: 2 × (${fixed(A, 1)}) × ${fixed(x.brakeA.right, 1)}.` },
-      ],
-      why: `v² = ${fixed(UB, 1)}² + 2 × (${fixed(A, 1)}) × ${fixed(x.brakeA.right, 1)}, so v = ${speed(x.passing.right)}. Where car A has stopped, car B has lost only ${speed(x.passing.lost)}.`,
     },
     {
       id: 'scrub',
@@ -301,50 +309,59 @@ export const pickingTheEquation: Lesson = {
     },
     {
       id: 'tree',
-      kind: 'choice',
-      prompt: `A fallen tree lies ${metres(TREE)} ahead when car B's driver first sees it. What happens?`,
-      fig: road({ cars: ONLY_B, span: SPAN_REACT, react: REACT, tree: TREE, values: true, showAcc: true, play: 'afterCheck' }),
-      options: [
-        { id: 'stops-short', label: `The car stops ${metres(x.tree.shortBy)} before the tree`, hint: `Braking needs ${metres(x.stopping.brakingOnly)}, but ${metres(x.stopping.thinking)} are gone before the brakes come on.` },
-        { id: 'right', label: `It hits the tree at ${speed(x.tree.right)}`, correct: true },
-        { id: 'lost-two', label: `It hits the tree at ${speed(x.tree.lostTwo)}`, hint: 'Keep the 2 in v² = u² + 2as.' },
-        { id: 'wrong-sign', label: `It hits the tree at ${speed(x.tree.wrongSign)}`, hint: 'Faster than it started? While the car brakes, a is negative.' },
+      kind: 'spotError',
+      prompt: `Tariq says car B stops before a tree ${metres(TREE)} ahead. His working has one mistake. Which line?`,
+      fig: road({ cars: ONLY_B, span: SPAN_REACT, react: REACT, tree: TREE, values: true, showAcc: true }),
+      lines: [
+        { id: 'data', text: `Car B: u = ${speed(UB)}, a = ${acc(A)}, reaction ${secs(REACT)}.`, hint: 'That line only copies the data.' },
+        { id: 'braking', text: `Braking: s = (0 − ${fixed(UB, 1)}²) ÷ (2 × (${fixed(A, 1)})) = ${metres(x.brakeB.right)}`, hint: `That line is right: braking alone needs ${metres(x.brakeB.right)}.` },
+        {
+          id: 'compare',
+          text: `${metres(x.brakeB.right)} is less than ${metres(TREE)}, so the car stops in time.`,
+          wrong: true,
+          fix: `${metres(x.stopping.thinking)} + ${metres(x.brakeB.right)} = ${metres(x.stopping.right)}, more than ${metres(TREE)}.`,
+        },
+        { id: 'end', text: `So the car stops ${metres(x.tree.shortBy)} before the tree.`, hint: 'This follows from the line above. It leaves out the thinking distance.' },
       ],
-      why: `After ${metres(x.stopping.thinking)} of thinking only ${metres(x.tree.left)} are left. v² = ${fixed(UB, 1)}² + 2 × (${fixed(A, 1)}) × ${fixed(x.tree.left, 1)} gives v = ${speed(x.tree.right)}.`,
+      why: `The car also travels ${metres(x.stopping.thinking)} while the driver reacts. In total ${metres(x.stopping.right)}: it reaches the tree at ${speed(x.tree.right)}.`,
     },
   ],
   skillCheck: [
     {
       id: 'train',
-      kind: 'tapFig',
-      prompt: `A train slows steadily from ${speed(TRAIN.u)} to ${speed(TRAIN.v)} in ${secs(TRAIN.t, 1)}. Which equation gives the distance it travels in one step?`,
-      instruction: 'Tap the equation you would use.',
-      fig: { kind: 'equations' },
-      options: equations('suvt'),
+      kind: 'build',
+      prompt: `A train slows steadily from ${speed(TRAIN.u)} to ${speed(TRAIN.v)} in ${secs(TRAIN.t, 1)}. Pick the equation, then build the distance it travels.`,
+      choose: {
+        prompt: 'You know u, v and t, and you want s. Which equation fits?',
+        options: equations('suvt', { vuat: 'It has no s in it, and s is what you want.', sut: NEEDS_A, v2as: NEEDS_A }),
+      },
+      equation: 's = ½ × ({u} + {v}) × {t}',
+      boxes: { u: 'u', v: 'v', t: 'time' },
+      chips: [
+        { id: 'u', label: speed(TRAIN.u) },
+        { id: 'v', label: speed(TRAIN.v) },
+        { id: 'time', label: secs(TRAIN.t, 1) },
+        { id: 'average', label: speed(x.trainAverage), hint: 'That is the average velocity. The equation adds u and v itself.' },
+        { id: 'a', label: `${fixed(-x.trainA, 2)}${NB}m${NB}s⁻²`, hint: 'That is the acceleration. It is not needed here.' },
+      ],
+      result: { symbol: 's', value: x.train, unit: 'm' },
       why: `You know u, v and t and want s. Nobody mentions a, so use s = ½(u + v)t = ½ × ${fixed(TRAIN.u + TRAIN.v, 1)} × ${fixed(TRAIN.t, 1)} = ${wholeMetres(x.train)}.`,
     },
     {
-      id: 'wet',
-      kind: 'choice',
-      prompt: `On a wet road car B can only slow at ${acc(-WET_A)}, half as hard. From the same ${speed(UB)}, what happens to its braking distance?`,
-      options: [
-        { id: 'same', label: `It stays ${metres(x.wet.same)}` },
-        { id: 'right', label: `It doubles to ${metres(x.wet.right)}`, correct: true },
-        { id: 'quadrupled', label: `It becomes four times as long: ${wholeMetres(x.wet.quadrupled)}` },
+      id: 'root',
+      kind: 'spotError',
+      prompt: `A rider at ${speed(RIDER.u)} speeds up at ${acc(RIDER.a)}. How long does the rider take to cover ${metres(RIDER.s)}? Which line of this working is wrong?`,
+      lines: [
+        { id: 'sut', text: `s = ut + ½at²: ${fixed(RIDER.s, 1)} = ${fixed(RIDER.u, 1)}t + t²`, hint: `That line is right: ½ × ${fixed(RIDER.a, 1)} = 1.0.` },
+        { id: 'factor', text: `t² + ${fixed(RIDER.u, 1)}t − ${fixed(RIDER.s, 1)} = 0, so (t − 2.0)(t + 6.0) = 0`, hint: 'The factorising is right: multiply it out to check.' },
+        {
+          id: 'pick',
+          text: `t = ${secs(x.rider.right, 1)} or t = −${secs(-x.rider.negative, 1)}: the answer is −${secs(-x.rider.negative, 1)}`,
+          wrong: true,
+          fix: `t = ${secs(x.rider.right, 1)}: a time cannot be negative.`,
+        },
       ],
-      why: `0 = u² + 2as gives s = u² ÷ (−2a). Halve the size of a and s doubles: ${metres(x.wet.right)}. Only u is squared, not a.`,
-    },
-    {
-      id: 'cyclist',
-      kind: 'choice',
-      prompt: `A cyclist moving at ${speed(CYCLIST.u)} speeds up at ${fixed(CYCLIST.a, 2)}${NB}m${NB}s⁻² for ${secs(CYCLIST.t, 1)}. How far does the cyclist travel in that time?`,
-      options: [
-        { id: 'only-at2', label: metres(x.cyclist.onlyAt2) },
-        { id: 'only-ut', label: metres(x.cyclist.onlyUt) },
-        { id: 'right', label: metres(x.cyclist.right), correct: true },
-        { id: 'lost-half', label: metres(x.cyclist.lostHalf) },
-      ],
-      why: `v is not needed, so s = ut + ½at² = ${fixed(CYCLIST.u, 1)} × ${fixed(CYCLIST.t, 1)} + ½ × ${fixed(CYCLIST.a, 2)} × ${fixed(CYCLIST.t, 1)}² = ${metres(x.cyclist.onlyUt)} + ${metres(x.cyclist.onlyAt2)} = ${metres(x.cyclist.right)}.`,
+      why: `The quadratic has two roots, but time only runs forwards: the negative one is thrown away. Check: ${fixed(RIDER.u, 1)} × ${fixed(x.rider.right, 1)} + ${fixed(x.rider.right, 1)}² = ${metres(RIDER.s)}.`,
     },
     {
       id: 'limit',
@@ -356,6 +373,52 @@ export const pickingTheEquation: Lesson = {
         { id: 'between', label: 'It ends up between a quarter and a half', correct: true },
       ],
       why: 'Thinking distance is ut, so it halves. Braking distance depends on u², so it falls to a quarter. The total lands in between.',
+    },
+    {
+      id: 'driver',
+      kind: 'examCard',
+      context: `A driver doing ${speed(DRIVER.u)} sees a hazard. The reaction time is ${secs(DRIVER.react, 2)}. Then the brakes slow the car at ${acc(-DRIVER.a)}.`,
+      parts: [
+        {
+          id: 'a',
+          command: 'Calculate',
+          text: 'the thinking distance.',
+          marks: 1,
+          kind: 'build',
+          build: {
+            equation: 's = {u} × {t}',
+            boxes: { u: 'speed', t: 'react' },
+            chips: [
+              { id: 'speed', label: speed(DRIVER.u) },
+              { id: 'react', label: secs(DRIVER.react, 2) },
+              { id: 'brake', label: acc(-DRIVER.a), hint: 'That is the braking acceleration. The car is not braking yet.' },
+              { id: 'zero', label: zero, hint: 'The car is still at full speed during the reaction time.' },
+            ],
+            result: { symbol: 's', value: x.driver.thinking, unit: 'm' },
+          },
+          why: `During the reaction time a = 0, so s = ut = ${fixed(DRIVER.u, 1)} × ${fixed(DRIVER.react, 2)} = ${metres(x.driver.thinking)}.`,
+        },
+        {
+          id: 'b',
+          command: 'Calculate',
+          text: 'the braking distance.',
+          marks: 2,
+          kind: 'build',
+          build: {
+            equation: 's = ({v}² − {u}²) ÷ (2 × {a})',
+            boxes: { v: 'v0', u: 'speed', a: 'aSigned' },
+            chips: [
+              { id: 'v0', label: zero },
+              { id: 'speed', label: speed(DRIVER.u) },
+              { id: 'aSigned', label: `${fixed(DRIVER.a, 1)}${NB}m${NB}s⁻²` },
+              { id: 'aPlus', label: acc(-DRIVER.a), hint: 'The car is slowing down, so a is negative.' },
+              { id: 'react', label: secs(DRIVER.react, 2), hint: 'That is the reaction time. It belongs to the thinking distance.' },
+            ],
+            result: { symbol: 's', value: x.driver.braking, unit: 'm' },
+          },
+          why: `The car stops, so v = 0: s = (0 − ${fixed(DRIVER.u * DRIVER.u, 0)}) ÷ (2 × (${fixed(DRIVER.a, 1)})) = ${metres(x.driver.braking)}. One mark for the values, one for the answer.`,
+        },
+      ],
     },
   ],
   youCanNow: [

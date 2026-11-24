@@ -248,6 +248,7 @@ export function EquationBoard({ build, filled, boxState, disabled, onTapBox, cou
             <View key={i} style={styles.glue}>
               {item.text !== undefined && <Text style={[styles.eqText, { color: p.ink }]}>{item.text}</Text>}
               {box !== undefined && <Box name={box} label={label(filled[box])} state={boxState(box)} disabled={disabled} onPress={() => onTapBox(box)} />}
+              {item.after !== undefined && <Text style={[styles.eqText, { color: p.ink }]}>{item.after}</Text>}
             </View>
           );
         })}
@@ -273,19 +274,31 @@ export function ChipRow({ chips, used, dim, disabled, onTap }: { chips: BuildScr
 }
 
 /**
- * What wraps as one unit on the equation's line: a word of text, a box, or a function name glued to the box after it
- * ("cos" and its box never part at a line end).
+ * What wraps as one unit on the equation's line: a word of text, or a box with what is written right against it: a bracket
+ * or a function name before it ("cos", "√(", "(") and a power or bracket after it ("²)"). Those never part at a line end.
  */
-function lineItems(pieces: ReturnType<typeof parseEquation>): { text?: string; box?: string }[] {
-  const items: { text?: string; box?: string }[] = [];
+type LineItem = { text?: string; box?: string; after?: string };
+function lineItems(pieces: ReturnType<typeof parseEquation>): LineItem[] {
+  const items: LineItem[] = [];
+  let open = false; // the last item is a word with nothing after it, written right against the box that comes next
   for (const piece of pieces) {
     if ('text' in piece) {
-      for (const word of piece.text.split(/\s+/).filter(Boolean)) items.push({ text: word });
+      const startsSpace = /^\s/.test(piece.text);
+      const endsSpace = /\s$/.test(piece.text);
+      const words = piece.text.split(/\s+/).filter(Boolean);
+      words.forEach((word, j) => {
+        const prev = items[items.length - 1];
+        if (j === 0 && !startsSpace && prev && prev.box !== undefined) prev.after = (prev.after ?? '') + word;
+        else items.push({ text: word });
+      });
+      open = words.length > 0 && !endsSpace;
       continue;
     }
     const last = items[items.length - 1];
-    if (last && last.box === undefined && last.text !== undefined && /^(sin|cos|tan|√|ln|log)$/.test(last.text)) last.box = piece.box;
+    const glued = last && last.box === undefined && last.text !== undefined && (open || /^(sin|cos|tan|√|ln|log)$/.test(last.text));
+    if (glued) last.box = piece.box;
     else items.push({ box: piece.box });
+    open = false;
   }
   return items;
 }

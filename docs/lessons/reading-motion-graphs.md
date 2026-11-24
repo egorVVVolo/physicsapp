@@ -65,3 +65,19 @@ All numbers from `src/physics/kinematics.ts` (a `Trip` = phases of constant acce
 - Level and physics: is the chase the right puzzle, and is the ramp question (areas of opposite sign) enough on negative areas?
 - The a–t graph only appears on the rules card (area = change in velocity). If the exam needs more, it gets its own screens.
 - Car B's s–t line is drawn to 9 s, a little past the 100 m mark of the axis.
+
+## v3 changes (24 Nov)
+
+Task D2. The puzzle (lines cross at 4.0 s, car B is 20.0 m behind, level at 8.0 s) and its recap are unchanged. 15 screens + 4 Skill check; chapters *The puzzle* → *Gradient and area* → *Back to the cars*; cast: Dana (in the exam card).
+
+| Was | Now |
+|---|---|
+| — | **graphPick** `pick-b` right after the intro: which v–t graph is car B's (flat A, a falling line, the right rising line) |
+| choice "same position / velocity / acceleration" and choice "A's line is flat" | removed (the graph pick and the gradient text carry them) |
+| text "Car A keeps a steady v…" | removed; the definition of area sits in the prompt of `area-b` |
+| — | **build** `strip`: `s = ½ × (u + v) × t` for car B between 4.0 s and 8.0 s, 60.0 m (a trapezoid) |
+| — | **order** `why-not`: four steps from "the lines cross" to "car B is 20.0 m behind" |
+| explore question "When is B level?" | explore question "What happens to the gap after 4.0 s?" (shrinks); the level time moved to an **estimate** `level` (answer 8.0 s, tolerance 1.0 s, the truth shows the two equal regions) |
+| text "On the road…", choice ramp | removed (below-axis areas moved to the Skill check) |
+
+Skill check: **graphPick** (a car braking to a stop), **build** (`s = ½ × t × v`, 80.0 m), **choice** on what the area below the axis means (options differ by idea), **exam card** on a tram: (a) Describe the motion between 4 s and 10 s [1], (b) Calculate the distance in the first 10 s [2], a trapezoid `½ × (long + short) × height` = 64.0 m.

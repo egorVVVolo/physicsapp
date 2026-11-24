@@ -68,3 +68,19 @@ All numbers: car A 12.0 m s⁻¹, car B 24.0 m s⁻¹, a = −8.0 m s⁻² for b
 - Level and physics: is the tree problem the right trap, are the numbers (12 / 24 m s⁻¹, −8.0 m s⁻²) realistic enough?
 - The claim "all four equations are on the formula sheet" should be checked against the WPH11 data sheet you get in the exam.
 - Stopping distance is not a WPH11 point by name: it is used here as a context for two-stage suvat problems.
+
+## v3 changes (24 Nov)
+
+Task D2. The puzzle (twice the speed, four times the road: 9.0 m and 36.0 m) and its recap are unchanged. 14 screens + 4 Skill check; chapters *The puzzle* → *Picking an equation* → *Back to the cars*; cast: Tariq.
+
+| Was | Now |
+|---|---|
+| choice "what else do you know?", tapFig "which equation fits?", choice "how far does A go?" | one **build with `choose`** (`brake-a`): pick `v² = u² + 2as` (the hint on each wrong equation names the missing or extra quantity), then build `s = (v² − u²) ÷ (2a)` with the hidden known v = 0, a with its sign; result 9.0 m |
+| — | **estimate** `guess`: drag to where car B stops (tolerance 3 m, before the puzzle is answered), the truth plays the braking |
+| choice "how far does car B go?" | choice **by idea**: why four times, not twice (u is squared); the number now comes from the estimate |
+| choice "how fast is B where A stopped" (20.8 m s⁻¹) | removed |
+| choice "does B hit the tree?" | **spotError** `tree`: Tariq compares 36.0 m with 40.0 m and forgets the 12.0 m of thinking distance |
+
+Skill check: **build with `choose`** (the train, `s = ½(u + v)t`, 500 m), **spotError** (a rider covering 12.0 m: the negative root, −6.0 s, is kept), **choice** on halving the speed limit (kept), **exam card** (a) the thinking distance `s = ut` [1], (b) the braking distance `s = (v² − u²) ÷ (2a)` [2] with 20.0 m s⁻¹, 0.50 s and 5.0 m s⁻².
+
+Found while building: the equation board let a power (`²`) or a bracket fall onto the next line without its chip; text written right against a box now stays with it (`lineItems` in `BuildView.tsx`).

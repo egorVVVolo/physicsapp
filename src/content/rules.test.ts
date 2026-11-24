@@ -299,7 +299,7 @@ for (const lesson of Object.values(lessons)) {
 // ── Lesson format v3 (docs/LESSON_FRAMEWORK.md, 1c; docs/V2_PLAN.md, 2.2) ───────────────────
 
 /** Lessons rebuilt to format v3. Each one added here must pass every rule below. */
-const REVISED = new Set<string>(['vectors-signs']);
+const REVISED = new Set<string>(['vectors-signs', 'motion-graphs', 'suvat']);
 
 /** The kinds the learner does something with. */
 const INTERACTIVE = new Set<Screen['kind']>(['predict', 'choice', 'tapFig', 'explore', 'build', 'order', 'spotError', 'sort', 'estimate', 'worked', 'graphPick']);

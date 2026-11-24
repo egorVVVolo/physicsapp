@@ -15,6 +15,8 @@ const speed = (v: number) => `${fixed(v, 1)}${NB}m${NB}s⁻¹`;
 const metres = (x: number) => `${fixed(x, 1)}${NB}m`;
 /** "4.0 s" */
 const secs = (t: number) => `${fixed(t, 1)}${NB}s`;
+/** "10 s": a whole number of seconds */
+const wholeSecs = (t: number) => `${fixed(t, 0)}${NB}s`;
 /** "2.5 m s⁻²" */
 const acc = (a: number) => `${fixed(a, 1)}${NB}m${NB}s⁻²`;
 
@@ -26,27 +28,17 @@ export const TRIP_A: Trip = { u: VA, phases: [{ dt: T_SHOWN, a: 0 }] };
 export const TRIP_B: Trip = { u: 0, phases: [{ dt: T_SHOWN, a: AB }] };
 
 // Other journeys
-/** A ball rolled up a ramp: it slows, stops and rolls back with the same acceleration. */
-export const RAMP: Trip = { u: 6, phases: [{ dt: 5, a: -2 }] };
 /** A tram between two stops: speeds up, runs steadily, brakes. */
 export const TRAM: Trip = { u: 0, phases: [{ dt: 4, a: 2 }, { dt: 6, a: 0 }, { dt: 2, a: -4 }] };
-/** A goods lift: up at a steady speed, then down at the same speed for longer. */
-export const LIFT: Trip = { u: 2, phases: [{ dt: 4, a: 0 }, { dt: 6, a: 0, v: -2 }] };
-/** A walk in four parts of steady velocity, for an s–t graph of straight pieces. */
-export const WALK_PARTS = [
-  { id: 'A', dt: 4, v: 2 },
-  { id: 'B', dt: 2, v: 5 },
-  { id: 'C', dt: 3, v: 0 },
-  { id: 'D', dt: 3, v: -3 },
-];
-const WALK: Trip = { u: WALK_PARTS[0].v, phases: WALK_PARTS.map((part) => ({ dt: part.dt, a: 0, v: part.v })) };
-/** A sprinter: the velocity rises quickly at first and then levels off, v = 11(1 − e^(−t/1.3)), in short straight pieces. */
-const SPRINT_DT = 0.25;
-const sprintV = (t: number) => 11 * (1 - Math.exp(-t / 1.3));
-const SPRINTER: Trip = {
-  u: 0,
-  phases: Array.from({ length: 24 }, (_, i) => ({ dt: SPRINT_DT, a: (sprintV((i + 1) * SPRINT_DT) - sprintV(i * SPRINT_DT)) / SPRINT_DT })),
-};
+/** A car braking steadily to a stop (the Skill check). */
+export const BRAKING: Trip = { u: 20, phases: [{ dt: 8, a: -2.5 }] };
+/** The wrong graphs of the Skill check's graph pick: a steady speed, and a speed that grows. */
+const STEADY: Trip = { u: 20, phases: [{ dt: 8, a: 0 }] };
+const SPEEDING: Trip = { u: 0, phases: [{ dt: 8, a: 2.5 }] };
+/** Car B's line mirrored in time: slowing down from where B ended up (a wrong graph in the story's graph pick). */
+const SLOWING: Trip = { u: AB * T_SHOWN, phases: [{ dt: T_SHOWN, a: -AB }] };
+/** The strip of car B's journey between two times, for the trapezoid. */
+export const STRIP = { from: 4, to: 8 };
 
 /** Times, distances and named mistakes, used by the screens and re-checked by reading-motion-graphs.test.ts. */
 export const ANSWERS = (() => {
@@ -54,9 +46,6 @@ export const ANSWERS = (() => {
   const tLevel = 2 * tCross; // equal areas: 10.0t = ½ × 2.5t²
   const sA = tripPosition(tCross, TRIP_A);
   const sB = tripPosition(tCross, TRIP_B);
-  const tTurn = RAMP.u / -RAMP.phases[0].a; // the ball stops for an instant
-  const tEnd = RAMP.phases[0].dt;
-  const tramTop = tripVelocity(4, TRAM);
   return {
     tCross,
     tLevel,
@@ -70,27 +59,19 @@ export const ANSWERS = (() => {
       rectangle: VA * tCross, // height × width: forgot that it is a triangle
       height: tripVelocity(tCross, TRIP_B), // read the height of the line instead of the area
     },
-    ramp: {
-      tTurn,
-      tEnd,
-      up: tripDisplacement(0, tTurn, RAMP),
-      back: tripDisplacement(tTurn, tEnd, RAMP),
-      right: tripDisplacement(0, tEnd, RAMP),
-      distance: tripDistance(0, tEnd, RAMP), // both areas counted as positive
+    strip: {
+      right: tripDisplacement(STRIP.from, STRIP.to, TRIP_B), // the trapezoid
+      u: tripVelocity(STRIP.from, TRIP_B),
+      v: tripVelocity(STRIP.to, TRIP_B),
+      dt: STRIP.to - STRIP.from,
     },
+    brake: { right: tripDisplacement(0, 8, BRAKING), t: 8, v: BRAKING.u },
     tram: {
-      right: tripDistance(0, 12, TRAM),
-      steadyOnly: tripDisplacement(4, 10, TRAM), // only the flat part
-      topTimesTotal: tramTop * 12, // top speed × total time
-    },
-    lift: {
-      right: tripDisplacement(0, 10, LIFT),
-      added: tripDistance(0, 10, LIFT), // both areas counted as positive
-      onlyUp: tripDisplacement(0, 4, LIFT), // ignored the part below the axis
-    },
-    walk: {
-      fastest: [...WALK_PARTS].sort((p, q) => Math.abs(q.v) - Math.abs(p.v))[0].id,
-      highest: 'C', // where the s–t line is highest (checked by the test)
+      right: tripDisplacement(0, 10, TRAM), // the trapezoid: ½ (10 + 6) × 8
+      long: 10,
+      short: 6,
+      top: tripVelocity(4, TRAM),
+      whole: tripDistance(0, 12, TRAM),
     },
   };
 })();
@@ -110,11 +91,20 @@ const CARS: ChaseFig['cars'] = [
 ];
 const chase = (over: Partial<ChaseFig> = {}): ChaseFig => ({ kind: 'chase', cars: CARS, span: 90, until: x.tCross, ...over });
 
+/** A v–t graph of one journey, for the graph picks. */
+const lineOf = (header: string, trip: Trip, over: Partial<GraphFig> = {}): GraphFig => ({ kind: 'graph', y: 'v', header, lines: [{ id: '', trip }], tMax: T_SHOWN, tTick: 2, yMax: 25, yTick: 5, ...over });
+
 export const readingMotionGraphs: Lesson = {
   id: 'motion-graphs',
   title: 'Reading motion graphs',
   spec: [2, 3],
   minutes: 12,
+  chapters: [
+    { title: 'The puzzle', from: 'intro' },
+    { title: 'Gradient and area', from: 'not-a-picture' },
+    { title: 'Back to the cars', from: 'hook-again' },
+  ],
+  cast: ['Dana'],
   story: [
     {
       id: 'intro',
@@ -122,6 +112,18 @@ export const readingMotionGraphs: Lesson = {
       title: 'Reading motion graphs',
       body: `Car A drives past car B at a steady ${speed(VA)}. At that instant car B sets off after it, speeding up at ${acc(AB)}.`,
       fig: chase({ values: true }),
+    },
+    {
+      id: 'pick-b',
+      kind: 'graphPick',
+      prompt: "Which v–t graph is car B's?",
+      scene: chase({ values: true, until: 4 }),
+      graphs: [
+        { id: 'A', fig: lineOf('graph A', TRIP_A), hint: `A flat line is a steady velocity: that is car A at ${speed(VA)}.` },
+        { id: 'B', fig: lineOf('graph B', SLOWING), hint: 'This line slopes down: the car is slowing. Car B starts from rest and speeds up.' },
+        { id: 'C', fig: lineOf('graph C', TRIP_B), correct: true },
+      ],
+      why: `From rest, steady acceleration: a straight line from zero. Its gradient is the acceleration, ${acc(AB)}, so it reaches ${speed(tripVelocity(T_SHOWN, TRIP_B))} at ${secs(T_SHOWN)}.`,
     },
     {
       id: 'hook',
@@ -145,45 +147,15 @@ export const readingMotionGraphs: Lesson = {
       ],
     },
     {
-      id: 'same-v',
-      kind: 'choice',
-      prompt: `So what do the two cars share at ${secs(x.tCross)}, where the lines cross?`,
-      fig: vt({ ring: { line: 'B', at: x.tCross } }),
-      options: [
-        { id: 'position', label: 'The same position', hint: 'Height on this graph is velocity, not position.' },
-        { id: 'velocity', label: 'The same velocity', correct: true },
-        { id: 'acceleration', label: 'The same acceleration', hint: 'Acceleration is how steep a line is. These two are not equally steep.' },
-      ],
-      why: `Both lines are at ${speed(VA)} there, so the cars are equally fast. Where each car is, the graph does not say directly.`,
-    },
-    {
       id: 'gradient',
       kind: 'text',
       body: ['The **gradient** of a v–t line is the acceleration: the rise in v divided by the time taken.'],
       fig: vt({ gradient: { line: 'B', from: 2, to: 6 } }),
     },
     {
-      id: 'flat',
-      kind: 'choice',
-      prompt: "Car A's line is flat. What does that tell you?",
-      fig: vt(),
-      options: [
-        { id: 'rest', label: 'Car A is at rest', hint: `Flat at ${speed(VA)} is steady motion. At rest the line would lie on the axis.` },
-        { id: 'zero-a', label: 'Its acceleration is zero', correct: true },
-        { id: 'level-road', label: 'The road is level', hint: 'A graph is not a picture. Height here is velocity, not the shape of the road.' },
-      ],
-      why: `A flat v–t line has zero gradient, so a = 0: car A keeps moving at a steady ${speed(VA)}.`,
-    },
-    {
-      id: 'area-a',
-      kind: 'text',
-      body: ['Car A keeps a steady v, so s = vt: the height times the width, the **area** under its line.'],
-      fig: vt({ areas: [{ line: 'A', from: 0, to: x.tCross, value: 'shown', at: [1.25, 7.6] }] }),
-    },
-    {
       id: 'area-b',
       kind: 'choice',
-      prompt: `The area under any v–t line is the displacement. How far has car B travelled by ${secs(x.tCross)}?`,
+      prompt: `The area under a v–t line is the displacement. How far has car B travelled by ${secs(x.tCross)}?`,
       fig: vt({ areas: [{ line: 'B', from: 0, to: x.tCross, value: 'afterCheck' }] }),
       options: [
         { id: 'height', label: metres(x.areaB.height), hint: `That is its velocity at ${secs(x.tCross)}, read off the axis. Displacement is the area.` },
@@ -193,10 +165,27 @@ export const readingMotionGraphs: Lesson = {
       why: `The area is a triangle: ½ × ${fixed(x.tCross, 1)} × ${fixed(VA, 1)} = ${metres(x.areaB.right)}. Half of what car A has covered in the same time.`,
     },
     {
+      id: 'strip',
+      kind: 'build',
+      prompt: `Car B keeps speeding up. Build how far it travels between ${secs(STRIP.from)} and ${secs(STRIP.to)}.`,
+      fig: vt({ areas: [{ line: 'B', from: STRIP.from, to: STRIP.to, value: 'afterCheck' }] }),
+      equation: 's = ½ × ({u} + {v}) × {t}',
+      boxes: { u: 'u', v: 'v', t: 'dt' },
+      chips: [
+        { id: 'u', label: speed(x.strip.u) },
+        { id: 'v', label: speed(x.strip.v) },
+        { id: 'dt', label: secs(x.strip.dt) },
+        { id: 'end', label: secs(STRIP.to), hint: `That is the end time. The strip is ${secs(x.strip.dt)} wide.` },
+        { id: 'a', label: acc(AB), hint: 'That is the gradient: the acceleration, not a velocity.' },
+      ],
+      result: { symbol: 's', value: x.strip.right, unit: 'm' },
+      why: `The strip is a trapezoid: the average height, ½ × (${fixed(x.strip.u, 1)} + ${fixed(x.strip.v, 1)}), times its width ${secs(x.strip.dt)}, is ${metres(x.strip.right)}.`,
+    },
+    {
       id: 'hook-again',
       kind: 'choice',
       revisitOf: 'hook',
-      prompt: `Back to the puzzle. At ${secs(x.tCross)}, where is car B?`,
+      prompt: `Back to the two cars. At ${secs(x.tCross)}, where is car B?`,
       fig: vt({
         areas: [
           { line: 'A', from: 0, to: x.tCross, value: 'shown', at: [1.35, 7.6] },
@@ -212,10 +201,17 @@ export const readingMotionGraphs: Lesson = {
       why: `Car A has covered ${metres(x.sA)}, car B ${metres(x.sB)}. Until now car A was the faster one, so the gap kept growing: ${metres(x.gap)} is the largest it ever gets.`,
     },
     {
-      id: 'road',
-      kind: 'text',
-      body: [`On the road: the gap grows while car A is the faster one, and stops growing at ${secs(x.tCross)}.`],
-      fig: chase({ play: true }),
+      id: 'why-not',
+      kind: 'order',
+      prompt: 'Why are the cars not level where the lines cross? Put the reasoning in order.',
+      steps: [
+        { id: 'cross', text: `At ${secs(x.tCross)} the lines cross: both cars have the same velocity.` },
+        { id: 'ahead', text: 'Before that car A was the faster one, so it kept pulling ahead.' },
+        { id: 'areas', text: `The area under A's line is ${metres(x.sA)}, under B's only ${metres(x.sB)}.` },
+        { id: 'behind', text: `So car B is ${metres(x.gap)} behind: level means equal areas.` },
+      ],
+      hint: 'Start with what the crossing means, then who was ahead, then the areas.',
+      why: 'Crossing lines mean equal velocities, not equal positions. Position is the area under the line, added up from the start.',
     },
     {
       id: 'scrub',
@@ -224,14 +220,30 @@ export const readingMotionGraphs: Lesson = {
       fig: vt({ cursor: true }),
       slider: { min: 0, max: T_SHOWN, step: 0.25, tick: 1, label: 'Time since car B set off', unit: 's', symbol: 't', dp: 2 },
       question: {
-        prompt: 'When is car B level with car A?',
+        prompt: `What happens to the gap between the cars after ${secs(x.tCross)}?`,
         options: [
-          { id: 'cross', label: `At ${secs(x.tCross)}`, hint: `At ${secs(x.tCross)} the areas are ${metres(x.sA)} and ${metres(x.sB)}. Keep going.` },
-          { id: 'level', label: `At ${secs(x.tLevel)}`, correct: true },
-          { id: 'never', label: 'Never', hint: `After ${secs(x.tCross)} car B is the faster one. Watch the two areas.` },
+          { id: 'grows', label: 'It keeps growing', hint: `After ${secs(x.tCross)} car B is the faster one. Watch the two areas.` },
+          { id: 'shrinks', label: 'It shrinks', correct: true },
+          { id: 'steady', label: 'It stays the same', hint: 'The two areas grow by different amounts every second.' },
         ],
-        right: `Right: at ${secs(x.tLevel)} both areas are ${metres(x.sLevel)}.`,
+        right: `Right: car B is now faster, so it gains on car A every second.`,
       },
+    },
+    {
+      id: 'level',
+      kind: 'estimate',
+      prompt: 'Both cars started side by side. Drag to the time when car B draws level with car A.',
+      fig: vt(),
+      after: vt({
+        between: [
+          { from: 0, to: x.tCross },
+          { from: x.tCross, to: x.tLevel },
+        ],
+      }),
+      scale: { min: 0, max: T_SHOWN, step: 0.5, tick: 1, unit: 's', symbol: 't', dp: 1, label: 'Time when the cars are level' },
+      answer: x.tLevel,
+      tolerance: 1,
+      why: `Level means equal areas: both are ${metres(x.sLevel)} at ${secs(x.tLevel)}. What car B loses before ${secs(x.tCross)}, it wins back by ${secs(x.tLevel)}.`,
     },
     {
       id: 'equal-areas',
@@ -268,94 +280,88 @@ export const readingMotionGraphs: Lesson = {
       body: ['A curve has a different gradient at every point. To read it at one instant, draw the **tangent** there and find its gradient.'],
       card: { term: 'Gradient and area', text: 's–t: gradient = velocity. v–t: gradient = acceleration, area = displacement. a–t: area = change in velocity.' },
     },
-    {
-      id: 'ramp',
-      kind: 'choice',
-      prompt: `A ball is rolled up a ramp. From ${secs(x.ramp.tTurn)} its velocity is negative: it rolls back down. What is its displacement after ${secs(x.ramp.tEnd)}?`,
-      fig: {
-        kind: 'graph',
-        y: 'v',
-        header: 'ball on a ramp, up the ramp is +',
-        lines: [{ id: '', trip: RAMP }],
-        tMax: 5.5,
-        tTick: 1,
-        yMin: -6,
-        yMax: 8,
-        yTick: 2,
-        areas: [
-          { line: '', from: 0, to: x.ramp.tTurn, value: 'shown' },
-          { line: '', from: x.ramp.tTurn, to: x.ramp.tEnd, value: 'shown' },
-        ],
-      },
-      options: [
-        { id: 'back', label: `${metres(-x.ramp.back)} down the ramp`, hint: 'That is only the part below the axis. First the ball went up.' },
-        { id: 'right', label: `${metres(x.ramp.right)} up the ramp`, correct: true },
-        { id: 'up', label: `${metres(x.ramp.up)} up the ramp`, hint: `That is how far up it got. Then it rolled back ${metres(-x.ramp.back)}.` },
-        { id: 'distance', label: `${metres(x.ramp.distance)} up the ramp`, hint: 'That is the distance travelled. An area below the axis counts as negative.' },
-      ],
-      why: `Above the axis: +${metres(x.ramp.up)}. Below it: −${metres(-x.ramp.back)}. Displacement = ${fixed(x.ramp.up, 1)} − ${fixed(-x.ramp.back, 1)} = ${metres(x.ramp.right)} up the ramp. The distance is ${metres(x.ramp.distance)}.`,
-    },
   ],
   skillCheck: [
     {
+      id: 'brake-graph',
+      kind: 'graphPick',
+      prompt: 'A car brakes steadily to a stop. Which v–t graph shows it?',
+      graphs: [
+        { id: 'A', fig: lineOf('graph A', STEADY, { tMax: 9, yMax: 25 }), hint: 'A flat line is a steady velocity: the car is not braking.' },
+        { id: 'B', fig: lineOf('graph B', SPEEDING, { tMax: 9, yMax: 25 }), hint: 'This line rises: the car is speeding up.' },
+        { id: 'C', fig: lineOf('graph C', BRAKING, { tMax: 9, yMax: 25 }), correct: true },
+      ],
+      why: `Steady braking is a straight line sloping down: the gradient is the acceleration, ${acc(-2.5)}, and the line reaches zero when the car stops.`,
+    },
+    {
+      id: 'brake-area',
+      kind: 'build',
+      prompt: `The car brakes from ${speed(x.brake.v)} to rest in ${secs(x.brake.t)}. Build the distance it travels.`,
+      fig: lineOf('car braking to a stop', BRAKING, { areas: [{ line: '', from: 0, to: x.brake.t, value: 'afterCheck' }] }),
+      equation: 's = ½ × {t} × {v}',
+      boxes: { t: 'time', v: 'speed' },
+      chips: [
+        { id: 'time', label: secs(x.brake.t) },
+        { id: 'speed', label: speed(x.brake.v) },
+        { id: 'gradient', label: acc(2.5), hint: 'That is the gradient: the acceleration, not a side of the triangle.' },
+        { id: 'zero', label: speed(0), hint: 'That is the final velocity. The triangle is as tall as the starting velocity.' },
+      ],
+      result: { symbol: 's', value: x.brake.right, unit: 'm' },
+      why: `The area is a triangle: ½ × ${fixed(x.brake.t, 1)} × ${fixed(x.brake.v, 1)} = ${metres(x.brake.right)}.`,
+    },
+    {
+      id: 'below-axis',
+      kind: 'choice',
+      prompt: 'A v–t graph dips below the time axis for part of the journey. What does the area below the axis stand for?',
+      options: [
+        { id: 'right', label: 'Displacement in the negative direction', correct: true },
+        { id: 'time', label: 'Time spent going backwards' },
+        { id: 'slow', label: 'The body is slowing down' },
+        { id: 'ignore', label: 'Nothing: only the area above the axis counts' },
+      ],
+      why: 'A negative velocity means moving the other way, so the area below the axis is negative displacement. It is subtracted from the area above.',
+    },
+    {
       id: 'tram',
-      kind: 'choice',
-      prompt: 'This v–t graph shows a tram running from one stop to the next. How far apart are the stops?',
+      kind: 'examCard',
+      context: `Dana rides a tram between two stops. Its v–t graph is shown.`,
       fig: { kind: 'graph', y: 'v', header: 'tram between two stops', lines: [{ id: '', trip: TRAM, until: 12 }], tMax: 13, tTick: 2, yMax: 10, yTick: 2 },
-      options: [
-        { id: 'steady', label: metres(x.tram.steadyOnly) },
-        { id: 'right', label: metres(x.tram.right), correct: true },
-        { id: 'top', label: metres(x.tram.topTimesTotal) },
+      parts: [
+        {
+          id: 'a',
+          command: 'Describe',
+          text: `the motion of the tram between ${wholeSecs(4)} and ${wholeSecs(10)}.`,
+          marks: 1,
+          kind: 'choice',
+          options: [
+            { id: 'right', label: 'It moves at a steady velocity', correct: true },
+            { id: 'speeds', label: 'It speeds up steadily' },
+            { id: 'rest', label: 'It is at rest' },
+            { id: 'slows', label: 'It slows down steadily' },
+          ],
+          why: 'The line is flat there: the velocity is constant, so the acceleration is zero.',
+        },
+        {
+          id: 'b',
+          command: 'Calculate',
+          text: `the distance the tram covers in the first ${wholeSecs(10)}.`,
+          marks: 2,
+          kind: 'build',
+          build: {
+            equation: 's = ½ × ({long} + {short}) × {height}',
+            boxes: { long: 'long', short: 'short', height: 'height' },
+            chips: [
+              { id: 'long', label: secs(x.tram.long) },
+              { id: 'short', label: secs(x.tram.short) },
+              { id: 'height', label: speed(x.tram.top) },
+              { id: 'four', label: secs(4), hint: `That is the speeding-up time. The parallel sides are ${secs(10)} and ${secs(6)}.` },
+              { id: 'whole', label: secs(12), hint: `That is the whole journey, with the braking. Stop at ${wholeSecs(10)}.` },
+            ],
+            result: { symbol: 's', value: x.tram.right, unit: 'm' },
+          },
+          why: `The area up to ${wholeSecs(10)} is a trapezoid: ½ × (${fixed(x.tram.long, 1)} + ${fixed(x.tram.short, 1)}) × ${fixed(x.tram.top, 1)} = ${metres(x.tram.right)}. One mark for the values, one for the answer.`,
+        },
       ],
-      why: `The distance is the whole area: ${fixed(tripDisplacement(0, 4, TRAM), 1)} + ${fixed(x.tram.steadyOnly, 1)} + ${fixed(tripDisplacement(10, 12, TRAM), 1)} = ${metres(x.tram.right)}. Two triangles and a rectangle.`,
-    },
-    {
-      id: 'fastest',
-      kind: 'tapFig',
-      prompt: 'This s–t graph shows a walk along a straight path. In which part does the walker move fastest?',
-      instruction: 'Tap that part of the graph.',
-      fig: {
-        kind: 'graph',
-        y: 's',
-        header: 'a walk along a straight path',
-        lines: [{ id: '', trip: WALK, until: 12 }],
-        tMax: 13,
-        tTick: 2,
-        yMax: 20,
-        yTick: 5,
-        parts: (() => {
-          let t = 0;
-          return WALK_PARTS.map((part) => ({ id: part.id, from: t, to: (t += part.dt) }));
-        })(),
-      },
-      options: WALK_PARTS.map((part) => (part.id === x.walk.fastest ? { id: part.id, label: `Part ${part.id}`, correct: true as const } : { id: part.id, label: `Part ${part.id}` })),
-      why: `Speed is the gradient of an s–t graph, so look for the steepest part: B, at ${speed(5)}. In part C the line is highest, but flat: the walker stands still.`,
-    },
-    {
-      id: 'lift',
-      kind: 'choice',
-      prompt: 'This v–t graph shows a goods lift; up is positive. Where is the lift at the end, compared with where it started?',
-      fig: { kind: 'graph', y: 'v', header: 'goods lift, up is +', lines: [{ id: '', trip: LIFT, until: 10 }], tMax: 11, tTick: 2, yMin: -3, yMax: 3, yTick: 1 },
-      options: [
-        { id: 'right', label: `${metres(-x.lift.right)} below`, correct: true },
-        { id: 'flipped', label: `${metres(-x.lift.right)} above` },
-        { id: 'only-up', label: `${metres(x.lift.onlyUp)} above` },
-        { id: 'added', label: `${metres(x.lift.added)} above` },
-      ],
-      why: `Up: 2.0 × 4.0 = +${metres(x.lift.onlyUp)}. Down: the area below the axis, −${metres(x.lift.onlyUp - x.lift.right)}. Displacement = ${fixed(x.lift.right, 1)}${NB}m: ${metres(-x.lift.right)} below the start.`,
-    },
-    {
-      id: 'sprinter',
-      kind: 'choice',
-      prompt: `A sprinter's v–t graph is a curve. How do you find the distance covered in the first ${secs(4)}?`,
-      fig: { kind: 'graph', y: 'v', header: 'sprinter, from the start', lines: [{ id: '', trip: SPRINTER, until: 6 }], tMax: 6.5, tTick: 1, yMax: 12, yTick: 2 },
-      options: [
-        { id: 'suvat', label: 'Use s = ut + ½at²' },
-        { id: 'final', label: `Multiply the velocity at ${secs(4)} by ${secs(4)}` },
-        { id: 'area', label: 'Estimate the area under the curve', correct: true },
-        { id: 'tangent', label: `Find the gradient of the tangent at ${secs(4)}` },
-      ],
-      why: 'The acceleration is not constant, so suvat does not apply. The area under a v–t graph is the displacement for any motion: count the squares.',
     },
   ],
   youCanNow: [
