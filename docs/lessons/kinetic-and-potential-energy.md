@@ -65,3 +65,20 @@ All numbers come from `src/physics/energy.ts`, g = 9.81 m s⁻², and are re-che
 1. Physics, `src/physics/energy.ts`: `kineticEnergy`, `speedFromKinetic`, `potentialChange`, `heightForSpeed`. Test.
 2. Figures, `src/figures/EnergyFigure.tsx`: `KineticFigure` (the car on a road that slides past at its speed; played, it speeds up from rest by the model; with the square, the road moves up and the square of side v is drawn under it, one cell per 2 m s⁻¹, with Ek; with two stages, the first square and the band around it carry their own energies) and `HeightFigure` (a tower crane holds the car over the road, a height ruler, the car's height; two bars to one scale: ΔEp, growing with the height, and Ek at a given speed).
 3. Content `src/content/kinetic-and-potential-energy.ts` + test, `ready: true` on the map; new ids in the Energy misconception bank, `docs/LESSON_FRAMEWORK.md`, 12d. `kJ` added to the units that never part from their number (`src/content/units.ts`).
+
+## v3 changes (24 Nov)
+
+Task D9. The puzzle (60.0 kJ, then 180 kJ) and its recap are unchanged. 14 screens + 4 Skill check; chapters *The puzzle* → *Kinetic energy* → *Back to the car*; cast: Arjun.
+
+| Was | Now |
+|---|---|
+| text `why-square` | **order** `why-square` (W = FΔs → F = ma → Δs = v² ÷ 2a → ½mv²) |
+| — | **graphPick** `ek-graph`: Ek against v, three curves from 0 to 20 m s⁻¹ ending at the same point (line, square-root curve, the parabola) |
+| — | **estimate** `ratio`: how many times as much work stage 2 needs (answer 3, scale 1–7, tolerance 0.5) |
+| choice `hook-again` (60 and 180 kJ) | **build** `W = ½ × m × (v² − u²)` for the second stage, 180 kJ; the 60.0 kJ chip is the named wrong one |
+| choice `car-park` | **build** `ΔEp = m × g × Δh`, 106 kJ (wrong chips: the 120 m of ramps, the weight 11.8 kN) |
+| text `rules` | one sentence, with a figure |
+
+`ke10`, `van` (choices) and the two explores stay. Skill check: **build** (Arjun's cricket ball, 98.0 J), **order** (why twice the speed needs four times the braking distance), **choice** (a van with twice the mass at half the speed: half the car's energy), **exam card** on a tennis serve: (a) Calculate the speed [2] (49.1 m s⁻¹, wrong chip 58 kg), (b) Calculate the height all that energy would lift it [2] (123 m). The walker (ΔEp) and the two trolleys are gone.
+
+New figure: `src/figures/PlotFigure.tsx` (`kind: 'plot'`): one curve on plain axes from points the lesson computes with `src/physics` (title, largest value and tick gap of each axis in the figure). Made generic so D10 can reuse it for P against v.

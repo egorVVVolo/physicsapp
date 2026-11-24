@@ -3,10 +3,11 @@
 // 60.0 kJ, then 180 kJ: the energy is a square of side v. Then: at 20 m s⁻¹ the car holds as much energy as a 20.4 m
 // lift would give it, and so does a van twice as heavy.
 // Every number below comes from src/physics; wrong options are named mistakes, recomputed by the test.
+// Format v3 (V2 task D9): order, build, estimate, graphPick; the Skill check ends on an exam-style card.
 import { heightForSpeed, kineticEnergy, potentialChange, speedFromKinetic } from '../physics/energy.ts';
 import { G } from '../physics/kinematics.ts';
 import { fixed, sig } from '../physics/format.ts';
-import type { HeightFig, KineticFig, Lesson } from './types.ts';
+import type { HeightFig, KineticFig, Lesson, PlotFig } from './types.ts';
 
 const NB = ' '; // a no-break space: a number never parts from its unit
 const J = (x: number): string => `${sig(x)}${NB}J`;
@@ -25,40 +26,63 @@ export const VAN = { m: 2400 }; // kg
 export const MACHINE = { m: 40, h: 1.2 };
 // Skill check.
 export const CRICKET = { m: 0.16, v: 35 };
-export const HIKER = { m: 62, path: 2400, up: 450 };
 export const SERVE = { m: 0.058, E: 70 };
-export const TROLLEYS = { mA: 0.6, vA: 2.4, mB: 1.5 };
+export const PLOT = { vMax: CAR.v2, step: 1 }; // the Ek–v graphs: v from 0 to 20 m s⁻¹
 
 const ek1 = kineticEnergy(CAR.m, CAR.v1);
 const ek2 = kineticEnergy(CAR.m, CAR.v2);
 const match = heightForSpeed(CAR.v2);
-const trolleyE = kineticEnergy(TROLLEYS.mA, TROLLEYS.vA);
+const parkEp = potentialChange(CAR.m, PARK.up);
+const serveV = speedFromKinetic(SERVE.m, SERVE.E);
+const serveH = SERVE.E / potentialChange(SERVE.m, 1);
 
 /** Answers and named mistakes, used by the screens and re-checked by kinetic-and-potential-energy.test.ts. */
 export const ANSWERS = {
   ke10: { right: ek1, halfMv: 0.5 * CAR.m * CAR.v1, momentum: CAR.m * CAR.v1, noHalf: CAR.m * CAR.v1 ** 2 },
   explore: { at10: ek1, at20: ek2 },
   /** The puzzle: the work done in each stage is the gain in kinetic energy. */
-  puzzle: { first: ek1, second: ek2 - ek1, end: ek2, noHalf1: 2 * ek1, noHalf2: 2 * (ek2 - ek1) },
-  park: { right: potentialChange(CAR.m, PARK.up), along: potentialChange(CAR.m, PARK.along), noG: CAR.m * PARK.up, half: 0.5 * potentialChange(CAR.m, PARK.up) },
+  puzzle: { first: ek1, second: ek2 - ek1, end: ek2, ratio: (ek2 - ek1) / ek1 },
+  park: { right: parkEp, along: potentialChange(CAR.m, PARK.along), weight: potentialChange(CAR.m, 1) },
   crane: { ek: ek2, height: match },
   van: { right: heightForSpeed(CAR.v2), heavier: match / 2, double: 2 * match, vOverG: CAR.v2 / G },
   machine: potentialChange(MACHINE.m, MACHINE.h),
-  cricket: { right: kineticEnergy(CRICKET.m, CRICKET.v), momentum: CRICKET.m * CRICKET.v, noHalf: CRICKET.m * CRICKET.v ** 2, notSquared: 0.5 * CRICKET.m * CRICKET.v },
-  hiker: { right: potentialChange(HIKER.m, HIKER.up), path: potentialChange(HIKER.m, HIKER.path), noG: HIKER.m * HIKER.up, half: 0.5 * potentialChange(HIKER.m, HIKER.up) },
-  serve: { right: speedFromKinetic(SERVE.m, SERVE.E), noTwo: Math.sqrt(SERVE.E / SERVE.m), noRoot: (2 * SERVE.E) / SERVE.m, divided: SERVE.E / SERVE.m },
-  trolleys: { right: speedFromKinetic(TROLLEYS.mB, trolleyE), momentum: (TROLLEYS.mA * TROLLEYS.vA) / TROLLEYS.mB, flipped: TROLLEYS.vA * Math.sqrt(TROLLEYS.mB / TROLLEYS.mA), ratio: (TROLLEYS.vA * TROLLEYS.mB) / TROLLEYS.mA, energy: trolleyE },
+  cricket: { right: kineticEnergy(CRICKET.m, CRICKET.v), momentum: CRICKET.m * CRICKET.v },
+  /** The Skill check's choice: a van twice as heavy at half the speed has half the car's energy. */
+  vanHalf: { ratio: kineticEnergy(2 * CAR.m, CAR.v2 / 2) / kineticEnergy(CAR.m, CAR.v2) },
+  serve: { speed: serveV, height: serveH, grams: SERVE.m * 1000 },
 };
 const X = ANSWERS;
 
 const car = (over: Partial<KineticFig>): KineticFig => ({ kind: 'kinetic', m: CAR.m, v: CAR.v2, ...over });
 const crane: HeightFig = { kind: 'height', m: CAR.m, h: 5, match: CAR.v2 };
 
+/** One Ek–v curve for "which graph?": the model (½mv²) or a named mistake. All three end at the same point. */
+const ekGraph = (shape: 'square' | 'line' | 'root'): PlotFig => ({
+  kind: 'plot',
+  header: `car ${CAR.m} kg, Ek against speed`,
+  x: { label: 'v / m s⁻¹', max: PLOT.vMax, tick: 5 },
+  y: { label: 'Ek / kJ', max: 250, tick: 50 },
+  points: Array.from({ length: PLOT.vMax / PLOT.step + 1 }, (_, k) => {
+    const v = k * PLOT.step;
+    const share = v / PLOT.vMax;
+    const y = shape === 'square' ? kineticEnergy(CAR.m, v) : shape === 'line' ? ek2 * share : ek2 * Math.sqrt(share);
+    return { x: v, y: y / 1000 };
+  }),
+});
+
+const G9 = `9.81${NB}N${NB}kg⁻¹`;
+
 export const kineticAndPotentialEnergy: Lesson = {
   id: 'ke-gpe',
   title: 'Kinetic and potential energy',
   spec: [18, 19],
   minutes: 11,
+  chapters: [
+    { title: 'The puzzle', from: 'intro' },
+    { title: 'Kinetic energy', from: 'kinetic' },
+    { title: 'Back to the car', from: 'hook-again' },
+  ],
+  cast: ['Arjun'],
   story: [
     {
       id: 'intro',
@@ -104,11 +128,16 @@ export const kineticAndPotentialEnergy: Lesson = {
     },
     {
       id: 'why-square',
-      kind: 'text',
-      body: [
-        'Why ½mv²? Push a body from rest with a steady resultant force F. The work done is FΔs, with F = ma and v² = 2aΔs.',
-        'So FΔs = ma × v²/2a = ½mv². With the same force, twice the speed takes four times the distance: four times the work.',
+      kind: 'order',
+      prompt: 'Why is it ½mv²? Put the steps in order: a steady resultant force F pushes a body of mass m from rest up to speed v.',
+      steps: [
+        { id: 'work', text: 'The work done is W = FΔs.' },
+        { id: 'newton', text: 'By Newton’s second law, F = ma.' },
+        { id: 'suvat', text: 'From rest, v² = 2aΔs, so Δs = v² ÷ 2a.' },
+        { id: 'sub', text: 'So W = ma × v² ÷ 2a = ½mv².' },
       ],
+      hint: 'Start with work, bring in F = ma, then the speed: v² = 2aΔs.',
+      why: 'W = FΔs, F = ma and Δs = v² ÷ 2a give W = ma × v² ÷ 2a = ½mv². With the same force, twice the speed takes four times the distance: four times the work.',
     },
     {
       id: 'square',
@@ -127,18 +156,43 @@ export const kineticAndPotentialEnergy: Lesson = {
       },
     },
     {
-      id: 'hook-again',
-      kind: 'choice',
-      revisitOf: 'hook',
-      prompt: `Back to the car. How much work does the motor do from 0 to ${CAR.v1}${NB}m s⁻¹, and then from ${CAR.v1} to ${V(CAR.v2)}?`,
-      fig: car({ stages: [CAR.v1, CAR.v2], square: 'afterCheck' }),
-      options: [
-        { id: 'linear', label: `${KJ(X.puzzle.first)}, then ${KJ(X.puzzle.first)}`, hint: `Ek grows with v², not v. Compare Ek at ${CAR.v1} and at ${V(CAR.v2)}.` },
-        { id: 'end', label: `${KJ(X.puzzle.first)}, then ${KJ(X.puzzle.end)}`, hint: `${KJ(X.puzzle.end)} is all its energy at ${V(CAR.v2)}, and the car already had ${KJ(ek1)}.` },
-        { id: 'right', label: `${KJ(X.puzzle.first)}, then ${KJ(X.puzzle.second)}`, correct: true },
-        { id: 'noHalf', label: `${KJ(X.puzzle.noHalf1)}, then ${KJ(X.puzzle.noHalf2)}`, hint: 'Ek = ½mv²: don’t forget the ½.' },
+      id: 'ek-graph',
+      kind: 'graphPick',
+      prompt: `Which graph shows the car's kinetic energy against its speed, from 0 to ${V(CAR.v2)}?`,
+      graphs: [
+        { id: 'A', fig: ekGraph('line'), hint: 'A straight line: twice the speed, twice the energy. But Ek = ½mv² gives four times.' },
+        { id: 'B', fig: ekGraph('root'), hint: 'This curve flattens: each extra m s⁻¹ would add less energy. At speed it adds more.' },
+        { id: 'C', fig: ekGraph('square'), correct: true },
       ],
-      why: `Work done = gain in Ek. 0 to ${CAR.v1}: ${KJ(ek1)}. ${CAR.v1} to ${CAR.v2}: ${sig(ek2 / 1000)} − ${sig(ek1 / 1000)} = ${KJ(X.puzzle.second)}, three times as much for the same ${V(CAR.v1)}.`,
+      why: `Ek = ½mv² is a parabola: it starts flat and gets steeper. At ${V(CAR.v1)} it is ${KJ(ek1)}, at ${V(CAR.v2)} four times that, ${KJ(ek2)}.`,
+    },
+    {
+      id: 'ratio',
+      kind: 'estimate',
+      prompt: `The motor does ${KJ(ek1)} of work getting the car from rest to ${V(CAR.v1)}. Drag to how many times as much work it does from ${CAR.v1} to ${V(CAR.v2)}.`,
+      fig: car({ v: CAR.v1 }),
+      after: car({ stages: [CAR.v1, CAR.v2], square: 'shown' }),
+      scale: { min: 1, max: 7, step: 0.5, tick: 1, unit: 'times', symbol: 'n', dp: 1, label: 'Stage 2 work ÷ stage 1 work' },
+      answer: X.puzzle.ratio,
+      tolerance: 0.5,
+      why: `Ek at ${V(CAR.v2)} is four times Ek at ${V(CAR.v1)}. The car already had one share, so the second stage adds 4 − 1 = 3 shares: ${KJ(X.puzzle.second)}.`,
+    },
+    {
+      id: 'hook-again',
+      kind: 'build',
+      prompt: `Back to the car. Build the work the motor does from ${CAR.v1} to ${V(CAR.v2)}.`,
+      fig: car({ stages: [CAR.v1, CAR.v2], square: 'afterCheck' }),
+      equation: 'W = ½ × {m} × ({v}² − {u}²)',
+      boxes: { m: 'mass', v: 'fast', u: 'slow' },
+      chips: [
+        { id: 'mass', label: `${CAR.m}${NB}kg` },
+        { id: 'fast', label: V(CAR.v2) },
+        { id: 'slow', label: V(CAR.v1) },
+        { id: 'first', label: KJ(X.puzzle.first), hint: `That is the first stage, 0 to ${V(CAR.v1)}.` },
+        { id: 'g', label: G9, hint: 'g belongs to potential energy. A change in speed needs no g.' },
+      ],
+      result: { symbol: 'W', value: X.puzzle.second / 1000, unit: 'kJ' },
+      why: `Work done = gain in Ek = ½ × ${CAR.m} × (${CAR.v2}² − ${CAR.v1}²) = ${KJ(X.puzzle.second)}: three times the ${KJ(ek1)} of the first stage, for the same ${V(CAR.v1)}.`,
     },
     {
       id: 'gpe',
@@ -151,14 +205,18 @@ export const kineticAndPotentialEnergy: Lesson = {
     },
     {
       id: 'car-park',
-      kind: 'choice',
-      prompt: `The car drives up a car park to a floor ${fixed(PARK.up, 1)}${NB}m higher, along ${PARK.along}${NB}m of ramps. How much GPE does it gain?`,
-      options: [
-        { id: 'along', label: KJ(X.park.along), hint: `Gravity acts straight down: use the ${fixed(PARK.up, 1)}${NB}m rise, not the ramps.` },
-        { id: 'right', label: KJ(X.park.right), correct: true },
-        { id: 'noG', label: KJ(X.park.noG), hint: 'Use the weight, mg, not the mass.' },
-        { id: 'half', label: KJ(X.park.half), hint: 'There is no ½ in mgΔh: that belongs to ½mv².' },
+      kind: 'build',
+      prompt: `The car drives up a car park to a floor ${fixed(PARK.up, 1)}${NB}m higher, along ${PARK.along}${NB}m of ramps. Build its gain in GPE.`,
+      equation: 'ΔEp = {m} × {g} × {Δh}',
+      boxes: { m: 'mass', g: 'field', 'Δh': 'rise' },
+      chips: [
+        { id: 'mass', label: `${CAR.m}${NB}kg` },
+        { id: 'field', label: G9 },
+        { id: 'rise', label: `${fixed(PARK.up, 1)}${NB}m` },
+        { id: 'ramps', label: `${PARK.along}${NB}m`, hint: `Gravity acts straight down: use the ${fixed(PARK.up, 1)}${NB}m rise, not the ramps.` },
+        { id: 'weight', label: `${sig(X.park.weight / 1000)}${NB}kN`, hint: 'That is the weight, mg. The equation multiplies the mass by g itself.' },
       ],
+      result: { symbol: 'ΔEp', value: X.park.right / 1000, unit: 'kJ' },
       why: `ΔEp = mgΔh = ${CAR.m} × ${G} × ${fixed(PARK.up, 1)} = ${KJ(X.park.right)}. The ${PARK.along}${NB}m of ramps do not matter: only the rise does.`,
     },
     {
@@ -192,60 +250,95 @@ export const kineticAndPotentialEnergy: Lesson = {
     {
       id: 'rules',
       kind: 'text',
-      body: [
-        '**Kinetic energy** Ek = ½mv² is the work needed to reach speed v from rest. Twice the speed, four times the energy.',
-        '**Gravitational potential energy** changes by mgΔh: only the height counts. Next: energy that changes from one form to another.',
-      ],
+      body: ['Ek = ½mv²: twice the speed, four times the energy. ΔEp = mgΔh: only the height counts.'],
+      fig: car({ stages: [CAR.v1, CAR.v2], square: 'shown' }),
     },
   ],
   skillCheck: [
     {
       id: 'cricket',
-      kind: 'choice',
-      prompt: `A bowler releases a ${CRICKET.m}${NB}kg cricket ball at ${MS(CRICKET.v)}. What is its kinetic energy?`,
-      options: [
-        { id: 'momentum', label: J(X.cricket.momentum) },
-        { id: 'right', label: J(X.cricket.right), correct: true },
-        { id: 'noHalf', label: J(X.cricket.noHalf) },
-        { id: 'notSquared', label: J(X.cricket.notSquared) },
+      kind: 'build',
+      prompt: `Arjun bowls a ${CRICKET.m}${NB}kg cricket ball at ${MS(CRICKET.v)}. Build its kinetic energy.`,
+      equation: 'Ek = ½ × {m} × {v}²',
+      boxes: { m: 'mass', v: 'speed' },
+      chips: [
+        { id: 'mass', label: `${fixed(CRICKET.m, 2)}${NB}kg` },
+        { id: 'speed', label: MS(CRICKET.v) },
+        { id: 'p', label: `${sig(X.cricket.momentum)}${NB}kg${NB}m${NB}s⁻¹`, hint: 'That is mv, the momentum. Kinetic energy is built from m and v² separately.' },
+        { id: 'g', label: G9, hint: 'g belongs to potential energy. The ball’s speed is all you need here.' },
       ],
-      why: `Ek = ½ × ${CRICKET.m} × ${CRICKET.v}² = ${J(X.cricket.right)}. (${sig(X.cricket.momentum)} is mv, the momentum, in kg m s⁻¹.)`,
+      result: { symbol: 'Ek', value: X.cricket.right, unit: 'J' },
+      why: `Ek = ½ × ${fixed(CRICKET.m, 2)} × ${CRICKET.v}² = ${J(X.cricket.right)}. (${sig(X.cricket.momentum)} is mv, the momentum, in kg m s⁻¹.)`,
     },
     {
-      id: 'hiker',
-      kind: 'choice',
-      prompt: `A ${HIKER.m}${NB}kg walker follows a ${fixed(HIKER.path / 1000, 1)}${NB}km path that climbs ${HIKER.up}${NB}m. What is her gain in gravitational potential energy?`,
-      options: [
-        { id: 'path', label: KJ(X.hiker.path) },
-        { id: 'noG', label: KJ(X.hiker.noG) },
-        { id: 'right', label: KJ(X.hiker.right), correct: true },
-        { id: 'half', label: KJ(X.hiker.half) },
+      id: 'braking',
+      kind: 'order',
+      prompt: 'Why does a car going twice as fast need four times the braking distance? Put the steps in order.',
+      steps: [
+        { id: 'work', text: 'The brakes push back with a steady force F, doing work F × d on the car.' },
+        { id: 'ek', text: 'That work must remove all the car’s kinetic energy, ½mv².' },
+        { id: 'four', text: 'At twice the speed the car has four times the kinetic energy.' },
+        { id: 'dist', text: 'The same force F needs four times the distance d to do four times the work.' },
       ],
-      why: `ΔEp = mgΔh = ${HIKER.m} × ${G} × ${HIKER.up} = ${KJ(X.hiker.right)}. Only the ${HIKER.up}${NB}m climb counts, not the length of the path.`,
+      hint: 'What the brakes do, what they must remove, what doubling v does to it.',
+      why: 'F × d = ½mv². Double v and the right side is four times as big, so for the same F the distance d is four times as big.',
+    },
+    {
+      id: 'half-speed',
+      kind: 'choice',
+      prompt: `A van with twice the car’s mass drives at half the car’s speed. How does the van’s kinetic energy compare with the car’s?`,
+      options: [
+        { id: 'same', label: 'The same: twice the mass cancels half the speed' },
+        { id: 'right', label: 'Half as much as the car’s', correct: true },
+        { id: 'quarter', label: 'A quarter of the car’s' },
+        { id: 'double', label: 'Twice the car’s: it is twice as heavy' },
+      ],
+      why: `Van: ½ × 2m × (v ÷ 2)² = ¼mv². Car: ½mv². The ratio is ${fixed(X.vanHalf.ratio, 1)}: the mass counts once, the speed twice.`,
     },
     {
       id: 'serve',
-      kind: 'choice',
-      prompt: `A ${SERVE.m}${NB}kg tennis ball leaves the racket with ${SERVE.E}${NB}J of kinetic energy. How fast is it moving?`,
-      options: [
-        { id: 'noTwo', label: MS(X.serve.noTwo) },
-        { id: 'right', label: MS(X.serve.right), correct: true },
-        { id: 'noRoot', label: MS(X.serve.noRoot) },
-        { id: 'divided', label: MS(X.serve.divided) },
+      kind: 'examCard',
+      context: `A ${fixed(SERVE.m, 3)}${NB}kg tennis ball leaves a racket with ${SERVE.E}${NB}J of kinetic energy. Ignore air resistance. Take g = 9.81 N kg⁻¹.`,
+      parts: [
+        {
+          id: 'a',
+          command: 'Calculate',
+          text: 'the speed of the ball as it leaves the racket.',
+          marks: 2,
+          kind: 'build',
+          build: {
+            equation: 'v = √(2 × {E} ÷ {m})',
+            boxes: { E: 'energy', m: 'mass' },
+            chips: [
+              { id: 'energy', label: `${SERVE.E}${NB}J` },
+              { id: 'mass', label: `${fixed(SERVE.m, 3)}${NB}kg` },
+              { id: 'grams', label: `${X.serve.grams}${NB}kg`, hint: 'The mass is 58 g: that is 0.058 kg.' },
+              { id: 'g', label: G9, hint: 'g is not needed for a speed.' },
+            ],
+            result: { symbol: 'v', value: X.serve.speed, unit: 'm s⁻¹' },
+          },
+          why: `Ek = ½mv², so v = √(2Ek ÷ m) = √(2 × ${SERVE.E} ÷ ${fixed(SERVE.m, 3)}) = ${MS(X.serve.speed)}. One mark for the rearranged equation, one for the answer.`,
+        },
+        {
+          id: 'b',
+          command: 'Calculate',
+          text: 'the height the ball would reach if all of that energy became GPE.',
+          marks: 2,
+          kind: 'build',
+          build: {
+            equation: 'h = {E} ÷ ({m} × {g})',
+            boxes: { E: 'energy', m: 'mass', g: 'field' },
+            chips: [
+              { id: 'energy', label: `${SERVE.E}${NB}J` },
+              { id: 'mass', label: `${fixed(SERVE.m, 3)}${NB}kg` },
+              { id: 'field', label: G9 },
+              { id: 'speed', label: MS(X.serve.speed), hint: 'That is the ball’s speed. The height comes from its energy.' },
+            ],
+            result: { symbol: 'h', value: X.serve.height, unit: 'm' },
+          },
+          why: `ΔEp = mgh = Ek, so h = ${SERVE.E} ÷ (${fixed(SERVE.m, 3)} × ${G}) = ${M(X.serve.height)}. Air resistance would take much of that, but the energy argument gives the limit.`,
+        },
       ],
-      why: `v = √(2Ek ÷ m) = √(2 × ${SERVE.E} ÷ ${SERVE.m}) = ${MS(X.serve.right)}.`,
-    },
-    {
-      id: 'trolleys',
-      kind: 'choice',
-      prompt: `Trolley A, ${fixed(TROLLEYS.mA, 2)}${NB}kg, moves at ${MS(TROLLEYS.vA)}. Trolley B, ${fixed(TROLLEYS.mB, 1)}${NB}kg, has the same kinetic energy. How fast does B move?`,
-      options: [
-        { id: 'momentum', label: MS(X.trolleys.momentum) },
-        { id: 'right', label: MS(X.trolleys.right), correct: true },
-        { id: 'flipped', label: MS(X.trolleys.flipped) },
-        { id: 'ratio', label: MS(X.trolleys.ratio) },
-      ],
-      why: `A has ½ × ${fixed(TROLLEYS.mA, 2)} × ${TROLLEYS.vA}² = ${J(X.trolleys.energy)}. B: v = √(2 × ${sig(X.trolleys.energy)} ÷ ${fixed(TROLLEYS.mB, 1)}) = ${MS(X.trolleys.right)}. (${sig(X.trolleys.momentum)} would give B the same momentum.)`,
     },
   ],
   youCanNow: [

@@ -107,7 +107,7 @@ function checkWorkedScreen(s: WorkedScreen) {
 }
 
 /** A graph pick: exactly three graphs A, B, C, one correct, a hint on each wrong one, all drawn as graphs. */
-const GRAPH_KINDS: Fig['kind'][] = ['graph', 'throwVt', 'brakeVt', 'fallGraph', 'fallVt', 'vt', 'material'];
+const GRAPH_KINDS: Fig['kind'][] = ['graph', 'throwVt', 'brakeVt', 'fallGraph', 'fallVt', 'plot', 'vt', 'material'];
 function checkGraphPickScreen(s: GraphPickScreen) {
   assert.deepEqual(s.graphs.map((g) => g.id), ['A', 'B', 'C'], `${s.id}: graphs A, B and C`);
   assert.equal(s.graphs.filter((g) => g.correct).length, 1, `${s.id}: one right graph`);
@@ -299,7 +299,7 @@ for (const lesson of Object.values(lessons)) {
 // ── Lesson format v3 (docs/LESSON_FRAMEWORK.md, 1c; docs/V2_PLAN.md, 2.2) ───────────────────
 
 /** Lessons rebuilt to format v3. Each one added here must pass every rule below. */
-const REVISED = new Set<string>(['vectors-signs', 'motion-graphs', 'suvat', 'up-stop-down', 'resolving', 'projectiles', 'free-body', 'f-ma', 'normal-reaction', 'terminal-velocity', 'momentum', 'moments', 'collisions', 'balance', 'work']);
+const REVISED = new Set<string>(['vectors-signs', 'motion-graphs', 'suvat', 'up-stop-down', 'resolving', 'projectiles', 'free-body', 'f-ma', 'normal-reaction', 'terminal-velocity', 'momentum', 'moments', 'collisions', 'balance', 'work', 'ke-gpe', 'conservation']);
 
 /** People who appear in several lessons on purpose: Rose runs through the Forces level. */
 const SHARED_CAST = new Set(['Rose']);

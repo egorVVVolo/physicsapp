@@ -34,6 +34,7 @@ import { PARTICLE_VB, ParticleFigure } from './ParticleFigure';
 import { PULLEY_VB, PulleyFigure, pulleyParams, pulleyPlays } from './PulleyFigure';
 import { AIR_FALL_VB, FallFigure, fallParams, fallPlays } from './FallFigure';
 import { FALL_VT_VB, FallVtFigure } from './FallVtGraph';
+import { PLOT_VB, PlotFigure } from './PlotFigure';
 import { WALL_VB, WallFigure, wallParams, wallPlays } from './WallFigure';
 import { BODIES_VB, BodiesFigure } from './BodiesFigure';
 import { COLLIDE_VB, CollideFigure, collideParams, collidePlays } from './CollideFigure';
@@ -87,7 +88,7 @@ const STYLE_2 = new Set<Fig['kind']>([
   // Motion (C3)
   'track', 'graph', 'equations', 'chase', 'brakeVt', 'throw', 'throwVt', 'fallGraph', 'sledge', 'hill', 'resolve', 'vectors', 'bench', 'kick',
   // Forces (C4)
-  'ladder', 'particle', 'pulley', 'liftPair', 'scales', 'pairs', 'vt', 'fall', 'fallVt',
+  'ladder', 'particle', 'pulley', 'liftPair', 'scales', 'pairs', 'vt', 'fall', 'fallVt', 'plot',
   // Momentum and moments (C5)
   'wall', 'bodies', 'spanner', 'pole', 'bar', 'beam', 'broom',
   // Energy (C6)
@@ -106,7 +107,7 @@ const MAX_H = 270;
 /** A compact sheet is at most this share of the full height. */
 const COMPACT = 0.6;
 /** The figures that draw themselves the first time their kind appears in a lesson. */
-const DRAWS_ITSELF: Fig['kind'][] = ['scales', 'lift', 'pairs', 'throw', 'throwVt', 'fallGraph', 'road', 'brakeVt', 'equations', 'graph', 'chase', 'track', 'vectors', 'sledge', 'hill', 'resolve', 'bench', 'kick', 'crate', 'ladder', 'particle', 'pulley', 'fall', 'fallVt', 'wall', 'bodies', 'collide', 'spanner', 'pole', 'bar', 'beam', 'broom', 'platform', 'ramp', 'kinetic', 'height', 'cliff', 'slide', 'ride', 'winch', 'tank', 'dunk', 'tube', 'flow', 'spring', 'wire', 'material', 'launcher'];
+const DRAWS_ITSELF: Fig['kind'][] = ['scales', 'lift', 'pairs', 'throw', 'throwVt', 'fallGraph', 'road', 'brakeVt', 'equations', 'graph', 'chase', 'track', 'vectors', 'sledge', 'hill', 'resolve', 'bench', 'kick', 'crate', 'ladder', 'particle', 'pulley', 'fall', 'fallVt', 'plot', 'wall', 'bodies', 'collide', 'spanner', 'pole', 'bar', 'beam', 'broom', 'platform', 'ramp', 'kinetic', 'height', 'cliff', 'slide', 'ride', 'winch', 'tank', 'dunk', 'tube', 'flow', 'spring', 'wire', 'material', 'launcher'];
 
 /** False while the app is in the background: nothing on a sheet animates then. */
 function useAppActive(): boolean {
@@ -136,7 +137,7 @@ export function Sheet({ fig, n, live, tap: tapIn, caption, compact = false, stil
   // the first figure of each kind in a lesson draws itself; the pen starts once the sheet knows its size
   const first = useFirstShow(fig.kind);
   const clock = useDrawIn(!still && first && width > 0 && DRAWS_ITSELF.includes(fig.kind));
-  const vb = { lift: LIFT_VB, pairs: PAIRS_VB, vt: VT_VB, scales: SCALES_VB, liftPair: LIFT_PAIR_VB, throw: THROW_VB, throwVt: THROW_VT_VB, fallGraph: FALL_VB, road: ROAD_VB, brakeVt: BRAKE_VT_VB, equations: EQUATIONS_VB, graph: GRAPH_VB, chase: CHASE_VB, track: TRACK_VB, vectors: VECTORS_VB, sledge: SLEDGE_VB, hill: HILL_VB, resolve: RESOLVE_VB, bench: BENCH_VB, kick: KICK_VB, crate: CRATE_VB, ladder: LADDER_VB, particle: PARTICLE_VB, pulley: PULLEY_VB, fall: AIR_FALL_VB, fallVt: FALL_VT_VB, wall: WALL_VB, bodies: BODIES_VB, collide: COLLIDE_VB, spanner: SPANNER_VB, pole: POLE_VB, bar: BAR_VB, beam: BEAM_VB, broom: BROOM_VB, platform: PLATFORM_VB, ramp: RAMP_VB, kinetic: KINETIC_VB, height: HEIGHT_VB, cliff: CLIFF_VB, slide: SLIDE_VB, ride: RIDE_VB, winch: WINCH_VB, tank: TANK_VB, dunk: DUNK_VB, tube: TUBE_VB, flow: FLOW_VB, spring: SPRING_VB, wire: WIRE_VB, material: MATERIAL_VB, launcher: LAUNCHER_VB }[fig.kind];
+  const vb = { lift: LIFT_VB, pairs: PAIRS_VB, vt: VT_VB, scales: SCALES_VB, liftPair: LIFT_PAIR_VB, throw: THROW_VB, throwVt: THROW_VT_VB, fallGraph: FALL_VB, road: ROAD_VB, brakeVt: BRAKE_VT_VB, equations: EQUATIONS_VB, graph: GRAPH_VB, chase: CHASE_VB, track: TRACK_VB, vectors: VECTORS_VB, sledge: SLEDGE_VB, hill: HILL_VB, resolve: RESOLVE_VB, bench: BENCH_VB, kick: KICK_VB, crate: CRATE_VB, ladder: LADDER_VB, particle: PARTICLE_VB, pulley: PULLEY_VB, fall: AIR_FALL_VB, fallVt: FALL_VT_VB, plot: PLOT_VB, wall: WALL_VB, bodies: BODIES_VB, collide: COLLIDE_VB, spanner: SPANNER_VB, pole: POLE_VB, bar: BAR_VB, beam: BEAM_VB, broom: BROOM_VB, platform: PLATFORM_VB, ramp: RAMP_VB, kinetic: KINETIC_VB, height: HEIGHT_VB, cliff: CLIFF_VB, slide: SLIDE_VB, ride: RIDE_VB, winch: WINCH_VB, tank: TANK_VB, dunk: DUNK_VB, tube: TUBE_VB, flow: FLOW_VB, spring: SPRING_VB, wire: WIRE_VB, material: MATERIAL_VB, launcher: LAUNCHER_VB }[fig.kind];
   const aNow = fig.kind === 'lift' ? (live ?? fig.a) : 0;
   // a lift with nothing drawn beside it stands in the middle; kept from the screen before, it glides aside to make room
   const shift = useTween(fig.kind === 'lift' ? liftShiftX(fig) : 0, prev?.kind === 'lift' ? liftShiftX(prev) : undefined, motion.screen);
@@ -245,6 +246,7 @@ export function Sheet({ fig, n, live, tap: tapIn, caption, compact = false, stil
               {fig.kind === 'pulley' && <PulleyFigure fig={fig} live={live} playing={run} clock={clock} />}
               {fig.kind === 'fall' && <FallFigure fig={fig} live={live} playing={run} clock={clock} />}
               {fig.kind === 'fallVt' && <FallVtFigure fig={fig} clock={clock} />}
+              {fig.kind === 'plot' && <PlotFigure fig={fig} clock={clock} />}
               {fig.kind === 'wall' && <WallFigure fig={fig} live={live} playing={run} clock={clock} />}
               {fig.kind === 'bodies' && <BodiesFigure fig={fig} clock={clock} />}
               {fig.kind === 'collide' && <CollideFigure fig={fig} live={live} playing={run} clock={clock} />}
@@ -340,6 +342,8 @@ function paramsOf(fig: Fig, a: number, live: number | undefined): string {
     case 'fall':
       return fallParams(fig, live);
     case 'fallVt':
+      return fig.header;
+    case 'plot':
       return fig.header;
     case 'wall':
       return wallParams(fig, live);

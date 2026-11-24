@@ -65,3 +65,19 @@ All numbers come from `src/physics/energy.ts` and `src/physics/projectile.ts`, g
 1. Physics, `src/physics/energy.ts`: `speedAfterDrop` (v = √(u² + 2gΔh)), `energyToFriction` (mgΔh − ΔEk), `slideSpeed` (from rest down a slide with a steady friction force). Test.
 2. Figures: `src/figures/CliffFigure.tsx` (the cliff over the sea, stones thrown by the model at given angles; played, they fly together and splash; the launch arrows all the same length; with `landing`, each stone's velocity at the sea as an outline arrow and a table of speeds; with `follow`, the explore: one stone at the slider's time, its Ep and Ek stacked in a column with the total's line) and `src/figures/SlideFigure.tsx` (a playground slide with a ladder, a seated child that slides down by the model, a = g h ÷ L − F ÷ m; two columns to one scale: Ep at the top, and Ek with the heating part at the bottom; friction up the slide; the slider sets the slide's length at the same height).
 3. Content `src/content/where-the-energy-goes.ts` + test, `ready: true` on the map; new ids in the Energy misconception bank, `docs/LESSON_FRAMEWORK.md`, 12d.
+
+## v3 changes (24 Nov)
+
+Task D9. The puzzle (every stone 23.2 m s⁻¹) and its recap are unchanged. 14 screens + 4 Skill check; chapters *The puzzle* → *Energy in a fall* → *Back to the cliff*; cast: Ella, Chen, Marco, Lena.
+
+| Was | Now |
+|---|---|
+| — | **estimate** `sea-speed`: stone B is thrown level; drag to its speed at the sea (23.2 m s⁻¹, scale 0–40, tolerance 2) |
+| choice `hook-again` (all three at 23.2) | **build** `v = √(u² + 2 × g × h)` (wrong chips: 45°, the mass) |
+| — | **spotError** `forgot`: Chen leaves out the starting Ek and gets 19.8 m s⁻¹, a dropped stone's speed |
+| — | **sort** `stores`: kinetic / potential / thermal — six items about Ella on the slide |
+| choice `slide` (413 J) | **build** `E = m × (g × h − ½ × v²)` (wrong chips: the slide's 5.0 m length, the 7.00 m s⁻¹ with no friction); the 82.6 N friction moves into its explanation |
+| choice `friction` (82.6 N) | gone; the explore `longer` still shows the force |
+| text `rules` | one sentence, with a figure |
+
+`drop` (choice), `flight` and `longer` (explores) stay. Skill check: **build** (the coaster, 18.8 m s⁻¹, from the 18 m the car is below its start), **spotError** (Marco's ramp: the ½ dropped when the mass cancels), **choice** (steep and gentle frictionless ramps, same speed), **exam card** on Lena's freewheel: (a) Calculate the energy transferred to the surroundings [2] (3.30 kJ), (b) Calculate the average resistive force [2] (11.0 N). The ball with air resistance is gone.

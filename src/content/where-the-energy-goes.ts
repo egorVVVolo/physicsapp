@@ -3,6 +3,7 @@
 // sea at 23.2 m s⁻¹: each starts with the same ½mu² + mgh, and energy has no direction. Then friction: a child on a
 // slide arrives at 4.0 m s⁻¹, not 7.00; friction took 413 J (82.6 N over 5.0 m), and a longer slide is slower.
 // Every number below comes from src/physics; wrong options are named mistakes, recomputed by the test.
+// Format v3 (V2 task D9): build, sort, estimate, spotError; the Skill check ends on an exam-style card.
 import { energyToFriction, heightForSpeed, kineticEnergy, potentialChange, slideSpeed, speedAfterDrop } from '../physics/energy.ts';
 import { forceFromWork, workDone } from '../physics/work.ts';
 import { G } from '../physics/kinematics.ts';
@@ -15,6 +16,7 @@ const KJ = (x: number): string => `${sig(x / 1000)}${NB}kJ`;
 const N = (x: number): string => `${sig(x)}${NB}N`;
 const MS = (x: number): string => `${sig(x)}${NB}m s⁻¹`;
 const M = (x: number): string => `${sig(x)}${NB}m`;
+const G9 = `9.81${NB}N${NB}kg⁻¹`;
 
 // The puzzle: three identical stones thrown from a sea cliff.
 export const CLIFF = { h: 20, u: 12, m: 0.4 }; // m, m s⁻¹, kg
@@ -29,39 +31,38 @@ export const LONGER = { min: 3.0, max: 7.0 }; // m, the explore's slide lengths
 // Skill check.
 export const COASTER = { drop: 32, hill: 14 }; // m
 export const SKATER = { v: 6.0 };
-export const CYCLIST = { m: 80, drop: 12, u: 4.0, v: 13 };
-export const BALL = { m: 0.2, u: 15, rise: 10.0 };
+export const CYCLIST = { m: 80, drop: 12, road: 300, u: 4.0, v: 13 }; // kg, m, m, m s⁻¹, m s⁻¹
 
 const land = speedAfterDrop(CLIFF.u, CLIFF.h);
 const dropV = speedAfterDrop(0, CLIFF.h);
-const total = potentialChange(CLIFF.m, CLIFF.h) + kineticEnergy(CLIFF.m, CLIFF.u);
+const stoneEp = potentialChange(CLIFF.m, CLIFF.h);
+const stoneEk = kineticEnergy(CLIFF.m, CLIFF.u);
+const total = stoneEp + stoneEk;
 const slideEp = potentialChange(SLIDE.m, SLIDE.h);
 const slideEk = kineticEnergy(SLIDE.m, SLIDE.v);
 const heat = energyToFriction(SLIDE.m, SLIDE.h, 0, SLIDE.v);
 const friction = forceFromWork(heat, SLIDE.L);
 const cycEp = potentialChange(CYCLIST.m, CYCLIST.drop);
-const cycEk = kineticEnergy(CYCLIST.m, CYCLIST.v) - kineticEnergy(CYCLIST.m, CYCLIST.u);
-const ballEk = kineticEnergy(BALL.m, BALL.u);
-const ballEp = potentialChange(BALL.m, BALL.rise);
+const cycHeat = energyToFriction(CYCLIST.m, CYCLIST.drop, CYCLIST.u, CYCLIST.v);
 
 /** Answers and named mistakes, used by the screens and re-checked by where-the-energy-goes.test.ts. */
 export const ANSWERS = {
   drop: { right: dropV, noHalf: Math.sqrt(G * CLIFF.h), noRoot: 2 * G * CLIFF.h, gh: G * CLIFF.h },
-  flight: { total, ep0: potentialChange(CLIFF.m, CLIFF.h), ek0: kineticEnergy(CLIFF.m, CLIFF.u) },
+  flight: { total, ep0: stoneEp, ek0: stoneEk },
   /** The puzzle: the same speed at the sea for every throw. */
-  puzzle: { right: land, added: CLIFF.u + dropV, noStart: dropV },
-  slide: { right: heat, ek: slideEk, ep: slideEp, sum: slideEp + slideEk, still: speedAfterDrop(0, SLIDE.h) },
-  friction: { right: friction, ep: forceFromWork(slideEp, SLIDE.L), ek: forceFromWork(slideEk, SLIDE.L), height: forceFromWork(heat, SLIDE.h) },
+  puzzle: { right: land, noStart: dropV },
+  /** The spotError's slip: the starting Ek left out, so a thrown stone looks like a dropped one. */
+  forgot: { ep: stoneEp, ek0: stoneEk, wrongSpeed: Math.sqrt((2 * stoneEp) / CLIFF.m) },
+  slide: { right: heat, ek: slideEk, ep: slideEp, friction, still: speedAfterDrop(0, SLIDE.h), L: SLIDE.L },
   longer: {
     short: slideSpeed(SLIDE.m, SLIDE.h, LONGER.min, friction),
     long: slideSpeed(SLIDE.m, SLIDE.h, LONGER.max, friction),
     heatLong: workDone(friction, LONGER.max),
     ekLong: slideEp - workDone(friction, LONGER.max),
   },
-  coaster: { right: speedAfterDrop(0, COASTER.drop - COASTER.hill), first: speedAfterDrop(0, COASTER.drop), second: speedAfterDrop(0, COASTER.hill), noHalf: Math.sqrt(G * (COASTER.drop - COASTER.hill)) },
-  skater: { right: heightForSpeed(SKATER.v), noHalf: (SKATER.v * SKATER.v) / G, vOverG: SKATER.v / G },
-  cyclist: { right: energyToFriction(CYCLIST.m, CYCLIST.drop, CYCLIST.u, CYCLIST.v), noStart: cycEp - kineticEnergy(CYCLIST.m, CYCLIST.v), dEk: cycEk, ep: cycEp },
-  ball: { right: forceFromWork(ballEk - ballEp, BALL.rise), ek: forceFromWork(ballEk, BALL.rise), weight: forceFromWork(ballEp, BALL.rise), added: forceFromWork(ballEk + ballEp, BALL.rise), ek0: ballEk, ep: ballEp },
+  coaster: { right: speedAfterDrop(0, COASTER.drop - COASTER.hill), below: COASTER.drop - COASTER.hill },
+  skater: { right: heightForSpeed(SKATER.v), noHalf: (SKATER.v * SKATER.v) / G },
+  cyclist: { heat: cycHeat, ep: cycEp, force: forceFromWork(cycHeat, CYCLIST.road), wholeGpe: forceFromWork(cycEp, CYCLIST.road), overHeight: forceFromWork(cycHeat, CYCLIST.drop) },
 };
 const X = ANSWERS;
 
@@ -73,6 +74,12 @@ export const whereTheEnergyGoes: Lesson = {
   title: 'Where the energy goes',
   spec: [20],
   minutes: 11,
+  chapters: [
+    { title: 'The puzzle', from: 'intro' },
+    { title: 'Energy in a fall', from: 'conserve' },
+    { title: 'Back to the cliff', from: 'hook-again' },
+  ],
+  cast: ['Ella', 'Chen', 'Marco', 'Lena'],
   story: [
     {
       id: 'intro',
@@ -141,18 +148,45 @@ export const whereTheEnergyGoes: Lesson = {
       ],
     },
     {
+      id: 'sea-speed',
+      kind: 'estimate',
+      prompt: `Stone B is thrown level at ${CLIFF.u}${NB}m s⁻¹ from the ${CLIFF.h}${NB}m cliff. Drag to how fast it hits the sea.`,
+      fig: cliff({ stones: [{ id: 'B', angle: 0 }] }),
+      after: cliff({ stones: [{ id: 'B', angle: 0 }], play: true, landing: 'shown' }),
+      scale: { min: 0, max: 40, step: 1, tick: 10, unit: 'm s⁻¹', symbol: 'v', dp: 0, label: 'Speed at the sea' },
+      answer: X.puzzle.right,
+      tolerance: 2,
+      why: `Its energy at the sea is ½mu² + mgΔh. So v² = ${CLIFF.u}² + 2 × ${G} × ${CLIFF.h}, and v = ${MS(X.puzzle.right)}.`,
+    },
+    {
       id: 'hook-again',
-      kind: 'choice',
-      revisitOf: 'hook',
-      prompt: `Back to the cliff. How fast does each stone hit the sea?`,
+      kind: 'build',
+      prompt: 'Back to the cliff. Build the speed at which a stone hits the sea, whichever way it was thrown.',
       fig: cliff({ landing: 'afterCheck' }),
-      options: [
-        { id: 'added', label: `All three at ${MS(X.puzzle.added)}`, hint: `Energies add, not speeds: ½mv² = ½mu² + mgΔh.` },
-        { id: 'direction', label: 'C fastest, A slowest', hint: 'Ek = ½mv² has no direction: all three start with the same energy.' },
-        { id: 'right', label: `All three at ${MS(X.puzzle.right)}`, correct: true },
-        { id: 'noStart', label: `All three at ${MS(X.puzzle.noStart)}`, hint: 'That is a stone dropped from rest. These start with ½mu² too.' },
+      equation: 'v = √({u}² + 2 × {g} × {h})',
+      boxes: { u: 'start', g: 'field', h: 'drop' },
+      chips: [
+        { id: 'start', label: MS(CLIFF.u) },
+        { id: 'field', label: G9 },
+        { id: 'drop', label: `${CLIFF.h}${NB}m` },
+        { id: 'angle', label: '45°', hint: 'There is no angle in the equation: energy has no direction.' },
+        { id: 'mass', label: `${fixed(CLIFF.m, 2)}${NB}kg`, hint: 'The mass cancels from both sides, so it is not in the equation.' },
       ],
-      why: `Each starts with ½mu² + mgΔh and ends at sea level: v² = ${CLIFF.u}² + 2 × ${G} × ${CLIFF.h}, so v = ${MS(X.puzzle.right)}, whichever way it was thrown.`,
+      result: { symbol: 'v', value: X.puzzle.right, unit: 'm s⁻¹' },
+      why: `½mv² = ½mu² + mgΔh, so v² = ${CLIFF.u}² + 2 × ${G} × ${CLIFF.h} and v = ${MS(X.puzzle.right)} for A, B and C. A stone simply dropped would reach only ${MS(X.puzzle.noStart)}.`,
+    },
+    {
+      id: 'forgot',
+      kind: 'spotError',
+      prompt: 'Chen works out how fast stone A hits the sea. One line is wrong. Which?',
+      fig: cliff({ stones: [{ id: 'A', angle: 45 }], landing: 'afterCheck' }),
+      lines: [
+        { id: 'gpe', text: `GPE lost = mgΔh = ${fixed(CLIFF.m, 2)} × ${G} × ${CLIFF.h} = ${J(X.forgot.ep)}`, hint: 'That line is right: the stone drops 20 m.' },
+        { id: 'all', text: `All of it becomes kinetic energy: ½mv² = ${J(X.forgot.ep)}`, wrong: true, fix: `It starts with ½mu² = ${J(X.forgot.ek0)} too: ½mv² = ${sig(X.forgot.ep)} + ${sig(X.forgot.ek0)} = ${J(total)}` },
+        { id: 'v', text: `v = √(2 × ${sig(X.forgot.ep)} ÷ ${fixed(CLIFF.m, 2)}) = ${MS(X.forgot.wrongSpeed)}`, hint: 'This follows from the line above. Check what went into it.' },
+        { id: 'same', text: 'So A hits the sea no faster than a stone simply dropped', hint: 'This is what the lines above say. But does A start from rest?' },
+      ],
+      why: `A starts with kinetic energy: ½mu² = ${J(X.forgot.ek0)}. The total at the sea is ${J(total)}, so v = ${MS(X.puzzle.right)}. ${MS(X.forgot.wrongSpeed)} is the speed of a stone dropped from rest.`,
     },
     {
       id: 'losses',
@@ -164,30 +198,41 @@ export const whereTheEnergyGoes: Lesson = {
       card: { term: 'Work against friction', text: 'Work done = FΔs. It is the energy that heats things: the energy "missing" from the kinetic store.' },
     },
     {
-      id: 'slide',
-      kind: 'choice',
-      prompt: `Ella, ${SLIDE.m}${NB}kg, slides from rest down a slide ${fixed(SLIDE.h, 1)}${NB}m high and reaches the foot at ${fixed(SLIDE.v, 1)}${NB}m s⁻¹. How much energy did friction transfer?`,
-      fig: slide({ play: true, heat: 'afterCheck' }),
-      options: [
-        { id: 'ek', label: J(X.slide.ek), hint: 'That is her Ek at the foot. Friction took the rest of the GPE.' },
-        { id: 'right', label: J(X.slide.right), correct: true },
-        { id: 'ep', label: J(X.slide.ep), hint: 'That is all the GPE she lost, and some of it became Ek.' },
-        { id: 'sum', label: J(X.slide.sum), hint: 'The GPE is shared out, not added to: GPE lost = Ek + work against friction.' },
+      id: 'stores',
+      kind: 'sort',
+      prompt: 'Ella slides down a playground slide. Which store does each of these belong to?',
+      bins: [
+        { id: 'ke', label: 'Kinetic' },
+        { id: 'gpe', label: 'Potential' },
+        { id: 'heat', label: 'Thermal' },
       ],
-      why: `GPE lost = ${SLIDE.m} × ${G} × ${fixed(SLIDE.h, 1)} = ${J(slideEp)}, Ek = ½ × ${SLIDE.m} × ${fixed(SLIDE.v, 1)}² = ${J(slideEk)}. Friction took ${J(X.slide.right)}; without it: ${MS(X.slide.still)}.`,
+      items: [
+        { id: 'fall', label: 'The store that shrinks as she drops', bin: 'gpe', hint: 'She loses height, so her gravitational store shrinks.' },
+        { id: 'speed', label: 'The store that grows as she speeds up', bin: 'ke', hint: 'Speed is kinetic energy: ½mv².' },
+        { id: 'warm', label: 'The store that grows as the slide warms up', bin: 'heat', hint: 'Friction heats things: thermal energy.' },
+        { id: 'half', label: '½mv²', bin: 'ke', hint: 'That is the kinetic energy formula.' },
+        { id: 'mgh', label: 'mgΔh', bin: 'gpe', hint: 'That is the change in gravitational potential energy.' },
+        { id: 'fs', label: 'Work done against friction, FΔs', bin: 'heat', hint: 'Work against friction ends up as thermal energy.' },
+      ],
+      why: 'Going down, the gravitational store shrinks. It is shared out between the kinetic store (her speed) and the thermal store (friction).',
     },
     {
-      id: 'friction',
-      kind: 'choice',
-      prompt: `The slide is ${fixed(SLIDE.L, 1)}${NB}m long. What is the average friction force on Ella?`,
-      fig: slide({ heat: 'shown', friction: 'afterCheck' }),
-      options: [
-        { id: 'ep', label: N(X.friction.ep), hint: `That spreads all the GPE over the slide. Friction took only ${J(heat)}.` },
-        { id: 'ek', label: N(X.friction.ek), hint: `Use the energy friction took, ${J(heat)}, not the Ek.` },
-        { id: 'right', label: N(X.friction.right), correct: true },
-        { id: 'height', label: N(X.friction.height), hint: `Friction acts along the slide: divide by the ${fixed(SLIDE.L, 1)}${NB}m she slides, not the height.` },
+      id: 'slide',
+      kind: 'build',
+      prompt: `Ella, ${SLIDE.m}${NB}kg, slides from rest down a slide ${fixed(SLIDE.h, 1)}${NB}m high and reaches the foot at ${fixed(SLIDE.v, 1)}${NB}m s⁻¹. Build the energy that friction transferred.`,
+      fig: slide({ play: true, heat: 'afterCheck' }),
+      equation: 'E = {m} × ({g} × {h} − ½ × {v}²)',
+      boxes: { m: 'mass', g: 'field', h: 'height', v: 'speed' },
+      chips: [
+        { id: 'mass', label: `${SLIDE.m}${NB}kg` },
+        { id: 'field', label: G9 },
+        { id: 'height', label: `${fixed(SLIDE.h, 1)}${NB}m` },
+        { id: 'speed', label: `${fixed(SLIDE.v, 1)}${NB}m s⁻¹` },
+        { id: 'length', label: `${fixed(SLIDE.L, 1)}${NB}m`, hint: `GPE uses the height she falls, ${fixed(SLIDE.h, 1)}${NB}m, not the length of the slide.` },
+        { id: 'still', label: `${fixed(X.slide.still, 2)}${NB}m s⁻¹`, hint: 'That is her speed with no friction. Use the speed she really reached.' },
       ],
-      why: `Work against friction = F × Δs, so F = ${sig(heat)} ÷ ${fixed(SLIDE.L, 1)} = ${N(X.friction.right)}.`,
+      result: { symbol: 'E', value: X.slide.right, unit: 'J' },
+      why: `GPE lost = ${SLIDE.m} × ${G} × ${fixed(SLIDE.h, 1)} = ${J(slideEp)}, Ek = ½ × ${SLIDE.m} × ${fixed(SLIDE.v, 1)}² = ${J(slideEk)}. Friction took ${J(X.slide.right)}: over the ${fixed(SLIDE.L, 1)}${NB}m of slide, ${N(X.slide.friction)}.`,
     },
     {
       id: 'longer',
@@ -208,60 +253,96 @@ export const whereTheEnergyGoes: Lesson = {
     {
       id: 'rules',
       kind: 'text',
-      body: [
-        'Energy is conserved. With no friction or air, **GPE lost = Ek gained**: the speed depends on the drop, not on the path or the direction.',
-        'With friction, **GPE lost = Ek gained + FΔs**, and a longer path loses more. Next: how fast energy is transferred.',
-      ],
+      body: ['GPE lost = Ek gained + FΔs: with no friction, only the drop matters.'],
+      fig: cliff({ landing: 'shown' }),
     },
   ],
   skillCheck: [
     {
       id: 'coaster',
-      kind: 'choice',
-      prompt: `A coaster car starts from rest at the top of a ${COASTER.drop}${NB}m drop, then climbs over a ${COASTER.hill}${NB}m hill. With no friction, how fast is it at the top?`,
-      options: [
-        { id: 'first', label: MS(X.coaster.first) },
-        { id: 'right', label: MS(X.coaster.right), correct: true },
-        { id: 'second', label: MS(X.coaster.second) },
-        { id: 'noHalf', label: MS(X.coaster.noHalf) },
+      kind: 'build',
+      prompt: `A coaster car starts from rest at the top of a ${COASTER.drop}${NB}m drop, then climbs over a ${COASTER.hill}${NB}m hill. With no friction, build its speed at the top of the hill.`,
+      equation: 'v = √(2 × {g} × {h})',
+      boxes: { g: 'field', h: 'below' },
+      chips: [
+        { id: 'field', label: G9 },
+        { id: 'below', label: `${X.coaster.below}${NB}m` },
+        { id: 'whole', label: `${COASTER.drop}${NB}m`, hint: `That is the whole drop. The hill takes back ${COASTER.hill}${NB}m of height.` },
+        { id: 'hill', label: `${COASTER.hill}${NB}m`, hint: 'That is the height of the hill. Use how far the car is below its start.' },
       ],
-      why: `The car is ${COASTER.drop} − ${COASTER.hill} = ${COASTER.drop - COASTER.hill}${NB}m below its start: v = √(2 × ${G} × ${COASTER.drop - COASTER.hill}) = ${MS(X.coaster.right)}, whatever the track's shape.`,
+      result: { symbol: 'v', value: X.coaster.right, unit: 'm s⁻¹' },
+      why: `At the top of the hill the car is ${COASTER.drop} − ${COASTER.hill} = ${X.coaster.below}${NB}m below its start: v = √(2 × ${G} × ${X.coaster.below}) = ${MS(X.coaster.right)}, whatever the track's shape.`,
     },
     {
       id: 'skater',
-      kind: 'choice',
-      prompt: `A skateboarder rolls onto a ramp at ${MS(SKATER.v)}. Ignoring friction, how high up the ramp can she rise?`,
-      options: [
-        { id: 'noHalf', label: M(X.skater.noHalf) },
-        { id: 'vOverG', label: M(X.skater.vOverG) },
-        { id: 'right', label: M(X.skater.right), correct: true },
-        { id: 'mass', label: 'It depends on her mass' },
+      kind: 'spotError',
+      prompt: `Marco works out how high a skateboarder rises on a ramp when she rolls onto it at ${fixed(SKATER.v, 1)}${NB}m s⁻¹. One line is wrong. Which?`,
+      lines: [
+        { id: 'balance', text: 'At the top she stops: all her Ek has become GPE, mgh = ½mv²', hint: 'That line is right: the energy changes store.' },
+        { id: 'cancel', text: 'The mass cancels from both sides: gh = v²', wrong: true, fix: 'The mass cancels from both sides: gh = ½v²' },
+        { id: 'h', text: `h = v² ÷ g = ${fixed(SKATER.v, 1)}² ÷ ${G} = ${M(X.skater.noHalf)}`, hint: 'This follows from the line above. Check what went into it.' },
+        { id: 'mass', text: 'Her mass does not matter', hint: 'That is true: m cancelled. The mistake is in how.' },
       ],
-      why: `½mv² = mgh, and m cancels: h = v² ÷ 2g = ${fixed(SKATER.v, 1)}² ÷ (2 × ${G}) = ${M(X.skater.right)}, for any mass.`,
+      why: `½mv² = mgh leaves ½v² = gh, so h = v² ÷ 2g = ${fixed(SKATER.v, 1)}² ÷ (2 × ${G}) = ${M(X.skater.right)}. Without the ½ the answer doubles to ${M(X.skater.noHalf)}.`,
     },
     {
-      id: 'cyclist',
+      id: 'ramps',
       kind: 'choice',
-      prompt: `A cyclist (${CYCLIST.m}${NB}kg with the bike) freewheels ${CYCLIST.drop}${NB}m down a hill, from ${fixed(CYCLIST.u, 1)} to ${MS(CYCLIST.v)}. How much work is done against resistive forces?`,
+      prompt: 'Identical trolleys start from rest at the top of a steep and a gentle frictionless ramp of equal height. How do they compare at the bottom?',
       options: [
-        { id: 'noStart', label: KJ(X.cyclist.noStart) },
-        { id: 'right', label: KJ(X.cyclist.right), correct: true },
-        { id: 'dEk', label: KJ(X.cyclist.dEk) },
-        { id: 'ep', label: KJ(X.cyclist.ep) },
+        { id: 'steep', label: 'The steep one is faster: it falls more quickly' },
+        { id: 'gentle', label: 'The gentle one is faster: the slope is longer' },
+        { id: 'right', label: 'Both have the same speed', correct: true },
+        { id: 'force', label: 'The steep one is faster: gravity pulls harder along it' },
       ],
-      why: `GPE lost ${KJ(cycEp)}. Ek gained ½ × ${CYCLIST.m} × (${CYCLIST.v}² − ${fixed(CYCLIST.u, 1)}²) = ${KJ(cycEk)}. Work against resistance = ${KJ(X.cyclist.right)}.`,
+      why: 'Both lose the same GPE, mgΔh, so both gain the same Ek: ½mv² = mgΔh. The steep trolley gets there sooner, but not faster. With friction the longer ramp would lose more.',
     },
     {
-      id: 'ball',
-      kind: 'choice',
-      prompt: `A ${fixed(BALL.m, 2)}${NB}kg ball is thrown straight up at ${MS(BALL.u)} and rises only ${fixed(BALL.rise, 1)}${NB}m. What is the average air resistance on it?`,
-      options: [
-        { id: 'ek', label: N(X.ball.ek) },
-        { id: 'right', label: N(X.ball.right), correct: true },
-        { id: 'weight', label: N(X.ball.weight) },
-        { id: 'added', label: N(X.ball.added) },
+      id: 'freewheel',
+      kind: 'examCard',
+      context: `Lena and her bike, ${CYCLIST.m}${NB}kg together, freewheel down a ${CYCLIST.road}${NB}m road that drops ${CYCLIST.drop}${NB}m. She speeds up from ${fixed(CYCLIST.u, 1)} to ${MS(CYCLIST.v)}. Take g = 9.81 N kg⁻¹.`,
+      parts: [
+        {
+          id: 'a',
+          command: 'Calculate',
+          text: 'the energy transferred to the surroundings.',
+          marks: 2,
+          kind: 'build',
+          build: {
+            equation: 'E = {m} × ({g} × {h} − ½ × ({v}² − {u}²))',
+            boxes: { m: 'mass', g: 'field', h: 'drop', v: 'fast', u: 'slow' },
+            chips: [
+              { id: 'mass', label: `${CYCLIST.m}${NB}kg` },
+              { id: 'field', label: G9 },
+              { id: 'drop', label: `${CYCLIST.drop}${NB}m` },
+              { id: 'fast', label: MS(CYCLIST.v) },
+              { id: 'slow', label: `${fixed(CYCLIST.u, 1)}${NB}m s⁻¹` },
+              { id: 'road', label: `${CYCLIST.road}${NB}m`, hint: 'GPE uses the vertical drop, not the length of the road.' },
+            ],
+            result: { symbol: 'E', value: X.cyclist.heat / 1000, unit: 'kJ' },
+          },
+          why: `GPE lost ${KJ(cycEp)}, Ek gained ½ × ${CYCLIST.m} × (${CYCLIST.v}² − ${fixed(CYCLIST.u, 1)}²) = ${KJ(cycEp - cycHeat)}. The rest, ${KJ(X.cyclist.heat)}, went to the surroundings. One mark for each energy.`,
+        },
+        {
+          id: 'b',
+          command: 'Calculate',
+          text: 'the average resistive force along the road.',
+          marks: 2,
+          kind: 'build',
+          build: {
+            equation: 'F = {E} ÷ {s}',
+            boxes: { E: 'energy', s: 'road' },
+            chips: [
+              { id: 'energy', label: KJ(X.cyclist.heat) },
+              { id: 'road', label: `${CYCLIST.road}${NB}m` },
+              { id: 'height', label: `${CYCLIST.drop}${NB}m`, hint: `The resistive force acts along the road: divide by ${CYCLIST.road}${NB}m, not the drop.` },
+              { id: 'gpe', label: KJ(X.cyclist.ep), hint: 'That is all the GPE she lost. Some of it became kinetic energy.' },
+            ],
+            result: { symbol: 'F', value: X.cyclist.force, unit: 'N' },
+          },
+          why: `Work against resistance = F × Δs, so F = ${KJ(X.cyclist.heat)} ÷ ${CYCLIST.road}${NB}m = ${N(X.cyclist.force)}.`,
+        },
       ],
-      why: `Ek at the start ${J(X.ball.ek0)}, GPE at the top ${J(X.ball.ep)}. Air took ${J(X.ball.ek0 - X.ball.ep)} over ${fixed(BALL.rise, 1)}${NB}m: F = ${N(X.ball.right)}.`,
     },
   ],
   youCanNow: [
