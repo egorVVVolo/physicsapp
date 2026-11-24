@@ -4,9 +4,12 @@
 // Every number below comes from src/physics; wrong options are named mistakes, recomputed by the test.
 import { momentum, stickVelocity, totalMomentum, velocityAfter } from '../physics/momentum.ts';
 import { fixed, signed } from '../physics/format.ts';
-import type { CollideBody, CollideFig, Lesson } from './types.ts';
+import type { Trip } from '../physics/kinematics.ts';
+import type { CollideBody, CollideFig, GraphFig, Lesson } from './types.ts';
 
 const NB = '\u00A0';
+/** "+1.5 m s⁻¹", "−1.0 m s⁻¹": a velocity with its sign, as a chip. */
+const vel = (x: number, dp = 1): string => `${signed(x, dp)}${NB}m${NB}s⁻¹`;
 const ms = (x: number, dp = 2): string => `${fixed(x, dp)}${NB}m${NB}s⁻¹`;
 const kgms = (x: number, dp = 2): string => `${fixed(x, dp)}${NB}kg${NB}m${NB}s⁻¹`;
 /** "0.50 m s⁻¹ to the right" / "… to the left" from a signed velocity. */
@@ -24,6 +27,7 @@ export const WAGONS = { m1: 25000, u: 3.0, m2: 15000 }; // kg, m s⁻¹, kg at r
 export const ASTRONAUT = { m: 80, wrench: 2.0, v: 6.0 }; // kg, kg, m s⁻¹
 export const GLIDERS = { m1: 2.0, u1: 3.0, m2: 1.0, u2: -2.0, v2: 2.0 }; // right positive
 
+const UNIT_P = `${NB}kg${NB}m${NB}s⁻¹`;
 const pA = momentum(A.m, A.u);
 const vStick = stickVelocity(A.m, A.u, B.m, 0);
 const vHeadOn = stickVelocity(A.m, A.u, D.m, D.u);
@@ -94,11 +98,58 @@ const stickFig: CollideFig = {
   ledger: 'afterCheck',
 };
 
+
+/** The v–t graphs of A (0.80 kg, 1.5 m s⁻¹) hitting B at rest and sticking: the right one, and two named mistakes. All three share one axis. */
+const HIT = { at: 0.2, dt: 0.1, end: 0.6 }; // s: the trolleys touch at 0.2 s, the contact lasts 0.1 s, the graph ends at 0.6 s
+const trip = (u: number, v: number): Trip => ({ u, phases: [{ dt: HIT.at, a: 0 }, { dt: HIT.dt, a: (v - u) / HIT.dt }, { dt: HIT.end - HIT.at - HIT.dt, a: 0 }] });
+const stickGraph = (id: string, vA: number, vB: number): GraphFig => ({
+  kind: 'graph',
+  y: 'v',
+  header: `graph ${id}`,
+  lines: [
+    { id: 'A', trip: trip(A.u, vA) },
+    { id: 'B', trip: trip(0, vB) },
+  ],
+  tMax: HIT.end,
+  tTick: 0.1,
+  yMax: 2,
+  yTick: 1,
+});
+export const STICK_GRAPHS = {
+  right: { vA: vStick, vB: vStick },
+  /** Equal masses that bounce: A stops dead and B takes all its speed. */
+  swap: { vA: 0, vB: A.u },
+  /** B gets more than A loses: the total momentum would grow. */
+  grows: { vA: vStick, vB: A.u },
+};
+
+const springFig = (over: Partial<CollideFig>): CollideFig => ({
+  kind: 'collide',
+  header: 'spring between A and C · + →',
+  bodies: [body('A', A.m, 0, APART.vA), body('C', C.m, 0, vApart)],
+  join: 'apart',
+  ...over,
+});
+const headOnFig: CollideFig = {
+  kind: 'collide',
+  header: 'putty on A · + →',
+  bodies: [body('A', A.m, A.u, vHeadOn), body('D', D.m, D.u, vHeadOn)],
+  join: 'stick',
+  play: 'afterCheck',
+  ledger: 'afterCheck',
+};
+
 export const collisions: Lesson = {
   id: 'collisions',
   title: 'Collisions',
   spec: [14],
   minutes: 12,
+  chapters: [
+    { title: 'The puzzle', from: 'intro' },
+    { title: 'Conservation', from: 'conserved' },
+    { title: 'Pushing apart', from: 'apart' },
+  ],
+  cast: ['Dev'],
   story: [
     {
       id: 'intro',
@@ -131,15 +182,25 @@ export const collisions: Lesson = {
     },
     {
       id: 'stick',
-      kind: 'choice',
-      prompt: `A (${fixed(A.m, 2)} kg) hits B (${fixed(B.m, 2)} kg), which is at rest, at ${ms(A.u, 1)}. They stick. How fast do they move off?`,
-      fig: stickFig,
-      options: [
-        { id: 'one-mass', label: ms(X.stick.oneMass), hint: 'After the hit A and B move together: share the momentum over both masses.' },
-        { id: 'right', label: ms(X.stick.right), correct: true },
-        { id: 'momentum', label: ms(X.stick.momentum), hint: 'That is the total momentum, in kg m s⁻¹. Divide it by the mass that moves.' },
-      ],
+      kind: 'estimate',
+      prompt: `A (${fixed(A.m, 2)} kg) hits B (${fixed(B.m, 2)} kg), which is at rest, at ${ms(A.u, 1)}. They stick. Drag to the speed they move off at.`,
+      fig: { ...stickFig, play: 'approach', ledger: undefined },
+      after: { ...stickFig, play: true, ledger: 'shown' },
+      scale: { min: 0, max: 2, step: 0.05, tick: 0.5, unit: 'm s⁻¹', symbol: 'v', dp: 2, label: 'Speed of A and B together' },
+      answer: vStick,
+      tolerance: 0.1,
       why: `Before: ${fixed(A.m, 2)} × ${fixed(A.u, 1)} + 0 = ${kgms(pA)}. After: (${fixed(A.m, 2)} + ${fixed(B.m, 2)}) v = ${fixed(pA, 2)}, so v = ${ms(vStick)}. Twice the mass, half the speed.`,
+    },
+    {
+      id: 'stick-graph',
+      kind: 'graphPick',
+      prompt: 'A hits B and they stick. Which v–t graph shows both trolleys?',
+      graphs: [
+        { id: 'A', fig: stickGraph('A', STICK_GRAPHS.swap.vA, STICK_GRAPHS.swap.vB), hint: 'A stops and B takes all its speed: a bounce. Stuck trolleys end together.' },
+        { id: 'B', fig: stickGraph('B', STICK_GRAPHS.grows.vA, STICK_GRAPHS.grows.vB), hint: 'B gains 1.5 but A loses only 0.75: the total momentum would grow.' },
+        { id: 'C', fig: stickGraph('C', STICK_GRAPHS.right.vA, STICK_GRAPHS.right.vB), correct: true },
+      ],
+      why: `Both lines meet at ${ms(vStick)}: A loses ${fixed(A.u - vStick, 2)} m s⁻¹, B gains ${fixed(vStick, 2)} m s⁻¹, and with equal masses the momentum lost is the momentum gained.`,
     },
     {
       id: 'heavier',
@@ -168,22 +229,20 @@ export const collisions: Lesson = {
     },
     {
       id: 'head-on',
-      kind: 'choice',
-      prompt: `A (${fixed(A.m, 2)} kg) rolls right at ${ms(A.u, 1)}. D (${fixed(D.m, 2)} kg) rolls left at ${ms(-D.u, 1)}. They stick. What is their velocity after?`,
-      fig: {
-        kind: 'collide',
-        header: 'putty on A · + →',
-        bodies: [body('A', A.m, A.u, vHeadOn), body('D', D.m, D.u, vHeadOn)],
-        join: 'stick',
-        play: 'afterCheck',
-        ledger: 'afterCheck',
-      },
-      options: [
-        { id: 'zero', label: 'Zero: same speeds, so they cancel', hint: 'Speeds do not cancel, momenta do. A has twice the mass of D.' },
-        { id: 'right', label: way(vHeadOn), correct: true },
-        { id: 'left', label: way(-vHeadOn), hint: "A's momentum is bigger, so the total points A's way." },
-        { id: 'sizes', label: way(X.headOn.sizes), hint: "D moves left, so its momentum is negative: −0.60." },
+      kind: 'build',
+      prompt: `A (${fixed(A.m, 2)} kg) rolls right at ${ms(A.u, 1)}. D (${fixed(D.m, 2)} kg) rolls left at ${ms(-D.u, 1)}. They stick. Build their velocity after.`,
+      fig: headOnFig,
+      equation: 'v = ({m₁} × {u₁} + {m₂} × {u₂}) ÷ {M}',
+      boxes: { 'm₁': 'mA', 'u₁': 'uA', 'm₂': 'mD', 'u₂': 'uD', M: 'total' },
+      chips: [
+        { id: 'mA', label: `${fixed(A.m, 2)}${NB}kg` },
+        { id: 'uA', label: vel(A.u) },
+        { id: 'mD', label: `${fixed(D.m, 2)}${NB}kg` },
+        { id: 'uD', label: vel(D.u) },
+        { id: 'total', label: `${fixed(A.m + D.m, 2)}${NB}kg` },
+        { id: 'p', label: kgms(pA), hint: "That is A's momentum, not a mass. The last box needs the total mass." },
       ],
+      result: { symbol: 'v', value: vHeadOn, unit: 'm s⁻¹' },
       why: `Before: ${fixed(pA, 2)} + ${fixed(D.m, 2)} × (${signed(D.u, 1)}) = ${signed(pA + momentum(D.m, D.u), 2)}. After: ${fixed(A.m + D.m, 2)} v = ${fixed(pA + momentum(D.m, D.u), 2)}, so v = ${signed(vHeadOn, 2)} m s⁻¹.`,
     },
     {
@@ -202,30 +261,23 @@ export const collisions: Lesson = {
     {
       id: 'apart',
       kind: 'text',
-      body: [
-        'Bodies at rest can also **push apart**: a spring, a jump, an explosion. The total momentum before is zero.',
-        'So it is zero after too. The two momenta are **equal and opposite**: the lighter body moves off faster.',
-      ],
+      body: ['At rest, bodies can push apart: a spring, a jump. Their total momentum starts at zero.'],
+      fig: springFig({ play: 'approach' }),
     },
     {
-      id: 'spring',
-      kind: 'choice',
-      prompt: `A (${fixed(A.m, 2)} kg) and C (${fixed(C.m, 2)} kg) rest together. A spring pushes them apart and A moves left at ${ms(-APART.vA)}. What is C's velocity?`,
-      fig: {
-        kind: 'collide',
-        header: 'spring between A and C · + →',
-        bodies: [body('A', A.m, 0, APART.vA), body('C', C.m, 0, vApart)],
-        join: 'apart',
-        play: 'afterCheck',
-        ledger: 'afterCheck',
-      },
-      options: [
-        { id: 'same', label: way(X.apart.sameSpeed), hint: 'Same momentum, not same speed. C is heavier, so it is slower.' },
-        { id: 'swapped', label: way(X.apart.swapped), hint: 'The masses are swapped. The heavier trolley moves off slower.' },
-        { id: 'right', label: way(vApart), correct: true },
-        { id: 'left', label: way(-vApart), hint: 'The total stays zero: C must go the opposite way to A.' },
+      id: 'recoil',
+      kind: 'order',
+      prompt: `A spring pushes A and C apart from rest. Why do they move off in opposite directions? Put the reasoning in order.`,
+      fig: springFig({ play: 'afterCheck', ledger: 'afterCheck' }),
+      steps: [
+        { id: 'rest', text: 'Before the push both trolleys are at rest: the total momentum is zero.' },
+        { id: 'forces', text: 'The spring pushes each with a force of the same size, for the same time.' },
+        { id: 'equal', text: 'So A gains as much momentum one way as C gains the other way.' },
+        { id: 'zero', text: 'The total is still zero: the two momenta are equal and opposite.' },
+        { id: 'fast', text: 'The lighter trolley has less mass, so it moves off faster.' },
       ],
-      why: `Total 0 before, so 0 after: ${fixed(A.m, 2)} × (${signed(APART.vA, 2)}) + ${fixed(C.m, 2)} v = 0, so v = ${signed(vApart, 2)} m s⁻¹, to the right.`,
+      hint: 'Start from the total before, then the forces, then the two momenta.',
+      why: `A: ${fixed(A.m, 2)} × (${signed(APART.vA, 2)}) = ${signed(momentum(A.m, APART.vA), 2)}. C: ${fixed(C.m, 2)} × ${fixed(vApart, 2)} = +${fixed(momentum(C.m, vApart), 2)}. Equal and opposite.`,
     },
     {
       id: 'bounce',
@@ -270,48 +322,42 @@ export const collisions: Lesson = {
     {
       id: 'rules',
       kind: 'text',
-      body: [
-        'With no external force, **total momentum before = total momentum after**. Choose + and give every momentum its sign.',
-        'Bodies that stick share one velocity. Bodies that push apart from rest get equal and opposite momenta.',
-      ],
+      body: ['No external force: total momentum before = total after. Give every momentum its sign.'],
+      fig: puzzle({ play: undefined, at: 'after', ledger: 'shown' }),
     },
   ],
   skillCheck: [
     {
       id: 'wagons',
-      kind: 'choice',
-      prompt: `A 25${NB}000 kg railway wagon moving at ${ms(WAGONS.u, 1)} hits a 15${NB}000 kg wagon at rest. They couple together. How fast do they move off?`,
-      options: [
-        { id: 'other', label: ms(X.wagons.other) },
-        { id: 'half', label: ms(X.wagons.half) },
-        { id: 'right', label: ms(X.wagons.right), correct: true },
-        { id: 'swapped', label: ms(X.wagons.swapped) },
+      kind: 'build',
+      prompt: `A 25${NB}000 kg railway wagon moving at ${ms(WAGONS.u, 1)} hits a 15${NB}000 kg wagon at rest. They couple together. Build their velocity after.`,
+      equation: 'v = ({m₁} × {u}) ÷ {M}',
+      boxes: { 'm₁': 'moving', u: 'speed', M: 'total' },
+      chips: [
+        { id: 'moving', label: `25${NB}000${NB}kg` },
+        { id: 'speed', label: vel(WAGONS.u) },
+        { id: 'total', label: `40${NB}000${NB}kg` },
+        { id: 'rest', label: `15${NB}000${NB}kg`, hint: 'That wagon is at rest: it has no momentum before. The moving one is 25 000 kg.' },
       ],
+      result: { symbol: 'v', value: X.wagons.right, unit: 'm s⁻¹' },
       why: `25${NB}000 × ${fixed(WAGONS.u, 1)} = (25${NB}000 + 15${NB}000) v, so v = 75${NB}000 / 40${NB}000 = ${ms(X.wagons.right)}.`,
     },
     {
-      id: 'astronaut',
-      kind: 'choice',
-      prompt: `An ${ASTRONAUT.m} kg astronaut floats at rest. She throws a ${fixed(ASTRONAUT.wrench, 1)} kg wrench at ${ms(ASTRONAUT.v, 1)}. What is her velocity after?`,
-      options: [
-        { id: 'both', label: `${ms(-X.astronaut.both, 3)}, opposite to the wrench` },
-        { id: 'right', label: `${ms(-X.astronaut.right, 3)}, opposite to the wrench`, correct: true },
-        { id: 'with', label: `${ms(-X.astronaut.right, 3)}, the same way as the wrench` },
-        { id: 'same', label: `${ms(ASTRONAUT.v, 1)}, opposite to the wrench` },
-      ],
-      why: `Total 0 before, so 0 after: ${fixed(ASTRONAUT.wrench, 1)} × ${fixed(ASTRONAUT.v, 1)} + ${ASTRONAUT.m} v = 0, so v = ${signed(X.astronaut.right, 3)} m s⁻¹: she moves away from the wrench.`,
-    },
-    {
       id: 'gliders',
-      kind: 'choice',
-      prompt: `Air track: P (${fixed(GLIDERS.m1, 1)} kg) goes right at ${ms(GLIDERS.u1, 1)}, Q (${fixed(GLIDERS.m2, 1)} kg) left at ${ms(-GLIDERS.u2, 1)}. They collide. Q goes right at ${ms(GLIDERS.v2, 1)}. What is P's velocity?`,
-      options: [
-        { id: 'right', label: way(X.gliders.right, 1), correct: true },
-        { id: 'left', label: way(-X.gliders.right, 1) },
-        { id: 'signs', label: way(X.gliders.signsDropped, 1) },
-        { id: 'left-out', label: way(X.gliders.leftOut, 1) },
+      kind: 'spotError',
+      prompt: `Air track: P (${fixed(GLIDERS.m1, 1)} kg) goes right at ${ms(GLIDERS.u1, 1)}, Q (${fixed(GLIDERS.m2, 1)} kg) left at ${ms(-GLIDERS.u2, 1)}. Q rebounds right at ${ms(GLIDERS.v2, 1)}. Dev's working has one mistake. Which line?`,
+      lines: [
+        { id: 'signs', text: `Right is +: P is ${fixed(GLIDERS.m1, 1)} kg at +${fixed(GLIDERS.u1, 1)}, Q is ${fixed(GLIDERS.m2, 1)} kg at ${signed(GLIDERS.u2, 1)}.`, hint: 'That line only sets the signs, and they are right.' },
+        {
+          id: 'before',
+          text: `Total before = ${fixed(GLIDERS.m1, 1)} × ${fixed(GLIDERS.u1, 1)} + ${fixed(GLIDERS.m2, 1)} × ${fixed(-GLIDERS.u2, 1)} = ${fixed(GLIDERS.m1 * GLIDERS.u1 + GLIDERS.m2 * -GLIDERS.u2, 1)}${UNIT_P}`,
+          wrong: true,
+          fix: `Total before = ${fixed(GLIDERS.m1, 1)} × ${fixed(GLIDERS.u1, 1)} + ${fixed(GLIDERS.m2, 1)} × (${signed(GLIDERS.u2, 1)}) = ${fixed(X.gliders.total, 1)}${UNIT_P}`,
+        },
+        { id: 'after', text: `${fixed(GLIDERS.m1 * GLIDERS.u1 + GLIDERS.m2 * -GLIDERS.u2, 1)} = ${fixed(GLIDERS.m1, 1)} v + ${fixed(GLIDERS.m2, 1)} × ${fixed(GLIDERS.v2, 1)}, so v = +${fixed(X.gliders.signsDropped, 1)}${NB}m${NB}s⁻¹`, hint: 'This follows from the line above. Check the total before.' },
+        { id: 'end', text: `So P goes right at ${ms(X.gliders.signsDropped, 1)}.`, hint: 'This repeats the line above. Look further up for the slip.' },
       ],
-      why: `Right +: ${fixed(GLIDERS.m1, 1)} × ${fixed(GLIDERS.u1, 1)} + ${fixed(GLIDERS.m2, 1)} × (${signed(GLIDERS.u2, 1)}) = ${fixed(X.gliders.total, 1)} = ${fixed(GLIDERS.m1, 1)} v + ${fixed(GLIDERS.m2 * GLIDERS.v2, 1)}, so v = ${signed(X.gliders.right, 1)} m s⁻¹.`,
+      why: `Q moves left, so its momentum is negative: total before = ${fixed(X.gliders.total, 1)}, not ${fixed(GLIDERS.m1 * GLIDERS.u1 + GLIDERS.m2 * -GLIDERS.u2, 1)}. Then v = ${signed(X.gliders.right, 1)} m s⁻¹.`,
     },
     {
       id: 'falling',
@@ -324,6 +370,47 @@ export const collisions: Lesson = {
         { id: 'speed', label: 'It stays the same: only the speed grows' },
       ],
       why: 'The ball’s weight is a force from outside, from the Earth. It gives the ball more momentum every second.',
+    },
+    {
+      id: 'release',
+      kind: 'examCard',
+      context: `Two trolleys, ${fixed(A.m, 2)} kg (A) and ${fixed(C.m, 2)} kg (C), rest together with a compressed spring between them. When released, A moves left at ${ms(-APART.vA)}. Right is positive.`,
+      parts: [
+        {
+          id: 'a',
+          command: 'Calculate',
+          text: "C's velocity.",
+          marks: 2,
+          kind: 'build',
+          build: {
+            equation: 'v = −({m₁} × {v₁}) ÷ {m₂}',
+            boxes: { 'm₁': 'mA', 'v₁': 'vA', 'm₂': 'mC' },
+            chips: [
+              { id: 'mA', label: `${fixed(A.m, 2)}${NB}kg` },
+              { id: 'vA', label: vel(APART.vA, 2) },
+              { id: 'mC', label: `${fixed(C.m, 2)}${NB}kg` },
+              { id: 'plus', label: vel(-APART.vA, 2), hint: 'A moves left, the negative way: −0.90.' },
+              { id: 'total', label: `${fixed(A.m + C.m, 2)}${NB}kg`, hint: 'C moves alone after the push: divide by its own mass.' },
+            ],
+            result: { symbol: 'v', value: vApart, unit: 'm s⁻¹' },
+          },
+          why: `Total 0 before, so 0 after: ${fixed(A.m, 2)} × (${signed(APART.vA, 2)}) + ${fixed(C.m, 2)} v = 0, so v = +${fixed(vApart, 2)} m s⁻¹. One mark for the sign, one for the value.`,
+        },
+        {
+          id: 'b',
+          command: 'State',
+          text: 'the total momentum of the two trolleys just after the release.',
+          marks: 1,
+          kind: 'choice',
+          options: [
+            { id: 'zero', label: 'Zero', correct: true },
+            { id: 'right', label: `${kgms(momentum(C.m, vApart))} to the right` },
+            { id: 'left', label: `${kgms(-momentum(A.m, APART.vA))} to the left` },
+            { id: 'both', label: `${kgms(momentum(C.m, vApart) - momentum(A.m, APART.vA))} to the right` },
+          ],
+          why: 'The spring is an internal force and they started at rest, so the total stays zero: +0.72 and −0.72 cancel.',
+        },
+      ],
     },
   ],
   youCanNow: [

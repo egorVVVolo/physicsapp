@@ -548,7 +548,7 @@ export type CollideFig = {
 export type CollideBody = { id: string; m: number; u: number; v: number };
 
 /**
- * A stuck nut and a spanner lying along +x, in one panel per pull (MIA / LEO). Each pull has the same size F, acts a
+ * A stuck nut and a spanner lying along +x, in one panel per pull (PRIYA / TOM). Each pull has the same size F, acts a
  * distance r from the nut and points at `angle` degrees to the handle, upwards and back towards the nut (90 = at right
  * angles), so every pull turns the nut anticlockwise. Moments come from src/physics/moments.
  * On an explore screen the slider sets the angle of the first pull.
@@ -565,7 +565,7 @@ export type SpannerFig = {
   /** Played: each spanner turns the nut 30° and back, again and again; the bigger moment turns it faster. */
   play?: true | 'afterCheck';
 };
-export type SpannerPull = { who: 'MIA' | 'LEO'; r: number; angle: number };
+export type SpannerPull = { who: 'PRIYA' | 'TOM'; r: number; angle: number };
 
 /**
  * A pole fixed to a wall, rising at `angle` degrees above the horizontal, with a sign of weight W hanging from its end.

@@ -1,7 +1,7 @@
 // Lesson "Turning forces" — the moment of a force, Fx with x the perpendicular distance (WPH11 point 15).
-// The puzzle: Mia and Leo try the same 0.30 m spanner on a stuck nut with the same 40 N. Mia pulls at the end but at
-// 30° to the handle; Leo pulls at right angles, 0.20 m from the nut. Leo's pull turns harder: 8.0 N m against 6.0 N m,
-// because Mia's line of action passes only 0.15 m from the nut.
+// The puzzle: Priya and Tom try the same 0.30 m spanner on a stuck nut with the same 40 N. Priya pulls at the end but at
+// 30° to the handle; Tom pulls at right angles, 0.20 m from the nut. Tom's pull turns harder: 8.0 N m against 6.0 N m,
+// because Priya's line of action passes only 0.15 m from the nut.
 // Every number below comes from src/physics; wrong options are named mistakes, recomputed by the test.
 import { distanceForMoment, loadMoment, moment, momentAtAngle, perpendicularDistance, resultantMoment } from '../physics/moments.ts';
 import { fixed } from '../physics/format.ts';
@@ -17,8 +17,8 @@ const sense = (x: number): string => `${Nm(Math.abs(x))} ${x >= 0 ? 'anticlockwi
 // The puzzle: one spanner, one force, two ways to pull.
 export const F = 40; // N, both pulls
 export const SPANNER = 0.3; // m, from the nut's centre to the end
-export const MIA = { r: 0.3, angle: 30 }; // at the end, at 30° to the handle
-export const LEO = { r: 0.2, angle: 90 }; // at right angles, 20 cm from the nut
+export const PRIYA = { r: 0.3, angle: 30 }; // at the end, at 30° to the handle
+export const TOM = { r: 0.2, angle: 90 }; // at right angles, 20 cm from the nut
 // The sign on a pole fixed to a wall.
 export const POLE = { L: 2.0, angle: 30, W: 50 }; // m, degrees above the horizontal, N
 // The light bar on a pivot at its middle (right of the pivot positive).
@@ -28,9 +28,9 @@ export const PEDAL = { r: 0.17, below: 60, F: 300 }; // m, degrees below the hor
 export const WHEEL = { across: 0.36, F: 20 }; // m, N each hand
 export const BOLT = { M: 90, F: 250, angle: 60 }; // N m, N, degrees to the handle
 
-const mLeo = momentAtAngle(F, LEO.r, LEO.angle);
-const mMia = momentAtAngle(F, MIA.r, MIA.angle);
-const xMia = perpendicularDistance(MIA.r, MIA.angle);
+const mTom = momentAtAngle(F, TOM.r, TOM.angle);
+const mPriya = momentAtAngle(F, PRIYA.r, PRIYA.angle);
+const xPriya = perpendicularDistance(PRIYA.r, PRIYA.angle);
 const poleX = POLE.L * Math.cos(POLE.angle * RAD); // the weight is vertical: the horizontal distance counts
 const barLeft = loadMoment(BAR.left.W, BAR.left.at);
 const barRight = loadMoment(BAR.right.W, BAR.right.at);
@@ -38,10 +38,10 @@ const pedalX = PEDAL.r * Math.cos(PEDAL.below * RAD);
 
 /** Answers and named mistakes, used by the screens and re-checked by turning-forces.test.ts. */
 export const ANSWERS = {
-  leo: { right: mLeo, cm: moment(F, LEO.r * 100), divided: F / LEO.r },
-  explore: { along: momentAtAngle(F, MIA.r, 0), across: momentAtAngle(F, MIA.r, 90) },
+  tom: { right: mTom, cm: moment(F, TOM.r * 100), divided: F / TOM.r },
+  explore: { along: momentAtAngle(F, PRIYA.r, 0), across: momentAtAngle(F, PRIYA.r, 90) },
   /** The puzzle. */
-  puzzle: { right: mMia, x: xMia, leo: mLeo, point: moment(F, MIA.r), cos: moment(F, MIA.r * Math.cos(MIA.angle * RAD)) },
+  puzzle: { right: mPriya, x: xPriya, tom: mTom, point: moment(F, PRIYA.r), cos: moment(F, PRIYA.r * Math.cos(PRIYA.angle * RAD)) },
   pole: { x: poleX, right: moment(POLE.W, poleX), along: moment(POLE.W, POLE.L), height: moment(POLE.W, POLE.L * Math.sin(POLE.angle * RAD)) },
   bar: { left: barLeft, right: barRight, total: resultantMoment([barLeft, barRight]), added: Math.abs(barLeft) + Math.abs(barRight) },
   pedal: { x: pedalX, right: moment(PEDAL.F, pedalX), length: moment(PEDAL.F, PEDAL.r), sin: moment(PEDAL.F, PEDAL.r * Math.sin(PEDAL.below * RAD)), divided: PEDAL.F / PEDAL.r },
@@ -61,8 +61,8 @@ const nut = (over: Partial<SpannerFig>): SpannerFig => ({
   F,
   length: SPANNER,
   pulls: [
-    { who: 'MIA', ...MIA },
-    { who: 'LEO', ...LEO },
+    { who: 'PRIYA', ...PRIYA },
+    { who: 'TOM', ...TOM },
   ],
   ...over,
 });
@@ -70,18 +70,25 @@ const nut = (over: Partial<SpannerFig>): SpannerFig => ({
 const pole = (over: Partial<PoleFig>): PoleFig => ({ kind: 'pole', ...POLE, ...over });
 
 const barFig: BarFig = { kind: 'bar', half: BAR.half, loads: [BAR.left, BAR.right], moments: 'afterCheck', play: 'afterCheck' };
+const barStill: BarFig = { kind: 'bar', half: BAR.half, loads: [BAR.left, BAR.right] };
 
 export const turningForces: Lesson = {
   id: 'moments',
   title: 'Turning forces',
   spec: [15],
   minutes: 12,
+  chapters: [
+    { title: 'The puzzle', from: 'intro' },
+    { title: 'Moment of a force', from: 'moment' },
+    { title: 'Back to the nut', from: 'hook-again' },
+  ],
+  cast: ['Priya', 'Tom', 'Maya', 'Joel'],
   story: [
     {
       id: 'intro',
       kind: 'intro',
       title: 'Turning forces',
-      body: `A wheel nut is stuck. Mia and Leo try the same spanner, each pulling with ${F}${NB}N, but in different ways.`,
+      body: `A wheel nut is stuck. Priya and Tom try the same spanner, each pulling with ${F}${NB}N, but in different ways.`,
       fig: nut({}),
     },
     {
@@ -90,8 +97,8 @@ export const turningForces: Lesson = {
       prompt: 'Whose pull has the bigger turning effect on the nut?',
       fig: nut({}),
       options: [
-        { id: 'mia', label: "Mia's: she pulls further from the nut" },
-        { id: 'leo', label: "Leo's: he pulls at right angles", correct: true },
+        { id: 'priya', label: "Priya's: she pulls further from the nut" },
+        { id: 'tom', label: "Tom's: he pulls at right angles", correct: true },
         { id: 'same', label: 'The same: same force, same spanner' },
         { id: 'unsure', label: "I'm not sure" },
       ],
@@ -107,23 +114,23 @@ export const turningForces: Lesson = {
       card: { term: 'Moment', text: 'For a force at right angles to the lever: moment = force × distance from the pivot. Unit: N m.' },
     },
     {
-      id: 'leo',
+      id: 'tom',
       kind: 'choice',
-      prompt: `Leo pulls with ${F}${NB}N at right angles to the handle, ${Math.round(LEO.r * 100)}${NB}cm from the centre of the nut. What is the moment of his pull?`,
-      fig: nut({ pulls: [{ who: 'LEO', ...LEO }], perp: 'afterCheck', moment: 'afterCheck' }),
+      prompt: `Tom pulls with ${F}${NB}N at right angles to the handle, ${Math.round(TOM.r * 100)}${NB}cm from the centre of the nut. What is the moment of his pull?`,
+      fig: nut({ pulls: [{ who: 'TOM', ...TOM }], perp: 'afterCheck', moment: 'afterCheck', play: 'afterCheck' }),
       options: [
-        { id: 'cm', label: Nm(X.leo.cm, 0), hint: '20 cm is 0.20 m. Put distances in metres for N m.' },
-        { id: 'divided', label: Nm(X.leo.divided, 0), hint: 'Multiply, do not divide: further from the pivot turns more.' },
-        { id: 'right', label: Nm(mLeo), correct: true },
-        { id: 'unit', label: `${fixed(mLeo, 1)}${NB}N`, hint: 'Force times distance: the unit is N m, not N.' },
+        { id: 'cm', label: Nm(X.tom.cm, 0), hint: '20 cm is 0.20 m. Put distances in metres for N m.' },
+        { id: 'divided', label: Nm(X.tom.divided, 0), hint: 'Multiply, do not divide: further from the pivot turns more.' },
+        { id: 'right', label: Nm(mTom), correct: true },
+        { id: 'unit', label: `${fixed(mTom, 1)}${NB}N`, hint: 'Force times distance: the unit is N m, not N.' },
       ],
-      why: `${Math.round(LEO.r * 100)} cm = ${fixed(LEO.r, 2)} m, so the moment = ${F} × ${fixed(LEO.r, 2)} = ${Nm(mLeo)}, anticlockwise.`,
+      why: `${Math.round(TOM.r * 100)} cm = ${fixed(TOM.r, 2)} m, so the moment = ${F} × ${fixed(TOM.r, 2)} = ${Nm(mTom)}, anticlockwise.`,
     },
     {
       id: 'line',
       kind: 'text',
       body: [
-        'Mia pulls at an angle. Extend her arrow both ways: that straight line is the force’s **line of action**.',
+        'Priya pulls at an angle. Extend her arrow both ways: that straight line is the force’s **line of action**.',
         'What counts is the **perpendicular distance** from the pivot to the line of action: the shortest way to it, at right angles.',
       ],
       card: { term: 'Moment of a force', text: 'Moment = Fx, where x is the perpendicular distance from the pivot to the line of action of the force.' },
@@ -131,9 +138,9 @@ export const turningForces: Lesson = {
     {
       id: 'angle',
       kind: 'explore',
-      instruction: "Drag the slider to turn Mia's pull. Watch the perpendicular x from the nut.",
-      fig: nut({ pulls: [{ who: 'MIA', r: MIA.r, angle: 90 }], perp: 'shown' }),
-      slider: { min: 0, max: 90, step: 5, tick: 15, label: "Mia's angle to the handle", unit: '°', symbol: 'θ', dp: 0, start: 90 },
+      instruction: "Drag the slider to turn Priya's pull. Watch the perpendicular x from the nut.",
+      fig: nut({ pulls: [{ who: 'PRIYA', r: PRIYA.r, angle: 90 }], perp: 'shown' }),
+      slider: { min: 0, max: 90, step: 5, tick: 15, label: "Priya's angle to the handle", unit: '°', symbol: 'θ', dp: 0, start: 90 },
       question: {
         prompt: 'Turn the pull until it points along the handle. What is its moment about the nut?',
         options: [
@@ -145,27 +152,20 @@ export const turningForces: Lesson = {
       },
     },
     {
-      id: 'two-ways',
-      kind: 'text',
-      body: [
-        'Or split Mia’s pull. Along the handle, F cos θ only pushes into the nut. Across it, **F sin θ** turns the nut, at the full 30 cm.',
-        'Both ways give the same moment: F × (r sin θ) = (F sin θ) × r. Use whichever is easier to see.',
-      ],
-      card: { term: 'Force at θ to the lever', text: 'Moment = F r sin θ: F times the perpendicular distance, or the perpendicular component times r.' },
-    },
-    {
       id: 'hook-again',
-      kind: 'choice',
-      revisitOf: 'hook',
-      prompt: `Back to the nut. Mia pulls with ${F}${NB}N at the end of the ${Math.round(SPANNER * 100)}${NB}cm spanner, at ${MIA.angle}° to the handle. Whose moment is bigger?`,
+      kind: 'build',
+      prompt: `Back to the nut. Priya pulls with ${F}${NB}N at the end of the ${Math.round(SPANNER * 100)}${NB}cm spanner, at ${PRIYA.angle}° to the handle. Build her moment.`,
       fig: nut({ perp: 'afterCheck', moment: 'afterCheck', play: 'afterCheck' }),
-      options: [
-        { id: 'point', label: `Mia's: hers is ${Nm(X.puzzle.point)}`, hint: '30 cm is where she pulls, not x. Use the perpendicular to her line.' },
-        { id: 'cos', label: `Mia's: hers is ${Nm(X.puzzle.cos)}`, hint: 'x is opposite the 30° angle: 0.30 × sin 30°, not cos.' },
-        { id: 'right', label: `Leo's: Mia's is only ${Nm(mMia)}`, correct: true },
-        { id: 'same', label: 'The same: 40 N each', hint: 'Same force, but different perpendicular distances.' },
+      equation: 'M = {F} × {x}',
+      boxes: { F: 'force', x: 'perp' },
+      chips: [
+        { id: 'force', label: `${F}${NB}N` },
+        { id: 'perp', label: m(xPriya) },
+        { id: 'point', label: m(PRIYA.r), hint: 'That is where she pulls, not the perpendicular distance to her line.' },
+        { id: 'cos', label: m(PRIYA.r * Math.cos(PRIYA.angle * RAD)), hint: 'x is opposite the 30° angle: 0.30 × sin 30°, not cos.' },
       ],
-      why: `Mia: x = ${fixed(MIA.r, 2)} × sin ${MIA.angle}° = ${m(xMia)}, so ${F} × ${fixed(xMia, 2)} = ${Nm(mMia)}. Leo: ${Nm(mLeo)}. Nearer the nut, but at right angles, Leo wins.`,
+      result: { symbol: 'M', value: mPriya, unit: 'N m' },
+      why: `x = ${fixed(PRIYA.r, 2)} × sin ${PRIYA.angle}° = ${m(xPriya)}, so M = ${F} × ${fixed(xPriya, 2)} = ${Nm(mPriya)}. Tom's ${Nm(mTom)} is bigger: nearer the nut, but at right angles.`,
     },
     {
       id: 'pole-x',
@@ -181,24 +181,23 @@ export const turningForces: Lesson = {
       why: 'The weight’s line of action is vertical. The perpendicular from the fixing to a vertical line is horizontal.',
     },
     {
-      id: 'pole',
-      kind: 'choice',
-      prompt: `The pole is ${m(POLE.L, 1)} long, at ${POLE.angle}° above the horizontal. What is the moment of the ${POLE.W}${NB}N sign about the fixing?`,
-      fig: pole({ moment: 'afterCheck' }),
-      options: [
-        { id: 'along', label: Nm(X.pole.along, 0), hint: `${m(POLE.L, 1)} is along the pole. Use the horizontal distance.` },
-        { id: 'right', label: Nm(X.pole.right), correct: true },
-        { id: 'height', label: Nm(X.pole.height), hint: 'That uses the height, 2.0 sin 30°. The weight needs cos 30°.' },
+      id: 'pole-error',
+      kind: 'spotError',
+      prompt: `The pole is ${m(POLE.L, 1)} long, ${POLE.angle}° above the horizontal. Maya works out the moment of the sign. One line is wrong. Which?`,
+      fig: pole({}),
+      lines: [
+        { id: 'w', text: `The ${POLE.W}${NB}N weight acts straight down.`, hint: 'That line is right: the sign hangs straight down.' },
+        { id: 'x', text: `x = length of the pole = ${m(POLE.L, 1)}`, wrong: true, fix: `x = ${fixed(POLE.L, 1)} cos ${POLE.angle}° = ${m(poleX)}, horizontal` },
+        { id: 'm', text: `Moment = Fx = ${POLE.W} × ${fixed(POLE.L, 1)} = ${Nm(X.pole.along, 0)}`, hint: 'This follows from the line above. Check the x put in.' },
+        { id: 'end', text: `So the sign turns the pole ${Nm(X.pole.along, 0)} clockwise.`, hint: 'This repeats the line above. Look further up for the slip.' },
       ],
-      why: `x = ${fixed(POLE.L, 1)} × cos ${POLE.angle}° = ${m(poleX)}, so the moment = ${POLE.W} × ${fixed(poleX, 2)} = ${Nm(X.pole.right)}, clockwise.`,
+      why: `The weight is vertical, so x is horizontal: ${fixed(POLE.L, 1)} cos ${POLE.angle}° = ${m(poleX)}, and the moment is ${Nm(X.pole.right)}, not ${Nm(X.pole.along, 0)}.`,
     },
     {
       id: 'sense',
       kind: 'text',
-      body: [
-        'A moment has a direction too: it turns the body **clockwise** or **anticlockwise**.',
-        'Moments the same way add up; opposite ways, they subtract. The body starts to turn the way of the bigger total, the **resultant moment**.',
-      ],
+      body: ['Moments the same way add; opposite ways subtract. The bigger total decides the turn.'],
+      fig: barStill,
     },
     {
       id: 'bar',
@@ -216,48 +215,37 @@ export const turningForces: Lesson = {
     {
       id: 'rules',
       kind: 'text',
-      body: [
-        'Moment = **F × x**, where x is the perpendicular distance from the pivot to the line of action. A force through the pivot has no moment.',
-        'Give every moment its sense. And if the clockwise and anticlockwise moments cancel exactly? That is the next lesson.',
-      ],
+      body: ['Moment = **F × x**, x the perpendicular distance from the pivot to the line of action.'],
+      fig: nut({ perp: 'shown', moment: 'shown' }),
     },
   ],
   skillCheck: [
     {
       id: 'pedal',
-      kind: 'choice',
-      prompt: `A bicycle crank ${m(PEDAL.r)} long points ${PEDAL.below}° below the horizontal. The foot pushes straight down with ${PEDAL.F}${NB}N. What is the moment about the axle?`,
-      options: [
-        { id: 'length', label: Nm(X.pedal.length) },
-        { id: 'right', label: Nm(X.pedal.right), correct: true },
-        { id: 'sin', label: Nm(X.pedal.sin) },
-        { id: 'divided', label: Nm(Math.round(X.pedal.divided / 10) * 10, 0) },
+      kind: 'build',
+      prompt: `A bicycle crank ${m(PEDAL.r)} long points ${PEDAL.below}° below the horizontal. The foot pushes straight down with ${PEDAL.F}${NB}N. Build the moment about the axle.`,
+      equation: 'M = {F} × {x}',
+      boxes: { F: 'force', x: 'horizontal' },
+      chips: [
+        { id: 'force', label: `${PEDAL.F}${NB}N` },
+        { id: 'horizontal', label: m(pedalX, 3) },
+        { id: 'length', label: m(PEDAL.r), hint: 'That is the crank length. The push is vertical: use the horizontal distance.' },
+        { id: 'sin', label: m(PEDAL.r * Math.sin(PEDAL.below * RAD), 3), hint: 'The horizontal part is 0.17 × cos 60°, not sin.' },
       ],
+      result: { symbol: 'M', value: X.pedal.right, unit: 'N m' },
       why: `The push is vertical, so x is horizontal: ${fixed(PEDAL.r, 2)} × cos ${PEDAL.below}° = ${m(pedalX, 3)}. Moment = ${PEDAL.F} × ${fixed(pedalX, 3)} = ${Nm(X.pedal.right)}.`,
     },
     {
       id: 'wheel',
-      kind: 'choice',
-      prompt: `A steering wheel is ${m(WHEEL.across)} across. Left hand pushes up, right hand pushes down, ${WHEEL.F}${NB}N each. What is the total moment about the centre?`,
-      options: [
-        { id: 'zero', label: 'Zero: the two forces cancel' },
-        { id: 'one', label: Nm(X.wheel.one) },
-        { id: 'right', label: Nm(X.wheel.right), correct: true },
-        { id: 'diameter', label: Nm(X.wheel.diameter) },
+      kind: 'spotError',
+      prompt: `A steering wheel is ${m(WHEEL.across)} across. One hand pushes up, the other down, ${WHEEL.F}${NB}N each. Joel's working has one mistake. Which line?`,
+      lines: [
+        { id: 'r', text: `Each hand is ${m(WHEEL.across / 2)} from the centre.`, hint: 'That is right: half of the 0.36 m across.' },
+        { id: 'cancel', text: 'The forces are opposite, so the moments cancel.', wrong: true, fix: 'Both moments turn the wheel clockwise, so they add.' },
+        { id: 'sum', text: `Total moment = ${WHEEL.F} × ${fixed(WHEEL.across / 2, 2)} − ${WHEEL.F} × ${fixed(WHEEL.across / 2, 2)} = 0`, hint: 'This follows from the line above. Do the moments really subtract?' },
+        { id: 'end', text: 'So the wheel does not turn.', hint: 'This repeats the line above. Look further up for the slip.' },
       ],
-      why: `Each hand is ${m(WHEEL.across / 2)} from the centre and both turn the wheel clockwise: 2 × ${WHEEL.F} × ${fixed(WHEEL.across / 2, 2)} = ${Nm(X.wheel.right)}. The forces cancel; the moments add.`,
-    },
-    {
-      id: 'bolt',
-      kind: 'choice',
-      prompt: `A bolt needs a moment of ${BOLT.M}${NB}N${NB}m to undo it. A mechanic pushes with ${BOLT.F}${NB}N at ${BOLT.angle}° to the handle. How far from the bolt must she push?`,
-      options: [
-        { id: 'right', label: m(X.bolt.right), correct: true },
-        { id: 'ignored', label: m(X.bolt.ignored) },
-        { id: 'cos', label: m(X.bolt.cos) },
-        { id: 'inverted', label: m(X.bolt.inverted, 1) },
-      ],
-      why: `Only F sin ${BOLT.angle}° = ${fixed(X.bolt.turning, 0)} N turns the bolt, so x = ${BOLT.M} ÷ ${fixed(X.bolt.turning, 0)} = ${m(X.bolt.right)}.`,
+      why: `The forces cancel, but the moments add: 2 × ${WHEEL.F} × ${fixed(WHEEL.across / 2, 2)} = ${Nm(X.wheel.right)}. A pair of equal opposite forces turns a body.`,
     },
     {
       id: 'slide',
@@ -271,6 +259,47 @@ export const turningForces: Lesson = {
       ],
       why: 'Sliding a force along its line of action keeps x, so F × x stays the same. On the other side the size is the same, but the sense flips.',
     },
+    {
+      id: 'bolt',
+      kind: 'examCard',
+      context: `A bolt needs a moment of ${BOLT.M}${NB}N${NB}m to undo it. A mechanic pushes with ${BOLT.F}${NB}N at ${BOLT.angle}° to the handle.`,
+      parts: [
+        {
+          id: 'a',
+          command: 'Calculate',
+          text: 'how far from the bolt she must push.',
+          marks: 2,
+          kind: 'build',
+          build: {
+            equation: 'x = {M} ÷ ({F} × sin {θ})',
+            boxes: { M: 'moment', F: 'force', 'θ': 'angle' },
+            chips: [
+              { id: 'moment', label: `${BOLT.M}${NB}N${NB}m` },
+              { id: 'force', label: `${BOLT.F}${NB}N` },
+              { id: 'angle', label: `${BOLT.angle}°` },
+              { id: 'other', label: `${90 - BOLT.angle}°`, hint: 'The angle is measured to the handle: 60°, not its complement.' },
+              { id: 'comp', label: `${fixed(X.bolt.turning, 0)}${NB}N`, hint: 'That is F sin θ already. The equation applies sin itself.' },
+            ],
+            result: { symbol: 'x', value: X.bolt.right, unit: 'm' },
+          },
+          why: `Only F sin ${BOLT.angle}° = ${fixed(X.bolt.turning, 0)} N turns the bolt, so x = ${BOLT.M} ÷ ${fixed(X.bolt.turning, 0)} = ${m(X.bolt.right, 3)}. One mark for F sin θ, one for x.`,
+        },
+        {
+          id: 'b',
+          command: 'Explain',
+          text: 'why she must push further out than if she pushed at 90°.',
+          marks: 2,
+          kind: 'order',
+          steps: [
+            { id: 'part', text: `Only the part of the push across the handle turns the bolt: F sin ${BOLT.angle}°.` },
+            { id: 'less', text: `That is ${fixed(X.bolt.turning, 0)} N, less than the full ${BOLT.F} N.` },
+            { id: 'same', text: `The moment needed is still ${BOLT.M} N m.` },
+            { id: 'far', text: `So the distance must be bigger: ${m(X.bolt.right, 3)}, not ${m(X.bolt.ignored)}.` },
+          ],
+          why: `At 90° the whole ${BOLT.F} N turns the bolt and ${m(X.bolt.ignored)} is enough. Tilted, a smaller part turns it, so the push must be further out.`,
+        },
+      ],
+    },
   ],
   youCanNow: [
     'Find the moment of a force about a pivot',
@@ -280,7 +309,7 @@ export const turningForces: Lesson = {
   ],
   recap: {
     fig: nut({ perp: 'shown', moment: 'shown' }),
-    text: "Further out but at an angle, Mia's pull turns the nut less than Leo's.",
+    text: "Further out but at an angle, Priya's pull turns the nut less than Tom's.",
   },
   card: {
     formula: 'moment = Fx',

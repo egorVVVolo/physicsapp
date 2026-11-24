@@ -68,3 +68,17 @@ All numbers come from `src/physics/moments.ts` and are re-checked by a test. Ant
 ## Open for the owner
 
 - **Nothing moves in these figures.** A stuck nut and a fixed pole do not turn, and making the bar swing would need its moment of inertia (not in the course). The figures draw themselves and the explore follows the slider; no pause button is needed.
+
+## v3 changes (24 Nov)
+
+Task D7. Mia and Leo are now **Priya and Tom** (they were already in "Two motions at once"); `SpannerPull.who` is `'PRIYA' | 'TOM'`. The puzzle (Tom 8.0 N m against Priya's 6.0 N m) and its recap are unchanged. 12 screens + 4 Skill check; chapters *The puzzle* → *Moment of a force* → *Back to the nut*; cast: Priya, Tom, Maya, Joel.
+
+| Was | Now |
+|---|---|
+| choice `hook-again` (whose moment is bigger) | **build** `M = F × x` for Priya (wrong chips: 0.30 m "where she pulls", 0.26 m from cos), 6.0 N m; the nut turns after Check (C9) and both moments appear |
+| choice `pole` | **spotError** `pole-error` (Maya uses the pole's length 2.0 m instead of the horizontal 1.73 m: 100 N m instead of 86.6) |
+| text `two-ways` | removed (F r sin θ is in the line-of-action card and the exam card) |
+| texts `sense`, `rules` | one sentence each, with a figure |
+| `leo` choice | renamed `tom`; the nut now turns after Check there too |
+
+`pole-x` (tap the distance) and the explore slider stay. Skill check: **build** (the pedal, `M = F × x`, 25.5 N m), **spotError** (Joel says the opposite forces on a steering wheel cancel, so the moments cancel: 0 instead of 7.2 N m), **choice** (sliding a force along its line of action), **exam card** on a bolt: (a) Calculate the distance `x = M ÷ (F sin θ)` [2] (0.416 m), (b) Explain why she must push further out at 60° [2] (order). The old wheel and bolt choices became the spotError and the card.

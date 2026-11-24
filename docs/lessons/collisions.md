@@ -69,3 +69,19 @@ All numbers come from `src/physics/momentum.ts` and are re-checked by a test. Ri
 ## Open for the owner
 
 - **No kinetic energy yet.** The bounce in screen 11 happens to be perfectly elastic (0.900 J before and after), but elastic / inelastic is Unit 4, so the lesson does not mention it.
+
+## v3 changes (24 Nov)
+
+Task D7. The puzzle (A and C stick and stop dead) and its recap are unchanged. 15 screens + 4 Skill check; chapters *The puzzle* → *Conservation* → *Pushing apart*; cast: Dev (the student whose working is checked).
+
+| Was | Now |
+|---|---|
+| choice `stick` (A hits B at rest) | **estimate**: the speed of the pair, scale 0–2 (0.75 m s⁻¹, tolerance 0.1; the slider starts on 1.0) |
+| — | **graphPick** `stick-graph`: v–t lines of A and B (right: both end at 0.75; wrong: they swap speeds like a bounce; B gains 1.5 while A loses only 0.75, so momentum would grow) |
+| choice `head-on` | **build** `v = (m₁ × u₁ + m₂ × u₂) ÷ M`: five boxes in one formula, signs as chips (0.50 m s⁻¹) |
+| text `apart` + choice `spring` | text with the spring figure (one sentence) + **order** `recoil`: at rest → equal forces for the same time → equal and opposite momenta → the lighter one is faster |
+| text `rules` (two paragraphs) | one sentence with the figure |
+
+Skill check: **build** (two wagons, `v = (m₁ × u) ÷ M`, 1.88 m s⁻¹), **spotError** (air track: Dev drops the sign of Q's momentum and gets 3.0 instead of 1.0 m s⁻¹), **choice** (the falling ball: external force), **exam card** on the spring: (a) Calculate C's velocity [2] (0.600 m s⁻¹), (b) State the total momentum after release [1] (zero). The astronaut question is gone.
+
+The graphs use `GraphFig` with two lines (A, B) and a 0.1 s contact; the momenta come from the same model (`velocityAfter`/`stickVelocity`) and the test checks that conservation holds in the right graph and in the bounce, and fails in the third.

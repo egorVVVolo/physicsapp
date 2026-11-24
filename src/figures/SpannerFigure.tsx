@@ -1,4 +1,4 @@
-// FIG: a stuck wheel nut and a spanner, one panel per pull (MIA / LEO). Every pull has the same size and turns the nut
+// FIG: a stuck wheel nut and a spanner, one panel per pull (PRIYA / TOM). Every pull has the same size and turns the nut
 // anticlockwise; it acts a distance r from the nut at an angle to the handle. Its line of action is drawn dashed and the
 // perpendicular from the nut meets it at a right angle: that perpendicular, x, is the distance that counts
 // (moment = Fx, src/physics/moments). On the explore screen the slider turns the first pull.
