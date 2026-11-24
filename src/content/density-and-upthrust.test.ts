@@ -1,15 +1,17 @@
 // Every number in "Density and upthrust" is recomputed from the model, and every wrong option is a named mistake.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { densityAndUpthrust as L, ANSWERS as X, BALLOON, BLOCK, DENSITY, DEPTH, ICE, ROOM, STONE, TANK } from './density-and-upthrust.ts';
+import { densityAndUpthrust as L, ANSWERS as X, BALLOON, BLOCK, DENSITY, DEPTH, ICE, TANK } from './density-and-upthrust.ts';
 import { lessons } from './lessons.ts';
 import { course } from './course.ts';
-import type { OptionQuestion } from './types.ts';
+import type { BuildScreen, EstimateScreen, ExamCardScreen, OptionQuestion, OrderScreen, SortScreen } from './types.ts';
 
 const all = [...L.story, ...L.skillCheck];
 const q = (id: string) => all.find((s) => s.id === id) as OptionQuestion;
 const label = (id: string, opt: string) => q(id).options.find((o) => o.id === opt)!.label;
 const right = (id: string) => q(id).options.find((o) => o.correct)!.id;
+const build = (id: string) => all.find((s) => s.id === id) as BuildScreen;
+const chip = (b: Pick<BuildScreen, 'chips'>, id: string) => b.chips.find((c) => c.id === id)!.label;
 const NB = ' ';
 const near = (a: number, b: number, tol = 1e-9) => assert.ok(Math.abs(a - b) <= tol, `expected ${b}, got ${a}`);
 const g = 9.81;
@@ -24,13 +26,17 @@ test('the steel block: 1.00 × 10⁻⁴ m³, 100 cm³', () => {
   assert.ok(q('volume').why.includes(`100${NB}cm³`));
 });
 
-test('under water: upthrust 0.981 N, the reading 7.65 → 6.67 N', () => {
+test('under water, built: upthrust 0.981 N, the reading 7.65 → 6.67 N', () => {
   near(X.weigh.right, 1000 * 1e-4 * g);
   near(X.weigh.reading, X.weigh.weight - X.weigh.right);
-  assert.equal(label('weigh', 'right'), `0.981${NB}N`);
-  assert.equal(label('weigh', 'weight'), `7.65${NB}N`);
-  assert.equal(label('weigh', 'mass'), `0.100${NB}N`);
-  assert.equal(label('weigh', 'reading'), `6.67${NB}N`);
+  const b = build('weigh');
+  near(b.result.value, 0.981, 1e-3);
+  assert.deepEqual(b.boxes, { 'ρ': 'water', V: 'volume', g: 'field' });
+  assert.equal(chip(b, 'water'), `1000${NB}kg${NB}m⁻³`);
+  assert.equal(chip(b, 'volume'), m3('1.00 × 10⁻⁴'));
+  assert.equal(chip(b, 'steel'), `7800${NB}kg${NB}m⁻³`);
+  assert.equal(chip(b, 'weight'), `7.65${NB}N`);
+  assert.ok(b.why.includes(`6.67${NB}N`));
 });
 
 test('explore: the slider reaches below the block, which is 4.0 cm tall', () => {
@@ -40,22 +46,41 @@ test('explore: the slider reaches below the block, which is 4.0 cm tall', () => 
   assert.ok(s.question.right.includes(`0.981${NB}N`));
 });
 
-test('on board the block makes the boat displace its own weight of water: 780 cm³', () => {
-  near(X.pushed.right, BLOCK.m / 1000);
-  assert.equal(label('pushed', 'right'), m3('7.80 × 10⁻⁴'));
-  assert.ok(label('pushed', 'ownVolume').startsWith(m3('1.00 × 10⁻⁴')));
-  assert.equal(label('pushed', 'weight'), m3('7.65 × 10⁻³'));
-  assert.equal(label('pushed', 'perKg'), m3('0.780'));
+test('sort: every solid is on the right side of the density of water', () => {
+  const s = L.story.find((x) => x.id === 'float-sink') as SortScreen;
+  for (const it of s.items) {
+    const rho = Number(/(\d+)/.exec(it.label.replace(/\s/g, ''))![1]);
+    assert.equal(it.bin, rho < 1000 ? 'floats' : 'sinks', `${it.id}: ${rho} kg m⁻³`);
+  }
+  assert.equal(s.items.filter((it) => it.bin === 'floats').length, 3);
 });
 
-test('the puzzle: the level falls 1.36 cm', () => {
-  near(X.puzzle.right, (BLOCK.m / 1000 - BLOCK.m / BLOCK.rho) / TANK.area);
-  assert.equal(right('hook-again'), 'right');
-  assert.equal(label('hook-again', 'right'), `It falls by 1.36${NB}cm`);
-  assert.equal(label('hook-again', 'rise'), `It rises by 0.20${NB}cm`);
-  assert.equal(label('hook-again', 'noVolume'), `It falls by 1.56${NB}cm`);
+test('the order: a floating boat displaces 780 cm³ for the 7.65 N it takes on', () => {
+  near(X.pushed.right, BLOCK.m / 1000);
+  const o = L.story.find((s) => s.id === 'pushed') as OrderScreen;
+  assert.deepEqual(o.steps.map((s) => s.id), ['floats', 'adds', 'water', 'volume']);
+  assert.ok(o.steps[1].text.includes(`7.65${NB}N`) && o.steps[3].text.includes(`780${NB}cm³`) && o.steps[3].text.includes(`100${NB}cm³`));
+});
+
+test('estimate: the level falls 1.36 cm; the thumb does not start inside the band', () => {
+  const est = L.story.find((s) => s.id === 'level') as EstimateScreen;
+  near(est.answer, 1.36, 0.005);
+  near(est.answer / 100, (BLOCK.m / 1000 - BLOCK.m / BLOCK.rho) / TANK.area, 1e-12);
+  assert.ok(est.scale.min < est.answer && est.scale.max > est.answer);
+  assert.ok(Math.abs((est.scale.min + est.scale.max) / 2 - est.answer) > est.tolerance);
+});
+
+test('the puzzle built: the level falls 1.36 cm', () => {
+  const b = build('hook-again');
+  near(b.result.value, 1.36, 0.005);
+  near(b.result.value / 100, ((BLOCK.m / 1000) - BLOCK.m / BLOCK.rho) / TANK.area, 1e-12);
+  assert.deepEqual(b.boxes, { 'V₁': 'board', 'V₂': 'bottom', A: 'area' });
+  assert.equal(chip(b, 'board'), `780${NB}cm³`);
+  assert.equal(chip(b, 'bottom'), `100${NB}cm³`);
+  assert.equal(chip(b, 'area'), `500${NB}cm²`);
+  assert.equal(chip(b, 'sum'), `880${NB}cm³`);
   const hook = L.story.find((s) => s.id === 'hook')!;
-  assert.ok(hook.kind === 'predict' && hook.options.some((o) => o.id === 'fall'));
+  assert.ok(hook.kind === 'predict' && hook.options.some((o) => o.id === 'fall' && o.correct));
   // the water in the tank stands at 14.0 cm while the block is on board
   near((TANK.water + (TANK.boat + BLOCK.m) / 1000) / TANK.area, 0.14, 1e-12);
 });
@@ -68,27 +93,42 @@ test('explore: a block as dense as water leaves the level; lead-like 11 000 kg m
   assert.equal((BLOCK.rho - DENSITY.min) % s.slider.step, 0);
 });
 
-test('Skill check: stone 2500 kg m⁻³, room 173 kg, balloon 0.141 N, ice 8.93 × 10⁻⁴ m³', () => {
-  near(X.stone.right, (STONE.air / (STONE.air - STONE.water)) * 1000);
-  assert.equal(label('stone', 'right'), `2500${NB}kg${NB}m⁻³`);
-  assert.equal(label('stone', 'reading'), `1500${NB}kg${NB}m⁻³`);
-  assert.equal(label('stone', 'ratio'), `1670${NB}kg${NB}m⁻³`);
-  assert.equal(label('stone', 'upside'), `400${NB}kg${NB}m⁻³`);
-  near(X.room.right, ROOM.rho * ROOM.l * ROOM.w * ROOM.h);
-  assert.equal(label('room', 'right'), `173${NB}kg`);
-  assert.equal(label('room', 'upside'), `120${NB}kg`);
-  assert.equal(label('room', 'flipped'), `0.00833${NB}kg`);
-  assert.equal(label('room', 'weight'), `1700${NB}kg`);
-  near(X.balloon.right, BALLOON.air * BALLOON.V * g);
-  assert.equal(label('balloon', 'right'), `0.141${NB}N`);
-  assert.equal(label('balloon', 'mass'), `0.0144${NB}N`);
-  assert.equal(label('balloon', 'helium'), `0.0212${NB}N`);
-  assert.equal(label('balloon', 'water'), `118${NB}N`);
-  near(X.ice.right, ICE.m / ICE.sea);
-  assert.equal(label('ice', 'right'), m3('8.93 × 10⁻⁴'));
-  assert.equal(label('ice', 'whole'), m3('1.00 × 10⁻³'));
-  assert.equal(label('ice', 'fresh'), m3('9.20 × 10⁻⁴'));
-  assert.equal(label('ice', 'weight'), m3('8.76 × 10⁻³'));
+test('Skill check: balloon 0.141 N (built), forces sort, river, ice 893 cm³ and 89.3 %', () => {
+  const b = build('balloon');
+  near(b.result.value, BALLOON.air * BALLOON.V * g, 1e-9);
+  near(b.result.value, 0.141, 1e-3);
+  assert.equal(chip(b, 'air'), `1.20${NB}kg${NB}m⁻³`);
+  assert.equal(chip(b, 'helium'), `0.180${NB}kg${NB}m⁻³`);
+  assert.equal(chip(b, 'volume'), m3('1.20 × 10⁻²'));
+  const s = all.find((x) => x.id === 'forces') as SortScreen;
+  assert.equal(s.bins.length, 3);
+  for (const bin of s.bins) assert.equal(s.items.filter((it) => it.bin === bin.id).length, 2, `${bin.id}: two items`);
+  assert.equal(right('river'), 'right');
+  const card = all.find((x) => x.id === 'ice') as ExamCardScreen;
+  const [a, bb] = card.parts;
+  assert.ok(a.kind === 'build' && bb.kind === 'build');
+  if (a.kind === 'build' && bb.kind === 'build') {
+    near(a.build.result.value / 1e6, ICE.m / ICE.sea, 1e-12);
+    near(a.build.result.value, 893, 0.5);
+    assert.equal(chip(a.build, 'ice'), `920${NB}kg${NB}m⁻³`);
+    near(bb.build.result.value, (100 * ICE.rho) / ICE.sea, 1e-9);
+    near(bb.build.result.value, 89.3, 0.05);
+    assert.equal(chip(bb.build, 'water'), `1000${NB}kg${NB}m⁻³`);
+  }
+  assert.equal(a.marks + bb.marks, 4);
+});
+
+test('every option label is different within a question', () => {
+  for (const s of all) {
+    if (s.kind === 'choice' || s.kind === 'tapFig') {
+      const labels = s.options.map((o) => o.label);
+      assert.equal(new Set(labels).size, labels.length, `${s.id}: two options read the same: ${labels.join(' | ')}`);
+    }
+    if (s.kind === 'build') {
+      const labels = s.chips.map((c) => c.label);
+      assert.equal(new Set(labels).size, labels.length, `${s.id}: two chips read the same: ${labels.join(' | ')}`);
+    }
+  }
 });
 
 test('the lesson is on the map and playable', () => {

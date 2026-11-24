@@ -299,7 +299,7 @@ for (const lesson of Object.values(lessons)) {
 // ── Lesson format v3 (docs/LESSON_FRAMEWORK.md, 1c; docs/V2_PLAN.md, 2.2) ───────────────────
 
 /** Lessons rebuilt to format v3. Each one added here must pass every rule below. */
-const REVISED = new Set<string>(['vectors-signs', 'motion-graphs', 'suvat', 'up-stop-down', 'resolving', 'projectiles', 'free-body', 'f-ma', 'normal-reaction', 'terminal-velocity', 'momentum', 'moments', 'collisions', 'balance', 'work', 'ke-gpe', 'conservation']);
+const REVISED = new Set<string>(['vectors-signs', 'motion-graphs', 'suvat', 'up-stop-down', 'resolving', 'projectiles', 'free-body', 'f-ma', 'normal-reaction', 'terminal-velocity', 'momentum', 'moments', 'collisions', 'balance', 'work', 'ke-gpe', 'conservation', 'power', 'density-upthrust']);
 
 /** People who appear in several lessons on purpose: Rose runs through the Forces level. */
 const SHARED_CAST = new Set(['Rose']);

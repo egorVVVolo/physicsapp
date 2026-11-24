@@ -65,3 +65,19 @@ All numbers come from `src/physics/power.ts` (with `drag.ts` and `energy.ts`), g
 1. Physics, `src/physics/power.ts`: `power` (ΔW ÷ Δt), `powerFromForce` (F × v), `efficiency` (useful ÷ total), `inputFor` and `outputFor` (by the efficiency), `liftPower` (mg × v), `liftSpeed` (P ÷ mg). Test.
 2. Figures: `src/figures/RideFigure.tsx` (a cyclist on a level road seen from the side; she stays put while the road, its posts and the air stream past at her speed, the wheels roll and the cranks turn; air resistance D = kv² back from her centre of gravity and the road's push F forward at the back wheel, one scale; with `perSecond` the posts stand v × 1 s apart with a dimension between two; her power "P = ?" or its value; with `compare`, two lanes at two speeds) and `src/figures/WinchFigure.tsx` (a scaffold with an electric winch on top, the cable over a pulley down to a pallet of bricks that rises at a steady speed by the model; a power-flow diagram from the mains: in, useful, heating, with "?" until answered; on the explore the slider sets the load and the speed follows v = P ÷ mg, with the cable's pull T and v).
 3. Content `src/content/power-and-efficiency.ts` + test, `ready: true` on the map; `kW` and `kN` in `src/content/units.ts`; new ids in the Energy misconception bank, `docs/LESSON_FRAMEWORK.md`, 12d.
+
+## v3 changes (24 Nov)
+
+Task D10. The puzzle (54.0 W → 432 W, eight times) and its recap are unchanged. 15 screens + 4 Skill check; chapters *The puzzle* → *Power* → *Back to Kira*; cast: Kira.
+
+| Was | Now |
+|---|---|
+| — | **order** `why-cube` (D = kv² → F = D → twice as far each second → P = Fv: eight times) |
+| — | **graphPick** `p-graph`: P against v, 0–14 m s⁻¹, three curves ending at the same point (line, parabola, cubic) |
+| — | **estimate** `at-12`: drag to the power at 12 m s⁻¹ (432 W, scale 0–600, tolerance 30) |
+| choice `hook-again` | **build** `P = F × v` (wrong chips: the old 9.0 N, the old 6.0 m s⁻¹) |
+| choice `winch` | **build** `P = m × g × h ÷ t`, 785 W (wrong chips: the 1.20 kW input, the weight 1.18 kN) |
+| choice `efficient` | **build** `efficiency = useful ÷ input`, 65.4 % (wrong chip: the 415 W that heats the motor) |
+| text `rules` | one sentence, with a figure |
+
+`per-second` (choice) and the two explores stay. Skill check: **build** (the car's resistive force, `F = P ÷ v`, 1.20 kN), **order** (why efficiency never exceeds 100 %), **choice** (a lift's useful power: weight × speed), **exam card** on a crane: (a) Calculate the useful power [2] (2.94 kW), (b) Calculate the efficiency [1] (58.9 %). The stairs, the electric motor and the e-bike are gone. The new Ek–v and P–v graphs share `PlotFigure` (`kind: 'plot'`).

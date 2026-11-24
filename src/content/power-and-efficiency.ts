@@ -4,68 +4,87 @@
 // Then a winch: 120 kg up 8.0 m in 12 s is 785 W of useful power from 1.20 kW, 65.4 % efficient; the same power lifts
 // twice the load at half the speed (P = Tv). Every number below comes from src/physics; wrong options are named
 // mistakes, recomputed by the test.
+// Format v3 (V2 task D10): build, order, estimate, graphPick; the Skill check ends on an exam-style card.
 import { dragForce } from '../physics/drag.ts';
 import { potentialChange } from '../physics/energy.ts';
+import { weight } from '../physics/dynamics.ts';
 import { G } from '../physics/kinematics.ts';
-import { efficiency, inputFor, liftSpeed, outputFor, power, powerFromForce } from '../physics/power.ts';
+import { efficiency, liftSpeed, power, powerFromForce } from '../physics/power.ts';
 import { workDone } from '../physics/work.ts';
 import { fixed, sig } from '../physics/format.ts';
-import type { Lesson, RideFig, WinchFig } from './types.ts';
+import type { Lesson, PlotFig, RideFig, WinchFig } from './types.ts';
 
 const NB = ' '; // a no-break space: a number never parts from its unit
 const J = (x: number): string => `${sig(x)}${NB}J`;
-const KJ = (x: number): string => `${sig(x / 1000)}${NB}kJ`;
 const W = (x: number): string => `${sig(x)}${NB}W`;
 const KW = (x: number): string => `${sig(x / 1000)}${NB}kW`;
 const N = (x: number): string => `${sig(x)}${NB}N`;
 const KN = (x: number): string => `${sig(x / 1000)}${NB}kN`;
 const PC = (x: number): string => `${sig(x * 100)}%`;
 const MS = (x: number): string => `${sig(x)}${NB}m s⁻¹`;
+const G9 = `9.81${NB}N${NB}kg⁻¹`;
 
 // The puzzle: Kira on a level road, against air resistance D = kv² only.
 export const RIDE = { k: 0.25, v: 6.0, fast: 12 }; // N s² m⁻², m s⁻¹, m s⁻¹
-export const SPEEDS = { min: 2, max: 14 }; // m s⁻¹, the explore's slider
+export const SPEEDS = { min: 2, max: 14 }; // m s⁻¹, the explore's slider and the P–v graphs
 // The winch on the scaffold.
 export const WINCH = { m: 120, h: 8.0, t: 12, input: 1200 }; // kg, m, s, W
 export const LOAD = { min: 40, max: 240 }; // kg, the explore's slider
 // Skill check.
-export const STAIRS = { m: 62, h: 4.5, t: 3.2 };
 export const CAR = { P: 30000, v: 25 };
-export const MOTOR = { eff: 0.4, m: 30, h: 5.0 };
-export const EBIKE = { eff: 0.8, input: 300, v: 8.0 };
+export const CRANE = { m: 400, h: 6.0, t: 8.0, input: 5000 }; // kg, m, s, W
 
 const D1 = dragForce(RIDE.k, RIDE.v);
 const D2 = dragForce(RIDE.k, RIDE.fast);
 const liftWork = potentialChange(WINCH.m, WINCH.h);
 const useful = power(liftWork, WINCH.t);
-const stairsWork = potentialChange(STAIRS.m, STAIRS.h);
-const motorUseful = potentialChange(MOTOR.m, MOTOR.h);
-const ebikeUseful = outputFor(EBIKE.input, EBIKE.eff);
+const craneUseful = power(potentialChange(CRANE.m, CRANE.h), CRANE.t);
+/** Kira's power at speed v: P = Dv. */
+const kiraPower = (v: number): number => powerFromForce(dragForce(RIDE.k, v), v);
 
 /** Answers and named mistakes, used by the screens and re-checked by power-and-efficiency.test.ts. */
 export const ANSWERS = {
   perSecond: { right: workDone(D1, RIDE.v * 1), force: D1, fOverV: D1 / RIDE.v, power: powerFromForce(D1, RIDE.v) },
   faster: { d1: D1, d2: D2 },
   /** The puzzle: four times the force at twice the speed. */
-  puzzle: { right: powerFromForce(D2, RIDE.fast), speedOnly: powerFromForce(D1, RIDE.fast), forceOnly: powerFromForce(D2, RIDE.v), same: powerFromForce(D1, RIDE.v) },
-  winch: { right: useful, energy: liftWork, mass: (WINCH.m * WINCH.h) / WINCH.t, timesT: liftWork * WINCH.t },
-  efficient: { right: efficiency(useful, WINCH.input), upside: WINCH.input / useful, wasted: 1 - efficiency(useful, WINCH.input), mass: (WINCH.m * WINCH.h) / WINCH.t / WINCH.input, heat: WINCH.input - useful },
+  puzzle: { right: powerFromForce(D2, RIDE.fast), speedOnly: powerFromForce(D1, RIDE.fast), forceOnly: powerFromForce(D2, RIDE.v), same: powerFromForce(D1, RIDE.v), times: powerFromForce(D2, RIDE.fast) / powerFromForce(D1, RIDE.v) },
+  winch: { right: useful, energy: liftWork, weight: weight(WINCH.m), heat: WINCH.input - useful },
+  efficient: { right: efficiency(useful, WINCH.input), heat: WINCH.input - useful },
   heavier: { v: liftSpeed(useful, WINCH.m), double: liftSpeed(useful, 2 * WINCH.m) },
-  stairs: { right: power(stairsWork, STAIRS.t), mass: (STAIRS.m * STAIRS.h) / STAIRS.t, energy: stairsWork, timesT: stairsWork * STAIRS.t },
-  car: { right: CAR.P / CAR.v, timesV: CAR.P * CAR.v, overV2: CAR.P / CAR.v ** 2 },
-  motor: { right: inputFor(motorUseful, MOTOR.eff), useful: motorUseful, times: outputFor(motorUseful, MOTOR.eff), wasted: inputFor(motorUseful, 1 - MOTOR.eff) },
-  ebike: { right: ebikeUseful / EBIKE.v, noEff: EBIKE.input / EBIKE.v, divided: inputFor(EBIKE.input, EBIKE.eff) / EBIKE.v, timesV: ebikeUseful * EBIKE.v, useful: ebikeUseful },
+  car: { right: CAR.P / CAR.v, timesV: CAR.P * CAR.v },
+  crane: { power: craneUseful, eff: efficiency(craneUseful, CRANE.input), heat: CRANE.input - craneUseful, weight: weight(CRANE.m) },
 };
 const X = ANSWERS;
 
 const ride = (over: Partial<RideFig>): RideFig => ({ kind: 'ride', k: RIDE.k, v: RIDE.v, ...over });
 const winch = (over: Partial<WinchFig>): WinchFig => ({ kind: 'winch', ...WINCH, ...over });
 
+/** One P–v curve for "which graph?": the model (P = Dv, so v³) or a named mistake. All three end at the same point. */
+const pGraph = (shape: 'cube' | 'line' | 'square'): PlotFig => {
+  const end = kiraPower(SPEEDS.max);
+  return {
+    kind: 'plot',
+    header: 'Kira, power against speed',
+    x: { label: 'v / m s⁻¹', max: SPEEDS.max, tick: 2 },
+    y: { label: 'P / W', max: 700, tick: 100 },
+    points: Array.from({ length: SPEEDS.max + 1 }, (_, v) => {
+      const share = v / SPEEDS.max;
+      return { x: v, y: shape === 'cube' ? kiraPower(v) : shape === 'line' ? end * share : end * share * share };
+    }),
+  };
+};
+
 export const powerAndEfficiency: Lesson = {
   id: 'power',
   title: 'Power and efficiency',
   spec: [21, 22],
   minutes: 11,
+  chapters: [
+    { title: 'The puzzle', from: 'intro' },
+    { title: 'Power', from: 'power' },
+    { title: 'Back to Kira', from: 'hook-again' },
+  ],
+  cast: ['Kira'],
   story: [
     {
       id: 'intro',
@@ -134,17 +153,55 @@ export const powerAndEfficiency: Lesson = {
       },
     },
     {
-      id: 'hook-again',
-      kind: 'choice',
-      revisitOf: 'hook',
-      prompt: `Back to Kira. How much power must she give to ride at a steady ${RIDE.fast} m s⁻¹?`,
-      fig: ride({ v: RIDE.fast, power: 'afterCheck' }),
-      options: [
-        { id: 'speedOnly', label: W(X.puzzle.speedOnly), hint: `That keeps ${fixed(D1, 1)} N. At ${RIDE.fast} m s⁻¹ the air pushes with ${fixed(D2, 1)} N.` },
-        { id: 'forceOnly', label: W(X.puzzle.forceOnly), hint: `That is ${fixed(D2, 1)} N × the old ${fixed(RIDE.v, 1)} m s⁻¹. Use her new speed: P = Dv.` },
-        { id: 'right', label: W(X.puzzle.right), correct: true },
-        { id: 'same', label: `${W(X.puzzle.same)}: her speed is still steady`, hint: `A steady speed still needs power: ${fixed(D2, 1)} N over every metre.` },
+      id: 'why-cube',
+      kind: 'order',
+      prompt: 'Why does twice the speed need eight times the power? Put the steps in order.',
+      fig: ride({ v: RIDE.fast }),
+      steps: [
+        { id: 'drag', text: 'Air resistance D = kv²: twice the speed, four times the force.' },
+        { id: 'steady', text: 'At a steady speed her driving force equals D.' },
+        { id: 'far', text: 'Each second she also moves twice as far.' },
+        { id: 'eight', text: 'P = Fv: four times the force × twice the speed = eight times the power.' },
       ],
+      hint: 'First what the air does, then her force, then her distance, then P = Fv.',
+      why: 'D = kv² and F = D, so P = Fv = kv³. Doubling v multiplies the power by 2³ = 8.',
+    },
+    {
+      id: 'p-graph',
+      kind: 'graphPick',
+      prompt: `Which graph shows Kira’s power against her speed, from 0 to ${SPEEDS.max} m s⁻¹?`,
+      graphs: [
+        { id: 'A', fig: pGraph('line'), hint: 'A straight line: twice the speed, twice the power. But the force grows too.' },
+        { id: 'B', fig: pGraph('cube'), correct: true },
+        { id: 'C', fig: pGraph('square'), hint: 'A parabola is v². Power is force × speed, and the force is v² already.' },
+      ],
+      why: `P = Dv = kv³: it stays low at first, then climbs very steeply. At ${RIDE.fast} m s⁻¹ it is ${W(X.puzzle.right)}, at ${SPEEDS.max} m s⁻¹ ${W(kiraPower(SPEEDS.max))}.`,
+    },
+    {
+      id: 'at-12',
+      kind: 'estimate',
+      prompt: `Kira needs ${W(X.puzzle.same)} at ${fixed(RIDE.v, 1)} m s⁻¹. Drag to the power she needs at a steady ${RIDE.fast} m s⁻¹.`,
+      fig: ride({ v: RIDE.fast }),
+      after: ride({ v: RIDE.fast, power: 'shown' }),
+      scale: { min: 0, max: 600, step: 10, tick: 100, unit: 'W', symbol: 'P', dp: 0, label: 'Power at 12 m s⁻¹' },
+      answer: X.puzzle.right,
+      tolerance: 30,
+      why: `The force is four times as big and the distance each second twice as far: 4 × 2 = 8, and 8 × ${sig(X.puzzle.same)} = ${W(X.puzzle.right)}.`,
+    },
+    {
+      id: 'hook-again',
+      kind: 'build',
+      prompt: `Back to Kira. Build the power she must give to ride at a steady ${RIDE.fast} m s⁻¹.`,
+      fig: ride({ v: RIDE.fast, power: 'afterCheck' }),
+      equation: 'P = {F} × {v}',
+      boxes: { F: 'drag', v: 'fast' },
+      chips: [
+        { id: 'drag', label: `${fixed(D2, 1)}${NB}N` },
+        { id: 'fast', label: `${RIDE.fast}${NB}m s⁻¹` },
+        { id: 'oldF', label: `${fixed(D1, 1)}${NB}N`, hint: `That is the air’s push at ${fixed(RIDE.v, 1)} m s⁻¹. At ${RIDE.fast} m s⁻¹ it is ${fixed(D2, 1)} N.` },
+        { id: 'oldV', label: `${fixed(RIDE.v, 1)}${NB}m s⁻¹`, hint: 'That is her old speed. P = Fv uses the speed she rides at now.' },
+      ],
+      result: { symbol: 'P', value: X.puzzle.right, unit: 'W' },
       why: `P = Dv = ${fixed(D2, 1)} × ${RIDE.fast} = ${W(X.puzzle.right)}: eight times ${W(X.puzzle.same)}. Four times the force, twice the distance each second.`,
     },
     {
@@ -158,28 +215,35 @@ export const powerAndEfficiency: Lesson = {
     },
     {
       id: 'winch',
-      kind: 'choice',
-      prompt: `A winch lifts ${WINCH.m} kg of bricks ${fixed(WINCH.h, 1)} m in ${WINCH.t} s at a steady speed. What useful power does it give?`,
+      kind: 'build',
+      prompt: `A winch lifts ${WINCH.m} kg of bricks ${fixed(WINCH.h, 1)} m in ${WINCH.t} s at a steady speed. Build the useful power it gives.`,
       fig: winch({ play: true, useful: 'afterCheck' }),
-      options: [
-        { id: 'energy', label: KW(X.winch.energy), hint: 'That is the energy, mgΔh, in joules. Power is energy per second.' },
-        { id: 'right', label: W(X.winch.right), correct: true },
-        { id: 'mass', label: W(X.winch.mass), hint: 'Use the weight, mg: the force the cable pulls with. Not the mass.' },
-        { id: 'timesT', label: KW(X.winch.timesT), hint: 'Divide the energy by the time; do not multiply.' },
+      equation: 'P = {m} × {g} × {h} ÷ {t}',
+      boxes: { m: 'mass', g: 'field', h: 'height', t: 'time' },
+      chips: [
+        { id: 'mass', label: `${WINCH.m}${NB}kg` },
+        { id: 'field', label: G9 },
+        { id: 'height', label: `${fixed(WINCH.h, 1)}${NB}m` },
+        { id: 'time', label: `${WINCH.t}${NB}s` },
+        { id: 'input', label: KW(WINCH.input), hint: 'That is the power the motor takes in. The useful power is what lifts the bricks.' },
+        { id: 'weight', label: KN(X.winch.weight), hint: 'That is the weight, mg. The equation multiplies the mass by g itself.' },
       ],
+      result: { symbol: 'P', value: X.winch.right, unit: 'W' },
       why: `Useful work = mgΔh = ${WINCH.m} × ${G} × ${fixed(WINCH.h, 1)} = ${J(liftWork)} in ${WINCH.t} s: P = ${W(X.winch.right)}.`,
     },
     {
       id: 'efficient',
-      kind: 'choice',
-      prompt: `The winch’s motor takes ${KW(WINCH.input)} from the mains. What is its efficiency?`,
+      kind: 'build',
+      prompt: `The winch’s motor takes ${WINCH.input}${NB}W from the mains. Build its efficiency.`,
       fig: winch({ play: true, useful: 'shown', efficiency: 'afterCheck' }),
-      options: [
-        { id: 'upside', label: PC(X.efficient.upside), hint: 'That is input ÷ output. Efficiency is useful ÷ total: never above 100%.' },
-        { id: 'right', label: PC(X.efficient.right), correct: true },
-        { id: 'wasted', label: PC(X.efficient.wasted), hint: 'That is the share that heats the motor. Efficiency is the useful share.' },
-        { id: 'mass', label: PC(X.efficient.mass), hint: `The useful power is ${W(useful)}: it uses the weight, mg, not the mass.` },
+      equation: 'efficiency = {useful} ÷ {input}',
+      boxes: { useful: 'useful', input: 'input' },
+      chips: [
+        { id: 'useful', label: W(useful) },
+        { id: 'input', label: `${WINCH.input}${NB}W` },
+        { id: 'heat', label: W(X.efficient.heat), hint: 'That is the power that heats the motor. Efficiency uses the useful power.' },
       ],
+      result: { symbol: 'efficiency', value: X.efficient.right * 100, unit: '%' },
       why: `Efficiency = useful ÷ total = ${sig(useful)} ÷ ${WINCH.input} = ${fixed(X.efficient.right, 3)}, or ${PC(X.efficient.right)}. The other ${W(X.efficient.heat)} heats the motor.`,
     },
     {
@@ -201,60 +265,94 @@ export const powerAndEfficiency: Lesson = {
     {
       id: 'rules',
       kind: 'text',
-      body: [
-        '**Power** = ΔW ÷ Δt = Fv. Against air resistance a faster ride costs far more: twice the speed, eight times the power.',
-        '**Efficiency** = useful output ÷ total input, never above 100%. That is the Energy level done. Next: fluids.',
-      ],
+      body: ['P = Fv: twice the speed against air, eight times the power.'],
+      fig: ride({ compare: RIDE.fast }),
     },
   ],
   skillCheck: [
     {
-      id: 'stairs',
-      kind: 'choice',
-      prompt: `A ${STAIRS.m} kg student runs up a flight of stairs, rising ${fixed(STAIRS.h, 1)} m in ${fixed(STAIRS.t, 1)} s. What average useful power does she develop?`,
-      options: [
-        { id: 'mass', label: W(X.stairs.mass) },
-        { id: 'energy', label: KW(X.stairs.energy) },
-        { id: 'right', label: W(X.stairs.right), correct: true },
-        { id: 'timesT', label: KW(X.stairs.timesT) },
-      ],
-      why: `Work against gravity mgΔh = ${STAIRS.m} × ${G} × ${fixed(STAIRS.h, 1)} = ${J(stairsWork)} in ${fixed(STAIRS.t, 1)} s: P = ${W(X.stairs.right)}.`,
-    },
-    {
       id: 'car',
-      kind: 'choice',
-      prompt: `A car travels at a steady ${CAR.v} m s⁻¹ on a level road, its engine giving a useful power of ${CAR.P / 1000} kW. What is the total resistive force?`,
-      options: [
-        { id: 'timesV', label: KN(X.car.timesV) },
-        { id: 'zero', label: '0 N: the speed is steady' },
-        { id: 'overV2', label: N(X.car.overV2) },
-        { id: 'right', label: KN(X.car.right), correct: true },
+      kind: 'build',
+      prompt: `A car travels at a steady ${CAR.v} m s⁻¹ on a level road, its engine giving a useful power of ${CAR.P / 1000} kW. Build the total resistive force.`,
+      equation: 'F = {P} ÷ {v}',
+      boxes: { P: 'power', v: 'speed' },
+      chips: [
+        { id: 'power', label: KW(CAR.P) },
+        { id: 'speed', label: `${CAR.v}${NB}m s⁻¹` },
+        { id: 'field', label: G9, hint: 'This is a level road: g does not come into it.' },
       ],
+      result: { symbol: 'F', value: X.car.right / 1000, unit: 'kN' },
       why: `At a steady speed the driving force equals the resistance: F = P ÷ v = ${CAR.P} ÷ ${CAR.v} = ${KN(X.car.right)}.`,
     },
     {
-      id: 'motor',
-      kind: 'choice',
-      prompt: `An electric motor with an efficiency of ${MOTOR.eff * 100}% lifts a ${MOTOR.m} kg load through ${fixed(MOTOR.h, 1)} m. How much electrical energy does it use?`,
-      options: [
-        { id: 'useful', label: KJ(X.motor.useful) },
-        { id: 'right', label: KJ(X.motor.right), correct: true },
-        { id: 'times', label: J(X.motor.times) },
-        { id: 'wasted', label: KJ(X.motor.wasted) },
+      id: 'max-eff',
+      kind: 'order',
+      prompt: 'Why can the efficiency of a machine never be more than 100%? Put the steps in order.',
+      steps: [
+        { id: 'cons', text: 'Energy is conserved: it cannot be created.' },
+        { id: 'sum', text: 'So useful output + wasted output = total input.' },
+        { id: 'waste', text: 'Wasted output is never negative: it heats the surroundings.' },
+        { id: 'less', text: 'So useful output ≤ total input: efficiency ≤ 100%.' },
       ],
-      why: `Useful energy mgΔh = ${J(motorUseful)}. Input = useful ÷ efficiency = ${sig(motorUseful)} ÷ ${fixed(MOTOR.eff, 2)} = ${KJ(X.motor.right)}.`,
+      hint: 'Start with the conservation of energy, then split the input into two parts.',
+      why: 'Total input = useful + wasted, and wasted ≥ 0. So useful ÷ total can reach 100% only if nothing is wasted.',
     },
     {
-      id: 'ebike',
+      id: 'lift-power',
       kind: 'choice',
-      prompt: `An e-bike’s motor is ${EBIKE.eff * 100}% efficient and takes ${EBIKE.input} W from the battery. At a steady ${fixed(EBIKE.v, 1)} m s⁻¹ on the level, what is the resistive force?`,
+      prompt: 'A lift carries a load upwards at a steady speed. What gives its useful power output?',
       options: [
-        { id: 'noEff', label: N(X.ebike.noEff) },
-        { id: 'right', label: N(X.ebike.right), correct: true },
-        { id: 'divided', label: N(X.ebike.divided) },
-        { id: 'timesV', label: KN(X.ebike.timesV) },
+        { id: 'mv', label: 'The load’s mass × its speed' },
+        { id: 'right', label: 'The load’s weight × its speed', correct: true },
+        { id: 'wh', label: 'The load’s weight × the height it rises' },
+        { id: 'wOverV', label: 'The load’s weight ÷ its speed' },
       ],
-      why: `Useful power = ${fixed(EBIKE.eff, 2)} × ${EBIKE.input} = ${W(X.ebike.useful)}. At a steady speed P = Fv, so F = ${sig(X.ebike.useful)} ÷ ${fixed(EBIKE.v, 1)} = ${N(X.ebike.right)}.`,
+      why: 'At a steady speed the cable pulls with a force equal to the weight, so P = Fv = weight × speed. Weight × height is the work done, an energy.',
+    },
+    {
+      id: 'crane',
+      kind: 'examCard',
+      context: `A crane’s motor takes ${CRANE.input / 1000} kW from the mains. It lifts a ${CRANE.m} kg load ${fixed(CRANE.h, 1)} m in ${fixed(CRANE.t, 1)} s at a steady speed. Take g = 9.81 N kg⁻¹.`,
+      parts: [
+        {
+          id: 'a',
+          command: 'Calculate',
+          text: 'the useful power output of the crane.',
+          marks: 2,
+          kind: 'build',
+          build: {
+            equation: 'P = {m} × {g} × {h} ÷ {t}',
+            boxes: { m: 'mass', g: 'field', h: 'height', t: 'time' },
+            chips: [
+              { id: 'mass', label: `${CRANE.m}${NB}kg` },
+              { id: 'field', label: G9 },
+              { id: 'height', label: `${fixed(CRANE.h, 1)}${NB}m` },
+              { id: 'time', label: `${fixed(CRANE.t, 1)}${NB}s` },
+              { id: 'input', label: KW(CRANE.input), hint: 'That is the power the motor takes in. Useful power comes from the lift.' },
+            ],
+            result: { symbol: 'P', value: X.crane.power / 1000, unit: 'kW' },
+          },
+          why: `Useful work = mgΔh = ${CRANE.m} × ${G} × ${fixed(CRANE.h, 1)} = ${J(potentialChange(CRANE.m, CRANE.h))}, in ${fixed(CRANE.t, 1)} s: P = ${KW(X.crane.power)}. One mark for the work, one for the power.`,
+        },
+        {
+          id: 'b',
+          command: 'Calculate',
+          text: 'the efficiency of the crane.',
+          marks: 1,
+          kind: 'build',
+          build: {
+            equation: 'efficiency = {useful} ÷ {input}',
+            boxes: { useful: 'useful', input: 'input' },
+            chips: [
+              { id: 'useful', label: KW(X.crane.power) },
+              { id: 'input', label: KW(CRANE.input) },
+              { id: 'heat', label: KW(X.crane.heat), hint: 'That is the power that heats the motor. Efficiency uses the useful power.' },
+            ],
+            result: { symbol: 'efficiency', value: X.crane.eff * 100, unit: '%' },
+          },
+          why: `Efficiency = useful ÷ total = ${sig(X.crane.power / 1000)} ÷ ${CRANE.input / 1000} = ${PC(X.crane.eff)}.`,
+        },
+      ],
     },
   ],
   youCanNow: [

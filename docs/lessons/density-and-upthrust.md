@@ -66,3 +66,18 @@ All numbers come from `src/physics/fluids.ts`, ρ(water) = 1000 kg m⁻³, g = 9
 1. Physics, `src/physics/fluids.ts`: `RHO_WATER`, `density`, `volumeOf`, `massOf`, `upthrust` (ρVg), `floatingDisplacement` (m ÷ ρ), `submergedVolume` (a block lowered into a fluid), `levelRise` (ΔV ÷ A), `apparentWeight`, `densityByWeighing`, `tankLevelFall`. Test. `sci` (× 10ⁿ) in `src/physics/format.ts`.
 2. Figures: `src/figures/TankFigure.tsx` (a glass tank side view: water with fine horizontal dashes, a toy boat whose draft follows the water it displaces, the steel block on board or on the bottom, the level's height by the model; the block's drop over the side played by the model after the revisit's Check; the water displaced written beside; on the explore the block's size follows its density and the old level is dashed; the recap shows two tanks) and `src/figures/DunkFigure.tsx` (a stand with a newtonmeter, the block on a string, a displacement can filled to the spout and a measuring cylinder under the spout; on the explore the slider lowers the block: the reading, the overflow and the upthrust follow the submerged volume; W, U and T on the block).
 3. Content `src/content/density-and-upthrust.ts` + test, `ready: true` on the map; `kg m⁻³` and `× 10ⁿ m³` kept together in `src/content/units.ts`; the Fluids misconception bank, `docs/LESSON_FRAMEWORK.md`, 12e.
+
+## v3 changes (24 Nov)
+
+Task D10. The puzzle (the level falls 1.36 cm) and its recap are unchanged. 14 screens + 4 Skill check; chapters *The puzzle* → *Density and upthrust* → *Back to the tank*; cast: Sam.
+
+| Was | Now |
+|---|---|
+| choice `weigh` (upthrust) | **build** `U = ρ × V × g`, 0.981 N (wrong chips: steel's 7800 kg m⁻³, the weight 7.65 N) |
+| — | **sort** `float-sink`: pine, ice, cork float; glass, aluminium, steel sink (densities written in the items) |
+| choice `pushed` | **order** `pushed`: floats → the block adds 7.65 N → 0.78 kg more water → 780 cm³ against the block's own 100 cm³ |
+| — | **estimate** `level`: drag to how far the level falls (1.36 cm, scale 0–4, tolerance 0.2); the block drops over the side after Check |
+| choice `hook-again` | **build** `Δh = (V₁ − V₂) ÷ A` (wrong chips: 880 cm³ as a sum, the mass 0.78 kg) |
+| text `rules` | one sentence, with a figure |
+
+`volume` (choice), `deeper` and `denser` (explores) stay. Skill check: **build** (the helium balloon, `U = ρ × V × g` with the air's density, 0.141 N; wrong chip: helium's 0.180 kg m⁻³), **sort** (U > W, U = W or U < W for six situations), **choice** (a ship moving from sea to river sits lower), **exam card** on a block of ice in sea water: (a) Calculate the volume under the surface [2] (893 cm³), (b) Calculate the percentage under the surface [2] (89.3 %). The stone's density by weighing and the room of air are gone.

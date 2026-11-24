@@ -4,6 +4,7 @@
 // water, 780 cm³; on the bottom it displaces only its own volume, 100 cm³. On the way: the block on a newtonmeter in a
 // displacement can (100 cm³ overflow, upthrust 0.981 N, the reading 7.65 → 6.67 N, deeper changes nothing).
 // Every number below comes from src/physics; wrong options are named mistakes, recomputed by the test.
+// Format v3 (V2 task D10): build, sort, estimate, order; the Skill check ends on an exam-style card.
 import { weight } from '../physics/dynamics.ts';
 import { apparentWeight, densityByWeighing, floatingDisplacement, massOf, RHO_WATER, tankLevelFall, upthrust, volumeOf } from '../physics/fluids.ts';
 import { G } from '../physics/kinematics.ts';
@@ -12,11 +13,11 @@ import type { DunkFig, Lesson, TankFig } from './types.ts';
 
 const NB = ' '; // a no-break space: a number never parts from its unit
 const N = (x: number): string => `${sig(x)}${NB}N`;
-const KG = (x: number): string => `${sig(x)}${NB}kg`;
 const M3 = (x: number): string => `${sci(x)}${NB}m³`;
 const CM3 = (x: number): string => `${sig(x * 1e6)}${NB}cm³`;
 const CM = (x: number): string => `${fixed(x * 100, 2)}${NB}cm`;
 const RHO = (x: number): string => `${sig(x)}${NB}kg${NB}m⁻³`;
+const G9 = `9.81${NB}N${NB}kg⁻¹`;
 
 // The steel block: 5.0 cm × 5.0 cm × 4.0 cm.
 export const BLOCK = { m: 0.78, rho: 7800, h: 0.04 }; // kg, kg m⁻³, m
@@ -25,8 +26,6 @@ export const TANK = { boat: 0.3, area: 0.05, water: 5.92e-3 }; // kg, m², m³
 export const DEPTH = { min: 0, max: 7, start: 2 }; // cm, the explore's slider: how deep the block's bottom is
 export const DENSITY = { min: 1000, max: 11000 }; // kg m⁻³, the explore's slider
 // Skill check.
-export const STONE = { air: 4.5, water: 2.7 }; // N
-export const ROOM = { l: 8.0, w: 6.0, h: 3.0, rho: 1.2 }; // m, kg m⁻³
 export const BALLOON = { V: 0.012, air: 1.2, helium: 0.18 }; // m³, kg m⁻³
 export const ICE = { m: 0.92, rho: 920, sea: 1030 }; // kg, kg m⁻³
 
@@ -34,20 +33,19 @@ const V = volumeOf(BLOCK.m, BLOCK.rho);
 const W = weight(BLOCK.m);
 const U = upthrust(RHO_WATER, V);
 const onBoard = floatingDisplacement(BLOCK.m, RHO_WATER);
-const roomV = ROOM.l * ROOM.w * ROOM.h;
+const iceBelow = floatingDisplacement(ICE.m, ICE.sea);
+const iceVolume = volumeOf(ICE.m, ICE.rho);
 
 /** Answers and named mistakes, used by the screens and re-checked by density-and-upthrust.test.ts. */
 export const ANSWERS = {
   volume: { right: V, times: BLOCK.m * BLOCK.rho, upside: BLOCK.rho / BLOCK.m, gcm3: BLOCK.m / (BLOCK.rho / 1000) },
   weigh: { right: U, weight: W, mass: massOf(RHO_WATER, V), reading: apparentWeight(W, U) },
-  pushed: { right: onBoard, ownVolume: V, weight: W / RHO_WATER, perKg: BLOCK.m / 1 },
+  pushed: { right: onBoard, ownVolume: V, weight: W / RHO_WATER, more: weight(BLOCK.m) },
   /** The puzzle: the level falls by (780 − 100) cm³ ÷ 500 cm². */
-  puzzle: { right: tankLevelFall(BLOCK.m, BLOCK.rho, TANK.area), rise: V / TANK.area, noVolume: onBoard / TANK.area },
+  puzzle: { right: tankLevelFall(BLOCK.m, BLOCK.rho, TANK.area), rise: V / TANK.area, noVolume: onBoard / TANK.area, sum: onBoard + V },
   denser: { same: tankLevelFall(BLOCK.m, RHO_WATER, TANK.area), lead: tankLevelFall(BLOCK.m, DENSITY.max, TANK.area) },
-  stone: { right: densityByWeighing(STONE.air, STONE.water, RHO_WATER), reading: (STONE.water / (STONE.air - STONE.water)) * RHO_WATER, ratio: (STONE.air / STONE.water) * RHO_WATER, upside: ((STONE.air - STONE.water) / STONE.air) * RHO_WATER },
-  room: { right: massOf(ROOM.rho, roomV), upside: roomV / ROOM.rho, flipped: ROOM.rho / roomV, weight: weight(massOf(ROOM.rho, roomV)) },
-  balloon: { right: upthrust(BALLOON.air, BALLOON.V), mass: massOf(BALLOON.air, BALLOON.V), helium: upthrust(BALLOON.helium, BALLOON.V), water: upthrust(RHO_WATER, BALLOON.V) },
-  ice: { right: floatingDisplacement(ICE.m, ICE.sea), whole: volumeOf(ICE.m, ICE.rho), fresh: floatingDisplacement(ICE.m, RHO_WATER), weight: weight(ICE.m) / ICE.sea },
+  balloon: { right: upthrust(BALLOON.air, BALLOON.V), helium: upthrust(BALLOON.helium, BALLOON.V), mass: massOf(BALLOON.air, BALLOON.V) },
+  ice: { below: iceBelow, whole: iceVolume, fraction: iceBelow / iceVolume, fresh: floatingDisplacement(ICE.m, RHO_WATER) },
 };
 const X = ANSWERS;
 
@@ -59,6 +57,12 @@ export const densityAndUpthrust: Lesson = {
   title: 'Density and upthrust',
   spec: [23, 24],
   minutes: 11,
+  chapters: [
+    { title: 'The puzzle', from: 'intro' },
+    { title: 'Density and upthrust', from: 'density' },
+    { title: 'Back to the tank', from: 'hook-again' },
+  ],
+  cast: ['Sam'],
   story: [
     {
       id: 'intro',
@@ -113,15 +117,19 @@ export const densityAndUpthrust: Lesson = {
     },
     {
       id: 'weigh',
-      kind: 'choice',
-      prompt: `In air the newtonmeter reads ${N(W)}. What is the upthrust on the block now that it is under water?`,
+      kind: 'build',
+      prompt: `In air the newtonmeter reads ${N(W)}. Build the upthrust on the block now that it is under water.`,
       fig: dunk({ inAir: true, reading: 'afterCheck', overflow: 'shown' }),
-      options: [
-        { id: 'weight', label: N(X.weigh.weight), hint: 'That is the block’s own weight. Upthrust is the weight of the water displaced.' },
-        { id: 'mass', label: N(X.weigh.mass), hint: `That is the mass of the water, in kg. Its weight is mg.` },
-        { id: 'right', label: N(X.weigh.right), correct: true },
-        { id: 'reading', label: N(X.weigh.reading), hint: 'That is what the newtonmeter reads in water: the weight minus the upthrust.' },
+      equation: 'U = {ρ} × {V} × {g}',
+      boxes: { 'ρ': 'water', V: 'volume', g: 'field' },
+      chips: [
+        { id: 'water', label: RHO(RHO_WATER) },
+        { id: 'volume', label: M3(V) },
+        { id: 'field', label: G9 },
+        { id: 'steel', label: RHO(BLOCK.rho), hint: 'That is the steel’s density. Upthrust uses the density of the water displaced.' },
+        { id: 'weight', label: N(W), hint: 'That is the block’s weight in air, not the upthrust.' },
       ],
+      result: { symbol: 'U', value: U, unit: 'N' },
       why: `It displaces ${CM3(V)} of water: ${sig(X.weigh.mass)} kg, weighing ${N(U)}. So the newtonmeter reads ${sig(W)} − ${sig(U)} = ${N(X.weigh.reading)}.`,
     },
     {
@@ -149,31 +157,64 @@ export const densityAndUpthrust: Lesson = {
       ],
     },
     {
-      id: 'pushed',
-      kind: 'choice',
-      prompt: 'With the block on board, the boat sits lower. How much extra water does the boat displace because of the block?',
-      fig: tank({ pushed: 'afterCheck' }),
-      options: [
-        { id: 'ownVolume', label: `${M3(X.pushed.ownVolume)}: the block’s volume`, hint: `The block is not in the water. The boat must displace ${BLOCK.m} kg more water.` },
-        { id: 'right', label: M3(X.pushed.right), correct: true },
-        { id: 'weight', label: M3(X.pushed.weight), hint: `That divides the weight, ${N(W)}, by ρ. Use the mass: ${BLOCK.m} kg of water.` },
-        { id: 'perKg', label: `${sig(X.pushed.perKg)}${NB}m³`, hint: 'Water is 1000 kg m⁻³, not 1 kg m⁻³.' },
+      id: 'float-sink',
+      kind: 'sort',
+      prompt: `Solid blocks are put into water, density ${RHO_WATER} kg m⁻³. Which float?`,
+      bins: [
+        { id: 'floats', label: 'Floats' },
+        { id: 'sinks', label: 'Sinks' },
       ],
+      items: [
+        { id: 'pine', label: `Pine wood, 500${NB}kg${NB}m⁻³`, bin: 'floats', hint: 'Less dense than water: it floats.' },
+        { id: 'ice', label: `Ice, 920${NB}kg${NB}m⁻³`, bin: 'floats', hint: 'Less dense than water: it floats, mostly under the surface.' },
+        { id: 'glass', label: `Glass, 2500${NB}kg${NB}m⁻³`, bin: 'sinks', hint: 'Denser than water: even fully under, U is less than its weight.' },
+        { id: 'alu', label: `Aluminium, 2700${NB}kg${NB}m⁻³`, bin: 'sinks', hint: 'Denser than water: it sinks.' },
+        { id: 'cork', label: `Cork, 240${NB}kg${NB}m⁻³`, bin: 'floats', hint: 'Much less dense than water: it floats high.' },
+        { id: 'steel', label: `Steel, 7800${NB}kg${NB}m⁻³`, bin: 'sinks', hint: 'Denser than water: a solid steel block sinks.' },
+      ],
+      why: 'Fully under water, upthrust = ρ(water)Vg and weight = ρ(block)Vg. The block floats if it is less dense than the water, and sinks if it is denser.',
+    },
+    {
+      id: 'pushed',
+      kind: 'order',
+      prompt: 'Why does the boat displace so much water with the block on board? Put the steps in order.',
+      fig: tank({ pushed: 'afterCheck' }),
+      steps: [
+        { id: 'floats', text: 'The boat floats, so its upthrust equals its weight.' },
+        { id: 'adds', text: `The block adds ${N(X.pushed.more)}, so the upthrust must grow by that much.` },
+        { id: 'water', text: `Upthrust is the weight of water displaced: ${BLOCK.m} kg more water.` },
+        { id: 'volume', text: `That is ${CM3(onBoard)}, far more than the block’s own ${CM3(V)}.` },
+      ],
+      hint: 'A floating boat: upthrust = weight. Then what the extra weight needs.',
       why: `To hold up ${BLOCK.m} kg more, the boat displaces ${BLOCK.m} kg more water: V = ${BLOCK.m} ÷ ${RHO_WATER} = ${M3(onBoard)}, or ${CM3(onBoard)}.`,
     },
     {
+      id: 'level',
+      kind: 'estimate',
+      prompt: `The tank’s base is ${TANK.area * 1e4} cm². Sam drops the block over the side and it sinks. Drag to how far the water level falls.`,
+      fig: tank({}),
+      after: tank({ drop: true }),
+      scale: { min: 0, max: 4, step: 0.1, tick: 1, unit: 'cm', symbol: 'Δh', dp: 1, label: 'Fall of the water level' },
+      answer: X.puzzle.right * 100,
+      tolerance: 0.2,
+      why: `The block displaced ${CM3(onBoard)} on board and only ${CM3(V)} on the bottom: ${sig((onBoard - V) * 1e6)} cm³ less, spread over ${TANK.area * 1e4} cm².`,
+    },
+    {
       id: 'hook-again',
-      kind: 'choice',
-      revisitOf: 'hook',
-      prompt: `Back to the tank: its base is ${TANK.area} m². Sam drops the block over the side and it sinks. What happens to the water level?`,
+      kind: 'build',
+      prompt: 'Back to the tank. Build how far the water level falls when the block goes over the side.',
       fig: tank({ drop: 'afterCheck' }),
-      options: [
-        { id: 'rise', label: `It rises by ${CM(X.puzzle.rise)}`, hint: `On board it already made the boat displace ${CM3(onBoard)}. On the bottom: less.` },
-        { id: 'same', label: 'It stays the same: the same things are in the tank', hint: `Compare what is displaced: ${CM3(onBoard)} on board, ${CM3(V)} on the bottom.` },
-        { id: 'noVolume', label: `It falls by ${CM(X.puzzle.noVolume)}`, hint: `On the bottom the block still displaces its own ${CM3(V)}.` },
-        { id: 'right', label: `It falls by ${CM(X.puzzle.right)}`, correct: true },
+      equation: 'Δh = ({V₁} − {V₂}) ÷ {A}',
+      boxes: { 'V₁': 'board', 'V₂': 'bottom', A: 'area' },
+      chips: [
+        { id: 'board', label: CM3(onBoard) },
+        { id: 'bottom', label: CM3(V) },
+        { id: 'area', label: `${TANK.area * 1e4}${NB}cm²` },
+        { id: 'sum', label: CM3(X.puzzle.sum), hint: 'The block’s own volume still counts on the bottom: subtract it, do not add.' },
+        { id: 'mass', label: `${BLOCK.m}${NB}kg`, hint: 'That is the block’s mass. The equation needs volumes.' },
       ],
-      why: `On board: ${CM3(onBoard)} displaced. On the bottom: ${CM3(V)}. ${sig((onBoard - V) * 1e6)} cm³ less over ${sig(TANK.area * 1e4)} cm²: the level falls ${CM(X.puzzle.right)}.`,
+      result: { symbol: 'Δh', value: X.puzzle.right * 100, unit: 'cm' },
+      why: `On board: ${CM3(onBoard)} displaced. On the bottom: ${CM3(V)}. ${sig((onBoard - V) * 1e6)} cm³ less over ${TANK.area * 1e4} cm²: the level falls ${CM(X.puzzle.right)}.`,
     },
     {
       id: 'denser',
@@ -194,60 +235,99 @@ export const densityAndUpthrust: Lesson = {
     {
       id: 'rules',
       kind: 'text',
-      body: [
-        '**Density** ρ = m ÷ V. **Upthrust** = the weight of the fluid displaced, ρVg: under the surface, a body displaces its own volume.',
-        'A floating body displaces its own weight of fluid. Next: what slows a ball falling through oil.',
-      ],
+      body: ['Upthrust = ρVg. A floating body displaces its own weight of fluid.'],
+      fig: tank({ compare: true }),
     },
   ],
   skillCheck: [
     {
-      id: 'stone',
-      kind: 'choice',
-      prompt: `A stone hangs from a newtonmeter. It reads ${fixed(STONE.air, 1)} N in air and ${fixed(STONE.water, 1)} N fully under water. What is the density of the stone?`,
-      options: [
-        { id: 'reading', label: RHO(X.stone.reading) },
-        { id: 'ratio', label: RHO(X.stone.ratio) },
-        { id: 'right', label: RHO(X.stone.right), correct: true },
-        { id: 'upside', label: RHO(X.stone.upside) },
-      ],
-      why: `U = ${fixed(STONE.air, 1)} − ${fixed(STONE.water, 1)} = ${fixed(STONE.air - STONE.water, 1)} N, the weight of its volume of water. So ρ = ${RHO_WATER} × ${fixed(STONE.air, 1)} ÷ ${fixed(STONE.air - STONE.water, 1)} = ${RHO(X.stone.right)}.`,
-    },
-    {
-      id: 'room',
-      kind: 'choice',
-      prompt: `A classroom is ${fixed(ROOM.l, 1)} m by ${fixed(ROOM.w, 1)} m by ${fixed(ROOM.h, 1)} m. The air in it has a density of ${fixed(ROOM.rho, 2)} kg m⁻³. What is the mass of the air?`,
-      options: [
-        { id: 'upside', label: KG(X.room.upside) },
-        { id: 'right', label: KG(X.room.right), correct: true },
-        { id: 'flipped', label: KG(X.room.flipped) },
-        { id: 'weight', label: KG(X.room.weight) },
-      ],
-      why: `V = ${fixed(ROOM.l, 1)} × ${fixed(ROOM.w, 1)} × ${fixed(ROOM.h, 1)} = ${roomV} m³, so m = ρV = ${fixed(ROOM.rho, 2)} × ${roomV} = ${KG(X.room.right)}: about two adults.`,
-    },
-    {
       id: 'balloon',
-      kind: 'choice',
-      prompt: `A helium party balloon has a volume of ${BALLOON.V} m³. The air around it has a density of ${fixed(BALLOON.air, 2)} kg m⁻³. What is the upthrust on the balloon?`,
-      options: [
-        { id: 'mass', label: N(X.balloon.mass) },
-        { id: 'helium', label: N(X.balloon.helium) },
-        { id: 'water', label: N(X.balloon.water) },
-        { id: 'right', label: N(X.balloon.right), correct: true },
+      kind: 'build',
+      prompt: `A helium party balloon has a volume of ${BALLOON.V} m³. The air around it has a density of ${fixed(BALLOON.air, 2)} kg m⁻³. Build the upthrust on the balloon.`,
+      equation: 'U = {ρ} × {V} × {g}',
+      boxes: { 'ρ': 'air', V: 'volume', g: 'field' },
+      chips: [
+        { id: 'air', label: RHO(BALLOON.air) },
+        { id: 'volume', label: M3(BALLOON.V) },
+        { id: 'field', label: G9 },
+        { id: 'helium', label: RHO(BALLOON.helium), hint: 'That is the helium’s density. Upthrust uses the air the balloon displaces.' },
       ],
+      result: { symbol: 'U', value: X.balloon.right, unit: 'N' },
       why: `The balloon displaces ${BALLOON.V} m³ of air: U = ρVg = ${fixed(BALLOON.air, 2)} × ${BALLOON.V} × ${G} = ${N(X.balloon.right)}. Use the air’s density, not the helium’s.`,
     },
     {
-      id: 'ice',
-      kind: 'choice',
-      prompt: `A ${ICE.m} kg block of ice, density ${ICE.rho} kg m⁻³, floats in sea water of density ${ICE.sea} kg m⁻³. What volume of the ice is under the surface?`,
-      options: [
-        { id: 'whole', label: M3(X.ice.whole) },
-        { id: 'fresh', label: M3(X.ice.fresh) },
-        { id: 'right', label: M3(X.ice.right), correct: true },
-        { id: 'weight', label: M3(X.ice.weight) },
+      id: 'forces',
+      kind: 'sort',
+      prompt: 'How does the upthrust U on each body compare with its weight W?',
+      bins: [
+        { id: 'more', label: 'U > W' },
+        { id: 'equal', label: 'U = W' },
+        { id: 'less', label: 'U < W' },
       ],
-      why: `Floating, it displaces its own weight of sea water: ${ICE.m} kg of it. V = ${ICE.m} ÷ ${ICE.sea} = ${M3(X.ice.right)}, out of ${M3(X.ice.whole)}.`,
+      items: [
+        { id: 'cork', label: 'A cork released under water, speeding up', bin: 'more', hint: 'It speeds up towards the surface: the resultant force is upwards.' },
+        { id: 'boat', label: 'A boat floating at rest', bin: 'equal', hint: 'At rest: no resultant force, so U = W.' },
+        { id: 'stone', label: 'A stone sinking, speeding up', bin: 'less', hint: 'It speeds up downwards: the resultant force is down.' },
+        { id: 'sub', label: 'A submarine hovering at a steady depth', bin: 'equal', hint: 'Steady, not moving: U = W.' },
+        { id: 'balloon', label: 'A helium balloon rising, speeding up', bin: 'more', hint: 'It speeds up upwards: U is more than W.' },
+        { id: 'coin', label: 'A coin lying on the bottom of a pool', bin: 'less', hint: 'The floor pushes up too: U alone is less than W.' },
+      ],
+      why: 'U > W gives an upward resultant force, U < W a downward one, and U = W none. Resting on the bottom, the floor’s push makes up the difference.',
+    },
+    {
+      id: 'river',
+      kind: 'choice',
+      prompt: 'A ship sails from the sea into a river. River water is less dense than sea water. How does the ship sit?',
+      options: [
+        { id: 'same', label: 'The same: its weight has not changed' },
+        { id: 'right', label: 'Lower: it must displace more volume of the lighter water', correct: true },
+        { id: 'higher', label: 'Higher: the river water is lighter, so it pushes less' },
+        { id: 'sinks', label: 'It sinks: the upthrust is smaller' },
+      ],
+      why: 'Floating, the ship displaces its own weight of water. Lighter river water means a larger volume: the ship sits lower. The upthrust is unchanged.',
+    },
+    {
+      id: 'ice',
+      kind: 'examCard',
+      context: `A ${ICE.m} kg block of ice, density ${ICE.rho} kg m⁻³, floats in sea water of density ${ICE.sea} kg m⁻³.`,
+      parts: [
+        {
+          id: 'a',
+          command: 'Calculate',
+          text: 'the volume of ice under the surface.',
+          marks: 2,
+          kind: 'build',
+          build: {
+            equation: 'V = {m} ÷ {ρ}',
+            boxes: { m: 'mass', 'ρ': 'sea' },
+            chips: [
+              { id: 'mass', label: `${fixed(ICE.m, 2)}${NB}kg` },
+              { id: 'sea', label: RHO(ICE.sea) },
+              { id: 'ice', label: RHO(ICE.rho), hint: 'That is the ice’s density. Floating, it displaces its weight of sea water.' },
+            ],
+            result: { symbol: 'V', value: X.ice.below * 1e6, unit: 'cm³' },
+          },
+          why: `Floating, the ice displaces its own weight of sea water: ${ICE.m} kg of it. V = ${ICE.m} ÷ ${ICE.sea} = ${CM3(X.ice.below)}. One mark for the idea, one for the answer.`,
+        },
+        {
+          id: 'b',
+          command: 'Calculate',
+          text: 'the percentage of the ice that is under the surface.',
+          marks: 2,
+          kind: 'build',
+          build: {
+            equation: 'fraction = {ρ₁} ÷ {ρ₂}',
+            boxes: { 'ρ₁': 'ice', 'ρ₂': 'sea' },
+            chips: [
+              { id: 'ice', label: RHO(ICE.rho) },
+              { id: 'sea', label: RHO(ICE.sea) },
+              { id: 'water', label: RHO(RHO_WATER), hint: 'That is fresh water. The ice floats in sea water.' },
+            ],
+            result: { symbol: 'fraction', value: X.ice.fraction * 100, unit: '%' },
+          },
+          why: `The whole block is ${CM3(X.ice.whole)}, and ${CM3(X.ice.below)} of it is under the surface: ${ICE.rho} ÷ ${ICE.sea} = ${sig(X.ice.fraction * 100)}%.`,
+        },
+      ],
     },
   ],
   youCanNow: [
