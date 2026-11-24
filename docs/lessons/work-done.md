@@ -65,3 +65,16 @@ All numbers come from `src/physics/work.ts` (and `weight` in `dynamics.ts`), g =
 1. Physics, `src/physics/work.ts`: `workDone`, `forceFromWork`, `liftWork`, `rampPush`. Test. `sig` (3 significant figures) in `src/physics/format.ts`.
 2. Figures: `src/figures/PlatformFigure.tsx` (one panel or two side by side; a load moved along a level floor by a hand: carried by its handle, pulled on its wheels, or pushed from behind; the hand's force from where it acts, all to one scale per figure; split into its parts along and across the motion with the angle; friction along the floor; the motion as an outline arrow with Δs; ΔW at the top of each panel; played, the floor slides past at a steady speed), `RampFigure.tsx` (a van, a ramp of any length up to its floor, the washing machine on it with the push along the ramp, the same machine lifted straight up beside the van, dashed; the work both ways).
 3. Content `src/content/work-done.ts` + test, `ready: true` on the map; the Energy misconception bank in `docs/LESSON_FRAMEWORK.md`, 12d.
+
+## v3 changes (24 Nov)
+
+Task D8. The puzzle (Nadia 0 J, Omar 600 J) and its recap are unchanged. 12 screens + 4 Skill check; chapters *The puzzle* → *What work is* → *Back to the platform*; cast: Nadia, Omar, Pia, Jonas. The lawn-mower pusher is now Pia (Ella is in the Energy lessons).
+
+| Was | Now |
+|---|---|
+| choice `hook-again` (who does how much) | **build** `W = F × s × cos θ` for Omar (wrong chips: 147 N, 30°), 600 J; Nadia's 0 J comes with the figure after Check |
+| choice `which` | **sort** `which`: does work / no work (the wall, the tray, a crane cable, the floor's push, friction) |
+| choice `ramp-push` | **spotError** `ramp-error` (Jonas divides the work by the van's height: 392 N instead of 157 N) |
+| texts `energy`, `rules` | one sentence each, with a figure |
+
+`mover` (choice), `handle` and `ramp` (explore) stay. Skill check: **build** (the lawnmower, 1150 J), **sort** (gravity on a falling ball, a weightlifter holding still, brakes, the ice's push, a rope on a sledge), **choice** (the joule in base units), **exam card** on the stairs: (a) Calculate the work against gravity [2] (1940 J, wrong chips: 4.8 m across, 6.0 m along the flight), (b) Explain why the 4.8 m across does not change the work [2] (order). The slide-friction question is gone. The gallery samples (`/gallery/steps`) still use `OMAR`, `TRIP`, `VAN` from this file.

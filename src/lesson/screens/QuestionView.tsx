@@ -189,7 +189,7 @@ function revealsAfterCheck(fig: Fig | undefined): boolean {
 }
 
 /** The people in the lessons' stories: an option that starts with one keeps its capital ("Omar: his pull…"). */
-const NAMES = new Set(['Mia', 'Leo', 'Ana', 'Ben', 'Zoe', 'Kai', 'Rose', 'Nadia', 'Omar', 'Ella', 'Noor', 'Dana', 'Tariq', 'Zara', 'Theo', 'Iris', 'Hugo', 'Imran', 'Ines', 'Ravi', 'Priya', 'Tom', 'Maya', 'Joel', 'Dev']);
+const NAMES = new Set(['Mia', 'Leo', 'Ana', 'Ben', 'Zoe', 'Kai', 'Rose', 'Nadia', 'Omar', 'Ella', 'Noor', 'Dana', 'Tariq', 'Zara', 'Theo', 'Iris', 'Hugo', 'Imran', 'Ines', 'Ravi', 'Priya', 'Tom', 'Maya', 'Joel', 'Dev', 'Sana', 'Bruno', 'Pia', 'Jonas']);
 
 /** An option label continued after "You said earlier:": lower-case first letter, except for "I" and names ("Mia's"). */
 function midSentence(label: string): string {

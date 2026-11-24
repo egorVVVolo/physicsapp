@@ -76,3 +76,18 @@ All numbers come from `src/physics/moments.ts` and are re-checked by a test. Pos
 ## Open for the owner
 
 - **The plank only tips to its stop.** How fast it tips would need its moment of inertia (not in the course), so it eases to where its end rests on the ground. Everything else stands still.
+
+## v3 changes (24 Nov)
+
+Task D8. **Ana and Ben are now Sana and Bruno** (Ana and Ben are in "Splitting a vector"). The puzzle (the sawn broom: 6.0 N brush piece, 2.0 N handle) and its recap are unchanged. 14 screens + 4 Skill check; chapters *The puzzle* → *Principle of moments* → *Back to the broom*; cast: Kai, Sana, Bruno, Zoe.
+
+| Was | Now |
+|---|---|
+| explore `seesaw` (slider = Bruno's distance) | **estimate**: where Bruno must sit (1.2 m, tolerance 0.1; the slider starts on 1.0); the plank tilts while he sits at the placeholder, and levels once checked |
+| — | **sort** `sense`: clockwise or anticlockwise (weights and pushes either side of the pivot) |
+| choice `box` | **build** `x = (W₁d₁ + W₂d₂) ÷ W₃`, five boxes (1.35 m); wrong chips: 1.20 m (without the box), 800 N (weights added) |
+| choice `beam` | **build** `W = W₁ × d₁ ÷ d₂` (300 N); wrong chips: 1.50 m (from the end), 3.00 m (the whole beam) |
+| choice `painter` | **build** `R = (W₁d₁ + W₂d₂) ÷ L` (250 N); `painter-left` stays a choice (550 N) |
+| texts `two-rules`, `rules` | one sentence each, with a figure |
+
+Skill check: **build** (the wheelbarrow, `F = W × d ÷ x`, 133 N), **sort** (taking moments about the left trestle: which forces have a moment), **choice** (moments about a point where no force acts), **exam card** on a plank on two trestles: (a) Calculate the right push [2] (290 N), (b) Calculate the left push [2] (710 N, `L = W₁ + W₂ − R`). The metre rule and carrying-pole questions are gone.

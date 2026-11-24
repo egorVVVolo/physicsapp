@@ -21,7 +21,6 @@ export const VAN = { m: 40, h: 1.2, L: 3.0 };
 // Skill check.
 export const MOWER = { F: 60, s: 25, angle: 40 };
 export const STAIRS = { m: 55, up: 3.6, across: 4.8 };
-export const SLIDE = { s: 2.5, friction: 24 };
 
 const caseWeight = weight(TRIP.m);
 const omarWork = workDone(OMAR.F, TRIP.s, OMAR.angle);
@@ -29,6 +28,7 @@ const nadiaWork = workDone(caseWeight, TRIP.s, 90);
 const lift = liftWork(VAN.m, VAN.h);
 const stairsAlong = Math.hypot(STAIRS.up, STAIRS.across);
 const sinRamp = VAN.h / VAN.L;
+/** The spotError's slip: the work divided by the height of the van instead of the length of the ramp. */
 
 /** Answers and named mistakes, used by the screens and re-checked by work-done.test.ts. */
 export const ANSWERS = {
@@ -40,7 +40,6 @@ export const ANSWERS = {
   rampPush: { right: forceFromWork(lift, VAN.L), weight: weight(VAN.m), into: weight(VAN.m) * Math.sqrt(1 - sinRamp * sinRamp), times: lift * VAN.L },
   mower: { right: workDone(MOWER.F, MOWER.s, MOWER.angle), whole: workDone(MOWER.F, MOWER.s), sin: MOWER.F * MOWER.s * Math.sin((MOWER.angle * Math.PI) / 180), noDistance: workDone(MOWER.F, 1, MOWER.angle) },
   stairs: { right: liftWork(STAIRS.m, STAIRS.up), across: liftWork(STAIRS.m, STAIRS.across), along: liftWork(STAIRS.m, stairsAlong), mass: STAIRS.m * STAIRS.up },
-  slide: { right: workDone(SLIDE.friction, SLIDE.s), divided: SLIDE.friction / SLIDE.s },
 };
 const X = ANSWERS;
 
@@ -48,12 +47,19 @@ const nadia: PlatformLane = { name: 'NADIA', how: 'carry', load: 'suitcase', F: 
 const omar: PlatformLane = { name: 'OMAR', how: 'pull', load: 'suitcase', F: OMAR.F, angle: OMAR.angle };
 const platform = (over: Partial<PlatformFig>): PlatformFig => ({ kind: 'platform', header: `suitcases ${TRIP.m} kg, steady speed`, lanes: [nadia, omar], dist: TRIP.s, ...over });
 const van = (over: Partial<RampFig>): RampFig => ({ kind: 'ramp', m: VAN.m, h: VAN.h, L: VAN.L, push: 'shown', work: true, ...over });
+const gDeg = (deg: number) => Math.cos((deg * Math.PI) / 180);
 
 export const workDoneLesson: Lesson = {
   id: 'work',
   title: 'Work done',
   spec: [17],
   minutes: 11,
+  chapters: [
+    { title: 'The puzzle', from: 'intro' },
+    { title: 'What work is', from: 'work' },
+    { title: 'Back to the platform', from: 'hook-again' },
+  ],
+  cast: ['Nadia', 'Omar', 'Pia', 'Jonas'],
   story: [
     {
       id: 'intro',
@@ -124,37 +130,43 @@ export const workDoneLesson: Lesson = {
     },
     {
       id: 'hook-again',
-      kind: 'choice',
-      revisitOf: 'hook',
-      prompt: `Back to the platform: Omar pulls ${OMAR.F}${NB}N at ${OMAR.angle}°, Nadia holds her ${N(caseWeight)} suitcase up. How much work does each do?`,
+      kind: 'build',
+      prompt: `Back to the platform. Omar pulls with ${OMAR.F}${NB}N at ${OMAR.angle}° to the floor, ${TRIP.s}${NB}m. Build the work his pull does.`,
       fig: platform({ forces: true, split: true, work: 'afterCheck' }),
-      options: [
-        { id: 'whole', label: `Nadia ${J(X.puzzle.nadiaWhole)}, Omar ${J(X.puzzle.omarWhole)}`, hint: 'Only the part of each force along the motion does work.' },
-        { id: 'carry', label: `Nadia ${J(X.puzzle.nadiaWhole)}, Omar ${J(omarWork)}`, hint: 'Nadia’s force is straight up and her suitcase moves sideways: θ = 90°.' },
-        { id: 'omarWhole', label: `Nadia 0${NB}J, Omar ${J(X.puzzle.omarWhole)}`, hint: 'Only the forward part of Omar’s pull moves along: use cos 60°.' },
-        { id: 'right', label: `Nadia 0${NB}J, Omar ${J(omarWork)}`, correct: true },
+      equation: 'W = {F} × {s} × cos {θ}',
+      boxes: { F: 'pull', s: 'dist', 'θ': 'angle' },
+      chips: [
+        { id: 'pull', label: `${OMAR.F}${NB}N` },
+        { id: 'dist', label: `${TRIP.s}${NB}m` },
+        { id: 'angle', label: `${OMAR.angle}°` },
+        { id: 'weight', label: N(caseWeight), hint: "That is the suitcase's weight, Nadia's lift. F is Omar's pull." },
+        { id: 'comp', label: `${90 - OMAR.angle}°`, hint: 'θ is the angle between the pull and the motion, along the floor.' },
       ],
+      result: { symbol: 'W', value: omarWork, unit: 'J' },
       why: `Omar: ${OMAR.F} × ${TRIP.s} × cos ${OMAR.angle}° = ${J(omarWork)}. Nadia’s ${N(caseWeight)} is at 90° to the motion: cos 90° = 0, so she does no work on the suitcase.`,
     },
     {
       id: 'energy',
       kind: 'text',
-      body: [
-        `Work done is **energy transferred**. Omar's suitcase never speeds up, so his ${J(omarWork)} heats its wheels: work done against a ${N(X.puzzle.resistance)} resistance.`,
-        "Nadia's arms still ache. Muscles use energy just to hold a load up, but none of that energy goes into the suitcase.",
-      ],
+      body: [`Work done is energy transferred: Omar's ${J(omarWork)} ends up heating his wheels.`],
+      fig: platform({ forces: true, work: 'shown' }),
     },
     {
       id: 'which',
-      kind: 'choice',
-      prompt: 'Which of these forces does work?',
-      options: [
-        { id: 'wall', label: 'Your hard push on a wall that does not move', hint: 'The wall moves 0 m, so ΔW = F × 0 = 0.' },
-        { id: 'tray', label: "A waiter's push up on a tray as he walks across a room", hint: 'The push is up, the motion sideways: at 90° it does no work.' },
-        { id: 'right', label: 'A crane cable pulling a load straight up', correct: true },
-        { id: 'floor', label: "The floor's push up on a box sliding across it", hint: 'At right angles to the motion again: no work.' },
+      kind: 'sort',
+      prompt: 'Which of these forces do work?',
+      bins: [
+        { id: 'work', label: 'Does work' },
+        { id: 'none', label: 'No work' },
       ],
-      why: 'The cable pulls along the motion, so it does work: force × height. The others move nothing, or act at right angles to the motion.',
+      items: [
+        { id: 'wall', label: 'Your hard push on a wall that does not move', bin: 'none', hint: 'The wall moves 0 m, so ΔW = F × 0 = 0.' },
+        { id: 'tray', label: "A waiter's push up on a tray as he walks", bin: 'none', hint: 'The push is up, the motion sideways: at 90° it does no work.' },
+        { id: 'cable', label: 'A crane cable pulling a load straight up', bin: 'work', hint: 'The cable pulls along the motion: force × height. It does work.' },
+        { id: 'floor', label: "The floor's push up on a sliding box", bin: 'none', hint: 'At right angles to the motion again: no work.' },
+        { id: 'friction', label: 'Friction on a box sliding along the floor', bin: 'work', hint: 'Friction acts along the line of motion, backwards: it does negative work.' },
+      ],
+      why: 'A force does work only when its point moves along it. Forces at 90° to the motion do none; a force against the motion does negative work.',
     },
     {
       id: 'ramp',
@@ -173,51 +185,57 @@ export const workDoneLesson: Lesson = {
       },
     },
     {
-      id: 'ramp-push',
-      kind: 'choice',
-      prompt: `The movers use a ${fixed(VAN.L, 1)}${NB}m ramp. Using the work done, what steady push along the ramp do they need?`,
+      id: 'ramp-error',
+      kind: 'spotError',
+      prompt: `Jonas works out the steady push along the ${fixed(VAN.L, 1)}${NB}m ramp, ${fixed(VAN.h, 1)}${NB}m up. One line is wrong. Which?`,
       fig: van({ push: 'afterCheck' }),
-      options: [
-        { id: 'weight', label: N(X.rampPush.weight), hint: 'That is the whole weight, for a straight lift. The ramp spreads the work out.' },
-        { id: 'right', label: N(X.rampPush.right), correct: true },
-        { id: 'into', label: N(X.rampPush.into), hint: 'That is the part of the weight into the ramp. Use F = ΔW ÷ Δs.' },
-        { id: 'times', label: N(X.rampPush.times), hint: 'Divide the work by the distance: F = ΔW ÷ Δs.' },
+      lines: [
+        { id: 'lift', text: `ΔW = mgh = ${VAN.m} × 9.81 × ${fixed(VAN.h, 1)} = ${J(lift)}`, hint: 'That line is right: lifting the machine takes mgh.' },
+        { id: 'rule', text: 'The push acts along the ramp: F = ΔW ÷ Δs', hint: 'That is the right rule: force = work ÷ distance along it.' },
+        { id: 'ds', text: `Δs = the height of the van = ${fixed(VAN.h, 1)}${NB}m`, wrong: true, fix: `Δs = the length of the ramp = ${fixed(VAN.L, 1)}${NB}m` },
+        { id: 'f', text: `F = ${sig(lift)} ÷ ${fixed(VAN.h, 1)} = ${N(X.rampPush.weight)}`, hint: 'This follows from the line above. Check the Δs put in.' },
       ],
-      why: `The work up the ramp equals the work to lift it: F × ${fixed(VAN.L, 1)} = ${J(lift)}, so F = ${sig(lift)} ÷ ${fixed(VAN.L, 1)} = ${N(X.rampPush.right)}.`,
+      why: `The push moves along the ramp, so Δs is its ${fixed(VAN.L, 1)}${NB}m length: F = ${sig(lift)} ÷ ${fixed(VAN.L, 1)} = ${N(X.rampPush.right)}. ${N(X.rampPush.weight)} is the whole weight, a straight lift.`,
     },
     {
       id: 'rules',
       kind: 'text',
-      body: [
-        'Work done = force × distance moved in the direction of the force: ΔW = FΔs, or FΔs cos θ at an angle. A force at right angles to the motion does **no work**.',
-        `Work done is energy transferred, in joules. Lifting the machine gave it ${J(lift)}: the next lesson names that energy.`,
-      ],
+      body: ['ΔW = FΔs cos θ: a force at right angles to the motion does no work.'],
+      fig: platform({ forces: true, split: true, work: 'shown' }),
     },
   ],
   skillCheck: [
     {
       id: 'mower',
-      kind: 'choice',
-      prompt: `Ella pushes a lawnmower ${MOWER.s}${NB}m with a ${MOWER.F}${NB}N force along its handle, at ${MOWER.angle}° below the horizontal. How much work does her push do?`,
-      options: [
-        { id: 'sin', label: J(X.mower.sin) },
-        { id: 'right', label: J(X.mower.right), correct: true },
-        { id: 'whole', label: J(X.mower.whole) },
-        { id: 'noDistance', label: J(X.mower.noDistance) },
+      kind: 'build',
+      prompt: `Pia pushes a lawnmower ${MOWER.s}${NB}m with a ${MOWER.F}${NB}N force along its handle, at ${MOWER.angle}° below the horizontal. Build the work her push does.`,
+      equation: 'W = {F} × {s} × cos {θ}',
+      boxes: { F: 'push', s: 'dist', 'θ': 'angle' },
+      chips: [
+        { id: 'push', label: `${MOWER.F}${NB}N` },
+        { id: 'dist', label: `${MOWER.s}${NB}m` },
+        { id: 'angle', label: `${MOWER.angle}°` },
+        { id: 'comp', label: `${90 - MOWER.angle}°`, hint: 'θ is the angle between the push and the lawn: 40°, not 50°.' },
       ],
-      why: `Only the part along the lawn does work: ${MOWER.F} × cos ${MOWER.angle}° = ${N(MOWER.F * Math.cos((MOWER.angle * Math.PI) / 180))}, times ${MOWER.s}${NB}m gives ${J(X.mower.right)}.`,
+      result: { symbol: 'W', value: X.mower.right, unit: 'J' },
+      why: `Only the part along the lawn does work: ${MOWER.F} × cos ${MOWER.angle}° = ${N(MOWER.F * gDeg(MOWER.angle))}, times ${MOWER.s}${NB}m gives ${J(X.mower.right)}.`,
     },
     {
-      id: 'stairs',
-      kind: 'choice',
-      prompt: `A ${STAIRS.m}${NB}kg student climbs a flight of stairs that rises ${fixed(STAIRS.up, 1)}${NB}m over ${fixed(STAIRS.across, 1)}${NB}m across. How much work does she do against gravity?`,
-      options: [
-        { id: 'across', label: J(X.stairs.across) },
-        { id: 'mass', label: J(X.stairs.mass) },
-        { id: 'right', label: J(X.stairs.right), correct: true },
-        { id: 'along', label: J(X.stairs.along) },
+      id: 'work-sort',
+      kind: 'sort',
+      prompt: 'Which of these forces do work on the object named?',
+      bins: [
+        { id: 'work', label: 'Does work' },
+        { id: 'none', label: 'No work' },
       ],
-      why: `Her weight, ${N(weight(STAIRS.m))}, acts straight down, so only the height counts: ${sig(weight(STAIRS.m))} × ${fixed(STAIRS.up, 1)} = ${J(X.stairs.right)}.`,
+      items: [
+        { id: 'fall', label: 'Gravity on a ball as it falls', bin: 'work', hint: 'The ball moves along the pull of gravity: it does work.' },
+        { id: 'hold', label: "A weightlifter's push holding a bar still", bin: 'none', hint: 'The bar does not move, so the distance is zero.' },
+        { id: 'brake', label: 'The brakes slowing a car down', bin: 'work', hint: 'The force acts along the line of motion, backwards: negative work.' },
+        { id: 'ice', label: "The ice's push up on a gliding skater", bin: 'none', hint: 'Up, at 90° to the motion: no work.' },
+        { id: 'rope', label: 'A rope pulling a sledge along the snow', bin: 'work', hint: 'The sledge moves along the pull: it does work.' },
+      ],
+      why: 'Work needs movement along the force: falling, braking and pulling have it. Holding still, or pushing at 90° to the motion, does not.',
     },
     {
       id: 'joule',
@@ -232,16 +250,45 @@ export const workDoneLesson: Lesson = {
       why: '1 J = 1 N × 1 m, and 1 N = 1 kg m s⁻². So 1 J = 1 kg m² s⁻². (kg m s⁻² is the newton; kg m s⁻¹ is momentum.)',
     },
     {
-      id: 'slide',
-      kind: 'choice',
-      prompt: `A box slides ${fixed(SLIDE.s, 1)}${NB}m across a floor and stops; the friction on it is ${SLIDE.friction}${NB}N. What work is done against friction, and where does the energy go?`,
-      options: [
-        { id: 'stored', label: `${J(X.slide.right)}, stored in the box` },
-        { id: 'divided', label: `${J(X.slide.divided)}, heating the box and the floor` },
-        { id: 'zero', label: `0${NB}J: the box ends at rest` },
-        { id: 'right', label: `${J(X.slide.right)}, heating the box and the floor`, correct: true },
+      id: 'stairs',
+      kind: 'examCard',
+      context: `A ${STAIRS.m}${NB}kg student climbs a flight of stairs that rises ${fixed(STAIRS.up, 1)}${NB}m over ${fixed(STAIRS.across, 1)}${NB}m across. Take g = 9.81 N kg⁻¹.`,
+      parts: [
+        {
+          id: 'a',
+          command: 'Calculate',
+          text: 'the work she does against gravity.',
+          marks: 2,
+          kind: 'build',
+          build: {
+            equation: 'W = {m} × {g} × {h}',
+            boxes: { m: 'mass', g: 'field', h: 'height' },
+            chips: [
+              { id: 'mass', label: `${STAIRS.m}${NB}kg` },
+              { id: 'field', label: `9.81${NB}N${NB}kg⁻¹` },
+              { id: 'height', label: `${fixed(STAIRS.up, 1)}${NB}m` },
+              { id: 'across', label: `${fixed(STAIRS.across, 1)}${NB}m`, hint: 'That is the distance across. Her weight is vertical: use the height.' },
+              { id: 'along', label: `${fixed(stairsAlong, 1)}${NB}m`, hint: 'That is the length of the flight. Only the height counts.' },
+            ],
+            result: { symbol: 'W', value: X.stairs.right, unit: 'J' },
+          },
+          why: `Her weight, ${N(weight(STAIRS.m))}, acts straight down, so only the height counts: ${sig(weight(STAIRS.m))} × ${fixed(STAIRS.up, 1)} = ${J(X.stairs.right)}. One mark for the weight, one for the answer.`,
+        },
+        {
+          id: 'b',
+          command: 'Explain',
+          text: 'why the 4.8 m across does not change the work.',
+          marks: 2,
+          kind: 'order',
+          steps: [
+            { id: 'down', text: 'Her weight acts straight down.' },
+            { id: 'along', text: 'Only movement along the force counts: the height she climbs.' },
+            { id: 'across', text: 'The 4.8 m across is at 90° to her weight: cos 90° = 0.' },
+            { id: 'same', text: `So the work is mgh = ${J(X.stairs.right)}, however far she goes across.` },
+          ],
+          why: 'Work = force × distance moved along the force. Across the stairs the weight does no work, so only the height matters.',
+        },
       ],
-      why: `ΔW = ${SLIDE.friction} × ${fixed(SLIDE.s, 1)} = ${J(X.slide.right)}. Work done against friction is energy transferred by heating the box and the floor.`,
     },
   ],
   youCanNow: [

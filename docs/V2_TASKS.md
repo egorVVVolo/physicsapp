@@ -69,7 +69,7 @@
 | D5 | Уроки «Force and acceleration» и «The push from the floor» | ✅ |
 | D6 | Уроки «Falling through air» и «Momentum» | ✅ |
 | D7 | Уроки «Collisions» и «Turning forces» | ✅ |
-| D8 | Уроки «Keeping balance» и «Work done» | |
+| D8 | Уроки «Keeping balance» и «Work done» | ✅ |
 | D9 | Уроки «Kinetic and potential energy» и «Where the energy goes» | |
 | D10 | Уроки «Power and efficiency» и «Density and upthrust» | |
 | D11 | Уроки «Viscous drag» и «Hooke's law» | |

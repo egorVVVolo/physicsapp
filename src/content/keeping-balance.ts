@@ -12,23 +12,24 @@ const m = (x: number, dp = 2): string => `${fixed(x, dp)}${NB}m`;
 
 // The puzzle: the broom balanced on a finger, sawn at the balance point.
 export const BROOM = { total: 8.0, brush: 0.15, handle: 0.45 }; // N; m from the cut to each piece's centre of gravity
-// The balance plank: a light plank on a pivot at its middle. Distances from the pivot; Ana and the box on the left.
+// The balance plank: a light plank on a pivot at its middle. Distances from the pivot; Sana and the box on the left.
 export const PLANK = { L: 4.4, pivot: 2.2 };
-export const ANA = { W: 300, d: 1.6 };
-export const BEN = { W: 400 };
+export const SANA = { W: 300, d: 1.6 };
+export const BRUNO = { W: 400 };
 export const BOX = { W: 100, d: 0.6 };
 // A uniform beam on a support near its left end; Zoe stands on that end.
 export const BEAM = { L: 3.0, W: 600, support: 1.0 };
 // A uniform plank on a trestle at each end, a painter on it (positions from the left end).
 export const PAINTER = { L: 4.0, plank: 200, W: 600, at: 1.0 };
 // Skill check.
+export const CARD = { L: 5.0, plank: 300, W: 700, at: 1.0 }; // the exam card: a uniform plank on two trestles, a painter on it (from the left end)
 export const RULE = { pivot: 0.4, load: 0.5, at: 0.1 }; // m marks, N
 export const BARROW = { W: 400, d: 0.4, handles: 1.2 }; // N, m from the axle
 export const POLE = { L: 2.0, W: 80, bucket: 120, fromFront: 0.5 }; // m, N, N, m
 
-const anaLoad: Load = { W: ANA.W, at: PLANK.pivot - ANA.d };
+const sanaLoad: Load = { W: SANA.W, at: PLANK.pivot - SANA.d };
 const boxLoad: Load = { W: BOX.W, at: PLANK.pivot - BOX.d };
-const ben = (loads: Load[]) => balancingPosition(loads, BEN.W, PLANK.pivot) - PLANK.pivot;
+const ben = (loads: Load[]) => balancingPosition(loads, BRUNO.W, PLANK.pivot) - PLANK.pivot;
 const beamLoad: Load = { W: BEAM.W, at: BEAM.L / 2 };
 const [brushW, handleW] = piecesAtBalance(BROOM.total, BROOM.brush, BROOM.handle);
 const painterLoads: Load[] = [
@@ -36,6 +37,11 @@ const painterLoads: Load[] = [
   { W: PAINTER.plank, at: PAINTER.L / 2 },
 ];
 const [leftPush, rightPush] = supportPushes(painterLoads, 0, PAINTER.L);
+const cardLoads: Load[] = [
+  { W: CARD.W, at: CARD.at },
+  { W: CARD.plank, at: CARD.L / 2 },
+];
+const [cardLeft, cardRight] = supportPushes(cardLoads, 0, CARD.L);
 const ruleW = balancingLoad([{ W: RULE.load, at: RULE.at }], 0.5, RULE.pivot);
 const [, barrowLift] = supportPushes([{ W: BARROW.W, at: BARROW.d }], 0, BARROW.handles);
 const poleLoads: Load[] = [
@@ -46,13 +52,13 @@ const [poleFront, poleBack] = supportPushes(poleLoads, 0, POLE.L);
 
 /** Answers and named mistakes, used by the screens and re-checked by keeping-balance.test.ts. */
 export const ANSWERS = {
-  explore: { right: ben([anaLoad]), same: ANA.d, upsideDown: (BEN.W * ANA.d) / ANA.W, totals: senseTotals([anaLoad, { W: BEN.W, at: PLANK.pivot + ben([anaLoad]) }], PLANK.pivot) },
+  explore: { right: ben([sanaLoad]), same: SANA.d, upsideDown: (BRUNO.W * SANA.d) / SANA.W, totals: senseTotals([sanaLoad, { W: BRUNO.W, at: PLANK.pivot + ben([sanaLoad]) }], PLANK.pivot) },
   box: {
-    right: ben([anaLoad, boxLoad]),
-    left: ANA.W * ANA.d + BOX.W * BOX.d,
-    forgot: ben([anaLoad]),
-    atAna: ((ANA.W + BOX.W) * ANA.d) / BEN.W,
-    subtracted: (ANA.W * ANA.d - BOX.W * BOX.d) / BEN.W,
+    right: ben([sanaLoad, boxLoad]),
+    left: SANA.W * SANA.d + BOX.W * BOX.d,
+    forgot: ben([sanaLoad]),
+    atSana: ((SANA.W + BOX.W) * SANA.d) / BRUNO.W,
+    subtracted: (SANA.W * SANA.d - BOX.W * BOX.d) / BRUNO.W,
   },
   beam: {
     right: balancingLoad([beamLoad], 0, BEAM.support),
@@ -67,6 +73,7 @@ export const ANSWERS = {
   painterLeft: { right: leftPush, forgot: PAINTER.W - rightPush, same: rightPush, all: PAINTER.W + PAINTER.plank },
   rule: { right: ruleW, upsideDown: (RULE.load * (0.5 - RULE.pivot)) / (RULE.pivot - RULE.at), fromZero: (RULE.load * RULE.at) / 0.5, equal: RULE.load },
   barrow: { right: barrowLift, wheel: BARROW.W - barrowLift, upsideDown: (BARROW.W * BARROW.handles) / BARROW.d, all: BARROW.W },
+  card: { right: cardRight, left: cardLeft, total: CARD.W + CARD.plank },
   pole: { right: poleFront, back: poleBack, shared: (POLE.W + POLE.bucket) / 2, forgot: supportPushes([poleLoads[0]], 0, POLE.L)[0] },
 };
 const X = ANSWERS;
@@ -75,7 +82,8 @@ const broom = (over: Partial<BroomFig>): BroomFig => ({ kind: 'broom', ...BROOM,
 
 const person = (id: string, name: string, W: number, at: number, extra: Partial<BeamLoad> = {}): BeamLoad => ({ id, look: 'person', name, W, at, ...extra });
 const plankFig = (loads: BeamLoad[], header: string, over: Partial<BeamFig> = {}): BeamFig => ({ kind: 'beam', header, L: PLANK.L, supports: [PLANK.pivot], loads, moments: true, ...over });
-const anaOn = person('ana', 'ANA', ANA.W, anaLoad.at);
+const sanaOn = person('sana', 'SANA', SANA.W, sanaLoad.at);
+const PLANK_HEADER = `light plank, Sana ${N(SANA.W)}, Bruno ${N(BRUNO.W)}`;
 const beamFig = (over: Partial<BeamFig>): BeamFig => ({
   kind: 'beam',
   header: `uniform beam ${m(BEAM.L, 1)}, W = ${N(BEAM.W)}`,
@@ -95,12 +103,28 @@ const painterFig = (pushes: BeamFig['pushes']): BeamFig => ({
   pushes,
   answer: 'afterCheck',
 });
+const cardFig: BeamFig = {
+  kind: 'beam',
+  header: `uniform plank ${m(CARD.L, 1)}, W = ${N(CARD.plank)}`,
+  L: CARD.L,
+  supports: [0, CARD.L],
+  weight: CARD.plank,
+  loads: [person('painter', 'PAINTER', CARD.W, CARD.at)],
+  pushes: { known: [], asked: 1 },
+  answer: 'afterCheck',
+};
 
 export const keepingBalance: Lesson = {
   id: 'balance',
   title: 'Keeping balance',
   spec: [16],
   minutes: 12,
+  chapters: [
+    { title: 'The puzzle', from: 'intro' },
+    { title: 'Principle of moments', from: 'equilibrium' },
+    { title: 'Back to the broom', from: 'hook-again' },
+  ],
+  cast: ['Kai', 'Sana', 'Bruno', 'Zoe'],
   story: [
     {
       id: 'intro',
@@ -132,33 +156,51 @@ export const keepingBalance: Lesson = {
       card: { term: 'Principle of moments', text: 'For a body in equilibrium, the sum of the clockwise moments about any point equals the sum of the anticlockwise moments.' },
     },
     {
+      id: 'sense',
+      kind: 'sort',
+      prompt: 'About the pivot of a plank, which way does each force turn it?',
+      bins: [
+        { id: 'cw', label: 'Clockwise' },
+        { id: 'acw', label: 'Anticlockwise' },
+      ],
+      items: [
+        { id: 'left', label: 'A weight hanging left of the pivot', bin: 'acw', hint: 'A weight pulls down: on the left side it turns the plank anticlockwise.' },
+        { id: 'right', label: 'A weight hanging right of the pivot', bin: 'cw', hint: 'A weight pulls down: on the right side it turns the plank clockwise.' },
+        { id: 'upRight', label: 'An upward push right of the pivot', bin: 'acw', hint: 'An upward push on the right lifts that side: anticlockwise.' },
+        { id: 'upLeft', label: 'An upward push left of the pivot', bin: 'cw', hint: 'An upward push on the left lifts that side: clockwise.' },
+        { id: 'box', label: 'A box set down right of the pivot', bin: 'cw', hint: 'The box pulls down on the right: clockwise.' },
+      ],
+      why: 'Down on the right or up on the left turns the plank clockwise; down on the left or up on the right, anticlockwise.',
+    },
+    {
       id: 'seesaw',
-      kind: 'explore',
-      instruction: 'Drag the slider to move Ben along the plank. Watch both totals at the top.',
-      fig: plankFig([anaOn, person('ben', 'BEN', BEN.W, PLANK.pivot + 0.4, { slide: true })], `light plank, Ana ${N(ANA.W)}, Ben ${N(BEN.W)}`),
-      slider: { min: 0.4, max: 2.0, step: 0.1, tick: 0.4, label: "Ben's distance from the pivot", unit: 'm', symbol: 'x', dp: 1, start: 0.4 },
-      question: {
-        prompt: 'Where does Ben stand when the plank balances?',
-        options: [
-          { id: 'same', label: `${m(X.explore.same, 1)}: as far out as Ana`, hint: 'There his 400 N turns harder than her 300 N. Watch the totals.' },
-          { id: 'right', label: `${m(X.explore.right, 1)}: ${BEN.W} × ${fixed(X.explore.right, 1)} = ${ANA.W} × ${fixed(ANA.d, 1)}`, correct: true },
-          { id: 'further', label: `${m(X.explore.upsideDown, 1)}: further out, because he is heavier`, hint: 'Further out turns harder still. The heavier one moves in.' },
-        ],
-        right: `Right: ${BEN.W} × ${fixed(X.explore.right, 1)} = ${fixed(X.explore.totals.clockwise, 0)} N m clockwise, the same as Ana's ${ANA.W} × ${fixed(ANA.d, 1)} anticlockwise. The heavier person stands nearer.`,
-      },
+      kind: 'estimate',
+      prompt: `Sana (${N(SANA.W)}) sits ${m(SANA.d, 1)} left of the pivot of a light plank. Bruno weighs ${N(BRUNO.W)}. Drag to where he must sit, right of the pivot, to balance it.`,
+      fig: plankFig([sanaOn, person('bruno', 'BRUNO', BRUNO.W, PLANK.pivot + 0.4, { asked: 'at' })], PLANK_HEADER, { moments: undefined }),
+      after: plankFig([sanaOn, person('bruno', 'BRUNO', BRUNO.W, PLANK.pivot + X.explore.right, { asked: 'at' })], PLANK_HEADER, { answer: 'shown' }),
+      scale: { min: 0, max: 2, step: 0.1, tick: 0.5, unit: 'm', symbol: 'x', dp: 1, label: "Bruno's distance from pivot" },
+      answer: X.explore.right,
+      tolerance: 0.1,
+      why: `Equal moments: ${BRUNO.W} × x = ${SANA.W} × ${fixed(SANA.d, 1)}, so x = ${m(X.explore.right, 1)}. The heavier person sits nearer the pivot.`,
     },
     {
       id: 'box',
-      kind: 'choice',
-      prompt: `Ana puts down a ${N(BOX.W)} box ${m(BOX.d)} left of the pivot and stays where she is. Where must Ben stand now to balance the plank?`,
-      fig: plankFig([anaOn, { id: 'box', look: 'box', W: BOX.W, at: boxLoad.at }, person('ben', 'BEN', BEN.W, PLANK.pivot + X.box.right, { asked: 'at' })], `Ana ${N(ANA.W)}, box ${N(BOX.W)}, Ben ${N(BEN.W)}`, { answer: 'afterCheck' }),
-      options: [
-        { id: 'subtracted', label: `${m(X.box.subtracted)} right of the pivot`, hint: 'The box and Ana are on the same side: their moments add.' },
-        { id: 'forgot', label: `${m(X.box.forgot)} right of the pivot`, hint: 'The box turns the plank too: add its moment to Ana’s.' },
-        { id: 'right', label: `${m(X.box.right)} right of the pivot`, correct: true },
-        { id: 'atAna', label: `${m(X.box.atAna)} right of the pivot`, hint: 'The box is only 0.60 m out. Use its own distance.' },
+      kind: 'build',
+      prompt: `Sana puts down a ${N(BOX.W)} box ${m(BOX.d)} left of the pivot and stays where she is. Build where Bruno must sit now.`,
+      fig: plankFig([sanaOn, { id: 'box', look: 'box', W: BOX.W, at: boxLoad.at }, person('bruno', 'BRUNO', BRUNO.W, PLANK.pivot + X.box.right, { asked: 'at' })], `Sana ${N(SANA.W)}, box ${N(BOX.W)}, Bruno ${N(BRUNO.W)}`, { answer: 'afterCheck', moments: undefined }),
+      equation: 'x = ({W₁} × {d₁} + {W₂} × {d₂}) ÷ {W₃}',
+      boxes: { 'W₁': 'sana', 'd₁': 'dSana', 'W₂': 'box', 'd₂': 'dBox', 'W₃': 'bruno' },
+      chips: [
+        { id: 'sana', label: N(SANA.W) },
+        { id: 'dSana', label: m(SANA.d) },
+        { id: 'box', label: N(BOX.W) },
+        { id: 'dBox', label: m(BOX.d) },
+        { id: 'bruno', label: N(BRUNO.W) },
+        { id: 'before', label: m(X.box.forgot), hint: "That is where he sat for Sana alone. The box's moment adds to hers." },
+        { id: 'total', label: N(SANA.W + BOX.W + BRUNO.W), hint: 'Weights do not simply add: each has its own distance.' },
       ],
-      why: `Anticlockwise: ${ANA.W} × ${fixed(ANA.d, 2)} + ${BOX.W} × ${fixed(BOX.d, 2)} = ${fixed(X.box.left, 0)} N m. Ben needs the same clockwise: x = ${fixed(X.box.left, 0)} ÷ ${BEN.W} = ${m(X.box.right)}.`,
+      result: { symbol: 'x', value: X.box.right, unit: 'm' },
+      why: `Anticlockwise: ${SANA.W} × ${fixed(SANA.d, 2)} + ${BOX.W} × ${fixed(BOX.d, 2)} = ${fixed(X.box.left, 0)} N m. Bruno needs the same clockwise: x = ${fixed(X.box.left, 0)} ÷ ${BRUNO.W} = ${m(X.box.right)}.`,
     },
     {
       id: 'cg',
@@ -184,15 +226,19 @@ export const keepingBalance: Lesson = {
     },
     {
       id: 'beam',
-      kind: 'choice',
-      prompt: `The beam weighs ${N(BEAM.W)}. Zoe stands on its left end, and the beam balances. What is Zoe's weight?`,
+      kind: 'build',
+      prompt: `The beam weighs ${N(BEAM.W)}. Zoe stands on its left end, and the beam balances. Build Zoe's weight.`,
       fig: beamFig({ answer: 'afterCheck', moments: true }),
-      options: [
-        { id: 'right', label: N(X.beam.right), correct: true },
-        { id: 'same', label: N(X.beam.same), hint: 'Equal weights balance only at equal distances: 1.00 m against 0.50 m.' },
-        { id: 'fromEnd', label: N(X.beam.fromEnd), hint: 'Measure from the support, not from the end: the weight is 0.50 m from it.' },
-        { id: 'upsideDown', label: N(X.beam.upsideDown), hint: 'Zoe is twice as far out as the beam’s weight, so she needs half of it.' },
+      equation: 'W = {W₁} × {d₁} ÷ {d₂}',
+      boxes: { 'W₁': 'beam', 'd₁': 'arm', 'd₂': 'zoe' },
+      chips: [
+        { id: 'beam', label: N(BEAM.W) },
+        { id: 'arm', label: m(X.beam.arm) },
+        { id: 'zoe', label: m(BEAM.support) },
+        { id: 'fromEnd', label: m(BEAM.L / 2), hint: 'That is from the end. Measure from the support: 0.50 m.' },
+        { id: 'whole', label: m(BEAM.L), hint: "That is the beam's whole length, not a distance from the support." },
       ],
+      result: { symbol: 'W', value: X.beam.right, unit: 'N' },
       why: `The beam's weight acts ${m(X.beam.arm)} right of the support: ${BEAM.W} × ${fixed(X.beam.arm, 2)} = ${fixed(BEAM.W * X.beam.arm, 0)} N m clockwise. Zoe is ${m(BEAM.support)} left: W = ${N(X.beam.right)}.`,
     },
     {
@@ -212,23 +258,27 @@ export const keepingBalance: Lesson = {
     {
       id: 'two-rules',
       kind: 'text',
-      body: [
-        'Equilibrium also means **no resultant force**: the supports push up with the whole weight, all together.',
-        'And the moments balance about **any** point. Take moments about a point where an unknown force acts: its moment there is zero, so it drops out.',
-      ],
+      body: ['Take moments about a point where an unknown force acts: its moment is zero.'],
+      fig: painterFig({ known: [], asked: 1 }),
     },
     {
       id: 'painter',
-      kind: 'choice',
-      prompt: `The plank lies on a trestle at each end. A ${N(PAINTER.W)} painter stands ${m(PAINTER.at, 1)} from the left end. How hard does the right trestle push up?`,
+      kind: 'build',
+      prompt: `The plank lies on a trestle at each end. A ${N(PAINTER.W)} painter stands ${m(PAINTER.at, 1)} from the left end. Build how hard the right trestle pushes up.`,
       fig: painterFig({ known: [], asked: 1 }),
-      options: [
-        { id: 'forgot', label: N(X.painter.forgot), hint: 'The plank’s own 200 N acts at its middle, 2.0 m from the left: add its moment.' },
-        { id: 'right', label: N(X.painter.right), correct: true },
-        { id: 'shared', label: N(X.painter.shared), hint: 'The painter is near the left trestle, so the left one takes more.' },
-        { id: 'swapped', label: N(X.painter.left), hint: 'That is the left trestle. Take moments about the left one to find the right.' },
+      equation: 'R = ({W₁} × {d₁} + {W₂} × {d₂}) ÷ {L}',
+      boxes: { 'W₁': 'painter', 'd₁': 'dPainter', 'W₂': 'plank', 'd₂': 'dPlank', L: 'length' },
+      chips: [
+        { id: 'painter', label: N(PAINTER.W) },
+        { id: 'dPainter', label: m(PAINTER.at, 1) },
+        { id: 'plank', label: N(PAINTER.plank) },
+        { id: 'dPlank', label: m(PAINTER.L / 2, 1) },
+        { id: 'length', label: m(PAINTER.L, 1) },
+        { id: 'far', label: m(PAINTER.L - PAINTER.at, 1), hint: 'Measure from the left trestle: the painter is 1.0 m from it.' },
+        { id: 'sum', label: N(PAINTER.W + PAINTER.plank), hint: 'Weights do not simply add: each has its own distance from the pivot.' },
       ],
-      why: `Moments about the left trestle: R × ${fixed(PAINTER.L, 1)} = ${PAINTER.W} × ${fixed(PAINTER.at, 1)} + ${PAINTER.plank} × ${fixed(PAINTER.L / 2, 1)} = ${fixed(X.painter.right * PAINTER.L, 0)} N m, so R = ${N(X.painter.right)}. The left push has no moment there.`,
+      result: { symbol: 'R', value: X.painter.right, unit: 'N' },
+      why: `Moments about the left trestle: R × ${fixed(PAINTER.L, 1)} = ${PAINTER.W} × ${fixed(PAINTER.at, 1)} + ${PAINTER.plank} × ${fixed(PAINTER.L / 2, 1)} = ${fixed(X.painter.right * PAINTER.L, 0)} N m, so R = ${N(X.painter.right)}.`,
     },
     {
       id: 'painter-left',
@@ -246,48 +296,43 @@ export const keepingBalance: Lesson = {
     {
       id: 'rules',
       kind: 'text',
-      body: [
-        'In equilibrium there is **no resultant force**, and about any point the clockwise moments equal the anticlockwise ones. Weight acts at the centre of gravity.',
-        'Pick a pivot where an unknown force acts and it drops out. That completes momentum and moments: next comes energy.',
-      ],
+      body: ['In equilibrium: no resultant force, and the moments balance about any point.'],
+      fig: broom({ cut: true, pieces: 'shown' }),
     },
   ],
   skillCheck: [
     {
-      id: 'rule',
-      kind: 'choice',
-      prompt: `A uniform metre rule balances on a knife-edge at the ${fixed(RULE.pivot * 100, 1)} cm mark when a ${N(RULE.load, 2)} weight hangs at the ${fixed(RULE.at * 100, 1)} cm mark. What does the rule weigh?`,
-      options: [
-        { id: 'fromZero', label: N(X.rule.fromZero, 2) },
-        { id: 'upsideDown', label: N(X.rule.upsideDown, 2) },
-        { id: 'equal', label: N(X.rule.equal, 2) },
-        { id: 'right', label: N(X.rule.right, 2), correct: true },
-      ],
-      why: `The rule's weight acts at the 50.0 cm mark, ${m(0.5 - RULE.pivot)} from the knife-edge; the load is ${m(RULE.pivot - RULE.at)} away. W × 0.10 = 0.50 × 0.30, so W = ${N(X.rule.right, 2)}.`,
-    },
-    {
       id: 'barrow',
-      kind: 'choice',
-      prompt: `A loaded wheelbarrow weighs ${N(BARROW.W)}, acting ${m(BARROW.d)} from the wheel's axle. Its handles are ${m(BARROW.handles)} from the axle. What upward force holds it up?`,
-      options: [
-        { id: 'right', label: N(X.barrow.right), correct: true },
-        { id: 'wheel', label: N(X.barrow.wheel) },
-        { id: 'all', label: N(X.barrow.all) },
-        { id: 'upsideDown', label: N(X.barrow.upsideDown) },
+      kind: 'build',
+      prompt: `A loaded wheelbarrow weighs ${N(BARROW.W)}, acting ${m(BARROW.d)} from the wheel's axle. Its handles are ${m(BARROW.handles)} from the axle. Build the upward force that holds the handles up.`,
+      equation: 'F = {W} × {d} ÷ {x}',
+      boxes: { W: 'weight', d: 'dLoad', x: 'dHandles' },
+      chips: [
+        { id: 'weight', label: N(BARROW.W) },
+        { id: 'dLoad', label: m(BARROW.d) },
+        { id: 'dHandles', label: m(BARROW.handles) },
+        { id: 'between', label: m(BARROW.handles - BARROW.d), hint: 'Take moments about the axle: both distances are measured from it.' },
+        { id: 'wheel', label: N(X.barrow.wheel), hint: 'That is what the wheel takes, not a distance or the load.' },
       ],
+      result: { symbol: 'F', value: X.barrow.right, unit: 'N' },
       why: `Moments about the axle, where the wheel's push drops out: F × ${fixed(BARROW.handles, 2)} = ${BARROW.W} × ${fixed(BARROW.d, 2)}, so F = ${N(X.barrow.right)}. The wheel takes the other ${N(X.barrow.wheel)}.`,
     },
     {
-      id: 'pole',
-      kind: 'choice',
-      prompt: `Two people carry a uniform ${m(POLE.L, 1)}, ${N(POLE.W)} pole by its ends. A ${N(POLE.bucket)} bucket hangs ${m(POLE.fromFront)} from the front. How hard does the front person push up?`,
-      options: [
-        { id: 'back', label: N(X.pole.back) },
-        { id: 'forgot', label: N(X.pole.forgot) },
-        { id: 'shared', label: N(X.pole.shared) },
-        { id: 'right', label: N(X.pole.right), correct: true },
+      id: 'moment-about',
+      kind: 'sort',
+      prompt: "A painter's plank rests on two trestles. Taking moments about the left trestle, which forces have a moment?",
+      bins: [
+        { id: 'has', label: 'Has a moment' },
+        { id: 'none', label: 'No moment' },
       ],
-      why: `Moments about the back end: F × ${fixed(POLE.L, 1)} = ${POLE.bucket} × ${fixed(POLE.L - POLE.fromFront, 1)} + ${POLE.W} × ${fixed(POLE.L / 2, 1)} = ${fixed(X.pole.right * POLE.L, 0)} N m, so F = ${N(X.pole.right)}. The back person pushes ${N(X.pole.back)}.`,
+      items: [
+        { id: 'left', label: "The left trestle's own push", bin: 'none', hint: 'It acts at the pivot: its distance is zero, so its moment is zero.' },
+        { id: 'painter', label: "The painter's weight", bin: 'has', hint: 'It acts 1.0 m from the pivot: weight × distance is a moment.' },
+        { id: 'plank', label: "The plank's weight at its middle", bin: 'has', hint: 'It acts at the centre of gravity, 2.0 m from the pivot.' },
+        { id: 'right', label: "The right trestle's push", bin: 'has', hint: 'It acts 4.0 m from the pivot, so it has a moment: this is the one we want.' },
+        { id: 'through', label: 'A force acting through the pivot', bin: 'none', hint: 'Its line of action passes through the pivot: x = 0.' },
+      ],
+      why: 'A force through the pivot has no moment, so choosing the left trestle as the pivot removes its unknown push from the equation.',
     },
     {
       id: 'any',
@@ -300,6 +345,54 @@ export const keepingBalance: Lesson = {
         { id: 'zero', label: 'Every moment about that point is zero' },
       ],
       why: 'In equilibrium the resultant moment is zero about every point. A support is just the handiest: its push drops out.',
+    },
+    {
+      id: 'trestles',
+      kind: 'examCard',
+      context: `A uniform ${m(CARD.L, 1)} plank weighing ${N(CARD.plank)} rests on a trestle at each end. A ${N(CARD.W)} painter stands ${m(CARD.at, 1)} from the left end.`,
+      fig: cardFig,
+      parts: [
+        {
+          id: 'a',
+          command: 'Calculate',
+          text: 'the push of the right trestle.',
+          marks: 2,
+          kind: 'build',
+          build: {
+            equation: 'R = ({W₁} × {d₁} + {W₂} × {d₂}) ÷ {L}',
+            boxes: { 'W₁': 'painter', 'd₁': 'dPainter', 'W₂': 'plank', 'd₂': 'dPlank', L: 'length' },
+            chips: [
+              { id: 'painter', label: N(CARD.W) },
+              { id: 'dPainter', label: m(CARD.at, 1) },
+              { id: 'plank', label: N(CARD.plank) },
+              { id: 'dPlank', label: m(CARD.L / 2, 1) },
+              { id: 'length', label: m(CARD.L, 1) },
+              { id: 'far', label: m(CARD.L - CARD.at, 1), hint: 'Measure from the left trestle: the painter is 1.0 m from it.' },
+            ],
+            result: { symbol: 'R', value: X.card.right, unit: 'N' },
+          },
+          why: `Moments about the left trestle: R × ${fixed(CARD.L, 1)} = ${CARD.W} × ${fixed(CARD.at, 1)} + ${CARD.plank} × ${fixed(CARD.L / 2, 1)}, so R = ${N(X.card.right)}. One mark for the moments, one for R.`,
+        },
+        {
+          id: 'b',
+          command: 'Calculate',
+          text: 'the push of the left trestle.',
+          marks: 2,
+          kind: 'build',
+          build: {
+            equation: 'L = {W₁} + {W₂} − {R}',
+            boxes: { 'W₁': 'painter', 'W₂': 'plank', R: 'right' },
+            chips: [
+              { id: 'painter', label: N(CARD.W) },
+              { id: 'plank', label: N(CARD.plank) },
+              { id: 'right', label: N(X.card.right) },
+              { id: 'total', label: N(X.card.total), hint: 'That is the total weight. The equation adds the two weights itself.' },
+            ],
+            result: { symbol: 'L', value: X.card.left, unit: 'N' },
+          },
+          why: `No resultant force: the pushes hold up ${CARD.W} + ${CARD.plank} = ${N(X.card.total)}, so L = ${fixed(X.card.total, 0)} − ${fixed(X.card.right, 0)} = ${N(X.card.left)}.`,
+        },
+      ],
     },
   ],
   youCanNow: [
