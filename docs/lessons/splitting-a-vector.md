@@ -74,3 +74,18 @@ The last two are new contexts; "tow" asks for a resultant at an angle by adding 
 - Ana and Ben are drawn only as gloved hands, not whole people.
 - Level: screens 3–5 are basic for a strong student, but they lead quickly to the traps (sin/cos from the vertical, 45° is not half, the slope).
 - Point 5 "by drawing" is only told (rules screen), as in lesson 5: a drag-to-draw screen would be a new kind of screen.
+
+## v3 changes (24 Nov)
+
+Task D3. The puzzle (Ben's 60 N push beats Ana's slanted 100 N pull: 50.0 N forward) and its recap are unchanged. 14 screens + 4 Skill check; chapters *The puzzle* → *Cos and sin* → *Back to the sledges*; cast: Ana, Ben, Theo, Iris.
+
+| Was | Now |
+|---|---|
+| choice "how big is the forward component" | **build** `F = {pull} × cos {θ}` (wrong chips: 30°, Ben's 60 N), result 50.0 N |
+| choice "the upward component", text "add back", choice "45°" | removed (the sort and the estimate replace them) |
+| — | **sort** `jobs`: moves it forward / lifts it (the part along the snow, the part straight up, the 50.0 N part, the 86.6 N part, Ben's push) |
+| explore question "at what angle does Ana match Ben" | an **estimate** `match` (53°, tolerance 5°), and the explore question became "what happens to the upward component as the rope gets steeper" |
+| choice "kite string, horizontal component" | **spotError** `kite`: Theo uses cos on an angle from the vertical (16.4 N instead of 11.5 N) |
+| choice "kicked ball" | removed (velocity components return in the next lesson) |
+
+Skill check: **build** (the aircraft's vertical velocity, 49.9 m s⁻¹), **spotError** (Iris uses cos for the skier's weight along the slope, 666 N instead of 166 N), **choice** on what is true of components (by idea, replacing the two numeric choices), **exam card** on a 40 kg box on a 25° ramp: (a) State which component makes it slide [1], (b) Calculate it [2] (`F = m × g × sin θ` = 166 N). The task's "estimate: angle for 50 N forward, answer 60°" was changed to Ben's 60 N (53°): at 60° the intro and the hook already say 50 N.

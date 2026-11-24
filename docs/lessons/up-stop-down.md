@@ -62,3 +62,19 @@ All numbers: g = 9.81, h = 12.0 m (hand above ground), u = 8.0 m s⁻¹. Compute
 3. **Explore screen** works with the new figure: the slider drives time instead of the lift's acceleration.
 4. Content `src/content/up-stop-down.ts` + test that recomputes every number and every named mistake; `ready: true` on the map.
 5. Check every screen in the web at 375×667, light and dark, then commit, push, show the owner.
+
+## v3 changes (24 Nov)
+
+Task D3. The puzzle (both balls land at 17.3 m s⁻¹) and its recap are unchanged. 14 screens + 4 Skill check; chapters *The puzzle* → *One motion, one sign* → *Back to the balls*; cast: Zara.
+
+| Was | Now |
+|---|---|
+| choice "velocity when A falls back past the hand", text "alike", text "v²" | removed (the graph pick and the build carry them) |
+| — | **order** `at-top`: v = 0 → the weight still pulls → v keeps changing → the ball turns round |
+| — | **estimate** `rise`: how high above the hand (answer 3.26 m, tolerance 0.5 m) |
+| — | **build** `height`: `s = (v² − u²) ÷ (2a)` with v = 0, u = +8.0 m s⁻¹, a = −9.81 m s⁻² (wrong chips: +9.81, −8.0, 12.0 m) |
+| text "v–t is one straight line" | **graphPick** `vt`: the flight on a v–t graph (the right one is the throw graph; the wrong ones are the speed, a V, and a flat line, on the same −10…10 axis) |
+| choice "which values go in s = ut + ½at²" | removed |
+| choice "student's g from the gradient" | moved to the exam card |
+
+Skill check: **build** (the stone on the cliff, 21.8 m), **spotError** (Zara uses a = +9.81 and gets a negative time), **choice** (the drone's parcel, kept), **exam card** CP1: (a) State what the gradient of h against t² represents [1] (½g), (b) Determine g [2] (`g = 2 × gradient`, 9.74 m s⁻²). Deviation from the task text: the graph pick is about the v–t graph of the flight, not h–t², because the h–t² figure can only draw one straight line (it is the exam card's picture).

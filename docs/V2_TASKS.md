@@ -64,7 +64,7 @@
 | C11 | Скорость: циклы стоят, когда не видны (сложная) | ✅ |
 | D1 | Пилотный урок «Which way is positive?» по правилам v3 (стоп: владелец) | ✅ (ждёт владельца) |
 | D2 | Уроки «Reading motion graphs» и «Picking the equation» | ✅ |
-| D3 | Уроки «Up, stop, down» и «Splitting a vector» | |
+| D3 | Уроки «Up, stop, down» и «Splitting a vector» | ✅ |
 | D4 | Уроки «Two motions at once» и «Drawing the forces» | |
 | D5 | Уроки «Force and acceleration» и «The push from the floor» | |
 | D6 | Уроки «Falling through air» и «Momentum» | |

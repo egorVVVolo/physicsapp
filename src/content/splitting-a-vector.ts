@@ -36,6 +36,7 @@ export const CLIMB = { v: 240, angle: 12 };
 export const PARTS = { x: 36, y: 15 };
 export const SKIER = { m: 70, angle: 14 };
 export const TOW = { tension: 300, angle: 25 };
+export const RAMP = { m: 40, angle: 25 }; // the exam card: a box on a ramp
 /** The angles offered on the explore screen. */
 export const EXPLORE = { steep: 37, right: 53 };
 
@@ -50,6 +51,8 @@ export const ANSWERS = (() => {
   const w = weight(SKIER.m);
   const skier = onSlope(w, SKIER.angle);
   const rope = components(TOW.tension, TOW.angle);
+  const wRamp = weight(RAMP.m);
+  const ramp = onSlope(wRamp, RAMP.angle);
   const rad = Math.PI / 180;
   return {
     forward: ana.along,
@@ -76,6 +79,8 @@ export const ANSWERS = (() => {
       size: sizeAtRightAngles(PARTS.x, PARTS.y),
     },
     skier: { weight: w, right: skier.along, into: skier.into, noG: SKIER.m * Math.sin(SKIER.angle * rad) },
+    ramp: { weight: wRamp, right: ramp.along, into: ramp.into },
+    climbFromVertical: 90 - CLIMB.angle,
     tow: { right: 2 * rope.along, added: 2 * TOW.tension, sin: 2 * rope.across, one: rope.along, sideways: rope.across },
   };
 })();
@@ -98,25 +103,19 @@ const kiteFig: ResolveFig = {
   answer: 'afterCheck',
   play: 'afterCheck',
 };
-const kickFig: ResolveFig = {
-  kind: 'resolve',
-  header: `u = ${fixed(KICK.u, 0)} m s⁻¹ at ${KICK.angle}°`,
-  size: KICK.u,
-  unit: 'm s⁻¹',
-  angle: KICK.angle,
-  from: 'horizontal',
-  velocity: true,
-  name: 'ball',
-  ask: 'y',
-  answer: 'afterCheck',
-  play: 'afterCheck',
-};
+const rad = Math.PI / 180;
 
 export const splittingAVector: Lesson = {
   id: 'resolving',
   title: 'Splitting a vector',
   spec: [5, 6],
   minutes: 11,
+  chapters: [
+    { title: 'The puzzle', from: 'intro' },
+    { title: 'Cos and sin', from: 'parts' },
+    { title: 'Back to the sledges', from: 'hook-again' },
+  ],
+  cast: ['Ana', 'Ben', 'Theo', 'Iris'],
   story: [
     {
       id: 'intro',
@@ -162,22 +161,25 @@ export const splittingAVector: Lesson = {
     },
     {
       id: 'forward',
-      kind: 'choice',
-      prompt: `The forward component is the side next to the ${deg(ANGLE)} angle. How big is it?`,
+      kind: 'build',
+      prompt: `The forward component is the side next to the ${deg(ANGLE)} angle. Build it.`,
       fig: sledge({ split: 'box', forward: 'afterCheck' }),
-      options: [
-        { id: 'right', label: N(x.forward), correct: true },
-        { id: 'sin', label: N(x.up), hint: `That is ${PULL} sin ${deg(ANGLE)}, the side opposite the angle: the upward part.` },
-        { id: 'all', label: N(PULL, 0), hint: 'Only part of the pull goes forward. The rest lifts the sledge.' },
-        { id: 'divided', label: N(x.divided, 0), hint: `A component is smaller than the pull: multiply by cos ${deg(ANGLE)}, don't divide.` },
+      equation: 'F = {pull} × cos {θ}',
+      boxes: { pull: 'pull', θ: 'angle' },
+      chips: [
+        { id: 'pull', label: N(PULL, 0) },
+        { id: 'angle', label: deg(ANGLE) },
+        { id: 'vertical', label: deg(FROM_VERTICAL), hint: `That is the angle from the vertical. θ is measured from the snow: ${deg(ANGLE)}.` },
+        { id: 'push', label: N(PUSH, 0), hint: "That is Ben's push. The pull is Ana's." },
       ],
+      result: { symbol: 'F', value: x.forward, unit: 'N' },
       why: `Next to the angle: ${PULL} × cos ${deg(ANGLE)} = ${N(x.forward)}. Only half of Ana's pull goes forward.`,
     },
     {
       id: 'hook-again',
       kind: 'choice',
       revisitOf: 'hook',
-      prompt: `Back to the puzzle. Ben pushes forward with ${N(PUSH, 0)}. Which sledge gets the larger forward force?`,
+      prompt: `Back to the two sledges. Ben pushes forward with ${N(PUSH, 0)}. Which sledge gets the larger forward force?`,
       fig: both({ split: 'forward', forward: 'afterCheck' }),
       options: [
         { id: 'ana', label: 'The one Ana pulls', hint: `Ana pulls with ${N(PULL, 0)}, but only ${N(x.forward)} of it is forward.` },
@@ -187,23 +189,32 @@ export const splittingAVector: Lesson = {
       why: `Ben's: ${N(PUSH, 0)} against ${N(x.forward)}. A smaller push beats a bigger pull when the pull is slanted.`,
     },
     {
-      id: 'lift',
-      kind: 'choice',
-      prompt: `And the upward component, the side opposite the ${deg(ANGLE)} angle: how big is it?`,
-      fig: sledge({ split: 'box', forward: 'shown', up: 'afterCheck' }),
-      options: [
-        { id: 'right', label: N(x.up), correct: true },
-        { id: 'left-over', label: N(x.leftOver), hint: `${PULL} − ${fixed(x.forward, 0)} shares the pull out like a number. Use sin ${deg(ANGLE)}.` },
-        { id: 'all', label: N(PULL, 0), hint: 'The upward part is smaller than the whole pull.' },
-        { id: 'zero', label: N(0, 0), hint: `A slanted rope lifts as well as pulls: ${PULL} sin ${deg(ANGLE)}.` },
+      id: 'jobs',
+      kind: 'sort',
+      prompt: "Ana's rope pulls with 100 N at 60°. Sort these by the job they do.",
+      bins: [
+        { id: 'forward', label: 'Moves it forward' },
+        { id: 'lift', label: 'Lifts it' },
       ],
-      why: `Opposite the angle: ${PULL} × sin ${deg(ANGLE)} = ${N(x.up)}. This part lifts the sledge and does nothing to move it forward.`,
+      items: [
+        { id: 'along', label: 'The part along the snow', bin: 'forward', hint: 'The sledge moves along the snow, so that part does the pulling.' },
+        { id: 'up', label: 'The part straight up', bin: 'lift', hint: 'A part straight up cannot move it along the snow: it lifts.' },
+        { id: 'fifty', label: `The ${N(x.forward)} part`, bin: 'forward', hint: `${N(x.forward)} is ${PULL} cos ${deg(ANGLE)}: the side next to the angle, along the snow.` },
+        { id: 'eightysix', label: `The ${N(x.up)} part`, bin: 'lift', hint: `${N(x.up)} is ${PULL} sin ${deg(ANGLE)}: the side opposite the angle, straight up.` },
+        { id: 'ben', label: `Ben's whole ${N(PUSH, 0)} push`, bin: 'forward', hint: "Ben's push is already along the snow: all of it moves the sledge." },
+      ],
+      why: `Along the snow, ${N(x.forward)}, moves the sledge. Straight up, ${N(x.up)}, lifts it. Ben's push has no upward part.`,
     },
     {
-      id: 'add-back',
-      kind: 'text',
-      body: [`${fixed(x.forward, 1)} + ${fixed(x.up, 1)} is ${N(x.addedAsNumbers)}, but **tip to tail** they make √(${fixed(x.forward, 1)}² + ${fixed(x.up, 1)}²) = ${N(x.addedBack, 0)}.`],
-      fig: sledge({ split: 'chain', forward: 'shown', up: 'shown' }),
+      id: 'match',
+      kind: 'estimate',
+      prompt: `Ana wants as much forward force as Ben, ${N(PUSH, 0)}. Drag to the angle of her rope above the snow.`,
+      fig: both(),
+      after: sledge({ who: 'A', angle: x.sameAsBen, split: 'box', forward: 'shown', up: 'shown' }),
+      scale: { min: 0, max: 90, step: 1, tick: 15, unit: '°', symbol: 'θ', dp: 0, label: "Angle of Ana's rope" },
+      answer: x.sameAsBen,
+      tolerance: 5,
+      why: `cos θ = ${PUSH} ÷ ${PULL}, so θ = ${deg(x.sameAsBen, 1)}. The lower the rope, the more of the pull goes forward.`,
     },
     {
       id: 'angle',
@@ -212,27 +223,14 @@ export const splittingAVector: Lesson = {
       fig: sledge({ split: 'box', forward: 'shown', up: 'shown' }),
       slider: { min: 0, max: 90, step: 1, tick: 15, label: 'Angle of the rope above the snow', unit: '°', symbol: 'θ', dp: 0, start: ANGLE },
       question: {
-        prompt: `At about what angle does Ana pull forward with ${N(PUSH, 0)}, like Ben?`,
+        prompt: 'What happens to the upward component as the rope gets steeper?',
         options: [
-          { id: 'steep', label: `About ${deg(EXPLORE.steep)}`, hint: `At ${deg(EXPLORE.steep)} the forward part is ${N(x.atSteep)}: more than Ben's ${N(PUSH, 0)}.` },
-          { id: 'right', label: `About ${deg(EXPLORE.right)}`, correct: true },
-          { id: 'story', label: `About ${deg(ANGLE)}`, hint: `At ${deg(ANGLE)} it is ${N(x.forward)}. Lower the rope a little.` },
+          { id: 'grows', label: 'It grows', correct: true },
+          { id: 'shrinks', label: 'It shrinks', hint: 'Tilt the rope towards the vertical and watch the vertical side.' },
+          { id: 'same', label: 'It stays the same', hint: 'Move the slider: the two sides trade size.' },
         ],
-        right: `Right: at ${deg(x.sameAsBen, 1)}, where cos θ = ${PUSH} ÷ ${PULL}. Then ${N(x.sameAsBenUp)} goes up.`,
+        right: `Right: sin θ grows from 0 at ${deg(0)} to the whole pull at ${deg(90)}. The forward part shrinks as the upward part grows.`,
       },
-    },
-    {
-      id: 'half',
-      kind: 'choice',
-      prompt: `Ana holds the rope at ${deg(LOW)}. How big is each component now?`,
-      fig: sledge({ angle: LOW, split: 'box', forward: 'afterCheck', up: 'afterCheck' }),
-      options: [
-        { id: 'right', label: N(x.low), correct: true },
-        { id: 'half', label: N(PULL / 2), hint: `Half and half adds up as numbers. Tip to tail the parts must make ${N(PULL, 0)}.` },
-        { id: 'all', label: N(PULL, 0), hint: 'Each part is smaller than the pull it comes from.' },
-        { id: 'divided', label: N(x.lowDivided), hint: `Multiply by cos ${deg(LOW)}, don't divide: the parts are smaller than ${N(PULL, 0)}.` },
-      ],
-      why: `${PULL} × cos ${deg(LOW)} = ${PULL} × sin ${deg(LOW)} = ${N(x.low)} each. Check: √(${fixed(x.low, 1)}² + ${fixed(x.low, 1)}²) = ${N(PULL, 0)}.`,
     },
     {
       id: 'from-vertical',
@@ -244,29 +242,20 @@ export const splittingAVector: Lesson = {
     },
     {
       id: 'kite',
-      kind: 'choice',
-      prompt: `A kite string pulls on a hand with ${N(KITE.size, 0)}, at ${deg(KITE.angle)} to the vertical. What is the horizontal component?`,
+      kind: 'spotError',
+      prompt: `Theo works out the horizontal pull of a kite string: ${N(KITE.size, 0)} at ${deg(KITE.angle)} to the vertical. His working has one mistake. Which line?`,
       fig: kiteFig,
-      options: [
-        { id: 'right', label: N(x.kite.right), correct: true },
-        { id: 'cos', label: N(x.kite.cos), hint: `${N(x.kite.cos)} is next to the ${deg(KITE.angle)} angle: that is the vertical part.` },
-        { id: 'all', label: N(KITE.size, 0), hint: 'A component is always smaller than the vector it comes from.' },
-        { id: 'tan', label: N(x.kite.tan), hint: 'tan gives neither side. The horizontal side is opposite the angle: use sin.' },
+      lines: [
+        { id: 'data', text: `The angle, ${deg(KITE.angle)}, is measured from the vertical.`, hint: 'That line is right: the drawing shows it.' },
+        {
+          id: 'cos',
+          text: `Horizontal = ${KITE.size} × cos ${deg(KITE.angle)} = ${N(x.kite.cos)}`,
+          wrong: true,
+          fix: `Horizontal = ${KITE.size} × sin ${deg(KITE.angle)} = ${N(x.kite.right)}`,
+        },
+        { id: 'end', text: `So the string pulls sideways with ${N(x.kite.cos)}.`, hint: 'This follows from the line above. Which side is next to the angle?' },
       ],
-      why: `The angle is from the vertical, so the horizontal side is opposite it: ${KITE.size} × sin ${deg(KITE.angle)} = ${N(x.kite.right)}. Vertical: ${N(x.kite.cos)}.`,
-    },
-    {
-      id: 'kick',
-      kind: 'choice',
-      prompt: `Velocity splits the same way. A ball is kicked at ${speed(KICK.u)}, ${deg(KICK.angle)} above the ground. What is its vertical component?`,
-      fig: kickFig,
-      options: [
-        { id: 'right', label: speed(x.kick.right), correct: true },
-        { id: 'cos', label: speed(x.kick.cos), hint: `That is the horizontal part, next to the ${deg(KICK.angle)} angle.` },
-        { id: 'all', label: speed(KICK.u), hint: 'Only part of the velocity is upward.' },
-        { id: 'half', label: speed(x.kick.half), hint: `Half works only at 30°. Use sin ${deg(KICK.angle)}.` },
-      ],
-      why: `Opposite the angle: ${KICK.u} × sin ${deg(KICK.angle)} = ${speed(x.kick.right)} up, and ${speed(x.kick.cos)} along. Next lesson, both run on one clock.`,
+      why: `The angle is from the vertical, so the horizontal side is opposite it: sin, not cos. ${KITE.size} × sin ${deg(KITE.angle)} = ${N(x.kite.right)}; ${N(x.kite.cos)} is the vertical part.`,
     },
     {
       id: 'slope',
@@ -300,51 +289,88 @@ export const splittingAVector: Lesson = {
   skillCheck: [
     {
       id: 'climb',
-      kind: 'choice',
-      prompt: `An aircraft flies at ${fixed(CLIMB.v, 0)}${NB}m${NB}s⁻¹, climbing at ${deg(CLIMB.angle)} to the horizontal. What is the vertical component of its velocity?`,
-      options: [
-        { id: 'right', label: speed(x.climb.right), correct: true },
-        { id: 'cos', label: speed(x.climb.cos) },
-        { id: 'all', label: `${fixed(CLIMB.v, 0)}${NB}m${NB}s⁻¹` },
-        { id: 'zero', label: `0${NB}m${NB}s⁻¹` },
+      kind: 'build',
+      prompt: `An aircraft flies at ${fixed(CLIMB.v, 0)}${NB}m${NB}s⁻¹, climbing at ${deg(CLIMB.angle)} to the horizontal. Build the vertical component of its velocity.`,
+      equation: 'v = {speed} × sin {θ}',
+      boxes: { speed: 'speed', θ: 'angle' },
+      chips: [
+        { id: 'speed', label: `${fixed(CLIMB.v, 0)}${NB}m${NB}s⁻¹` },
+        { id: 'angle', label: deg(CLIMB.angle) },
+        { id: 'vertical', label: deg(x.climbFromVertical), hint: `That is the angle from the vertical. θ is measured from the horizontal: ${deg(CLIMB.angle)}.` },
+        { id: 'half', label: `${fixed(CLIMB.v / 2, 0)}${NB}m${NB}s⁻¹`, hint: 'Half the speed is the vertical part only at 30°.' },
       ],
+      result: { symbol: 'v', value: x.climb.right, unit: 'm s⁻¹' },
       why: `Opposite the ${deg(CLIMB.angle)} angle: ${CLIMB.v} × sin ${deg(CLIMB.angle)} = ${speed(x.climb.right)}. ${speed(x.climb.cos)} is the horizontal part.`,
     },
     {
-      id: 'force-angle',
-      kind: 'choice',
-      prompt: `A force has a horizontal component of ${N(PARTS.x, 0)} and a vertical component of ${N(PARTS.y, 0)}. At what angle above the horizontal does it act?`,
-      options: [
-        { id: 'right', label: deg(x.angle.right, 1), correct: true },
-        { id: 'vertical', label: deg(x.angle.fromVertical, 1) },
-        { id: 'sin', label: deg(x.angle.sin, 1) },
-        { id: 'cos', label: deg(x.angle.cos, 1) },
-      ],
-      why: `tan θ = ${PARTS.y} ÷ ${PARTS.x}, so θ = ${deg(x.angle.right, 1)} above the horizontal. ${deg(x.angle.fromVertical, 1)} is the angle from the vertical. The force is ${N(x.angle.size)}.`,
-    },
-    {
       id: 'skier',
-      kind: 'choice',
-      prompt: `A skier of mass ${SKIER.m}${NB}kg stands on a ${deg(SKIER.angle)} slope. g = 9.81${NB}N${NB}kg⁻¹. What is the component of the skier's weight along the slope?`,
-      options: [
-        { id: 'right', label: N(x.skier.right, 0), correct: true },
-        { id: 'cos', label: N(x.skier.into, 0) },
-        { id: 'all', label: N(x.skier.weight, 0) },
-        { id: 'no-g', label: N(x.skier.noG) },
+      kind: 'spotError',
+      prompt: `A skier of mass ${SKIER.m}${NB}kg stands on a ${deg(SKIER.angle)} slope. Iris finds the component of the weight along the slope. Which line of her working is wrong?`,
+      lines: [
+        { id: 'w', text: `W = mg = ${SKIER.m} × 9.81 = ${N(x.skier.weight, 0)}`, hint: 'That line is right: the weight is mass times g.' },
+        {
+          id: 'cos',
+          text: `Along the slope: W cos ${deg(SKIER.angle)} = ${fixed(x.skier.weight, 0)} × ${fixed(Math.cos(SKIER.angle * rad), 3)} = ${N(x.skier.into, 0)}`,
+          wrong: true,
+          fix: `Along the slope: W sin ${deg(SKIER.angle)} = ${fixed(x.skier.weight, 0)} × ${fixed(Math.sin(SKIER.angle * rad), 3)} = ${N(x.skier.right, 0)}`,
+        },
+        { id: 'end', text: `So ${N(x.skier.into, 0)} acts down the slope.`, hint: 'This follows from the line above. Check which side is next to the angle.' },
       ],
-      why: `W = ${SKIER.m} × 9.81 = ${N(x.skier.weight, 0)}. Along the slope: ${fixed(x.skier.weight, 0)} × sin ${deg(SKIER.angle)} = ${N(x.skier.right, 0)}. ${N(x.skier.into, 0)} presses into the slope.`,
+      why: `The angle at W is the slope's, so the part along the slope is opposite it: W sin ${deg(SKIER.angle)} = ${N(x.skier.right, 0)}. ${N(x.skier.into, 0)} presses into the slope.`,
     },
     {
-      id: 'tow',
+      id: 'components-true',
       kind: 'choice',
-      prompt: `A barge is towed by two ropes, each pulling with ${N(TOW.tension, 0)} at ${deg(TOW.angle)} either side of the canal. What is the resultant forward force?`,
+      prompt: 'Which statement about the components of a force is true?',
       options: [
-        { id: 'right', label: N(x.tow.right, 0), correct: true },
-        { id: 'added', label: N(x.tow.added, 0) },
-        { id: 'sin', label: N(x.tow.sin, 0) },
-        { id: 'one', label: N(x.tow.one, 0) },
+        { id: 'right', label: 'Each is smaller than the force, and they add tip to tail to give it', correct: true },
+        { id: 'numbers', label: 'They add up to the force as plain numbers' },
+        { id: 'sin', label: 'The sin component is always the vertical one' },
+        { id: 'larger', label: 'One of them can be larger than the force' },
       ],
-      why: `Each rope gives ${TOW.tension} × cos ${deg(TOW.angle)} = ${N(x.tow.one, 0)} forward, ${N(x.tow.right, 0)} in all. The sideways parts, ${N(x.tow.sideways, 0)} each, cancel.`,
+      why: 'The components are the two sides of a right-angled triangle with the force as hypotenuse: shorter than it, added tip to tail. Sin or cos depends on the angle.',
+    },
+    {
+      id: 'ramp',
+      kind: 'examCard',
+      context: `A ${RAMP.m}${NB}kg box rests on a ramp at ${deg(RAMP.angle)} to the horizontal. g = 9.81${NB}N${NB}kg⁻¹.`,
+      fig: hill({ weight: x.ramp.weight, angle: RAMP.angle, along: 'name', into: 'name' }),
+      parts: [
+        {
+          id: 'a',
+          command: 'State',
+          text: 'which component of the weight makes the box slide down the ramp.',
+          marks: 1,
+          kind: 'choice',
+          options: [
+            { id: 'right', label: 'The component along the slope', correct: true },
+            { id: 'into', label: 'The component into the slope' },
+            { id: 'whole', label: 'The whole weight' },
+            { id: 'normal', label: 'The push of the ramp on the box' },
+          ],
+          why: 'Only the part of the weight along the slope pulls the box down it. The part into the slope is balanced by the ramp.',
+        },
+        {
+          id: 'b',
+          command: 'Calculate',
+          text: 'the component of the weight along the slope.',
+          marks: 2,
+          kind: 'build',
+          build: {
+            equation: 'F = {m} × {g} × sin {θ}',
+            boxes: { m: 'mass', g: 'field', θ: 'angle' },
+            chips: [
+              { id: 'mass', label: `${RAMP.m}${NB}kg` },
+              { id: 'field', label: `9.81${NB}N${NB}kg⁻¹` },
+              { id: 'angle', label: deg(RAMP.angle) },
+              { id: 'other', label: deg(90 - RAMP.angle), hint: `That is the angle from the vertical. At W the angle is the ramp's: ${deg(RAMP.angle)}.` },
+              { id: 'weight', label: N(x.ramp.weight, 0), hint: 'That is the whole weight. The box has mass 40 kg: use m × g.' },
+            ],
+            result: { symbol: 'F', value: x.ramp.right, unit: 'N' },
+          },
+          why: `Opposite the ${deg(RAMP.angle)} at W: ${RAMP.m} × 9.81 × sin ${deg(RAMP.angle)} = ${N(x.ramp.right, 0)}. One mark for the values, one for the answer.`,
+        },
+      ],
     },
   ],
   youCanNow: [

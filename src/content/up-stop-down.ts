@@ -3,9 +3,9 @@
 // The answer: the same, 17.3 m s⁻¹. Ball A comes back past your hand at −8.0 m s⁻¹ and then moves exactly like
 // ball B; in v² = u² + 2as the sign of u drops out. Spec: docs/lessons/up-stop-down.md.
 // Every number below comes from src/physics; wrong options are named mistakes, recomputed by the test.
-import { G, gFromGradient, riseHeight, speedAfter, timeAtRest, timesForDisplacement, timeToReach } from '../physics/kinematics.ts';
+import { G, gFromGradient, riseHeight, speedAfter, timeAtRest, timesForDisplacement, timeToReach, type Trip } from '../physics/kinematics.ts';
 import { fixed, signed } from '../physics/format.ts';
-import type { Lesson, ThrowFig } from './types.ts';
+import type { GraphFig, Lesson, ThrowFig } from './types.ts';
 
 const NB = '\u00A0'; // numbers never break from their units
 /** "8.0 m s⁻¹" */
@@ -68,11 +68,24 @@ const throwFig = (over: Partial<ThrowFig>): ThrowFig => ({ kind: 'throw', h: H, 
 
 const x = ANSWERS;
 
+/** Wrong graphs of the v–t pick: the speed (no sign), and a flat line. Up is positive, ball A flies for tBack. */
+const SPEED_ONLY: Trip = { u: U, phases: [{ dt: x.tTop, a: -G }, { dt: x.tTop, a: G }] };
+const STEADY_UP: Trip = { u: U, phases: [{ dt: x.tBack, a: 0 }] };
+const vtOf = (id: string, trip: Trip): GraphFig => ({ kind: 'graph', y: 'v', header: `graph ${id}`, lines: [{ id: '', trip }], tMax: 1.8, tTick: 0.4, yMin: -10, yMax: 10, yTick: 5 });
+/** "0 m s⁻¹": the velocity at the top */
+const zero = `0${NB}m${NB}s⁻¹`;
+
 export const upStopDown: Lesson = {
   id: 'up-stop-down',
   title: 'Up, stop, down',
   spec: [1, 11],
   minutes: 12,
+  chapters: [
+    { title: 'The puzzle', from: 'intro' },
+    { title: 'One motion, one sign', from: 'top' },
+    { title: 'Back to the balls', from: 'hook-again' },
+  ],
+  cast: ['Zara'],
   story: [
     {
       id: 'intro',
@@ -138,46 +151,70 @@ export const upStopDown: Lesson = {
       },
     },
     {
+      id: 'at-top',
+      kind: 'order',
+      prompt: 'Why does ball A turn round at the top? Put the reasoning in order.',
+      steps: [
+        { id: 'v0', text: 'At the top the ball stops for an instant: v = 0.' },
+        { id: 'weight', text: `The weight still pulls down, so a = ${acc(-G)}.` },
+        { id: 'keeps', text: 'So v keeps changing: from positive, through zero, to negative.' },
+        { id: 'back', text: 'The ball turns round and falls back down.' },
+      ],
+      hint: 'Start with v at the top, then the force, then what v does next.',
+      why: `v = 0 is only an instant. The acceleration is ${acc(-G)} all the time, so v does not stay at zero.`,
+    },
+    {
       id: 'free-fall',
       kind: 'text',
       body: [`Up, stop and down are **one motion** with one acceleration. v falls by ${fixed(G, 2)}${NB}m${NB}s⁻¹ every second, straight through zero.`],
       card: { term: 'Free fall', text: 'Moving under gravity alone: a = g downward the whole time, even at the top where v = 0.' },
     },
     {
-      id: 'back',
-      kind: 'choice',
-      prompt: 'Ball A falls back past your hand. What is its velocity now?',
-      fig: throwFig({ balls: ['A'], at: 'back', unknownV: true, values: true, trail: true }),
-      options: [
-        { id: 'plus', label: vel(U), hint: "That's the right speed, but the ball is moving down now. Up is positive." },
-        { id: 'minus', label: vel(-U), correct: true },
-        { id: 'slower', label: `Between 0 and ${vel(-U)}`, hint: 'Going down it gains speed at the same rate it lost it going up.' },
-        { id: 'faster', label: `Faster than ${speed(U)}, downward`, hint: 'Up and back down take the same time, with the same a.' },
+      id: 'rise',
+      kind: 'estimate',
+      prompt: `You throw ball A up at ${speed(U)}. Drag to how high above your hand it rises.`,
+      fig: throwFig({ balls: ['A'] }),
+      after: throwFig({ balls: ['A'], at: 'top', trail: true, values: true }),
+      scale: { min: 0, max: 8, step: 0.1, tick: 1, unit: 'm', symbol: 's', dp: 1, label: 'Height above your hand' },
+      answer: x.rise,
+      tolerance: 0.5,
+      why: `At the top v = 0, so 0 = ${fixed(U, 1)}² + 2 × (${fixed(-G, 2)}) × s gives s = ${metres(x.rise)}. Lower than most people guess.`,
+    },
+    {
+      id: 'height',
+      kind: 'build',
+      prompt: 'Now build it. Up is positive. What goes into the equation?',
+      fig: throwFig({ balls: ['A'], at: 'top', trail: true }),
+      equation: 's = ({v}² − {u}²) ÷ (2 × {a})',
+      boxes: { v: 'v0', u: 'uUp', a: 'aDown' },
+      chips: [
+        { id: 'v0', label: zero },
+        { id: 'uUp', label: vel(U) },
+        { id: 'aDown', label: `${signed(-G, 2)}${NB}m${NB}s⁻²` },
+        { id: 'aUp', label: `${signed(G, 2)}${NB}m${NB}s⁻²`, hint: 'Gravity pulls down. With up positive, a is negative.' },
+        { id: 'uDown', label: vel(-U), hint: 'Ball A is thrown up. With up positive, u is positive.' },
+        { id: 'height', label: metres(H), hint: 'That is the balcony. The rise is measured from your hand.' },
       ],
-      why: `v² = u² + 2as with s = 0 gives v = ±${speed(U)}. The ball is moving down, so v = ${vel(-U)}: the same speed, the other way.`,
+      result: { symbol: 's', value: x.rise, unit: 'm' },
+      why: `At the top v = 0: s = (0 − ${fixed(U * U, 0)}) ÷ (2 × (${fixed(-G, 2)})) = ${metres(x.rise)} above your hand.`,
     },
     {
       id: 'vt',
-      kind: 'text',
-      body: [`On a v–t graph the flight is **one straight line**, with gradient ${acc(-G)}.`],
-      fig: { kind: 'throwVt', u: U, tEnd: x.tBack },
-    },
-    {
-      id: 'alike',
-      kind: 'text',
-      body: [`Back at your hand, ball A moves exactly like ball B at the start: ${vel(-U)}, down.`],
-      fig: throwFig({ at: 'back', play: true }),
-    },
-    {
-      id: 'v2',
-      kind: 'text',
-      body: [`To find a speed without the time, use **v² = u² + 2as**. Keep every sign: down to the ground, s = ${metres(-H)} and a = ${acc(-G)}.`],
+      kind: 'graphPick',
+      prompt: "Which v–t graph shows ball A's whole flight, up and back to your hand? Up is positive.",
+      scene: throwFig({ balls: ['A'], at: 'top', trail: true }),
+      graphs: [
+        { id: 'A', fig: vtOf('A', SPEED_ONLY), hint: 'That V is the speed. Velocity goes negative on the way down.' },
+        { id: 'B', fig: { kind: 'throwVt', u: U, tEnd: x.tBack }, correct: true },
+        { id: 'C', fig: vtOf('C', STEADY_UP), hint: 'A flat line is a steady velocity. Gravity changes v all the time.' },
+      ],
+      why: `v falls by ${fixed(G, 2)}${NB}m${NB}s⁻¹ every second, so v–t is one straight line of gradient ${acc(-G)}, through zero at the top.`,
     },
     {
       id: 'hook-again',
       kind: 'choice',
       revisitOf: 'hook',
-      prompt: 'Back to the puzzle. How fast do the balls hit the ground?',
+      prompt: 'Back to the two balls. How fast do they hit the ground?',
       fig: throwFig({ values: true, play: 'afterCheck' }),
       options: [
         { id: 'minus-u2', label: speed(x.impact.minusU2), hint: `u is squared, so its sign drops out: ${vel(U)} or ${vel(-U)} gives the same u².` },
@@ -188,21 +225,9 @@ export const upStopDown: Lesson = {
       why: `v² = ${fixed(U, 1)}² + 2 × (${fixed(-G, 2)}) × (${fixed(-H, 1)}), so v = ${speed(x.impact.right)} for both. u is squared, so up or down makes no difference.`,
     },
     {
-      id: 'values',
-      kind: 'choice',
-      prompt: 'Now the time. Which values go into s = ut + ½at² for ball A, down to the ground?',
-      options: [
-        { id: 's-plus', label: `${is('s', metres(H))}, ${is('u', vel(U))}, ${is('a', acc(-G))}`, hint: 'The ground is below your hand. With up positive, s is negative.' },
-        { id: 'right', label: `${is('s', metres(-H))}, ${is('u', vel(U))}, ${is('a', acc(-G))}`, correct: true },
-        { id: 'a-plus', label: `${is('s', metres(-H))}, ${is('u', vel(U))}, ${is('a', '+' + acc(G))}`, hint: 'Gravity pulls down. With up positive, a is negative.' },
-        { id: 'rest', label: `${is('s', metres(-H))}, ${is('u', '0')}, ${is('a', acc(-G))}`, hint: `The ball leaves your hand at ${speed(U)}, not from rest.` },
-      ],
-      why: `Measure from your hand with up positive: the ground is ${metres(H)} below (s = ${metres(-H)}), the throw is up (u = ${vel(U)}), gravity is down.`,
-    },
-    {
       id: 'roots',
       kind: 'choice',
-      prompt: `The equation gives ${is('t', secs(x.tA))} or ${is('t', secs(x.tNeg))}. When does ball A hit the ground?`,
+      prompt: `For ball A the equation gives ${is('t', secs(x.tA))} or ${is('t', secs(x.tNeg))}. When does ball A hit the ground?`,
       options: [
         { id: 'unsigned', label: `${secs(x.roots.unsigned)} after the throw`, hint: "That's the negative root without its sign. A negative time is before the throw." },
         { id: 'back', label: `${secs(x.tBack)} after the throw`, hint: `That's when ball A passes your hand. It still has ${metres(H)} to fall.` },
@@ -219,43 +244,34 @@ export const upStopDown: Lesson = {
         'So a graph of h against t² is a straight line through the origin.',
       ],
     },
-    {
-      id: 'gradient',
-      kind: 'choice',
-      prompt: `A student's graph of h against t² has a gradient of ${acc(GRADIENT)}. What value of g do they get?`,
-      fig: { kind: 'fallGraph', gradient: GRADIENT },
-      options: [
-        { id: 'half', label: acc(x.g.half), hint: 'The gradient is g ÷ 2, so g is twice the gradient, not half of it.' },
-        { id: 'gradient', label: acc(x.g.gradient), hint: 'The gradient is not g itself. Compare h = ½gt² with y = mx.' },
-        { id: 'right', label: acc(x.g.right), correct: true },
-        { id: 'book', label: acc(x.g.book), hint: "That's the accepted value. What does this student's graph give?" },
-      ],
-      why: `Compare h = ½gt² with y = mx: the gradient is ½g. So g = 2 × ${fixed(GRADIENT, 2)} = ${acc(x.g.right)}.`,
-    },
   ],
   skillCheck: [
     {
-      id: 'later',
-      kind: 'choice',
-      prompt: 'Ball A lands later than ball B. How much later?',
-      fig: throwFig({}),
-      options: [
-        { id: 'only-up', label: secs(x.later.onlyUp) },
-        { id: 'right', label: secs(x.later.right), correct: true },
-        { id: 'whole', label: secs(x.later.whole) },
+      id: 'cliff',
+      kind: 'build',
+      prompt: `A stone is thrown straight up at ${speed(CLIFF.u)} from a cliff ${metres(CLIFF.h)} above the sea. Build how high above the sea it rises.`,
+      equation: 'h = {H} + (0² − {u}²) ÷ (2 × {a})',
+      boxes: { H: 'cliff', u: 'speed', a: 'aDown' },
+      chips: [
+        { id: 'cliff', label: metres(CLIFF.h) },
+        { id: 'speed', label: speed(CLIFF.u) },
+        { id: 'aDown', label: `${signed(-G, 2)}${NB}m${NB}s⁻²` },
+        { id: 'aUp', label: `${signed(G, 2)}${NB}m${NB}s⁻²`, hint: 'Gravity pulls down. With up positive, a is negative.' },
+        { id: 'zero', label: zero, hint: `The stone leaves the hand at ${speed(CLIFF.u)}, not from rest.` },
       ],
-      why: `First ball A goes up and falls back to your hand: 2u/g = ${secs(x.later.right)}. From there it moves exactly like ball B.`,
+      result: { symbol: 'h', value: x.cliff.right, unit: 'm' },
+      why: `At the top v = 0: the rise is ${fixed(x.cliff.noCliff, 2)}${NB}m above the cliff, so ${metres(x.cliff.right)} above the sea.`,
     },
     {
-      id: 'cliff',
-      kind: 'choice',
-      prompt: `A stone is thrown straight up at ${speed(CLIFF.u)} from a cliff ${metres(CLIFF.h)} above the sea. How high above the sea does it rise?`,
-      options: [
-        { id: 'no-cliff', label: metres(x.cliff.noCliff) },
-        { id: 'right', label: metres(x.cliff.right), correct: true },
-        { id: 'lost-half', label: metres(x.cliff.lostHalf) },
+      id: 'sign',
+      kind: 'spotError',
+      prompt: 'Zara finds how long ball A takes to reach the top. Her working has one mistake. Which line?',
+      lines: [
+        { id: 'signs', text: `Up is positive. At the top v = 0, and u = ${vel(U)}.`, hint: 'That line is right: v is zero for an instant at the top.' },
+        { id: 'a', text: `Gravity acts on the ball, so a = ${signed(G, 2)}${NB}m${NB}s⁻².`, wrong: true, fix: `a = ${signed(-G, 2)}${NB}m${NB}s⁻²: gravity points down, and up is positive.` },
+        { id: 'calc', text: `0 = ${fixed(U, 1)} + ${fixed(G, 2)}t, so t = ${signed(-x.tTop, 2)}${NB}s`, hint: 'This follows from the line above. A negative time is a warning sign.' },
       ],
-      why: `At the top v = 0, so 0 = ${fixed(CLIFF.u, 1)}² + 2 × (${fixed(-G, 2)}) × s: s = ${fixed(x.cliff.noCliff, 2)}${NB}m above the cliff, ${metres(x.cliff.right)} above the sea.`,
+      why: `With up positive, a = ${acc(-G)}. Then 0 = ${fixed(U, 1)} − ${fixed(G, 2)}t gives t = ${secs(x.tTop)}, a time after the throw.`,
     },
     {
       id: 'drone',
@@ -269,16 +285,45 @@ export const upStopDown: Lesson = {
       why: `Letting go changes the forces at once, not the velocity: the parcel still moves up at ${speed(DRONE_V)}, but only its weight acts now.`,
     },
     {
-      id: 'timer',
-      kind: 'choice',
-      prompt: 'In Core Practical 1 a student times each fall with a stopwatch. Which change improves their value of g most?',
-      options: [
-        { id: 'heavier', label: 'Use a heavier ball' },
-        { id: 'smaller', label: 'Drop the ball from smaller heights' },
-        { id: 'gate', label: 'Use a light gate and an electronic timer', correct: true },
-        { id: 'plot-t', label: 'Plot h against t instead of t²' },
+      id: 'cp1-card',
+      kind: 'examCard',
+      context: `A student drops a ball from rest through a height h and times the fall. Her graph of h against t² is a straight line through the origin with a gradient of ${acc(GRADIENT)}.`,
+      fig: { kind: 'fallGraph', gradient: GRADIENT },
+      parts: [
+        {
+          id: 'a',
+          command: 'State',
+          text: 'what the gradient of the graph represents.',
+          marks: 1,
+          kind: 'choice',
+          options: [
+            { id: 'right', label: 'Half of g, because h = ½gt²', correct: true },
+            { id: 'g', label: 'g itself' },
+            { id: 'two-g', label: 'Twice g' },
+            { id: 'speed', label: 'The speed of the ball when it lands' },
+          ],
+          why: 'Compare h = ½gt² with y = mx: the gradient is ½g.',
+        },
+        {
+          id: 'b',
+          command: 'Determine',
+          text: 'the value of g from her graph.',
+          marks: 2,
+          kind: 'build',
+          build: {
+            equation: 'g = {k} × {m}',
+            boxes: { k: 'two', m: 'gradient' },
+            chips: [
+              { id: 'two', label: '2' },
+              { id: 'gradient', label: acc(GRADIENT) },
+              { id: 'half', label: '0.5', hint: 'g is twice the gradient, not half of it.' },
+              { id: 'book', label: acc(G), hint: "That is the accepted value. Use this student's gradient." },
+            ],
+            result: { symbol: 'g', value: x.g.right, unit: 'm s⁻²' },
+          },
+          why: `The gradient is ½g, so g = 2 × ${fixed(GRADIENT, 2)} = ${acc(x.g.right)}. One mark for the factor 2, one for the answer.`,
+        },
       ],
-      why: "Every stopwatch time includes the student's reaction time. A timer started and stopped by the falling ball removes that error.",
     },
   ],
   youCanNow: [
