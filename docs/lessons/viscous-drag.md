@@ -67,3 +67,17 @@ All numbers come from `src/physics/viscosity.ts` (steel 7800 kg m⁻³, glycerol
 1. Physics, `src/physics/viscosity.ts`: `stokesDrag`, `sphereVolume`, `sphereWeight`, `sphereUpthrust`, `stokesTerminal`, `viscosityFromForces`, `viscosityFromFall`, `stokesFall` (from rest at the surface, τ of a few ms), `reynolds`, `turbulentTerminal`, `glycerolViscosity` (the measured table, ln η interpolated), `stokesStream` and `streamlineOffset` (the Stokes stream function, for the streamlines). Test.
 2. Figures: `src/figures/TubeFigure.tsx` (a tall tube of glycerol with two rubber bands 10.0 cm apart and a cm ruler; the balls fall by `stokesFall` in real time; a panel on the right: the readings, the magnified ball with W, U and F to one scale, the two balls side by side, or a thermometer with η and v on the explore) and `src/figures/FlowFigure.tsx` (the same ball seen from itself in glycerol and in water: Stokes streamlines from the stream function with dashes streaming along them; in water a wake of eddies; the two panels can be tapped).
 3. Content `src/content/viscous-drag.ts` + test, `ready: true` on the map; `Pa s`, `mm`, `°C` kept with their numbers in `src/content/units.ts`; bank entries in `docs/LESSON_FRAMEWORK.md`, 12e.
+
+## v3 changes (24 Nov)
+
+Task D11. The puzzle (the big ball sinks at 4.04 cm s⁻¹, four times as fast) and its recap are unchanged. 14 screens + 4 Skill check; chapters *The puzzle* → *Drag and flow* → *Back to the tube*; cast: Mei (the exam card). The predict now ends with "I'm not sure".
+
+| Was | Now |
+|---|---|
+| choice `balance` (F = W − U) | **order** `terminal`: the weight alone → the drag grows → the resultant shrinks → a steady speed |
+| — | **graphPick** `vt-graph`: v against t for the first 6 ms after release, `stokesFall` (A), a straight ramp (B), an instant jump (C) |
+| — | **sort** `flow-sort`: laminar or turbulent for six everyday flows |
+| choice `lab` (η) | **build** `η = F ÷ (6π × r × v)`, 1.41 Pa s (wrong chips: the diameter, the weight 0.000321 N, v in cm s⁻¹) |
+| text `rules` | one sentence, with a figure |
+
+`flowTap` (tap), `heavier` and `hook-again` (choices) and `warm` (explore) stay. Chips are short plain decimals (`0.000269 N`, `0.0101 m s⁻¹`): a chip is at most 14 characters, so `1.01 × 10⁻² m s⁻¹` does not fit. Skill check: **build** (castor oil, `η = 2r²(ρ₁ − ρ₂)g ÷ 9v`, 0.987 Pa s), **sort** (does Stokes' law apply: a bead in treacle, a cricket ball in air, …), **choice** (the rising bubble: U = W + F), **exam card** on the falling-ball method: (a) Explain why the marks are set well below the surface [2] (order), (b) Calculate η [2] (1.41 Pa s). The glass bead and the turbulent-water question are gone.

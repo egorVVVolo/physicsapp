@@ -4,17 +4,20 @@
 // spring carries the whole load, so every coil stretches the same; half the coils, half the extension. The half is
 // twice as stiff: stiffness belongs to the object, not the material.
 // Every number below comes from src/physics; wrong options are named mistakes, recomputed by the test.
+// Format v3 (V2 task D11): build, graphPick, estimate, spotError; the Skill check ends on an exam-style card.
 import { fixed, sig } from '../physics/format.ts';
 import { cutStiffness, extensionFor, hookeForce, parallelStiffness, stiffness, stiffnessFromPair } from '../physics/springs.ts';
-import type { Lesson, SpringFig, SpringHang } from './types.ts';
+import type { Lesson, PlotFig, SpringFig, SpringHang } from './types.ts';
 
 const NB = ' '; // a no-break space: a number never parts from its unit
 const NM = (k: number): string => `${sig(k)}${NB}N${NB}m⁻¹`;
 const CM = (x: number): string => `${fixed(x * 100, 1)}${NB}cm`;
+const MT = (x: number): string => `${fixed(x, 3)}${NB}m`;
 const NEWTON = (F: number): string => `${fixed(F, 1)}${NB}N`;
 
 export const SPRING = { L0: 0.1, W: 3.0, stretched: 0.16 }; // m, N, m: the spring with no load and with the weight
 export const EXPLORE = { max: 6 }; // N, the slider
+export const PLOT = { xMax: 12, FMax: 6 }; // cm, N: the axes of the force–extension graphs
 // Skill check.
 export const PAIR = { F1: 2.0, L1: 0.15, F2: 5.0, L2: 0.225 }; // N, m
 export const LAUNCHER = { k: 400, L0: 0.08, L: 0.05 }; // N m⁻¹, m, m
@@ -24,30 +27,26 @@ const dx = SPRING.stretched - SPRING.L0;
 const k = stiffness(SPRING.W, dx);
 const kHalf = cutStiffness(k, 0.5);
 const xHalf = extensionFor(SPRING.W, kHalf);
+const pairDF = PAIR.F2 - PAIR.F1;
+const pairDx = PAIR.L2 - PAIR.L1;
+const sideBySide = extensionFor(SPRING.W / 2, kHalf);
 
 /** Answers and named mistakes, used by the screens and re-checked by hookes-law.test.ts. */
 export const ANSWERS = {
-  /** The stiffness from the 3.0 N weight: Δx, not the length; metres, not cm; F ÷ Δx, not Δx ÷ F. */
-  k: { right: k, length: SPRING.W / SPRING.stretched, cm: SPRING.W / (dx * 100), upside: dx / SPRING.W },
+  /** The stiffness from the 3.0 N weight: Δx, not the length; metres, not cm. */
+  k: { right: k, length: SPRING.W / SPRING.stretched, cm: SPRING.W / (dx * 100), dx },
   /** The pull of the top half on the bottom half: the whole load. */
   pull: { right: SPRING.W, half: SPRING.W / 2, double: 2 * SPRING.W },
-  /** How far the bottom half has stretched: half the extension, not the whole, not its length. */
-  half: { right: dx / 2, whole: dx, length: SPRING.L0 / 2 + dx / 2, quarter: dx / 4 },
+  /** How far the bottom half has stretched: half the extension. */
+  half: { right: dx / 2, whole: dx },
   /** The puzzle: one half on its own. */
-  puzzle: { x: xHalf, k: kHalf, same: k, halved: k / 2, four: 4 * k },
-  parallel: { right: extensionFor(SPRING.W, parallelStiffness(kHalf, kHalf)), oneHalf: xHalf, whole: dx, quarter: xHalf / 4 },
-  pair: {
-    right: stiffnessFromPair(PAIR.F1, PAIR.L1, PAIR.F2, PAIR.L2),
-    oneLoad: PAIR.F2 / (PAIR.L2 - PAIR.L1),
-    length: PAIR.F2 / PAIR.L2,
-    cm: stiffnessFromPair(PAIR.F1, PAIR.L1 * 100, PAIR.F2, PAIR.L2 * 100),
-  },
-  launcher: {
-    right: hookeForce(LAUNCHER.k, LAUNCHER.L0 - LAUNCHER.L),
-    newLength: hookeForce(LAUNCHER.k, LAUNCHER.L),
-    oldLength: hookeForce(LAUNCHER.k, LAUNCHER.L0),
-    cm: hookeForce(LAUNCHER.k, (LAUNCHER.L0 - LAUNCHER.L) * 100),
-  },
+  puzzle: { x: xHalf, k: kHalf, same: k, whole: dx },
+  pair: { right: stiffnessFromPair(PAIR.F1, PAIR.L1, PAIR.F2, PAIR.L2), dF: pairDF, dx: pairDx, cm: stiffnessFromPair(PAIR.F1, PAIR.L1 * 100, PAIR.F2, PAIR.L2 * 100) },
+  launcher: { right: hookeForce(LAUNCHER.k, LAUNCHER.L0 - LAUNCHER.L), newLength: hookeForce(LAUNCHER.k, LAUNCHER.L), oldLength: hookeForce(LAUNCHER.k, LAUNCHER.L0) },
+  /** Both halves side by side share the 3.0 N: each stretches 1.5 cm, and together they are twice as stiff as one half. */
+  parallel: { x: sideBySide, k: parallelStiffness(kHalf, kHalf), eachLoad: SPRING.W / 2 },
+  /** Exam part (b): the stiffness of the pair, from the whole load and the common extension. */
+  pairK: stiffness(SPRING.W, sideBySide),
   coils: { ratio: COILS.P / COILS.Q },
 };
 const X = ANSWERS;
@@ -58,11 +57,29 @@ const spring = (over: Partial<SpringFig>): SpringFig => ({ kind: 'spring', L0: S
 const pairFig = (over: Partial<SpringFig> = {}): SpringFig =>
   spring({ springs: [whole({ load: 0, name: 'NO LOAD', hung: undefined }), whole({ name: 'LOADED' })], rows: ['load', 'length'], ...over });
 
+/** The force–extension line of a spring of stiffness kk (N m⁻¹): a straight line from the origin to the edge of the axes. */
+const lineGraph = (kk: number): PlotFig => {
+  const xEnd = Math.min(PLOT.xMax, (PLOT.FMax / kk) * 100); // cm
+  return {
+    kind: 'plot',
+    header: 'force against extension',
+    x: { label: 'Δx / cm', max: PLOT.xMax, tick: 2 },
+    y: { label: 'F / N', max: PLOT.FMax, tick: 1 },
+    points: [{ x: 0, y: 0 }, { x: xEnd, y: (kk * xEnd) / 100 }],
+  };
+};
+
 export const hookesLaw: Lesson = {
   id: 'hooke',
   title: "Hooke's law",
   spec: [27],
   minutes: 10,
+  chapters: [
+    { title: 'The puzzle', from: 'intro' },
+    { title: "Hooke's law", from: 'law' },
+    { title: 'Back to the spring', from: 'hook-again' },
+  ],
+  cast: ['Lena', 'Aisha'],
   story: [
     {
       id: 'intro',
@@ -81,6 +98,7 @@ export const hookesLaw: Lesson = {
         { id: 'half', label: '3.0 cm', correct: true },
         { id: 'same', label: '6.0 cm, the same' },
         { id: 'double', label: '12.0 cm' },
+        { id: 'unsure', label: "I'm not sure" },
       ],
       after: "Let's find out",
     },
@@ -95,15 +113,18 @@ export const hookesLaw: Lesson = {
     },
     {
       id: 'stiffness',
-      kind: 'choice',
-      prompt: 'The 3.0 N weight stretches the spring from 10.0 cm to 16.0 cm. What is its stiffness?',
+      kind: 'build',
+      prompt: 'The 3.0 N weight stretches the spring from 10.0 cm to 16.0 cm. Build its stiffness.',
       fig: pairFig({ rows: ['load', 'length', 'k'], ask: { row: 'k', col: 1, hide: 'afterCheck' } }),
-      options: [
-        { id: 'length', label: NM(X.k.length), hint: 'That divides by the length, 16.0 cm. Use the extension: 6.0 cm.' },
-        { id: 'cm', label: NM(X.k.cm), hint: 'That divides by 6.0, in cm. In N m⁻¹ the extension is 0.060 m.' },
-        { id: 'right', label: NM(X.k.right), correct: true },
-        { id: 'upside', label: NM(X.k.upside), hint: 'That is Δx ÷ F. The stiffness is force per metre: F ÷ Δx.' },
+      equation: 'k = {ΔF} ÷ {Δx}',
+      boxes: { 'ΔF': 'force', 'Δx': 'ext' },
+      chips: [
+        { id: 'force', label: NEWTON(SPRING.W) },
+        { id: 'ext', label: MT(dx) },
+        { id: 'length', label: `${fixed(SPRING.stretched * 100, 1)}${NB}cm`, hint: 'That is the length, not the extension. Δx is the new length minus the old.' },
+        { id: 'cm', label: `${fixed(dx * 100, 1)}${NB}cm`, hint: 'Right size, wrong unit: in N m⁻¹ the extension is in metres, 0.060 m.' },
       ],
+      result: { symbol: 'k', value: X.k.right, unit: 'N m⁻¹' },
       why: `Δx = 16.0 − 10.0 = 6.0 cm = 0.060 m, so k = ΔF ÷ Δx = 3.0 ÷ 0.060 = ${NM(X.k.right)}.`,
     },
     {
@@ -137,44 +158,54 @@ export const hookesLaw: Lesson = {
     },
     {
       id: 'half',
-      kind: 'choice',
-      prompt: 'A paint mark sits on the middle coil. How far has the bottom half of the spring stretched?',
-      fig: spring({ springs: [whole({ name: 'SPRING', mark: true })], panel: 'halves', ask: { row: 'half', col: 0, hide: 'afterCheck' } }),
-      options: [
-        { id: 'quarter', label: CM(X.half.quarter), hint: 'Read the ruler: the end moved 6.0 cm, the mark 3.0 cm.' },
-        { id: 'right', label: CM(X.half.right), correct: true },
-        { id: 'whole', label: CM(X.half.whole), hint: 'That is the whole spring. The top half took some of it.' },
-        { id: 'length', label: CM(X.half.length), hint: 'That is the bottom half’s length, 16.0 − 8.0. Take away its 5.0 cm.' },
-      ],
-      why: 'The bottom half went from 5.0 cm long (10.0 − 5.0) to 8.0 cm (16.0 − 8.0): 3.0 cm. Each half carries 3.0 N and stretches 3.0 cm.',
+      kind: 'estimate',
+      prompt: 'A paint mark sits on the middle coil. The end of the spring moves down 6.0 cm. Drag to how far the mark moves down.',
+      fig: spring({ springs: [whole({ name: 'SPRING', mark: true, hung: undefined })], rows: ['load', 'length'] }),
+      after: spring({ springs: [whole({ name: 'SPRING', mark: true })], panel: 'halves' }),
+      scale: { min: 0, max: 8, step: 0.5, tick: 1, unit: 'cm', symbol: 'x', dp: 1, label: 'How far the mark moves' },
+      answer: X.half.right * 100,
+      tolerance: 0.5,
+      why: 'The bottom half went from 5.0 cm long to 8.0 cm: 3.0 cm. Each half carries 3.0 N and stretches 3.0 cm.',
     },
     {
       id: 'hook-again',
-      kind: 'choice',
-      revisitOf: 'hook',
-      prompt: 'Back to Lena’s cut spring. What is the stiffness of one half on its own?',
+      kind: 'build',
+      prompt: 'Back to Lena’s cut spring. The 3.0 N weight stretches one half 3.0 cm. Build the stiffness of one half on its own.',
       fig: spring({ springs: [whole({ name: 'WHOLE' }), half({ hung: 'afterCheck' })], rows: ['load', 'ext', 'k'] }),
-      options: [
-        { id: 'same', label: `${NM(X.puzzle.same)}: the same steel`, hint: 'The same 3.0 N stretches the half only 3.0 cm.' },
-        { id: 'halved', label: NM(X.puzzle.halved), hint: 'Half the coils stretch less, not more. Less stretch means stiffer.' },
-        { id: 'right', label: NM(X.puzzle.k), correct: true },
-        { id: 'four', label: NM(X.puzzle.four), hint: 'Half the coils, half the extension: twice as stiff, not 4 times.' },
+      equation: 'k = {ΔF} ÷ {Δx}',
+      boxes: { 'ΔF': 'force', 'Δx': 'ext' },
+      chips: [
+        { id: 'force', label: NEWTON(SPRING.W) },
+        { id: 'ext', label: MT(X.puzzle.x) },
+        { id: 'whole', label: MT(dx), hint: 'That is the whole spring’s extension. The half stretches only 0.030 m.' },
+        { id: 'cm', label: `${fixed(X.puzzle.x * 100, 1)}${NB}cm`, hint: 'Right size, wrong unit: in N m⁻¹ the extension is in metres.' },
       ],
+      result: { symbol: 'k', value: X.puzzle.k, unit: 'N m⁻¹' },
       why: `The half carries 3.0 N with only half the coils, so it stretches ${CM(X.puzzle.x)}. k = 3.0 ÷ 0.030 = ${NM(X.puzzle.k)}: twice as stiff.`,
     },
     {
       id: 'lines',
-      kind: 'tapFig',
-      prompt: 'Line C is the force–extension graph of the whole spring. Which line belongs to one half?',
-      instruction: 'Tap the letter of the line for one half.',
-      fig: spring({ view: 'lines', springs: [], lines: [{ id: 'A', k: 4 * k }, { id: 'B', k: kHalf }, { id: 'C', k }, { id: 'D', k: k / 2 }] }),
-      options: [
-        { id: 'A', label: 'Line A', hint: 'A is 4 times as steep as C. The half is only twice as stiff.' },
-        { id: 'B', label: 'Line B', correct: true },
-        { id: 'C', label: 'Line C', hint: 'C is the whole spring. The half stretches less for each newton.' },
-        { id: 'D', label: 'Line D', hint: 'D is less steep: a weaker spring. The half is stiffer.' },
+      kind: 'graphPick',
+      prompt: 'The whole spring is 50 N m⁻¹. Which force–extension graph belongs to one half of it?',
+      graphs: [
+        { id: 'A', fig: lineGraph(k / 2), hint: 'This line is less steep than the whole spring’s: a weaker spring. The half is stiffer.' },
+        { id: 'B', fig: lineGraph(k), hint: 'That is the whole spring’s own line: the half is stiffer.' },
+        { id: 'C', fig: lineGraph(kHalf), correct: true },
       ],
-      why: `The gradient is the stiffness. One half is ${NM(kHalf)}, twice as steep as C: 6.0 N stretches it only 6.0 cm.`,
+      why: `The gradient is the stiffness. One half is ${NM(kHalf)}, twice as steep as the whole spring’s line: 6.0 N stretches it only 6.0 cm.`,
+    },
+    {
+      id: 'error',
+      kind: 'spotError',
+      prompt: 'Aisha works out the stiffness of the spring from the 3.0 N reading. One line is wrong. Which?',
+      fig: pairFig(),
+      lines: [
+        { id: 'read', text: 'The weight is 3.0 N, and the spring is now 16.0 cm long', hint: 'That line is right: it is what the ruler shows.' },
+        { id: 'law', text: 'Hooke’s law: ΔF = kΔx, so k = ΔF ÷ Δx', hint: 'That is the right rearrangement.' },
+        { id: 'ext', text: 'Δx = 16.0 cm = 0.160 m', wrong: true, fix: 'Δx = 16.0 − 10.0 = 6.0 cm = 0.060 m' },
+        { id: 'k', text: `k = 3.0 ÷ 0.160 = ${NM(X.k.length)}`, hint: 'This follows from the line above. Check the Δx put in.' },
+      ],
+      why: `Δx is the extension, the new length minus the length with no load: 6.0 cm. 16.0 cm is the length. k = 3.0 ÷ 0.060 = ${NM(X.k.right)}.`,
     },
     {
       id: 'object',
@@ -187,48 +218,37 @@ export const hookesLaw: Lesson = {
     {
       id: 'rules',
       kind: 'text',
-      body: [
-        "**Hooke's law**: ΔF = kΔx. Use the extension, in metres, never the length. The gradient of a force–extension graph is k.",
-        'It holds only up to the **limit of proportionality**. Stretch further and the line bends: more on that in two lessons.',
-      ],
+      body: ["ΔF = kΔx, with the extension in metres. The gradient of a force–extension graph is k."],
+      fig: spring({ springs: [whole({ name: 'WHOLE' }), half({ hung: true })], rows: ['load', 'ext', 'k'] }),
     },
   ],
   skillCheck: [
     {
-      id: 'parallel',
-      kind: 'choice',
-      prompt: 'Lena hangs the 3.0 N weight from both halves side by side, sharing it equally. How far does each half stretch?',
-      options: [
-        { id: 'quarter', label: CM(X.parallel.quarter) },
-        { id: 'right', label: CM(X.parallel.right), correct: true },
-        { id: 'oneHalf', label: CM(X.parallel.oneHalf) },
-        { id: 'whole', label: CM(X.parallel.whole) },
-      ],
-      why: `Each half carries 1.5 N and has k = ${NM(kHalf)}: Δx = 1.5 ÷ ${sig(kHalf)} = 0.015 m = ${CM(X.parallel.right)}.`,
-    },
-    {
-      id: 'pair',
-      kind: 'choice',
-      prompt: 'A spring is 15.0 cm long holding 2.0 N, and 22.5 cm long holding 5.0 N. What is its stiffness?',
-      options: [
-        { id: 'oneLoad', label: NM(X.pair.oneLoad) },
-        { id: 'length', label: NM(X.pair.length) },
-        { id: 'right', label: NM(X.pair.right), correct: true },
-        { id: 'cm', label: NM(X.pair.cm) },
-      ],
-      why: `ΔF = 5.0 − 2.0 = 3.0 N, Δx = 22.5 − 15.0 = 7.5 cm = 0.075 m. k = 3.0 ÷ 0.075 = ${NM(X.pair.right)}.`,
-    },
-    {
       id: 'launcher',
-      kind: 'choice',
-      prompt: `A toy launcher's spring, stiffness ${LAUNCHER.k} N m⁻¹, is 8.0 cm long. What force squashes it to 5.0 cm long?`,
-      options: [
-        { id: 'newLength', label: NEWTON(X.launcher.newLength) },
-        { id: 'right', label: NEWTON(X.launcher.right), correct: true },
-        { id: 'oldLength', label: NEWTON(X.launcher.oldLength) },
-        { id: 'cm', label: `${fixed(X.launcher.cm, 0)} N` },
+      kind: 'build',
+      prompt: `A toy launcher’s spring, stiffness ${LAUNCHER.k} N m⁻¹, is 8.0 cm long. Build the force that squashes it to 5.0 cm long.`,
+      equation: 'F = {k} × {Δx}',
+      boxes: { k: 'stiff', 'Δx': 'compress' },
+      chips: [
+        { id: 'stiff', label: `${LAUNCHER.k}${NB}N${NB}m⁻¹` },
+        { id: 'compress', label: MT(LAUNCHER.L0 - LAUNCHER.L) },
+        { id: 'newLength', label: MT(LAUNCHER.L), hint: 'That is the squashed length. The compression is how much shorter it gets.' },
+        { id: 'oldLength', label: MT(LAUNCHER.L0), hint: 'That is the natural length. Δx is the change: 8.0 − 5.0 cm.' },
       ],
+      result: { symbol: 'F', value: X.launcher.right, unit: 'N' },
       why: `The compression is 8.0 − 5.0 = 3.0 cm = 0.030 m. F = kΔx = ${LAUNCHER.k} × 0.030 = ${NEWTON(X.launcher.right)}.`,
+    },
+    {
+      id: 'pair-error',
+      kind: 'spotError',
+      prompt: 'A spring is 15.0 cm long holding 2.0 N, and 22.5 cm long holding 5.0 N. Aisha finds its stiffness. One line is wrong. Which?',
+      lines: [
+        { id: 'dF', text: 'ΔF = 5.0 − 2.0 = 3.0 N', hint: 'That line is right: the change in force.' },
+        { id: 'dx', text: 'Δx = 22.5 − 15.0 = 7.5 cm', hint: 'That line is right: the change in length.' },
+        { id: 'k', text: 'k = 3.0 ÷ 7.5 = 0.40 N m⁻¹', wrong: true, fix: 'Δx = 0.075 m, so k = 3.0 ÷ 0.075 = 40 N m⁻¹' },
+        { id: 'soft', text: 'So the spring is very soft', hint: 'This follows from the line above. Check the unit of Δx.' },
+      ],
+      why: `The stiffness is in N m⁻¹, so Δx must be in metres: 7.5 cm = 0.075 m. k = 3.0 ÷ 0.075 = ${NM(X.pair.right)}.`,
     },
     {
       id: 'coils',
@@ -241,6 +261,49 @@ export const hookesLaw: Lesson = {
         { id: 'Qfar', label: 'Q stretches 3 times as far under the same load' },
       ],
       why: 'Each coil carries the whole load and stretches the same. P has 3 times the coils, so 3 times the extension: Q is 3 times as stiff.',
+    },
+    {
+      id: 'side-by-side',
+      kind: 'examCard',
+      context: 'Lena hangs a 3.0 N weight from both halves of the cut spring side by side, sharing it equally. Each half has a stiffness of 100 N m⁻¹.',
+      parts: [
+        {
+          id: 'a',
+          command: 'Calculate',
+          text: 'the extension of each half.',
+          marks: 2,
+          kind: 'build',
+          build: {
+            equation: 'Δx = {F} ÷ {k}',
+            boxes: { F: 'load', k: 'stiff' },
+            chips: [
+              { id: 'load', label: NEWTON(X.parallel.eachLoad) },
+              { id: 'stiff', label: `${sig(kHalf)}${NB}N${NB}m⁻¹` },
+              { id: 'whole', label: NEWTON(SPRING.W), hint: 'Each half carries half the weight: 1.5 N.' },
+            ],
+            result: { symbol: 'Δx', value: X.parallel.x * 100, unit: 'cm' },
+          },
+          why: `Each half carries 1.5 N: Δx = ΔF ÷ k = 1.5 ÷ ${sig(kHalf)} = ${fixed(X.parallel.x, 3)} m = ${CM(X.parallel.x)}. One mark for the 1.5 N, one for the answer.`,
+        },
+        {
+          id: 'b',
+          command: 'Calculate',
+          text: 'the stiffness of the pair together.',
+          marks: 1,
+          kind: 'build',
+          build: {
+            equation: 'k = {ΔF} ÷ {Δx}',
+            boxes: { 'ΔF': 'load', 'Δx': 'ext' },
+            chips: [
+              { id: 'load', label: NEWTON(SPRING.W) },
+              { id: 'ext', label: MT(X.parallel.x) },
+              { id: 'each', label: NEWTON(X.parallel.eachLoad), hint: 'The pair together holds the whole 3.0 N.' },
+            ],
+            result: { symbol: 'k', value: X.pairK, unit: 'N m⁻¹' },
+          },
+          why: `Together they hold 3.0 N and stretch ${CM(X.parallel.x)}: k = 3.0 ÷ ${fixed(X.parallel.x, 3)} = ${NM(X.pairK)}, twice as stiff as one half.`,
+        },
+      ],
     },
   ],
   youCanNow: [

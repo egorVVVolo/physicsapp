@@ -72,7 +72,7 @@
 | D8 | Уроки «Keeping balance» и «Work done» | ✅ |
 | D9 | Уроки «Kinetic and potential energy» и «Where the energy goes» | ✅ |
 | D10 | Уроки «Power and efficiency» и «Density and upthrust» | ✅ |
-| D11 | Уроки «Viscous drag» и «Hooke's law» | |
+| D11 | Уроки «Viscous drag» и «Hooke's law» | ✅ |
 | D12 | Уроки «Stress, strain, Young modulus» и «Reading material graphs» | |
 | D13 | Урок «Elastic strain energy»; правила v3 включены для всех | |
 | E1 | Конец урока: праздник + экран разбора | |

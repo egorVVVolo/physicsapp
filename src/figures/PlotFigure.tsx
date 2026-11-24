@@ -18,9 +18,9 @@ export function PlotFigure({ fig, clock = STILL }: { fig: PlotFig; clock?: DrawC
   const Y = (v: number) => BOX.top + BOX.h - (v / fig.y.max) * BOX.h;
   const d = `M${fig.points.map((r) => `${X(r.x).toFixed(1)},${Y(r.y).toFixed(1)}`).join(' L')}`;
   const xTicks: { x: number; label: string }[] = [];
-  for (let k = fig.x.tick; k <= fig.x.max + 1e-9; k += fig.x.tick) xTicks.push({ x: X(k), label: `${k}` });
+  for (let k = fig.x.tick; k <= fig.x.max + 1e-9; k += fig.x.tick) xTicks.push({ x: X(k), label: `${+k.toFixed(6)}` });
   const yTicks: { y: number; label: string }[] = [];
-  for (let k = fig.y.tick; k <= fig.y.max + 1e-9; k += fig.y.tick) yTicks.push({ y: Y(k), label: `${k}` });
+  for (let k = fig.y.tick; k <= fig.y.max + 1e-9; k += fig.y.tick) yTicks.push({ y: Y(k), label: `${+k.toFixed(6)}` });
   return (
     <Group>
       <Axes

@@ -68,7 +68,7 @@ All numbers come from `src/physics/energy.ts` and `src/physics/projectile.ts`, g
 
 ## v3 changes (24 Nov)
 
-Task D9. The puzzle (every stone 23.2 m s⁻¹) and its recap are unchanged. 14 screens + 4 Skill check; chapters *The puzzle* → *Energy in a fall* → *Back to the cliff*; cast: Ella, Chen, Marco, Lena.
+Task D9. The puzzle (every stone 23.2 m s⁻¹) and its recap are unchanged. 14 screens + 4 Skill check; chapters *The puzzle* → *Energy in a fall* → *Back to the cliff*; cast: Ella, Chen, Marco, Petra.
 
 | Was | Now |
 |---|---|
@@ -80,4 +80,4 @@ Task D9. The puzzle (every stone 23.2 m s⁻¹) and its recap are unchanged. 14 
 | choice `friction` (82.6 N) | gone; the explore `longer` still shows the force |
 | text `rules` | one sentence, with a figure |
 
-`drop` (choice), `flight` and `longer` (explores) stay. Skill check: **build** (the coaster, 18.8 m s⁻¹, from the 18 m the car is below its start), **spotError** (Marco's ramp: the ½ dropped when the mass cancels), **choice** (steep and gentle frictionless ramps, same speed), **exam card** on Lena's freewheel: (a) Calculate the energy transferred to the surroundings [2] (3.30 kJ), (b) Calculate the average resistive force [2] (11.0 N). The ball with air resistance is gone.
+`drop` (choice), `flight` and `longer` (explores) stay. Skill check: **build** (the coaster, 18.8 m s⁻¹, from the 18 m the car is below its start), **spotError** (Marco's ramp: the ½ dropped when the mass cancels), **choice** (steep and gentle frictionless ramps, same speed), **exam card** on Petra's freewheel: (a) Calculate the energy transferred to the surroundings [2] (3.30 kJ), (b) Calculate the average resistive force [2] (11.0 N). The ball with air resistance is gone.

@@ -3,24 +3,31 @@
 // glycerol; the small one at a steady 1.01 cm s⁻¹. The big one? Four times as fast, 4.04 cm s⁻¹: it is 8 times as heavy
 // (and gets 8 times the upthrust), so it needs 8 times the drag, and F = 6πηrv has only r in it, not r³.
 // Every number below comes from src/physics; wrong options are named mistakes, recomputed by the test.
+// Format v3 (V2 task D11): build, sort, order, graphPick; the Skill check ends on an exam-style card.
 import { fixed, sci, sig } from '../physics/format.ts';
 import { G } from '../physics/kinematics.ts';
-import { glycerolViscosity, RHO_GLYCEROL, RHO_STEEL, sphereUpthrust, sphereWeight, stokesDrag, stokesTerminal, turbulentTerminal, viscosityFromFall, viscosityFromForces } from '../physics/viscosity.ts';
-import type { FlowFig, Lesson, TubeFig } from './types.ts';
+import { glycerolViscosity, RHO_GLYCEROL, RHO_STEEL, sphereUpthrust, sphereWeight, stokesDrag, stokesFall, stokesTerminal, turbulentTerminal, viscosityFromFall, viscosityFromForces } from '../physics/viscosity.ts';
+import type { FlowFig, Lesson, PlotFig, TubeFig } from './types.ts';
 
 const NB = ' '; // a no-break space: a number never parts from its unit
 const N = (x: number): string => `${sci(x)}${NB}N`;
 const CMS = (v: number): string => `${sig(v * 100)}${NB}cm${NB}s⁻¹`;
 const PAS = (x: number): string => `${sig(x)}${NB}Pa${NB}s`;
+// chips are short: plain decimals, never 1.01 × 10⁻² in a chip
+const NC = (x: number): string => `${fixed(x, 6)}${NB}N`;
+const MM = (x: number): string => `${fixed(x, 4)}${NB}m`;
+const MSI = (x: number, dp = 4): string => `${fixed(x, dp)}${NB}m${NB}s⁻¹`;
+const G9 = `9.81${NB}N${NB}kg⁻¹`;
+const KGM3 = (x: number): string => `${x}${NB}kg${NB}m⁻³`;
 
 export const BALLS = { small: 1.0e-3, big: 2.0e-3 }; // radii, m
 export const TEMP = 20; // °C, the lab
 export const LAB = { gap: 0.1, time: 9.89 }; // m between the rubber bands, s the small ball takes
 export const WARM = { min: 10, max: 40, to: 30 }; // °C, the explore's slider
+export const START = { tMax: 6 }; // ms, the v–t graphs of the ball just released
 // Skill check.
-export const GLASS = { rho: 2500 }; // kg m⁻³
-export const BUBBLE = { r: 0.5e-3, rho: 1.2 }; // m, kg m⁻³ (air)
 export const CASTOR = { r: 1.5e-3, rho: 960, v: 0.034 }; // m, kg m⁻³, m s⁻¹
+export const EXAM = { r: 1.5e-3, gap: 0.1, time: 4.4 }; // the exam card's ball: m, m, s
 
 const eta = glycerolViscosity(TEMP);
 const W = sphereWeight(BALLS.small, RHO_STEEL);
@@ -30,36 +37,63 @@ const v2 = stokesTerminal(BALLS.big, RHO_STEEL, RHO_GLYCEROL, eta);
 const F = stokesDrag(eta, BALLS.small, v1);
 const vLab = LAB.gap / LAB.time;
 const vWater = turbulentTerminal(BALLS.small, RHO_STEEL, 1000);
-const glassV = stokesTerminal(BALLS.small, GLASS.rho, RHO_GLYCEROL, eta);
+const examW = sphereWeight(EXAM.r, RHO_STEEL);
+const examU = sphereUpthrust(EXAM.r, RHO_GLYCEROL);
+const examV = EXAM.gap / EXAM.time;
 
 /** Answers and named mistakes, used by the screens and re-checked by viscous-drag.test.ts. */
 export const ANSWERS = {
   balance: { W, U, F },
   /** The lab: η from the forces and the timed speed (W and U as written on the sheet, to 3 s.f.). */
-  lab: { right: viscosityFromForces(W, U, BALLS.small, vLab), diameter: viscosityFromForces(W, U, 2 * BALLS.small, vLab), noUpthrust: viscosityFromForces(W, 0, BALLS.small, vLab), cm: viscosityFromForces(W, U, BALLS.small, vLab * 100) },
+  lab: { right: viscosityFromForces(W, U, BALLS.small, vLab), vLab, F: W - U, diameter: viscosityFromForces(W, U, 2 * BALLS.small, vLab), noUpthrust: viscosityFromForces(W, 0, BALLS.small, vLab), cm: viscosityFromForces(W, U, BALLS.small, vLab * 100) },
   heavier: { ratio: sphereWeight(BALLS.big, RHO_STEEL) / W, W2: sphereWeight(BALLS.big, RHO_STEEL) },
   /** The puzzle: the big ball's terminal velocity. */
   puzzle: { right: v2, same: v1, twice: 2 * v1, eight: 8 * v1 },
   warm: { eta: glycerolViscosity(WARM.to), v: stokesTerminal(BALLS.small, RHO_STEEL, RHO_GLYCEROL, glycerolViscosity(WARM.to)) },
-  glass: { right: glassV, noUpthrust: v1 * (GLASS.rho / RHO_STEEL), same: v1, upside: v1 * ((RHO_STEEL - RHO_GLYCEROL) / (GLASS.rho - RHO_GLYCEROL)) },
-  bubble: { v: stokesTerminal(BUBBLE.r, BUBBLE.rho, RHO_GLYCEROL, eta) },
+  start: { tau: stokesFall(0, BALLS.small, RHO_STEEL, RHO_GLYCEROL, eta).tau, vt: v1 },
   castor: {
     right: viscosityFromFall(CASTOR.r, RHO_STEEL, CASTOR.rho, CASTOR.v),
     noUpthrust: viscosityFromFall(CASTOR.r, RHO_STEEL, 0, CASTOR.v),
     diameter: viscosityFromFall(2 * CASTOR.r, RHO_STEEL, CASTOR.rho, CASTOR.v),
     cm: viscosityFromFall(CASTOR.r, RHO_STEEL, CASTOR.rho, CASTOR.v * 100),
   },
+  exam: { right: viscosityFromForces(examW, examU, EXAM.r, examV), F: examW - examU, W: examW, v: examV, diameter: viscosityFromForces(examW, examU, 2 * EXAM.r, examV) },
 };
 const X = ANSWERS;
 
 const tube = (over: Partial<TubeFig>): TubeFig => ({ kind: 'tube', balls: [BALLS.small, BALLS.big], rho: RHO_STEEL, T: TEMP, panel: 'speeds', ...over });
 const flow: FlowFig = { kind: 'flow', r: BALLS.small, rho: RHO_STEEL, T: TEMP };
 
+/** One v–t curve of the small ball just released into the glycerol: the model (stokesFall) or a named mistake. */
+const startGraph = (shape: 'model' | 'ramp' | 'jump'): PlotFig => {
+  const vt = X.start.vt * 100; // cm s⁻¹
+  const steps = START.tMax * 4;
+  return {
+    kind: 'plot',
+    header: 'small ball just released, v against t',
+    x: { label: 't / ms', max: START.tMax, tick: 1 },
+    y: { label: 'v / cm s⁻¹', max: 1.2, tick: 0.2 },
+    points:
+      shape === 'jump'
+        ? [{ x: 0, y: 0 }, { x: 0.05, y: vt }, { x: START.tMax, y: vt }]
+        : Array.from({ length: steps + 1 }, (_, k) => {
+            const t = k / 4; // ms
+            return { x: t, y: shape === 'model' ? stokesFall(t / 1000, BALLS.small, RHO_STEEL, RHO_GLYCEROL, eta).v * 100 : (vt * t) / START.tMax };
+          }),
+  };
+};
+
 export const viscousDrag: Lesson = {
   id: 'viscosity',
   title: 'Viscous drag',
   spec: [25, 26],
   minutes: 11,
+  chapters: [
+    { title: 'The puzzle', from: 'intro' },
+    { title: 'Drag and flow', from: 'viscosity' },
+    { title: 'Back to the tube', from: 'hook-again' },
+  ],
+  cast: ['Mei'],
   story: [
     {
       id: 'intro',
@@ -78,6 +112,7 @@ export const viscousDrag: Lesson = {
         { id: 'twice', label: 'Twice as fast' },
         { id: 'four', label: 'Four times as fast', correct: true },
         { id: 'eight', label: 'Eight times as fast' },
+        { id: 'unsure', label: "I'm not sure" },
       ],
       after: "Let's find out",
     },
@@ -91,17 +126,29 @@ export const viscousDrag: Lesson = {
       card: { term: 'Viscosity', text: 'How strongly a fluid’s layers drag on one another: η, in Pa s. Viscous drag acts against a body’s motion.' },
     },
     {
-      id: 'balance',
-      kind: 'choice',
-      prompt: 'The small ball sinks at a steady speed. Which is true of the viscous drag F on it?',
+      id: 'terminal',
+      kind: 'order',
+      prompt: 'The small ball is released from rest in the glycerol. Put the steps in order: how does it reach a steady speed?',
       fig: tube({ balls: [BALLS.small], panel: 'forces', ask: 'afterCheck', play: true }),
-      options: [
-        { id: 'none', label: 'F = 0: at a steady speed no force is needed', hint: 'Its weight still pulls it down. Something must balance it.' },
-        { id: 'weight', label: 'F = W', hint: 'The glycerol also pushes up: the upthrust U helps hold the ball.' },
-        { id: 'right', label: 'F = W − U', correct: true },
-        { id: 'plus', label: 'F = W + U', hint: 'U points up, like F. Together they balance W.' },
+      steps: [
+        { id: 'start', text: 'At first the weight W is the main force, so the ball speeds up.' },
+        { id: 'grows', text: 'As it speeds up, the viscous drag F grows.' },
+        { id: 'shrinks', text: 'The resultant W − U − F shrinks, so the acceleration falls.' },
+        { id: 'steady', text: 'When F = W − U the resultant is zero: a steady speed.' },
       ],
+      hint: 'First the weight acts alone, then the drag grows, then the two balance.',
       why: `A steady speed means no resultant force: U + F = W. So F = ${sci(W)} − ${sci(U)} = ${N(F)}.`,
+    },
+    {
+      id: 'vt-graph',
+      kind: 'graphPick',
+      prompt: 'Which graph shows the small ball’s speed in the first few milliseconds after it is released?',
+      graphs: [
+        { id: 'A', fig: startGraph('model'), correct: true },
+        { id: 'B', fig: startGraph('ramp'), hint: 'A straight line is a steady acceleration. But the drag grows with speed.' },
+        { id: 'C', fig: startGraph('jump'), hint: 'The ball cannot reach its speed at once: it has to accelerate from rest.' },
+      ],
+      why: `It speeds up fast, then levels off as the drag grows: within about ${sig(4 * X.start.tau * 1000, 2)} ms it is at ${CMS(v1)}. It reaches that speed almost at once.`,
     },
     {
       id: 'flow',
@@ -111,6 +158,24 @@ export const viscousDrag: Lesson = {
         'In **turbulent flow** the layers break up into swirling eddies and the streamlines tangle. Big, fast bodies in runny fluids make it.',
       ],
       card: { term: 'Laminar flow', text: 'Smooth layers of fluid: the streamlines never cross. Turbulent flow: eddies, and the streamlines mix.' },
+    },
+    {
+      id: 'flow-sort',
+      kind: 'sort',
+      prompt: 'Is the flow laminar or turbulent in each of these?',
+      bins: [
+        { id: 'laminar', label: 'Laminar' },
+        { id: 'turbulent', label: 'Turbulent' },
+      ],
+      items: [
+        { id: 'honey', label: 'Honey creeping off a spoon', bin: 'laminar', hint: 'Slow and very viscous: smooth layers.' },
+        { id: 'waterfall', label: 'Water crashing down a waterfall', bin: 'turbulent', hint: 'Fast and runny: it churns into eddies.' },
+        { id: 'smoke', label: 'Thin smoke rising from incense', bin: 'laminar', hint: 'A smooth, thin stream, at least near the stick.' },
+        { id: 'boat', label: 'Water swirling behind a fast boat', bin: 'turbulent', hint: 'Swirls and eddies: turbulent.' },
+        { id: 'oil', label: 'Oil poured slowly from a bottle', bin: 'laminar', hint: 'Slow and viscous: smooth layers.' },
+        { id: 'lorry', label: 'Air churning behind a lorry at speed', bin: 'turbulent', hint: 'Big, fast and runny: eddies.' },
+      ],
+      why: 'Slow, small, viscous: laminar. Big, fast, runny: turbulent, with eddies behind.',
     },
     {
       id: 'flowTap',
@@ -135,15 +200,20 @@ export const viscousDrag: Lesson = {
     },
     {
       id: 'lab',
-      kind: 'choice',
-      prompt: `The small ball, r = 1.0 mm, takes ${fixed(LAB.time, 2)} s to sink between the rubber bands, 10.0 cm apart. What is the viscosity of the glycerol?`,
+      kind: 'build',
+      prompt: `The small ball, r = 1.0 mm, takes ${fixed(LAB.time, 2)} s to sink between the rubber bands, 10.0 cm apart. Build the viscosity of the glycerol.`,
       fig: tube({ balls: [BALLS.small], panel: 'timing', play: true }),
-      options: [
-        { id: 'diameter', label: PAS(X.lab.diameter), hint: 'That uses the diameter, 2.0 mm. Stokes’ law needs the radius.' },
-        { id: 'right', label: PAS(X.lab.right), correct: true },
-        { id: 'noUpthrust', label: PAS(X.lab.noUpthrust), hint: 'That uses F = W. The drag is only W − U: the upthrust helps.' },
-        { id: 'cm', label: PAS(X.lab.cm), hint: `That uses v in cm s⁻¹. Work in metres: v = 0.100 ÷ ${fixed(LAB.time, 2)} m s⁻¹.` },
+      equation: 'η = {F} ÷ (6π × {r} × {v})',
+      boxes: { F: 'drag', r: 'radius', v: 'speed' },
+      chips: [
+        { id: 'drag', label: NC(X.lab.F) },
+        { id: 'radius', label: MM(BALLS.small) },
+        { id: 'speed', label: MSI(vLab) },
+        { id: 'diameter', label: MM(2 * BALLS.small), hint: 'That is the diameter, 2.0 mm. Stokes’ law needs the radius.' },
+        { id: 'weight', label: NC(W), hint: 'That is the weight. The drag is only W − U: the upthrust helps.' },
+        { id: 'cm', label: `${sig(vLab * 100)}${NB}cm${NB}s⁻¹`, hint: 'Work in metres: v is in m s⁻¹.' },
       ],
+      result: { symbol: 'η', value: X.lab.right, unit: 'Pa s' },
       why: `v = 0.100 ÷ ${fixed(LAB.time, 2)} = ${sci(vLab)} m s⁻¹ and F = W − U = ${N(F)}. So η = F ÷ 6πrv = ${PAS(X.lab.right)}.`,
     },
     {
@@ -191,24 +261,46 @@ export const viscousDrag: Lesson = {
     {
       id: 'rules',
       kind: 'text',
-      body: [
-        '**Stokes’ law** for a small, slow sphere in laminar flow: F = 6πηrv. At terminal velocity W = U + F, so timing a ball gives η.',
-        'Viscosity falls as a liquid warms. That is the end of Fluids. Next: how materials stretch, starting with springs.',
-      ],
+      body: ['F = 6πηrv for a small, slow sphere. At a steady speed W = U + F.'],
+      fig: tube({ at: 5 }),
     },
   ],
   skillCheck: [
     {
-      id: 'glass',
-      kind: 'choice',
-      prompt: `A glass bead the size of the small ball, density ${GLASS.rho} kg m⁻³, is dropped into the same glycerol. What is its terminal velocity?`,
-      options: [
-        { id: 'noUpthrust', label: CMS(X.glass.noUpthrust) },
-        { id: 'right', label: CMS(X.glass.right), correct: true },
-        { id: 'same', label: CMS(X.glass.same) },
-        { id: 'upside', label: CMS(X.glass.upside) },
+      id: 'castor',
+      kind: 'build',
+      prompt: `A steel ball of diameter 3.0 mm falls at a steady ${fixed(CASTOR.v * 100, 1)} cm s⁻¹ through castor oil of density ${CASTOR.rho} kg m⁻³. Build the oil’s viscosity.`,
+      equation: 'η = 2 × {r}² × ({ρ₁} − {ρ₂}) × {g} ÷ (9 × {v})',
+      boxes: { r: 'radius', 'ρ₁': 'steel', 'ρ₂': 'oil', g: 'field', v: 'speed' },
+      chips: [
+        { id: 'radius', label: MM(CASTOR.r) },
+        { id: 'steel', label: KGM3(RHO_STEEL) },
+        { id: 'oil', label: KGM3(CASTOR.rho) },
+        { id: 'field', label: G9 },
+        { id: 'speed', label: MSI(CASTOR.v, 3) },
+        { id: 'diameter', label: MM(2 * CASTOR.r), hint: 'That is the diameter, 3.0 mm. The equation needs the radius.' },
+        { id: 'cm', label: `${fixed(CASTOR.v * 100, 1)}${NB}cm${NB}s⁻¹`, hint: 'Work in metres: v is in m s⁻¹.' },
       ],
-      why: `v grows with ρ − ρ(glycerol): ${CMS(v1)} × (${GLASS.rho} − ${RHO_GLYCEROL}) ÷ (${RHO_STEEL} − ${RHO_GLYCEROL}) = ${CMS(X.glass.right)}.`,
+      result: { symbol: 'η', value: X.castor.right, unit: 'Pa s' },
+      why: `η = 2r²(ρ − ρ(oil))g ÷ 9v = 2 × (1.5 × 10⁻³)² × ${RHO_STEEL - CASTOR.rho} × ${G} ÷ (9 × ${CASTOR.v}) = ${PAS(X.castor.right)}.`,
+    },
+    {
+      id: 'stokes-sort',
+      kind: 'sort',
+      prompt: 'Does Stokes’ law, F = 6πηrv, apply to each of these?',
+      bins: [
+        { id: 'applies', label: 'Applies' },
+        { id: 'fails', label: 'Does not' },
+      ],
+      items: [
+        { id: 'bead', label: 'A 1 mm bead creeping through treacle', bin: 'applies', hint: 'Small, slow, very viscous: laminar flow.' },
+        { id: 'cricket', label: 'A cricket ball falling through air', bin: 'fails', hint: 'Big and fast in a runny fluid: turbulent.' },
+        { id: 'dust', label: 'A tiny dust grain settling in oil', bin: 'applies', hint: 'Tiny and slow: the flow stays laminar.' },
+        { id: 'water', label: 'A 2 cm steel ball dropped in water', bin: 'fails', hint: 'Big, fast, runny water: eddies form.' },
+        { id: 'oil', label: 'A 2 mm ball sinking slowly in glycerol', bin: 'applies', hint: 'Small and slow in a viscous liquid: laminar.' },
+        { id: 'diver', label: 'A skydiver falling through the air', bin: 'fails', hint: 'Huge and fast: turbulent flow.' },
+      ],
+      why: 'Stokes’ law holds for small spheres moving slowly through a viscous fluid, where the flow is laminar. Big, fast bodies make eddies.',
     },
     {
       id: 'bubble',
@@ -223,28 +315,45 @@ export const viscousDrag: Lesson = {
       why: 'The bubble moves up, so the drag acts down. At a steady speed the upthrust balances the weight and the drag together.',
     },
     {
-      id: 'turbulent',
-      kind: 'choice',
-      prompt: 'A student times a 2.0 cm steel ball falling through water and uses F = 6πηrv to find η. Why is the result wrong?',
-      options: [
-        { id: 'upthrust', label: 'Stokes’ law leaves out the upthrust' },
-        { id: 'right', label: 'The flow round the ball is turbulent', correct: true },
-        { id: 'thin', label: 'Water is too runny to have a viscosity' },
-        { id: 'steady', label: 'The ball never reaches a steady speed' },
+      id: 'fall-method',
+      kind: 'examCard',
+      context: `Mei finds the viscosity of glycerol. A steel ball, radius ${fixed(EXAM.r * 1000, 1)} mm, is released at the surface. It takes ${fixed(EXAM.time, 2)} s to pass two marks ${fixed(EXAM.gap * 100, 1)} cm apart, set well below the surface. Take g = 9.81 N kg⁻¹.`,
+      parts: [
+        {
+          id: 'a',
+          command: 'Explain',
+          text: 'why the marks are set well below the surface.',
+          marks: 2,
+          kind: 'order',
+          steps: [
+            { id: 'rest', text: 'The ball is released from rest at the surface.' },
+            { id: 'speeds', text: 'It speeds up until the drag balances W − U.' },
+            { id: 'steady', text: 'Only then does it sink at a steady speed.' },
+            { id: 'marks', text: 'So the marks go lower: v = distance ÷ time is then the terminal velocity.' },
+          ],
+          why: 'v = distance ÷ time gives the terminal velocity only where the speed is steady. Near the surface the ball is still speeding up.',
+        },
+        {
+          id: 'b',
+          command: 'Calculate',
+          text: 'the viscosity of the glycerol.',
+          marks: 2,
+          kind: 'build',
+          build: {
+            equation: 'η = {F} ÷ (6π × {r} × {v})',
+            boxes: { F: 'drag', r: 'radius', v: 'speed' },
+            chips: [
+              { id: 'drag', label: NC(X.exam.F) },
+              { id: 'radius', label: MM(EXAM.r) },
+              { id: 'speed', label: MSI(X.exam.v) },
+              { id: 'weight', label: NC(X.exam.W), hint: 'That is the weight. The drag is W − U: the upthrust helps.' },
+              { id: 'diameter', label: MM(2 * EXAM.r), hint: 'That is the diameter, 3.0 mm. Stokes’ law needs the radius.' },
+            ],
+            result: { symbol: 'η', value: X.exam.right, unit: 'Pa s' },
+          },
+          why: `v = ${fixed(EXAM.gap, 2)} ÷ ${fixed(EXAM.time, 2)} = ${sci(X.exam.v)} m s⁻¹ and F = W − U = ${N(X.exam.F)}. So η = F ÷ 6πrv = ${PAS(X.exam.right)}.`,
+        },
       ],
-      why: 'A big ball dropping fast through a runny liquid leaves eddies behind it. Stokes’ law holds only for small, slow spheres in laminar flow.',
-    },
-    {
-      id: 'castor',
-      kind: 'choice',
-      prompt: `A steel ball of diameter 3.0 mm falls at a steady ${fixed(CASTOR.v * 100, 1)} cm s⁻¹ through castor oil of density ${CASTOR.rho} kg m⁻³. What is the oil’s viscosity?`,
-      options: [
-        { id: 'noUpthrust', label: PAS(X.castor.noUpthrust) },
-        { id: 'right', label: PAS(X.castor.right), correct: true },
-        { id: 'diameter', label: PAS(X.castor.diameter) },
-        { id: 'cm', label: PAS(X.castor.cm) },
-      ],
-      why: `η = 2r²(ρ − ρ(oil))g ÷ 9v = 2 × (1.5 × 10⁻³)² × ${RHO_STEEL - CASTOR.rho} × ${G} ÷ (9 × ${CASTOR.v}) = ${PAS(X.castor.right)}.`,
     },
   ],
   youCanNow: [

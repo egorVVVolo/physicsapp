@@ -79,7 +79,7 @@ export const whereTheEnergyGoes: Lesson = {
     { title: 'Energy in a fall', from: 'conserve' },
     { title: 'Back to the cliff', from: 'hook-again' },
   ],
-  cast: ['Ella', 'Chen', 'Marco', 'Lena'],
+  cast: ['Ella', 'Chen', 'Marco', 'Petra'],
   story: [
     {
       id: 'intro',
@@ -300,7 +300,7 @@ export const whereTheEnergyGoes: Lesson = {
     {
       id: 'freewheel',
       kind: 'examCard',
-      context: `Lena and her bike, ${CYCLIST.m}${NB}kg together, freewheel down a ${CYCLIST.road}${NB}m road that drops ${CYCLIST.drop}${NB}m. She speeds up from ${fixed(CYCLIST.u, 1)} to ${MS(CYCLIST.v)}. Take g = 9.81 N kg⁻¹.`,
+      context: `Petra and her bike, ${CYCLIST.m}${NB}kg together, freewheel down a ${CYCLIST.road}${NB}m road that drops ${CYCLIST.drop}${NB}m. She speeds up from ${fixed(CYCLIST.u, 1)} to ${MS(CYCLIST.v)}. Take g = 9.81 N kg⁻¹.`,
       parts: [
         {
           id: 'a',
