@@ -5,7 +5,8 @@
 import { G } from '../physics/kinematics.ts';
 import { acceleration, connectedAcceleration, fieldStrength, pulleyRun, stringTension, weight } from '../physics/dynamics.ts';
 import { fixed } from '../physics/format.ts';
-import type { CrateFig, Lesson, PulleyFig } from './types.ts';
+import type { CrateFig, GraphFig, Lesson, PulleyFig } from './types.ts';
+import type { Trip } from '../physics/kinematics.ts';
 
 const NB = '\u00A0';
 /** "1.25 m s⁻²": an acceleration to 3 significant figures. */
@@ -51,8 +52,9 @@ export const ANSWERS = {
     a: { right: labA, trolleyOnly: acceleration(labW, LAB.trolley), free: G, byWeight: acceleration(labW, weight(LAB.trolley + LAB.hanging)) },
     T: { right: labT, weight: labW, ma: LAB.hanging * labA, sum: labW + LAB.hanging * labA },
     vLand: pulleyRun(10, LAB.trolley, LAB.hanging, LAB.drop).v,
+    tLand: Math.sqrt((2 * LAB.drop) / labA),
   },
-  tow: { right: TOW.trailer * towA, whole: TOW.drive, ratio: (TOW.drive * TOW.trailer) / TOW.car, car: TOW.car * towA },
+  tow: { a: towA, total: TOW.car + TOW.trailer, right: TOW.trailer * towA, whole: TOW.drive, ratio: (TOW.drive * TOW.trailer) / TOW.car, car: TOW.car * towA },
   rocket: { right: acceleration(ROCKET.thrust - rocketW, ROCKET.m), noWeight: acceleration(ROCKET.thrust, ROCKET.m), added: acceleration(ROCKET.thrust + rocketW, ROCKET.m), byWeight: acceleration(ROCKET.thrust - rocketW, rocketW) },
   mars: {
     g: marsG,
@@ -72,11 +74,32 @@ const X = ANSWERS;
 const A1 = X.first;
 const A2 = X.second;
 
+/** The lab's v–t graph: the trolley speeds up until the mass lands, then rolls on. Two wrong ones: it never stops speeding up, it slows. */
+const AFTER_LAND = 0.6; // s drawn after the landing
+const LAND_END = X.lab.tLand + AFTER_LAND;
+const rollsOn: Trip = { u: 0, phases: [{ dt: X.lab.tLand, a: labA }, { dt: AFTER_LAND, a: 0 }] };
+const keepsSpeeding: Trip = { u: 0, phases: [{ dt: LAND_END, a: labA }] };
+const slows: Trip = { u: 0, phases: [{ dt: X.lab.tLand, a: labA }, { dt: AFTER_LAND, a: -X.lab.vLand / AFTER_LAND }] };
+const labOf = (id: string, trip: Trip): GraphFig => ({ kind: 'graph', y: 'v', header: `graph ${id}`, lines: [{ id: '', trip }], tMax: 1.4, tTick: 0.2, yMax: 3, yTick: 1 });
+/** Braking of a sliding book: steady friction only. */
+const SLIDE = { u: 3, a: -1 };
+const sliding: Trip = { u: SLIDE.u, phases: [{ dt: 3, a: SLIDE.a }] };
+const steadyBook: Trip = { u: SLIDE.u, phases: [{ dt: 3, a: 0 }] };
+const speedingBook: Trip = { u: 0, phases: [{ dt: 3, a: 1 }] };
+const bookOf = (id: string, trip: Trip): GraphFig => ({ kind: 'graph', y: 'v', header: `graph ${id}`, lines: [{ id: '', trip }], tMax: 3.5, tTick: 0.5, yMax: 4, yTick: 1 });
+const OVERALL_TOW = X.tow;
+
 export const forceAndAcceleration: Lesson = {
   id: 'f-ma',
   title: 'Force and acceleration',
   spec: [9, 10],
   minutes: 12,
+  chapters: [
+    { title: 'The puzzle', from: 'intro' },
+    { title: 'The resultant force', from: 'law' },
+    { title: 'Back to the crate', from: 'hook-again' },
+  ],
+  cast: ['Rose'],
   story: [
     {
       id: 'intro',
@@ -116,16 +139,31 @@ export const forceAndAcceleration: Lesson = {
     },
     {
       id: 'first-a',
-      kind: 'choice',
-      prompt: `The crate has a mass of ${M} kg. What is its acceleration while Rose pulls with ${PULL} N?`,
+      kind: 'build',
+      prompt: `The crate has a mass of ${M} kg. Build its acceleration while Rose pulls with ${PULL} N.`,
       fig: crate({ forces: ALL, values: true, accel: 'afterCheck' }),
-      options: [
-        { id: 'pull-only', label: ms2(A1.pullOnly), hint: 'That is the pull alone. Friction pulls back, so use the resultant.' },
-        { id: 'added', label: ms2(A1.added), hint: 'Friction points backward: take it away, do not add it.' },
-        { id: 'right', label: ms2(A1.right), correct: true },
-        { id: 'by-weight', label: ms2(A1.byWeight, 3), hint: `You divided by the weight, ${n(W)}. Divide by the mass in kg.` },
+      equation: 'a = ({pull} − {friction}) ÷ {mass}',
+      boxes: { pull: 'pull', friction: 'friction', mass: 'mass' },
+      chips: [
+        { id: 'pull', label: n(PULL) },
+        { id: 'friction', label: n(FRICTION) },
+        { id: 'mass', label: `${M}${NB}kg` },
+        { id: 'weight', label: n(W), hint: `That is the weight. a = ΣF ÷ m uses the mass, ${M} kg.` },
+        { id: 'sum', label: n(PULL + FRICTION), hint: 'Friction points backward: take it away, do not add it.' },
       ],
+      result: { symbol: 'a', value: A1.right, unit: 'm s⁻²' },
       why: `a = ΣF / m = ${n(sum1)} / ${M} kg = ${ms2(A1.right)}. Only the ${n(sum1)} left over after friction speeds the crate up.`,
+    },
+    {
+      id: 'double',
+      kind: 'estimate',
+      prompt: `Rose now pulls with ${PULL2} N. Friction is still ${FRICTION} N. Drag to the crate's acceleration.`,
+      fig: crate({ force: PULL2, forces: ALL, values: true }),
+      after: crate({ force: PULL2, forces: ALL, values: true, accel: 'shown' }),
+      scale: { min: 0, max: 8, step: 0.1, tick: 1, unit: 'm s⁻²', symbol: 'a', dp: 1, label: 'Acceleration of the crate' },
+      answer: A2.right,
+      tolerance: 0.3,
+      why: `ΣF = ${PULL2} − ${FRICTION} = ${n(sum2)}, so a = ${n(sum2)} / ${M} kg = ${ms2(A2.right)}.`,
     },
     {
       id: 'pull',
@@ -147,15 +185,14 @@ export const forceAndAcceleration: Lesson = {
       id: 'hook-again',
       kind: 'choice',
       revisitOf: 'hook',
-      prompt: `Back to the puzzle. Rose pulls with ${PULL2} N, and friction is still ${FRICTION} N. What is the acceleration now?`,
-      fig: crate({ force: PULL2, forces: ALL, values: true, accel: 'afterCheck' }),
+      prompt: 'Back to the crate. Why does doubling the pull more than double the acceleration?',
+      fig: crate({ force: PULL2, forces: ALL, values: true, accel: 'shown' }),
       options: [
-        { id: 'doubled', label: ms2(A2.doubled), hint: `The pull doubles, but ΣF goes from ${n(sum1)} to ${n(sum2)}.` },
-        { id: 'pull-only', label: ms2(A2.pullOnly), hint: 'That is the pull alone. Friction still takes 100 N away.' },
-        { id: 'same', label: ms2(A2.same), hint: 'A bigger resultant force gives a bigger acceleration, not just more speed.' },
-        { id: 'right', label: ms2(A2.right), correct: true },
+        { id: 'mass', label: 'The crate gets lighter as it speeds up', hint: 'Its mass is 40 kg whatever its speed. Only ΣF changed.' },
+        { id: 'friction', label: 'Friction disappears at a higher pull', hint: `Friction is still ${FRICTION} N. Look at the backward arrow.` },
+        { id: 'resultant', label: `Friction stays ${FRICTION} N, so ΣF goes from ${n(sum1)} to ${n(sum2)}: four times`, correct: true },
       ],
-      why: `ΣF = ${PULL2} − ${FRICTION} = ${n(sum2)}, four times ${n(sum1)}. So a = ${n(sum2)} / ${M} kg = ${ms2(A2.right)}: four times bigger.`,
+      why: `a depends on ΣF, not on the pull alone. ΣF = ${n(sum1)} → ${n(sum2)}, four times bigger, so a goes from ${ms2(A1.right)} to ${ms2(A2.right)}.`,
     },
     {
       id: 'mass',
@@ -165,17 +202,6 @@ export const forceAndAcceleration: Lesson = {
         `Take the crate to the Moon: its weight falls from ${n(W)} to ${n(weight(M, MOON_G))}, but its mass stays ${M} kg.`,
       ],
       card: { term: 'Gravitational field strength', text: `g = F / m, the force of gravity on each kilogram: ${G} N kg⁻¹ on Earth, ${MOON_G} N kg⁻¹ on the Moon.` },
-    },
-    {
-      id: 'moon',
-      kind: 'choice',
-      prompt: `On the Moon, g = ${MOON_G} N kg⁻¹. The ${M} kg crate slides on smooth ice there with a resultant force of ${n(sum1)}. What is its acceleration?`,
-      options: [
-        { id: 'smaller-mass', label: ms2(X.moon.smallerMass), hint: 'The mass does not change on the Moon. Only the weight does.' },
-        { id: 'moon-weight', label: ms2(X.moon.byMoonWeight, 3), hint: 'You divided by the Moon weight. ΣF = ma uses the mass.' },
-        { id: 'right', label: ms2(X.moon.right), correct: true },
-      ],
-      why: `a = ${n(sum1)} / ${M} kg = ${ms2(X.moon.right)}, the same as on Earth. Mass, not weight, sets how hard it is to speed up.`,
     },
     {
       id: 'lab',
@@ -197,46 +223,29 @@ export const forceAndAcceleration: Lesson = {
       why: `The weight ${n(labW, 2)} accelerates both bodies, ${fixed(LAB.trolley + LAB.hanging, 2)} kg in all: a = ${n(labW, 2)} / ${fixed(LAB.trolley + LAB.hanging, 2)} kg = ${ms2(labA)}.`,
     },
     {
-      id: 'tension',
-      kind: 'choice',
-      prompt: 'How hard does the string pull on the trolley while they accelerate?',
-      fig: lab({ forces: true, tension: 'afterCheck' }),
-      options: [
-        { id: 'weight', label: n(X.lab.T.weight, 2), hint: 'Then the forces on the hanging mass would balance, and it could not speed up.' },
-        { id: 'ma', label: n(X.lab.T.ma, 3), hint: "That is the hanging mass's own ΣF. The trolley needs M × a." },
-        { id: 'right', label: n(X.lab.T.right, 2), correct: true },
-        { id: 'sum', label: n(X.lab.T.sum, 2), hint: 'The mass accelerates down, so T is less than W, not more.' },
+      id: 'lab-graph',
+      kind: 'graphPick',
+      prompt: `After falling ${fixed(LAB.drop, 2)} m the mass lands and the string goes slack. Which v–t graph shows the trolley?`,
+      scene: lab({}),
+      graphs: [
+        { id: 'A', fig: labOf('A', keepsSpeeding), hint: 'This line keeps rising. After the landing nothing pulls the trolley.' },
+        { id: 'B', fig: labOf('B', rollsOn), correct: true },
+        { id: 'C', fig: labOf('C', slows), hint: 'The bench is smooth. Nothing slows the trolley down.' },
       ],
-      why: `T is the only force along the bench, so T = Ma = ${fixed(LAB.trolley, 2)} × ${fixed(labA, 2)} = ${n(labT, 2)}, less than the ${n(labW, 2)} weight.`,
-    },
-    {
-      id: 'heavier',
-      kind: 'explore',
-      instruction: 'Drag the slider to change the hanging mass.',
-      fig: lab({ play: true }),
-      slider: { min: 0.1, max: 2.0, step: 0.05, tick: 0.5, label: 'Hanging mass', unit: 'kg', symbol: 'm', dp: 2, start: LAB.hanging },
-      question: {
-        prompt: 'As the hanging mass gets bigger, what happens to the acceleration?',
-        options: [
-          { id: 'step', label: 'It grows in step: twice the mass, twice the a', hint: 'Compare 0.20 kg with 0.40 kg in the header.' },
-          { id: 'right', label: `It grows, but stays below ${G} m s⁻²`, correct: true },
-          { id: 'same', label: 'It stays the same', hint: 'Drag the slider and watch a in the header.' },
-        ],
-        right: 'Right: a bigger weight pulls, but it also has more mass to speed up. It never reaches free fall.',
-      },
+      why: `The line rises at ${ms2(labA)} until the landing, then goes flat: no resultant force, so the velocity stays ${fixed(X.lab.vLand, 2)} m s⁻¹.`,
     },
     {
       id: 'slack',
-      kind: 'choice',
-      prompt: `After falling ${fixed(LAB.drop, 2)} m the mass lands and the string goes slack. What does the trolley do next?`,
-      fig: lab({ at: 'landed', play: 'afterCheck' }),
-      options: [
-        { id: 'slows', label: 'It slows down and stops', hint: 'The bench is smooth. What force would slow it down?' },
-        { id: 'faster', label: 'It keeps speeding up', hint: 'Nothing pulls it any more, so nothing speeds it up.' },
-        { id: 'right', label: `It rolls on at a steady ${fixed(X.lab.vLand, 2)} m s⁻¹`, correct: true },
-        { id: 'stops', label: 'It stops at once', hint: 'Stopping at once would need a huge force backward.' },
+      kind: 'order',
+      prompt: 'Why does the trolley roll on at a steady speed once the mass has landed? Put the reasoning in order.',
+      steps: [
+        { id: 'lands', text: 'The mass lands, so the string goes slack.' },
+        { id: 'nothing', text: 'Nothing pulls the trolley any more, and the bench is smooth.' },
+        { id: 'zero', text: 'So there is no resultant force: ΣF = 0, a = 0.' },
+        { id: 'steady', text: `The velocity cannot change: it rolls on at ${fixed(X.lab.vLand, 2)}${NB}m${NB}s⁻¹.` },
       ],
-      why: "No resultant force acts along the bench now, so the trolley's velocity does not change: Newton's first law. The marks stay evenly spaced.",
+      hint: 'Start with the string, then the force, then the acceleration.',
+      why: "No resultant force means no change in velocity: Newton's first law. The marks on the bench stay evenly spaced.",
     },
     {
       id: 'rules',
@@ -250,58 +259,90 @@ export const forceAndAcceleration: Lesson = {
   ],
   skillCheck: [
     {
-      id: 'tow',
-      kind: 'choice',
-      prompt: `A ${TOW.car} kg car tows a ${TOW.trailer} kg trailer. The driving force is ${TOW.drive} N; resistive forces are negligible. What is the tension in the tow bar?`,
-      options: [
-        { id: 'whole', label: n(X.tow.whole) },
-        { id: 'ratio', label: n(X.tow.ratio) },
-        { id: 'right', label: n(X.tow.right), correct: true },
-        { id: 'car', label: n(X.tow.car) },
-      ],
-      why: `Both speed up together: a = ${TOW.drive} / ${TOW.car + TOW.trailer} = ${ms2(towA)}. The tow bar alone pulls the trailer: T = ${TOW.trailer} × ${fixed(towA, 2)} = ${n(X.tow.right)}.`,
-    },
-    {
       id: 'rocket',
-      kind: 'choice',
-      prompt: `A ${fixed(ROCKET.m, 2)} kg model rocket lifts off with a thrust of ${fixed(ROCKET.thrust, 1)} N. Air resistance is negligible; g = ${G} N kg⁻¹. What is its acceleration?`,
-      options: [
-        { id: 'no-weight', label: ms2(X.rocket.noWeight, 1) },
-        { id: 'right', label: ms2(X.rocket.right), correct: true },
-        { id: 'added', label: ms2(X.rocket.added, 1) },
-        { id: 'by-weight', label: ms2(X.rocket.byWeight, 3) },
+      kind: 'build',
+      prompt: `A ${fixed(ROCKET.m, 2)} kg model rocket lifts off with a thrust of ${fixed(ROCKET.thrust, 1)} N. Air resistance is negligible. Build its acceleration.`,
+      equation: 'a = ({thrust} − {weight}) ÷ {mass}',
+      boxes: { thrust: 'thrust', weight: 'weight', mass: 'mass' },
+      chips: [
+        { id: 'thrust', label: n(ROCKET.thrust, 1) },
+        { id: 'weight', label: n(rocketW, 2) },
+        { id: 'mass', label: `${fixed(ROCKET.m, 2)}${NB}kg` },
+        { id: 'sum', label: n(ROCKET.thrust + rocketW, 1), hint: 'The weight pulls down while the thrust pushes up: take it away.' },
+        { id: 'half', label: `${fixed(rocketW, 2)}${NB}kg`, hint: 'That is the weight in newtons, not a mass. The mass is 0.50 kg.' },
       ],
+      result: { symbol: 'a', value: X.rocket.right, unit: 'm s⁻²' },
       why: `ΣF = thrust − weight = ${fixed(ROCKET.thrust, 1)} − ${n(rocketW, 2)} = ${n(ROCKET.thrust - rocketW, 2)}, so a = ${fixed(ROCKET.thrust - rocketW, 2)} / ${fixed(ROCKET.m, 2)} = ${ms2(X.rocket.right)}.`,
     },
     {
-      id: 'mars',
-      kind: 'choice',
-      prompt: `On Mars a ${fixed(MARS.m, 2)} kg rock hangs still from a spring balance reading ${fixed(MARS.reading, 2)} N. A probe's arm then lifts it with ${fixed(MARS.lift, 1)} N. What is its acceleration?`,
-      options: [
-        { id: 'no-weight', label: `${ms2(X.mars.noWeight)} upward` },
-        { id: 'earth', label: `None: its weight is ${n(X.mars.earthWeight, 1)}, so it does not rise` },
-        { id: 'right', label: `${ms2(X.mars.right)} upward`, correct: true },
-        { id: 'added', label: `${ms2(X.mars.added)} upward` },
+      id: 'book-graph',
+      kind: 'graphPick',
+      prompt: 'A book slides across a rough table and comes to rest. Which v–t graph shows it?',
+      graphs: [
+        { id: 'A', fig: bookOf('A', steadyBook), hint: 'A flat line is a steady velocity: that needs no resultant force.' },
+        { id: 'B', fig: bookOf('B', sliding), correct: true },
+        { id: 'C', fig: bookOf('C', speedingBook), hint: 'This line rises: the book is speeding up from rest.' },
       ],
-      why: `Hanging still, the balance reads its weight on Mars: ${fixed(MARS.reading, 2)} N (g = ${fixed(marsG, 2)} N kg⁻¹). a = (${fixed(MARS.lift, 1)} − ${fixed(MARS.reading, 2)}) / ${fixed(MARS.m, 2)} = ${ms2(X.mars.right)}.`,
+      why: `Friction is the only horizontal force and it points backward, so a is steady and negative: the line slopes down to zero.`,
     },
     {
-      id: 'car',
+      id: 'puck',
       kind: 'choice',
-      prompt: `A ${CAR.m} kg car speeds up from rest to ${fixed(CAR.v, 1)} m s⁻¹ in ${fixed(CAR.t, 1)} s. The resistive forces are ${CAR.resist} N. What is the driving force?`,
+      prompt: 'A hockey puck slides across smooth ice at a steady speed. Which statement about the forces on it is true?',
       options: [
-        { id: 'forgot', label: n(X.car.forgot) },
-        { id: 'subtracted', label: n(X.car.subtracted) },
-        { id: 'mv', label: n(X.car.mv) },
-        { id: 'right', label: n(X.car.right), correct: true },
+        { id: 'right', label: 'The forces on it balance: there is no resultant force', correct: true },
+        { id: 'forward', label: 'A forward force from the stick keeps it moving' },
+        { id: 'weight', label: 'Its weight is the only force on it' },
+        { id: 'friction', label: 'Friction balances a forward force of the same size' },
       ],
-      why: `a = ${fixed(CAR.v, 1)} / ${fixed(CAR.t, 1)} = ${ms2(carA, 1)}, so ΣF = ${CAR.m} × ${fixed(carA, 1)} = ${n(X.car.forgot)}. The engine must also beat ${CAR.resist} N: ${n(X.car.right)}.`,
+      why: "Steady velocity means no resultant force. Weight and the push of the ice balance up and down; sideways nothing acts. No force is needed to keep it moving.",
+    },
+    {
+      id: 'tow',
+      kind: 'examCard',
+      context: `A ${TOW.car} kg car tows a ${TOW.trailer} kg trailer along a level road. The driving force is ${TOW.drive} N. Resistive forces are negligible.`,
+      parts: [
+        {
+          id: 'a',
+          command: 'Calculate',
+          text: 'the acceleration of the car and trailer.',
+          marks: 2,
+          kind: 'build',
+          build: {
+            equation: 'a = {F} ÷ ({car} + {trailer})',
+            boxes: { F: 'drive', car: 'car', trailer: 'trailer' },
+            chips: [
+              { id: 'drive', label: n(TOW.drive) },
+              { id: 'car', label: `${TOW.car}${NB}kg` },
+              { id: 'trailer', label: `${TOW.trailer}${NB}kg` },
+              { id: 'total', label: `${OVERALL_TOW.total}${NB}kg`, hint: 'That is the total mass. The equation adds the two masses itself.' },
+              { id: 'tension', label: n(OVERALL_TOW.right), hint: 'That is the tension in the tow bar, not the driving force.' },
+            ],
+            result: { symbol: 'a', value: OVERALL_TOW.a, unit: 'm s⁻²' },
+          },
+          why: `Both move together: a = ΣF / m = ${TOW.drive} / (${TOW.car} + ${TOW.trailer}) = ${ms2(OVERALL_TOW.a)}. One mark for the masses added, one for the answer.`,
+        },
+        {
+          id: 'b',
+          command: 'Explain',
+          text: 'why the tension in the tow bar is less than the driving force.',
+          marks: 2,
+          kind: 'order',
+          steps: [
+            { id: 'both', text: 'The driving force has to accelerate the car and the trailer.' },
+            { id: 'bar', text: 'The tow bar only has to accelerate the trailer.' },
+            { id: 'tension', text: `So T = ${TOW.trailer} × ${fixed(OVERALL_TOW.a, 2)} = ${n(OVERALL_TOW.right)}.` },
+            { id: 'less', text: `That is less than ${TOW.drive} N: the car needs the rest.` },
+          ],
+          why: 'The driving force moves 1600 kg, the tow bar only the 500 kg trailer. So its pull is about a third of the driving force.',
+        },
+      ],
     },
   ],
   youCanNow: [
     'Find the resultant force and use ΣF = ma',
-    'Tell mass from weight, and use W = mg on any planet',
-    'Find the acceleration and tension for bodies joined by a string',
+    'Tell mass from weight, and use W = mg',
+    'Find the acceleration of bodies joined by a string',
     "Use Newton's first law: no resultant force, no change in velocity",
   ],
   recap: {

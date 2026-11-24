@@ -66,7 +66,7 @@
 | D2 | Уроки «Reading motion graphs» и «Picking the equation» | ✅ |
 | D3 | Уроки «Up, stop, down» и «Splitting a vector» | ✅ |
 | D4 | Уроки «Two motions at once» и «Drawing the forces» | ✅ |
-| D5 | Уроки «Force and acceleration» и «The push from the floor» | |
+| D5 | Уроки «Force and acceleration» и «The push from the floor» | ✅ |
 | D6 | Уроки «Falling through air» и «Momentum» | |
 | D7 | Уроки «Collisions» и «Turning forces» | |
 | D8 | Уроки «Keeping balance» и «Work done» | |

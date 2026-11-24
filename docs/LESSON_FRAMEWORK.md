@@ -29,6 +29,8 @@ Every lesson is built from this framework: one idea per lesson, split into sessi
 
 Also (not checked automatically): options are shuffled per screen (A1); data are picked so results come out in 2–3 significant figures where the physics allows (g stays 9.81).
 
+Found in D5: the slider of an `estimate` starts in the middle of its scale, so pick a scale whose middle is not near the answer; the small scene above a `graphPick` must not show the result (no "string slack", no final velocity).
+
 Two things found while building the pilot (D1): `**bold**` is not drawn in the steps of a `worked` screen (write plain text there); the figure of an `estimate` screen must not draw the answer before Check (no `disp: 'unknown'` arrow on a track: it is drawn at its real length).
 
 **New step kinds** (each has a live sample on the hidden page `/gallery/steps`, content in `src/content/samples.ts`):

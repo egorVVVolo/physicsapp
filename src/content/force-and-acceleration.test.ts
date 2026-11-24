@@ -1,86 +1,100 @@
 // Every number in "Force and acceleration" is recomputed from the model, and every wrong option is a named mistake.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { forceAndAcceleration as L, ANSWERS as X, CAR, FRICTION, LAB, M, MARS, MOON_G, PULL, PULL2, ROCKET, TOW } from './force-and-acceleration.ts';
+import { forceAndAcceleration as L, ANSWERS as X, FRICTION, LAB, M, PULL, PULL2, ROCKET, TOW } from './force-and-acceleration.ts';
 import { lessons } from './lessons.ts';
 import { course } from './course.ts';
-import type { OptionQuestion } from './types.ts';
+import type { BuildScreen, EstimateScreen, ExamCardScreen, GraphPickScreen, OptionQuestion, OrderScreen } from './types.ts';
 
 const all = [...L.story, ...L.skillCheck];
 const q = (id: string) => all.find((s) => s.id === id) as OptionQuestion;
 const label = (id: string, opt: string) => q(id).options.find((o) => o.id === opt)!.label;
 const right = (id: string) => q(id).options.find((o) => o.correct)!.id;
+const build = (id: string) => all.find((s) => s.id === id) as BuildScreen;
+const chip = (b: Pick<BuildScreen, 'chips'>, id: string) => b.chips.find((c) => c.id === id)!.label;
 const NB = '\u00A0';
 const A = `${NB}m${NB}s⁻²`;
 const g = 9.81;
 const near = (a: number, b: number, tol = 1e-9) => assert.ok(Math.abs(a - b) <= tol, `expected ${b}, got ${a}`);
 
-test('150 N against 100 N of friction: ΣF = 50 N, a = 1.25 m s⁻²', () => {
+test('150 N against 100 N of friction: ΣF = 50 N, a = 1.25 m s⁻² (built)', () => {
   near(X.sum1, PULL - FRICTION);
   near(X.first.right * M, X.sum1);
-  assert.equal(label('first-a', 'right'), `1.25${A}`);
-  assert.equal(label('first-a', 'pull-only'), `3.75${A}`);
-  assert.equal(label('first-a', 'added'), `6.25${A}`);
-  assert.equal(label('first-a', 'by-weight'), `0.127${A}`);
-  assert.equal(right('first-a'), 'right');
+  const b = build('first-a');
+  near(b.result.value, 1.25);
+  assert.deepEqual(b.boxes, { pull: 'pull', friction: 'friction', mass: 'mass' });
+  assert.equal(chip(b, 'pull'), `150${NB}N`);
+  assert.equal(chip(b, 'friction'), `100${NB}N`);
+  assert.equal(chip(b, 'mass'), `40${NB}kg`);
+  assert.equal(chip(b, 'weight'), `392${NB}N`);
+  assert.equal(chip(b, 'sum'), `250${NB}N`);
 });
 
-test('the puzzle: twice the pull gives four times the acceleration, 5.00 m s⁻²', () => {
+test('the puzzle: twice the pull gives four times the acceleration, 5.00 m s⁻² (the estimate)', () => {
   near(X.second.right * M, PULL2 - FRICTION);
   near(X.second.right / X.first.right, 4);
-  assert.equal(label('hook-again', 'right'), `5.00${A}`);
-  assert.equal(label('hook-again', 'doubled'), `2.50${A}`);
-  assert.equal(label('hook-again', 'pull-only'), `7.50${A}`);
-  assert.equal(label('hook-again', 'same'), `1.25${A}`);
+  const est = L.story.find((s) => s.id === 'double') as EstimateScreen;
+  near(est.answer, 5);
+  assert.equal(est.tolerance, 0.3);
+  assert.ok(est.scale.max > est.answer && est.tolerance >= est.scale.step);
+  assert.equal(right('hook-again'), 'resultant');
   const hook = L.story.find((s) => s.id === 'hook')!;
   assert.ok(hook.kind === 'predict' && hook.options.some((o) => o.id === 'more'));
 });
 
-test('on the Moon the mass and so the acceleration are the same: 1.25 m s⁻²', () => {
-  near(X.moon.right, X.first.right);
-  assert.equal(label('moon', 'smaller-mass'), `7.57${A}`);
-  assert.equal(label('moon', 'moon-weight'), `0.772${A}`);
-  near(X.moon.byMoonWeight, X.sum1 / (M * MOON_G));
-});
-
-test('the lab: a = 1.96 m s⁻², T = 1.57 N (less than the 1.96 N weight), then a steady 1.40 m s⁻¹', () => {
+test('the lab: a = 1.96 m s⁻², then a steady 1.40 m s⁻¹ (graph pick and order)', () => {
   const W = LAB.hanging * g;
   near(X.lab.a.right * (LAB.trolley + LAB.hanging), W);
-  near(W - X.lab.T.right, LAB.hanging * X.lab.a.right); // the hanging mass: mg − T = ma
-  near(X.lab.T.right, LAB.trolley * X.lab.a.right); // the trolley: T = Ma
   near(X.lab.vLand, Math.sqrt(2 * X.lab.a.right * LAB.drop));
+  near(X.lab.tLand, X.lab.vLand / X.lab.a.right);
   assert.equal(label('lab-a', 'right'), `1.96${A}`);
   assert.equal(label('lab-a', 'trolley-only'), `2.45${A}`);
   assert.equal(label('lab-a', 'by-weight'), `0.200${A}`);
-  assert.equal(label('tension', 'right'), `1.57${NB}N`);
-  assert.equal(label('tension', 'weight'), `1.96${NB}N`);
-  assert.equal(label('tension', 'ma'), `0.392${NB}N`);
-  assert.equal(label('tension', 'sum'), `2.35${NB}N`);
-  assert.equal(label('slack', 'right'), 'It rolls on at a steady 1.40 m s⁻¹');
+  const pick = L.story.find((s) => s.id === 'lab-graph') as GraphPickScreen;
+  const trip = (gr: (typeof pick.graphs)[number]) => (gr.fig.kind === 'graph' ? gr.fig.lines[0].trip : null)!;
+  const correct = trip(pick.graphs.find((gr) => gr.correct)!);
+  assert.equal(correct.phases[1].a, 0, 'after the landing the line is flat');
+  near(correct.phases[0].a, X.lab.a.right);
+  const o = L.story.find((s) => s.id === 'slack') as OrderScreen;
+  assert.deepEqual(o.steps.map((x) => x.id), ['lands', 'nothing', 'zero', 'steady']);
+  assert.ok(o.steps[3].text.includes(`1.40${NB}m${NB}s⁻¹`));
 });
 
-test('Skill check: tow bar 750 N, rocket 6.19 m s⁻², Mars 1.29 m s⁻², car 3000 N', () => {
-  const towA = TOW.drive / (TOW.car + TOW.trailer);
-  near(X.tow.right, TOW.trailer * towA);
-  near(TOW.drive - X.tow.right, TOW.car * towA); // the car: drive − T = M a
-  assert.equal(label('tow', 'right'), `750${NB}N`);
-  assert.equal(label('tow', 'ratio'), `1091${NB}N`);
-  assert.equal(label('tow', 'car'), `1650${NB}N`);
-  near(X.rocket.right, (ROCKET.thrust - ROCKET.m * g) / ROCKET.m);
-  assert.equal(label('rocket', 'right'), `6.19${A}`);
-  assert.equal(label('rocket', 'no-weight'), `16.0${A}`);
-  assert.equal(label('rocket', 'added'), `25.8${A}`);
-  assert.equal(label('rocket', 'by-weight'), `0.631${A}`);
-  near(X.mars.g, MARS.reading / MARS.m);
-  near(X.mars.right, (MARS.lift - MARS.reading) / MARS.m);
-  assert.equal(label('mars', 'right'), `1.29${A} upward`);
-  assert.equal(label('mars', 'no-weight'), `5.00${A} upward`);
-  assert.equal(label('mars', 'added'), `8.71${A} upward`);
-  near(X.car.right, CAR.m * (CAR.v / CAR.t) + CAR.resist);
-  assert.equal(label('car', 'right'), `3000${NB}N`);
-  assert.equal(label('car', 'forgot'), `2400${NB}N`);
-  assert.equal(label('car', 'subtracted'), `1800${NB}N`);
-  assert.equal(label('car', 'mv'), `36000${NB}N`);
+test('Skill check: the rocket 6.19 m s⁻² (built), the book slides to rest, the puck has no resultant force', () => {
+  const b = build('rocket');
+  near(b.result.value, (ROCKET.thrust - ROCKET.m * g) / ROCKET.m);
+  assert.deepEqual(b.boxes, { thrust: 'thrust', weight: 'weight', mass: 'mass' });
+  assert.equal(chip(b, 'thrust'), `8.0${NB}N`);
+  assert.equal(chip(b, 'weight'), `4.91${NB}N`);
+  assert.equal(chip(b, 'mass'), `0.50${NB}kg`);
+  assert.equal(chip(b, 'sum'), `12.9${NB}N`);
+  const pick = all.find((s) => s.id === 'book-graph') as GraphPickScreen;
+  const c = pick.graphs.find((gr) => gr.correct)!;
+  assert.ok(c.fig.kind === 'graph' && c.fig.lines[0].trip.phases[0].a < 0 && c.fig.lines[0].trip.u > 0);
+  assert.equal(right('puck'), 'right');
+});
+
+test('Skill check: the tow, a = 1.50 m s⁻² and a tension of 750 N (exam card, 2 + 2 marks)', () => {
+  near(X.tow.a, TOW.drive / (TOW.car + TOW.trailer));
+  near(X.tow.a, 1.5);
+  near(X.tow.right, TOW.trailer * X.tow.a);
+  near(TOW.drive - X.tow.right, TOW.car * X.tow.a);
+  const card = all.find((s) => s.id === 'tow') as ExamCardScreen;
+  const [a, b] = card.parts;
+  assert.ok(a.kind === 'build' && b.kind === 'order');
+  if (a.kind === 'build') {
+    near(a.build.result.value, 1.5);
+    assert.equal(chip(a.build, 'drive'), `2400${NB}N`);
+    assert.equal(chip(a.build, 'car'), `1100${NB}kg`);
+    assert.equal(chip(a.build, 'trailer'), `500${NB}kg`);
+    assert.equal(chip(a.build, 'total'), `1600${NB}kg`);
+    assert.equal(chip(a.build, 'tension'), `750${NB}N`);
+  }
+  if (b.kind === 'order') {
+    assert.deepEqual(b.steps.map((x) => x.id), ['both', 'bar', 'tension', 'less']);
+    assert.ok(b.steps[2].text.includes(`750${NB}N`));
+  }
+  assert.equal(a.marks + b.marks, 4);
 });
 
 test('every option label is different within a question', () => {

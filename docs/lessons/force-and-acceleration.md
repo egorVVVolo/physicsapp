@@ -86,3 +86,18 @@ All four are new contexts; "mars" uses g = F/m and ΣF = ma together; "car" brin
 - **The same crate as in "Drawing the forces".** It ties the two lessons together (the last screen there says "the diagram shows the acceleration"). If it feels repetitive, the first half can move to a different body.
 - **Friction stays 100 N whatever the speed.** True for sliding friction at this level; the lesson does not say "μ".
 - **Connected bodies** (trolley and hanging mass, car and trailer) are at the top of the exam level for Unit 1. Too hard, or exactly right for a strong class?
+
+## v3 changes (24 Nov)
+
+Task D5. The puzzle (twice the pull, four times the acceleration: 1.25 → 5.00 m s⁻²) and its recap are unchanged. 14 screens + 4 Skill check; chapters *The puzzle* → *The resultant force* → *Back to the crate*; cast: Rose (shared with the other Forces lessons, `SHARED_CAST`).
+
+| Was | Now |
+|---|---|
+| choice "acceleration at 150 N" | **build** `a = (pull − friction) ÷ mass` (wrong chips: the weight, 250 N), 1.25 m s⁻² |
+| — | **estimate** `double`: the acceleration at 300 N (5.00 m s⁻², tolerance 0.3; the scale is 0–8 so the slider does not start on the answer) |
+| choice "acceleration at 300 N" | choice **by idea**: why doubling the pull more than doubles a (ΣF goes 50 N → 200 N) |
+| choices "Moon", "tension", explore "heavier", choice "slack" | removed (the Moon stays in the text; the tension moved to the exam card) |
+| — | **graphPick** `lab-graph`: the trolley's v–t graph (rises, then flat after the landing; the wrong ones keep rising and slow down) |
+| choice "what does the trolley do next" | **order** `slack`: the string goes slack → nothing pulls → ΣF = 0 → it rolls on at 1.40 m s⁻¹ |
+
+Skill check: **build** (the rocket, `a = (thrust − weight) ÷ mass`, 6.19 m s⁻²), **graphPick** (a book sliding to rest), **choice** (the puck at steady speed: no resultant force), **exam card** on the tow: (a) Calculate the acceleration [2] (1.50 m s⁻²), (b) Explain why the tension is less than the driving force [2] (order, T = 750 N).
