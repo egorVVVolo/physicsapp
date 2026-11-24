@@ -299,7 +299,10 @@ for (const lesson of Object.values(lessons)) {
 // ── Lesson format v3 (docs/LESSON_FRAMEWORK.md, 1c; docs/V2_PLAN.md, 2.2) ───────────────────
 
 /** Lessons rebuilt to format v3. Each one added here must pass every rule below. */
-const REVISED = new Set<string>(['vectors-signs', 'motion-graphs', 'suvat', 'up-stop-down', 'resolving']);
+const REVISED = new Set<string>(['vectors-signs', 'motion-graphs', 'suvat', 'up-stop-down', 'resolving', 'projectiles', 'free-body']);
+
+/** People who appear in several lessons on purpose: Rose runs through the Forces level. */
+const SHARED_CAST = new Set(['Rose']);
 
 /** The kinds the learner does something with. */
 const INTERACTIVE = new Set<Screen['kind']>(['predict', 'choice', 'tapFig', 'explore', 'build', 'order', 'spotError', 'sort', 'estimate', 'worked', 'graphPick']);
@@ -342,7 +345,7 @@ function v3Problems(lesson: Lesson, others: Lesson[] = []): string[] {
   if ((lesson.chapters ?? []).length !== 3) out.push(`chapters: ${(lesson.chapters ?? []).length} chapters, not 3`);
   if (!lesson.cast?.length) out.push('cast: the lesson lists no cast');
   const taken = new Set(others.flatMap((o) => o.cast ?? []));
-  for (const name of lesson.cast ?? []) if (taken.has(name)) out.push(`cast: ${name} is already in another lesson`);
+  for (const name of lesson.cast ?? []) if (taken.has(name) && !SHARED_CAST.has(name)) out.push(`cast: ${name} is already in another lesson`);
   return out;
 }
 

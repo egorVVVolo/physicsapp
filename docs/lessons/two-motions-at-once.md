@@ -71,3 +71,18 @@ All numbers from `src/physics/projectile.ts`, re-checked by a test. g = 9.81 m s
 - No air resistance anywhere (said on the rules screen and in the predict prompt).
 - The bench falls play at ¼ speed (real time is half a second); the sheet says "¼ SPEED".
 - With two kicks the distance line stays hidden until Check: a single "?" line would already tell they land at the same spot.
+
+## v3 changes (24 Nov)
+
+Task D4. The puzzle (Mia 30° and Leo 60° both land 35.3 m away) and its recap are unchanged. 15 screens + 4 Skill check; chapters *The puzzle* → *Two motions, one clock* → *Back to the kicks*; cast: Mia, Leo.
+
+| Was | Now |
+|---|---|
+| choice "how far does B land" | **estimate** `land` (1.01 m, tolerance 0.3 m) before the time is taught |
+| choice "how long is B's fall" | **build** `t = √(2 × h ÷ g)` (wrong chips: the sideways speed, 2h) |
+| — | **order** `steady`: no force sideways → a = 0 → steady velocity → s = ut |
+| — | **graphPick** `vy`: Mia's vertical velocity (the wrong graphs: the sideways velocity, a drop from rest), all on the same ±20 axis |
+| choice "range of Mia's ball" | **build** `s = u × t` (wrong chips: the whole kick, the upward part, the time to the top) |
+| choices "faster ball C", "speed at the top", "how high Leo's ball rises" | removed (the hook-again and the explore keep the ideas that matter) |
+
+Skill check: **build** (the cliff stone, `s = u × √(2h ÷ g)`, 30.3 m), **graphPick** (the same stone's sideways velocity is flat), **choice** (the package from the plane, kept), **exam card** on a golf ball at 25 m s⁻¹, 40°: (a) Calculate the time in the air [2] (3.28 s), (b) Calculate the range [2] (62.7 m).

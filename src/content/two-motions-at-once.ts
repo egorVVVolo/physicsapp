@@ -8,8 +8,9 @@
 // Every number below comes from src/physics; wrong options are named mistakes, recomputed by the test.
 import { G } from '../physics/kinematics.ts';
 import { flightTime, landingSpeed, launchParts, projectileRange, projectileVelocity, timeToTop, topHeight, type Launch } from '../physics/projectile.ts';
-import { fixed } from '../physics/format.ts';
-import type { BenchFig, KickFig, Lesson } from './types.ts';
+import { fixed, signed } from '../physics/format.ts';
+import type { BenchFig, GraphFig, KickFig, Lesson } from './types.ts';
+import type { Trip } from '../physics/kinematics.ts';
 
 const NB = '\u00A0'; // numbers never break from their units
 /** "1.01 m" */
@@ -19,6 +20,8 @@ const speed = (v: number, dp = 1) => `${fixed(v, dp)}${NB}m${NB}s⁻¹`;
 /** "2.04 s" */
 const sec = (t: number, dp = 2) => `${fixed(t, dp)}${NB}s`;
 const deg = (a: number) => `${fixed(a, 0)}°`;
+/** "+10.0 m s⁻¹", "−10.0 m s⁻¹" */
+const vel = (v: number) => `${signed(v, 1)}${NB}m${NB}s⁻¹`;
 
 // The bench: ball A is dropped from one end as ball B rolls off the other
 export const BENCH = { h: 1.25, uB: 2.0, uC: 4.0 };
@@ -100,6 +103,7 @@ export const ANSWERS = (() => {
       noTwo: (golfParts.uy * golfParts.uy) / G,
     },
     plane: { t: flightTime(plane), x: projectileRange(plane) },
+    golfFlight: { t: flightTime(golf), range: projectileRange(golf), toTop: timeToTop(golf), ux: golfParts.ux, uy: golfParts.uy },
   };
 })();
 
@@ -122,11 +126,28 @@ const both = (over: Partial<KickFig> = {}): KickFig => ({
   ...over,
 });
 
+/** The vertical velocity of Mia's ball against time, and two wrong graphs: the sideways velocity, and a drop from rest. */
+const MIA_UP: Trip = { u: x.mia.uy, phases: [{ dt: x.mia.t, a: -G }] };
+const MIA_SIDEWAYS: Trip = { u: x.mia.ux, phases: [{ dt: x.mia.t, a: 0 }] };
+const FROM_REST: Trip = { u: 0, phases: [{ dt: x.mia.t, a: -G }] };
+const vyOf = (id: string, trip: Trip): GraphFig => ({ kind: 'graph', y: 'v', header: `graph ${id}`, lines: [{ id: '', trip }], tMax: 2.2, tTick: 0.5, yMin: -20, yMax: 20, yTick: 10 });
+/** The cliff stone's sideways velocity (flat) and two wrong graphs. */
+const STONE_FLAT: Trip = { u: CLIFF.u, phases: [{ dt: x.cliff.t, a: 0 }] };
+const STONE_GROWS: Trip = { u: 0, phases: [{ dt: x.cliff.t, a: G }] };
+const STONE_SLOWS: Trip = { u: CLIFF.u, phases: [{ dt: x.cliff.t, a: -CLIFF.u / x.cliff.t }] };
+const stoneOf = (id: string, trip: Trip): GraphFig => ({ kind: 'graph', y: 'v', header: `graph ${id}`, lines: [{ id: '', trip }], tMax: 2.5, tTick: 0.5, yMin: 0, yMax: 25, yTick: 5 });
+
 export const twoMotionsAtOnce: Lesson = {
   id: 'projectiles',
   title: 'Two motions at once',
   spec: [7],
   minutes: 12,
+  chapters: [
+    { title: 'The puzzle', from: 'intro' },
+    { title: 'Two motions, one clock', from: 'two-motions' },
+    { title: 'Back to the kicks', from: 'split' },
+  ],
+  cast: ['Mia', 'Leo'],
   story: [
     {
       id: 'intro',
@@ -186,56 +207,62 @@ export const twoMotionsAtOnce: Lesson = {
       },
     },
     {
+      id: 'land',
+      kind: 'estimate',
+      prompt: `The bench is ${m(BENCH.h, 2)} high and B rolls off at ${speed(BENCH.uB)}. Drag to how far from the end of the bench it lands.`,
+      fig: benchFig(),
+      after: benchFig({ play: true, range: 'shown' }),
+      scale: { min: 0, max: 3, step: 0.05, tick: 0.5, unit: 'm', symbol: 's', dp: 2, label: 'Distance from the bench' },
+      answer: x.bench.range,
+      tolerance: 0.3,
+      why: `It falls for ${sec(x.bench.t, 3)} while moving sideways at ${speed(BENCH.uB)}: ${fixed(BENCH.uB, 1)} × ${fixed(x.bench.t, 3)} = ${m(x.bench.range, 2)}.`,
+    },
+    {
       id: 'fall-time',
-      kind: 'choice',
-      prompt: `The bench is ${m(BENCH.h, 2)} high. How long does B take to reach the floor?`,
+      kind: 'build',
+      prompt: 'The time comes from the fall alone, like a dropped ball. Build how long B is in the air.',
       fig: benchFig({ play: 'afterCheck' }),
-      options: [
-        { id: 'right', label: sec(x.bench.t, 3), correct: true },
-        { id: 'no-two', label: sec(x.bench.noTwo, 3), hint: 'Check the ½: s = ½gt², so t = √(2s ÷ g).' },
-        { id: 'sideways', label: sec(x.bench.sideways, 3), hint: `That is ${fixed(BENCH.h, 2)} ÷ ${fixed(BENCH.uB, 1)}: the sideways speed has nothing to do with the fall.` },
-        { id: 'no-root', label: sec(x.bench.noRoot, 3), hint: 'That is 2s ÷ g. Take the square root to get t.' },
+      equation: 't = √(2 × {h} ÷ {g})',
+      boxes: { h: 'height', g: 'field' },
+      chips: [
+        { id: 'height', label: m(BENCH.h, 2) },
+        { id: 'field', label: `${fixed(G, 2)}${NB}m${NB}s⁻²` },
+        { id: 'sideways', label: speed(BENCH.uB), hint: 'That is the sideways speed. The fall does not use it.' },
+        { id: 'double', label: m(2 * BENCH.h, 2), hint: 'That is 2h. The 2 is already in the equation.' },
       ],
+      result: { symbol: 't', value: x.bench.t, unit: 's' },
       why: `Downward B starts at 0, like a dropped ball: ${fixed(BENCH.h, 2)} = ½ × ${fixed(G, 2)} × t², so t = ${sec(x.bench.t, 3)}.`,
     },
     {
-      id: 'land',
-      kind: 'choice',
-      prompt: 'How far from the end of the bench does B land?',
-      fig: benchFig({ range: 'afterCheck', play: 'afterCheck' }),
-      options: [
-        { id: 'right', label: m(x.bench.range, 2), correct: true },
-        { id: 'sideways', label: m(x.bench.rangeSideways, 2), hint: `The time is ${sec(x.bench.t, 3)}, from the fall, not height ÷ sideways speed.` },
-        { id: 'no-two', label: m(x.bench.rangeNoTwo, 2), hint: `Use t = ${sec(x.bench.t, 3)}: check the ½ in s = ½gt².` },
-        { id: 'vy', label: m(x.bench.rangeVy, 2), hint: `Sideways the speed is ${speed(BENCH.uB)}. The downward speed belongs to the fall.` },
+      id: 'steady',
+      kind: 'order',
+      prompt: 'Why does the sideways velocity of a ball in flight never change? Put the reasoning in order.',
+      steps: [
+        { id: 'no-force', text: 'Once the ball has left the foot, nothing pushes it sideways.' },
+        { id: 'no-a', text: 'No sideways force means no sideways acceleration: a = 0.' },
+        { id: 'steady', text: 'With a = 0 the sideways velocity cannot change.' },
+        { id: 'equal', text: 'So it covers equal distances in equal times: s = ut.' },
       ],
-      why: `Sideways the speed stays ${speed(BENCH.uB)} for the whole ${sec(x.bench.t, 3)}: s = ut = ${fixed(BENCH.uB, 1)} × ${fixed(x.bench.t, 3)} = ${m(x.bench.range, 2)}.`,
-    },
-    {
-      id: 'faster',
-      kind: 'choice',
-      prompt: `Ball C rolls off the same bench twice as fast, at ${speed(BENCH.uC)}. How long does its fall take?`,
-      fig: benchFig({
-        balls: [
-          { id: 'B', u: BENCH.uB },
-          { id: 'C', u: BENCH.uC },
-        ],
-        at: 'end',
-        levels: true,
-        play: 'afterCheck',
-      }),
-      options: [
-        { id: 'same', label: `${sec(x.bench.tC, 3)}, the same as B`, correct: true },
-        { id: 'half', label: `${sec(x.bench.tC / 2, 3)}, half as long`, hint: 'C goes faster sideways only. Downward it starts at 0, like B.' },
-        { id: 'double', label: `${sec(x.bench.tC * 2, 3)}, twice as long`, hint: 'C lands further out, but it falls the same height from rest.' },
-      ],
-      why: `Only the height decides the time. C lands twice as far out, ${m(x.bench.rangeC, 2)}, after the same ${sec(x.bench.tC, 3)}.`,
+      hint: 'Start with the forces, then the acceleration, then the velocity.',
+      why: 'Only gravity acts on the ball, and it acts downward. Sideways there is no force, no acceleration, and so a steady velocity.',
     },
     {
       id: 'split',
       kind: 'text',
       body: [`Split Mia's kick: ${speed(x.mia.ux)} along the ground, ${speed(x.mia.uy)} up. Each part runs on its own.`],
       fig: miaFig({ launch: 'parts' }),
+    },
+    {
+      id: 'vy',
+      kind: 'graphPick',
+      prompt: "Which v–t graph shows the vertical velocity of Mia's ball? Up is positive.",
+      scene: miaFig({ launch: 'parts' }),
+      graphs: [
+        { id: 'A', fig: vyOf('A', MIA_SIDEWAYS), hint: `A flat line is a steady velocity: that is the sideways ${speed(x.mia.ux)}.` },
+        { id: 'B', fig: vyOf('B', MIA_UP), correct: true },
+        { id: 'C', fig: vyOf('C', FROM_REST), hint: `That ball starts from rest. Mia's starts upward at ${speed(x.mia.uy)}.` },
+      ],
+      why: `Up starts at ${vel(x.mia.uy)} and g takes ${fixed(G, 2)}${NB}m${NB}s⁻¹ off it every second: a straight line down through zero at the top, to ${vel(-x.mia.uy)} on landing.`,
     },
     {
       id: 'flight-time',
@@ -251,36 +278,27 @@ export const twoMotionsAtOnce: Lesson = {
       why: `Up is +: 0 = ${fixed(x.mia.uy, 1)}t − ½ × ${fixed(G, 2)} × t², so t = 2 × ${fixed(x.mia.uy, 1)} ÷ ${fixed(G, 2)} = ${sec(x.mia.t)}.`,
     },
     {
-      id: 'top',
-      kind: 'choice',
-      prompt: "What is the speed of Mia's ball at the top of its flight?",
-      fig: miaFig({ path: 'toTop', at: 'top', topV: 'afterCheck' }),
-      options: [
-        { id: 'right', label: speed(x.mia.ux), correct: true },
-        { id: 'zero', label: speed(0, 0), hint: 'Only the vertical part is zero at the top. Sideways it still moves.' },
-        { id: 'whole', label: speed(KICK.u), hint: 'The upward part has gone by the top. Only the sideways part is left.' },
-        { id: 'up', label: speed(x.mia.uy), hint: 'That was the upward part at the start. At the top it is zero.' },
-      ],
-      why: `At the top the vertical part is 0, but the sideways ${speed(x.mia.ux)} never changes. So the ball still moves at ${speed(x.mia.ux)}.`,
-    },
-    {
       id: 'range',
-      kind: 'choice',
-      prompt: "How far from the kick does Mia's ball land?",
+      kind: 'build',
+      prompt: "Now sideways: build how far from the kick Mia's ball lands.",
       fig: miaFig({ path: 'shown', range: 'afterCheck' }),
-      options: [
-        { id: 'right', label: m(x.mia.range), correct: true },
-        { id: 'whole', label: m(x.mia.rangeWhole), hint: `Sideways the ball moves at ${speed(x.mia.ux)}, not the whole ${speed(KICK.u, 0)}.` },
-        { id: 'to-top', label: m(x.mia.rangeToTop), hint: `${sec(x.mia.toTop)} only takes the ball to the top. Use the whole ${sec(x.mia.t)}.` },
-        { id: 'up', label: m(x.mia.rangeUp), hint: `${speed(x.mia.uy)} is the upward part. Sideways it is ${speed(x.mia.ux)}.` },
+      equation: 's = {u} × {t}',
+      boxes: { u: 'ux', t: 'time' },
+      chips: [
+        { id: 'ux', label: speed(x.mia.ux) },
+        { id: 'time', label: sec(x.mia.t) },
+        { id: 'whole', label: speed(KICK.u, 0), hint: `Sideways the ball moves at ${speed(x.mia.ux)}, not the whole kick.` },
+        { id: 'up', label: speed(x.mia.uy), hint: `That is the upward part. Sideways it is ${speed(x.mia.ux)}.` },
+        { id: 'top', label: sec(x.mia.toTop), hint: 'That only takes the ball to the top. Use the whole flight.' },
       ],
+      result: { symbol: 's', value: x.mia.range, unit: 'm' },
       why: `Sideways, s = ut: ${fixed(x.mia.ux, 1)} × ${fixed(x.mia.t, 2)} = ${m(x.mia.range)}. The time came from the vertical motion.`,
     },
     {
       id: 'hook-again',
       kind: 'choice',
       revisitOf: 'hook',
-      prompt: `Leo's ball goes up at ${speed(x.leo.uy)} and along at ${speed(x.leo.ux)}, so it stays up ${sec(x.leo.t)}. Whose ball lands further away?`,
+      prompt: `Back to the two kicks. Leo's ball goes up at ${speed(x.leo.uy)} and along at ${speed(x.leo.ux)}, so it stays up ${sec(x.leo.t)}. Whose ball lands further away?`,
       fig: both({ launch: 'arrow', path: 'afterCheck', range: 'afterCheck', play: 'afterCheck' }),
       options: [
         { id: 'mia', label: "Mia's, the lower kick", hint: `Leo's ball is slower sideways, but for longer: ${fixed(x.leo.ux, 1)} × ${fixed(x.leo.t, 2)}.` },
@@ -306,19 +324,6 @@ export const twoMotionsAtOnce: Lesson = {
       },
     },
     {
-      id: 'height',
-      kind: 'choice',
-      prompt: "How high does Leo's ball rise above the ground?",
-      fig: leoFig({ path: 'shown', at: 'top', height: 'afterCheck' }),
-      options: [
-        { id: 'right', label: m(x.leo.height), correct: true },
-        { id: 'whole', label: m(x.leo.heightWhole), hint: `That uses all ${speed(KICK.u, 0)}. Only the ${speed(x.leo.uy)} part lifts the ball.` },
-        { id: 'mia', label: m(x.mia.height), hint: `That uses ${speed(x.leo.ux)}, Leo's sideways part: it is Mia's height.` },
-        { id: 'no-two', label: m(x.leo.heightNoTwo), hint: `At the top v = 0: 0 = ${fixed(x.leo.uy, 1)}² − 2 × ${fixed(G, 2)} × s. Check the 2.` },
-      ],
-      why: `Vertically, at the top v = 0: 0 = ${fixed(x.leo.uy, 1)}² − 2 × ${fixed(G, 2)} × s, so s = ${m(x.leo.height)}. Mia's ball rises only ${m(x.mia.height)}.`,
-    },
-    {
       id: 'rules',
       kind: 'text',
       body: [
@@ -331,39 +336,30 @@ export const twoMotionsAtOnce: Lesson = {
   skillCheck: [
     {
       id: 'cliff',
-      kind: 'choice',
-      prompt: `A stone is kicked horizontally at ${speed(CLIFF.u, 0)} off the top of a ${fixed(CLIFF.h, 0)}${NB}m cliff. How far from the foot of the cliff does it land?`,
-      options: [
-        { id: 'right', label: m(x.cliff.range), correct: true },
-        { id: 'no-two', label: m(x.cliff.noTwo) },
-        { id: 'no-root', label: m(x.cliff.noRoot) },
-        { id: 'sideways', label: m(x.cliff.sideways) },
+      kind: 'build',
+      prompt: `A stone is kicked horizontally at ${speed(CLIFF.u, 0)} off the top of a ${fixed(CLIFF.h, 0)}${NB}m cliff. Build how far from the foot of the cliff it lands.`,
+      equation: 's = {u} × √(2 × {h} ÷ {g})',
+      boxes: { u: 'speed', h: 'height', g: 'field' },
+      chips: [
+        { id: 'speed', label: speed(CLIFF.u, 0) },
+        { id: 'height', label: m(CLIFF.h, 0) },
+        { id: 'field', label: `${fixed(G, 2)}${NB}m${NB}s⁻²` },
+        { id: 'half', label: m(CLIFF.h / 2, 0), hint: 'That is h ÷ 2. The 2 is already in the equation.' },
+        { id: 'time', label: sec(x.cliff.t), hint: 'That is the fall time. The equation works it out itself.' },
       ],
+      result: { symbol: 's', value: x.cliff.range, unit: 'm' },
       why: `Down: ${CLIFF.h} = ½ × ${fixed(G, 2)} × t², so t = ${sec(x.cliff.t)}. Sideways: ${CLIFF.u} × ${fixed(x.cliff.t, 2)} = ${m(x.cliff.range)}.`,
     },
     {
-      id: 'impact',
-      kind: 'choice',
-      prompt: 'What is the speed of the same stone just before it lands?',
-      options: [
-        { id: 'right', label: speed(x.cliff.speed), correct: true },
-        { id: 'vertical', label: speed(x.cliff.vy) },
-        { id: 'added', label: speed(x.cliff.added) },
-        { id: 'sideways', label: speed(CLIFF.u) },
+      id: 'stone-sideways',
+      kind: 'graphPick',
+      prompt: 'The same stone falls from the cliff. Which v–t graph shows its sideways velocity?',
+      graphs: [
+        { id: 'A', fig: stoneOf('A', STONE_GROWS), hint: 'That line grows by g every second: it is the vertical speed.' },
+        { id: 'B', fig: stoneOf('B', STONE_FLAT), correct: true },
+        { id: 'C', fig: stoneOf('C', STONE_SLOWS), hint: 'Nothing slows the stone down sideways: there is no sideways force.' },
       ],
-      why: `Down: v = ${fixed(G, 2)} × ${fixed(x.cliff.t, 2)} = ${speed(x.cliff.vy)}. Sideways still ${speed(CLIFF.u, 0)}. Tip to tail: √(${CLIFF.u}² + ${fixed(x.cliff.vy, 1)}²) = ${speed(x.cliff.speed)}.`,
-    },
-    {
-      id: 'golf',
-      kind: 'choice',
-      prompt: `A golf ball is hit at ${speed(GOLF.u, 0)}, ${deg(GOLF.angle)} above level ground. How high does it rise?`,
-      options: [
-        { id: 'right', label: m(x.golf.right), correct: true },
-        { id: 'whole', label: m(x.golf.whole) },
-        { id: 'cos', label: m(x.golf.cos) },
-        { id: 'no-two', label: m(x.golf.noTwo) },
-      ],
-      why: `Up: ${GOLF.u} sin ${deg(GOLF.angle)} = ${speed(launchParts({ u: GOLF.u, angle: GOLF.angle, h: 0 }).uy)}. At the top v = 0, so s = ${fixed(launchParts({ u: GOLF.u, angle: GOLF.angle, h: 0 }).uy, 1)}² ÷ (2 × ${fixed(G, 2)}) = ${m(x.golf.right)}.`,
+      why: `Sideways there is no force, so no acceleration: the velocity stays ${speed(CLIFF.u, 0)} all the way down. A flat line.`,
     },
     {
       id: 'package',
@@ -377,12 +373,59 @@ export const twoMotionsAtOnce: Lesson = {
       ],
       why: `The package keeps the plane's ${speed(PLANE.u, 0)} sideways while it falls for ${sec(x.plane.t, 1)}. Both go ${m(x.plane.x, 0)}: the plane is right above it.`,
     },
+    {
+      id: 'golf',
+      kind: 'examCard',
+      context: `A golf ball is hit at ${speed(GOLF.u, 0)}, ${deg(GOLF.angle)} above level ground. Ignore air resistance.`,
+      parts: [
+        {
+          id: 'a',
+          command: 'Calculate',
+          text: 'the time the ball is in the air.',
+          marks: 2,
+          kind: 'build',
+          build: {
+            equation: 't = 2 × {u} × sin {θ} ÷ {g}',
+            boxes: { u: 'speed', θ: 'angle', g: 'field' },
+            chips: [
+              { id: 'speed', label: speed(GOLF.u, 0) },
+              { id: 'angle', label: deg(GOLF.angle) },
+              { id: 'field', label: `${fixed(G, 2)}${NB}m${NB}s⁻²` },
+              { id: 'other', label: deg(90 - GOLF.angle), hint: 'That is the angle from the vertical. θ is measured from the ground.' },
+              { id: 'cos', label: speed(x.golfFlight.ux), hint: 'That is the sideways part. The time comes from the upward part.' },
+            ],
+            result: { symbol: 't', value: x.golfFlight.t, unit: 's' },
+          },
+          why: `Up: ${GOLF.u} sin ${deg(GOLF.angle)} = ${speed(x.golfFlight.uy)}. Up and back down takes t = 2 × ${fixed(x.golfFlight.uy, 1)} ÷ ${fixed(G, 2)} = ${sec(x.golfFlight.t)}.`,
+        },
+        {
+          id: 'b',
+          command: 'Calculate',
+          text: 'how far the ball lands from where it was hit.',
+          marks: 2,
+          kind: 'build',
+          build: {
+            equation: 's = {u} × cos {θ} × {t}',
+            boxes: { u: 'speed', θ: 'angle', t: 'time' },
+            chips: [
+              { id: 'speed', label: speed(GOLF.u, 0) },
+              { id: 'angle', label: deg(GOLF.angle) },
+              { id: 'time', label: sec(x.golfFlight.t) },
+              { id: 'top', label: sec(x.golfFlight.toTop), hint: 'That only takes the ball to the top. Use the whole flight.' },
+              { id: 'other', label: deg(90 - GOLF.angle), hint: 'That is the angle from the vertical. θ is measured from the ground.' },
+            ],
+            result: { symbol: 's', value: x.golfFlight.range, unit: 'm' },
+          },
+          why: `Sideways, s = ut: ${fixed(x.golfFlight.ux, 1)} × ${fixed(x.golfFlight.t, 2)} = ${m(x.golfFlight.range)}. One mark for the values, one for the answer.`,
+        },
+      ],
+    },
   ],
   youCanNow: [
     'Treat a projectile as two motions on one clock',
     'Find the time of flight from the vertical motion alone',
-    'Find how far and how high a projectile goes',
-    'Explain why the speed at the top is not zero',
+    'Find how far a projectile goes',
+    'Explain why the sideways velocity never changes',
   ],
   recap: {
     fig: both({ path: 'shown', range: 'shown' }),

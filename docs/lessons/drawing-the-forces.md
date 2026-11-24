@@ -93,3 +93,17 @@ All four are new contexts; "sign" and "slope" need the components from lesson 6,
 - **The ladder** shows an extended body, but the wall's 27.4 N is given: finding it needs moments (level 3). Is that fine, or should screens 13–14 be a different extended body?
 - **Level:** screens 3–6 are basic for a strong student, but each one carries a named trap (P on the floor, the "force of the pull" after letting go). The hard part is 8–11 and 14.
 - The lesson stands before "The push from the floor" on the map, which also introduces the free-body diagram (one screen). It can stay as a short reminder there.
+
+## v3 changes (24 Nov)
+
+Task D4. The puzzle (the floor pushes 332 N against a weight of 392 N) and its recap are unchanged. 14 screens + 4 Skill check; chapters *The puzzle* → *Every force* → *Back to the crate*; cast: Rose, Hugo. Rose runs through the Forces level on purpose: `SHARED_CAST` in `rules.test.ts` lets her appear in several revised lessons.
+
+| Was | Now |
+|---|---|
+| text "find the forces", choice "does P belong on the diagram" | **sort** `forces`: on the crate / by the crate (weight, floor's push, friction, rope's pull | the crate's push on the floor, its pull on the rope) |
+| choice "which forces act after Rose lets go" | **spotError** `motion`: Hugo adds "a forward force to keep it moving" |
+| choice "how hard does the floor push" (the answer) | **build** `N = W − T × sin θ` = 332 N; the revisit is now a choice **by idea** ("the rope pulls up, so it holds up part of the weight") |
+| choice "pole pushing down" (452 N) | moved to the Skill check as a build |
+| choice "box on ice" | moved to the Skill check |
+
+Skill check: **sort** (a box on a table: on the box / not on the box), **build** (the pole, `N = W + T × sin θ`, 452 N), **choice** (the box on ice, kept), **exam card** on the ladder: (a) State the direction of the wall's push [1], (b) Calculate the friction at the foot [2] (`F = W ÷ (2 tan θ)` = 27.4 N). The sign, slope and book questions were dropped.

@@ -1,15 +1,17 @@
 // Every number in "Drawing the forces" is recomputed from the model, and every wrong option is a named mistake.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { drawingTheForces as L, ANSWERS as X, ANGLE, BOOK, ICE, LADDER, M, PULL, SIGN, SLOPE } from './drawing-the-forces.ts';
+import { drawingTheForces as L, ANSWERS as X, ANGLE, ICE, LADDER, M, PULL } from './drawing-the-forces.ts';
 import { lessons } from './lessons.ts';
 import { course } from './course.ts';
-import type { OptionQuestion } from './types.ts';
+import type { BuildScreen, ExamCardScreen, OptionQuestion, SortScreen, SpotErrorScreen } from './types.ts';
 
 const all = [...L.story, ...L.skillCheck];
 const q = (id: string) => all.find((s) => s.id === id) as OptionQuestion;
 const label = (id: string, opt: string) => q(id).options.find((o) => o.id === opt)!.label;
 const right = (id: string) => q(id).options.find((o) => o.correct)!.id;
+const build = (id: string) => all.find((s) => s.id === id) as BuildScreen;
+const chip = (b: Pick<BuildScreen, 'chips'>, id: string) => b.chips.find((c) => c.id === id)!.label;
 const NB = '\u00A0';
 const rad = Math.PI / 180;
 const g = 9.81;
@@ -29,26 +31,37 @@ test('friction at steady speed is the forward part: 104 N, not 120 N', () => {
   assert.equal(right('friction'), 'right');
 });
 
-test('the puzzle: the floor pushes 332 N, less than the weight', () => {
+test('the puzzle: the floor pushes 332 N (built), less than the weight, because the rope holds up part of it', () => {
   near(X.normal.right + X.up, X.weight); // up and down balance
   assert.ok(X.normal.right < X.weight);
-  assert.equal(label('hook-again', 'right'), `332${NB}N`);
-  assert.equal(label('hook-again', 'weight'), `392${NB}N`);
-  assert.equal(label('hook-again', 'rope-down'), `452${NB}N`);
-  assert.equal(label('hook-again', 'cos'), `288${NB}N`);
+  const b = build('normal');
+  near(b.result.value, X.normal.right);
+  assert.deepEqual(b.boxes, { W: 'weight', T: 'pull', θ: 'angle' });
+  assert.equal(chip(b, 'weight'), `392${NB}N`);
+  assert.equal(chip(b, 'pull'), `120${NB}N`);
+  assert.equal(chip(b, 'angle'), '30°');
+  assert.equal(chip(b, 'vertical'), '60°');
+  assert.equal(chip(b, 'forward'), `104${NB}N`);
+  assert.equal(right('hook-again'), 'rope');
   const hook = L.story.find((s) => s.id === 'hook')!;
   assert.equal(hook.kind, 'predict');
   assert.ok(hook.kind === 'predict' && hook.options.some((o) => o.id === 'smaller'));
 });
 
-test('a pole pushing down at 30° makes the floor push 452 N', () => {
-  near(X.pole.right, X.weight + X.up);
-  assert.equal(label('push', 'right'), `452${NB}N`);
-  assert.equal(label('push', 'copied'), `332${NB}N`);
-  assert.equal(label('push', 'cos'), `496${NB}N`);
+test('the sort: the crate’s weight, the floor’s push, friction and the rope’s pull act on it; its own pushes act on others', () => {
+  const s = L.story.find((sc) => sc.id === 'forces') as SortScreen;
+  const bin = (id: string) => s.items.find((i) => i.id === id)!.bin;
+  for (const id of ['weight', 'normal', 'friction', 'rope']) assert.equal(bin(id), 'on', id);
+  for (const id of ['push', 'tug']) assert.equal(bin(id), 'by', id);
 });
 
-test('the ladder: the smooth wall pushes 27.4 N; friction 27.4 N towards the wall; N = W = 118 N', () => {
+test('Hugo’s mistake: a forward force after Rose lets go', () => {
+  const s = L.story.find((sc) => sc.id === 'motion') as SpotErrorScreen;
+  assert.equal(s.lines.find((l) => l.wrong)!.id, 'forward');
+  assert.ok(s.fig?.kind === 'crate' && s.fig.by === 'none' && s.fig.fbdAfterCheck === true, 'the diagram appears after the answer');
+});
+
+test('the ladder: the smooth wall pushes 27.4 N; friction 27.4 N towards the wall; N = W = 118 N (exam card)', () => {
   const w = LADDER.m * g;
   const a = LADDER.angle * rad;
   near(w * 0.5 * Math.cos(a), X.ladder.wall * Math.sin(a)); // moments about the foot
@@ -56,27 +69,37 @@ test('the ladder: the smooth wall pushes 27.4 N; friction 27.4 N towards the wal
   near(X.ladder.normal, w);
   assert.equal(label('foot', 'right'), `27.4${NB}N towards the wall`);
   assert.equal(right('wall'), 'normal');
+  const card = all.find((s) => s.id === 'ladder-card') as ExamCardScreen;
+  const [pa, pb] = card.parts;
+  assert.ok(pa.kind === 'choice' && pa.options.find((o) => o.correct)!.id === 'right');
+  assert.ok(pb.kind === 'build');
+  if (pb.kind === 'build') {
+    near(pb.build.result.value, 27.4, 0.05);
+    near(pb.build.result.value, w / (2 * Math.tan(a)));
+    assert.equal(chip(pb.build, 'weight'), `118${NB}N`);
+    assert.equal(chip(pb.build, 'angle'), '65°');
+    assert.equal(chip(pb.build, 'other'), '25°');
+  }
+  assert.equal(pa.marks + pb.marks, 3);
 });
 
-test('the box on ice: the resultant is 80 N to the left, the motion cannot be told', () => {
+test('Skill check: a pole pushing down at 30° makes the floor push 452 N (built); the box on ice cannot be told', () => {
+  const b = build('pole');
+  near(b.result.value, X.weight + X.up);
+  assert.deepEqual(b.boxes, { W: 'weight', T: 'push', θ: 'angle' });
+  assert.equal(chip(b, 'forward'), `104${NB}N`);
   assert.equal(X.ice.resultant, ICE.b - ICE.a);
   near(X.ice.weight, ICE.m * g);
   assert.equal(right('ice'), 'right');
 });
 
-test('Skill check: sign 38.4 N, slope 20.7 N, book 11.8 N, thrown ball: weight only', () => {
-  const sw = SIGN.m * g;
-  near(2 * X.sign.right * Math.sin(SIGN.angle * rad), sw);
-  assert.equal(label('sign', 'right'), `38.4${NB}N`);
-  assert.equal(label('sign', 'half'), `29.4${NB}N`);
-  assert.equal(label('sign', 'cos'), `45.8${NB}N`);
-  near(X.slope.right, SLOPE.m * g * Math.sin(SLOPE.angle * rad));
-  assert.equal(label('slope', 'right'), `20.7${NB}N up the slope`);
-  assert.equal(label('slope', 'cos'), `44.5${NB}N up the slope`);
-  near(X.book.right, BOOK.m * g);
-  assert.equal(label('book', 'right'), `11.8${NB}N upward`);
-  assert.equal(label('book', 'sum'), `41.8${NB}N upward`);
-  assert.equal(right('thrown'), 'right');
+test('Skill check: the table sort', () => {
+  const s = all.find((sc) => sc.id === 'table') as SortScreen;
+  const bin = (id: string) => s.items.find((i) => i.id === id)!.bin;
+  assert.equal(bin('weight'), 'on');
+  assert.equal(bin('push'), 'on');
+  assert.equal(bin('pressing'), 'not');
+  assert.equal(bin('earth'), 'not');
 });
 
 test('every option label is different within a question', () => {
