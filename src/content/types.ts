@@ -468,6 +468,24 @@ export type FallFig = {
 };
 
 /**
+ * The v–t graph of a skydiver, alone on a full sheet (for picking the right graph). 'model' is the fall of src/physics/drag
+ * (skydiveSamples); the wrong ones are named mistakes: 'stop' (after the change her speed falls evenly to zero),
+ * 'straight' (a = g until the terminal velocity, then suddenly 0), 'flat' (nothing changes after the change).
+ * Same axes for every curve of one question.
+ */
+export type FallVtFig = {
+  kind: 'fallVt';
+  header: string;
+  curve: 'model' | 'stop' | 'straight' | 'flat';
+  /** Terminal velocity at first, m s⁻¹. */
+  vt: number;
+  /** At `open` seconds the drag constant changes evenly over `inflate` seconds until the terminal velocity is `vt` (a parachute, or tucking in). */
+  chute: { vt: number; open: number; inflate: number };
+  /** The time axis, s. */
+  tEnd: number;
+};
+
+/**
  * Trolleys of mass m roll at u into a wall (towards the wall is positive). Trolley A has a spring buffer and bounces back
  * at `back`; trolley B has a putty pad and stops dead. Positions and velocities come from wallRun (src/physics/momentum);
  * each trolley's momentum is a solid ink arrow that shrinks through zero and flips during a bounce.
@@ -972,7 +990,7 @@ export type LauncherFig = {
   inner?: number;
 };
 
-export type Fig = LiftFig | PairsFig | VtFig | ScalesFig | LiftPairFig | ThrowFig | ThrowVtFig | FallGraphFig | RoadFig | BrakeVtFig | EquationsFig | GraphFig | ChaseFig | TrackFig | VectorsFig | SledgeFig | HillFig | ResolveFig | BenchFig | KickFig | CrateFig | LadderFig | ParticleFig | PulleyFig | FallFig | WallFig | BodiesFig | CollideFig | SpannerFig | PoleFig | BarFig | BeamFig | BroomFig | PlatformFig | RampFig | KineticFig | HeightFig | CliffFig | SlideFig | RideFig | WinchFig | TankFig | DunkFig | TubeFig | FlowFig | SpringFig | WireFig | MaterialFig | LauncherFig;
+export type Fig = LiftFig | PairsFig | VtFig | ScalesFig | LiftPairFig | ThrowFig | ThrowVtFig | FallGraphFig | RoadFig | BrakeVtFig | EquationsFig | GraphFig | ChaseFig | TrackFig | VectorsFig | SledgeFig | HillFig | ResolveFig | BenchFig | KickFig | CrateFig | LadderFig | ParticleFig | PulleyFig | FallFig | FallVtFig | WallFig | BodiesFig | CollideFig | SpannerFig | PoleFig | BarFig | BeamFig | BroomFig | PlatformFig | RampFig | KineticFig | HeightFig | CliffFig | SlideFig | RideFig | WinchFig | TankFig | DunkFig | TubeFig | FlowFig | SpringFig | WireFig | MaterialFig | LauncherFig;
 
 /** Tap targets drawn by a lift figure with `candidates`. */
 export const CANDIDATE_IDS = ['shorter', 'equal', 'longer'] as const;

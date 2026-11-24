@@ -74,3 +74,20 @@ All numbers come from `src/physics/momentum.ts` and are re-checked by a test. To
 
 - **Momentum is drawn as a solid ink arrow,** not blue: blue means force. Velocity stays an outline arrow.
 - **Δp without F = Δp / Δt.** The force side waits for Unit 4; here Δp is practice with signs that the collisions lesson needs.
+
+## v3 changes (24 Nov)
+
+Task D6. The puzzle (A bounces, B stops dead: Δp = −2.00 against −1.20 kg m s⁻¹) and its recap are unchanged. 13 screens + 4 Skill check; chapters *The puzzle* → *What momentum is* → *Changes and totals*; cast: Ravi.
+
+| Was | Now |
+|---|---|
+| choice `back-p` (A's momentum after the bounce), text `signs` | removed; the sign rule moved into `change` (one text with the card) |
+| choice `stop-dp` | **build** `stop-build`: `Δp = m × (v − u)` for B, signs as chips (0 and +1.5; wrong: −1.5, the momentum 1.20) |
+| choice `hook-again` | **estimate**: A's change in momentum on a scale from −3 to +1 (−2.00, tolerance 0.2; the zero mark is on the ruler) |
+| — | **spotError** `dropped-sign` (Ravi): v = 1.0 instead of −1.0 gives −0.40 |
+| choice `head-on` | **build** `Σp = m₁u₁ + m₂u₂` = 0 (wrong chip: C's velocity +1.0) |
+| text `rules` | one sentence with the figure |
+
+Skill check: **build** (two skaters, east positive, +10 kg m s⁻¹), **spotError** (a dropped ball: p = m × t instead of m × v), **choice** (a tennis ball rebounds: 3.02 kg m s⁻¹ away from the wall; wrong: sizes only, momentum before, the wrong direction), **exam card** on a trolley that rebounds: (a) Calculate Δp [2] (−1.00 kg m s⁻¹), (b) Explain why it is bigger than the momentum before [2] (order). The car choice is gone.
+
+Fixed on the way: the estimate bubble was too narrow for "Δp = −1.0 kg m s⁻¹" (it wrapped; now `BUBBLE_W` = 190 in `src/ui/Slider.tsx`), units in estimate sentences no longer break inside "kg m s⁻¹", and `sig()` now writes floating-point dust (2.2 × 10⁻¹⁶) as 0, so `0.80 × 1.5 + 1.20 × (−1.0)` shows 0.

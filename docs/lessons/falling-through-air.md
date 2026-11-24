@@ -77,3 +77,21 @@ All numbers come from `src/physics/drag.ts` (new: D = kv², terminal velocity, t
 
 - **"Drag grows as v²"** is told, not derived: the specification only asks for the term terminal velocity. It is what makes the puzzle work. Fine, or too far beyond the course?
 - **The parachute opens over 4 s** (the model grows the canopy evenly), so the biggest drag is 5.0 times the weight. A parachute that opened at once would give an impossible jolt.
+
+## v3 changes (24 Nov)
+
+Task D6. The puzzle (four cake cases, twice the speed: 1.20 → 2.40 m s⁻¹) and its recap are unchanged. 15 screens + 4 Skill check; chapters *The puzzle* → *Why the speed levels off* → *The parachute*; cast: Ines (the skydiver, now named).
+
+| Was | Now |
+|---|---|
+| choice "drag vs weight at 50 m s⁻¹" | **order** `why-steady`: speed ↑ → drag ↑ → resultant ↓ → a ↓ → D = W, ΣF = 0 |
+| text "jump" | removed (`start-a` shows the jump) |
+| text "square" (two paragraphs) | one sentence, **D = kv²** with k = 0.275 N s² m⁻² for Ines; "heavier falls faster" moved into `terminal` |
+| — | **build** `vt-build`: `v = √(m × g ÷ k)` = 50.0 m s⁻¹ (wrong chips: 687 N, k ten times too big) |
+| choice `hook-again` (2.40 m s⁻¹ among four) | **estimate**: the stack's terminal velocity, scale 0–6 (2.40, tolerance 0.2) |
+| text "chute" + choice "drag under the canopy" | text kept; **graphPick** `chute-graph`: her whole v–t graph (wrong: a = g then suddenly flat; the speed falls to zero) |
+| choice `peak` (a at 5.0 W) | **build** `a = (D − W) ÷ m` = 39.2 m s⁻² upward |
+
+Skill check: **build** (the cyclist, `v = v₀ × √(F ÷ D₀)`, 16.0 m s⁻¹), **graphPick** (Ines tucks in at 15 s: the speed rises again to 60 m s⁻¹; wrong: it stays flat, it falls), **choice** (the ball thrown down faster than terminal velocity), **exam card** on a shuttlecock: (a) Calculate its acceleration [2] (5.81 m s⁻²), (b) Explain why it stops speeding up [3] (order). The old shuttlecock, cyclist and heavier-diver choices became the build, the card and nothing (the diver one is gone).
+
+New: figure kind `fallVt` (`src/figures/FallVtGraph.tsx`): one v–t curve of a skydive on a full sheet, three variants (`model`, `stop`, `straight`, `flat`) drawn from `fallVtCurve` in `src/physics/drag.ts`, same axes in one question. Found while building: the figure with the graph beside the diver gave away the answer of the build (50 m s⁻¹ dashed on the axis), so that screen shows the diver only.

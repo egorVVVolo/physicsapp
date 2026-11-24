@@ -125,3 +125,24 @@ function skydiveFrom(t0: number, v0: number, s0: number, t1: number, sd: Skydive
   }
   return { v, s, dOverW: (c(t1) * v * v) / g };
 }
+
+/**
+ * The curves of the "which v–t graph?" questions, sampled every `step` seconds: 'model' is the fall itself; the wrong ones are
+ * named mistakes. After `open` seconds the drag constant changes evenly over `inflate` seconds until the terminal velocity
+ * is `vt2` (a parachute opening, or the skydiver tucking in).
+ *  · 'stop'     — as the model until `open`, then the speed falls evenly to zero (twice as long as the change takes);
+ *  · 'straight' — a = g until the terminal velocity, then suddenly 0; as the model after `open`;
+ *  · 'flat'     — as the model until `open`, then the speed stays where it was.
+ */
+export type FallCurve = 'model' | 'stop' | 'straight' | 'flat';
+
+export function fallVtCurve(curve: FallCurve, vt1: number, change: { vt: number; open: number; inflate: number }, tEnd: number, step = 0.25, g = G): { t: number; v: number }[] {
+  const sd: Skydive = { vt1, vt2: change.vt, open: change.open, inflate: change.inflate };
+  const table = skydiveSamples(sd, tEnd, step, g);
+  if (curve === 'model') return table.map((r) => ({ t: r.t, v: r.v }));
+  const atOpen = table.find((r) => r.t >= change.open - 1e-9)!;
+  if (curve === 'straight') return table.map((r) => ({ t: r.t, v: r.t <= change.open ? Math.min(g * r.t, vt1) : r.v }));
+  if (curve === 'flat') return table.map((r) => ({ t: r.t, v: r.t <= change.open ? r.v : atOpen.v }));
+  const toZero = 2 * change.inflate;
+  return table.map((r) => ({ t: r.t, v: r.t <= change.open ? r.v : Math.max(0, atOpen.v * (1 - (r.t - change.open) / toZero)) }));
+}

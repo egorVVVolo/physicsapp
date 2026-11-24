@@ -19,7 +19,7 @@ const NB = ' ';
 
 /** "471 J", "35°": the unit stays with the number. */
 function withUnit(text: string, unit: string): string {
-  return unit === '°' ? `${text}°` : `${text}${NB}${unit}`;
+  return unit === '°' ? `${text}°` : `${text}${NB}${unit.replaceAll(' ', NB)}`;
 }
 
 export function EstimateView({ screen, figN, phase, onOutcome, onWrong, onNext }: Props) {

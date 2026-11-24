@@ -17,6 +17,8 @@ test('signs use the proper minus and an explicit plus', () => {
 
 test('three significant figures, never in e-notation', () => {
   assert.equal(sig(2354.4), '2350');
+  assert.equal(sig(2.2e-16), '0'); // floating-point dust is zero
+  assert.equal(sig(0), '0');
   assert.equal(sig(4414.5), '4410');
   assert.equal(sig(470.88), '471');
   assert.equal(sig(156.96), '157');

@@ -19,7 +19,7 @@ export function signed(x: number, dp: number): string {
 
 /** Three (or n) significant figures, never in e-notation: sig(2354.4) → "2350", sig(156.96) → "157", sig(0.5) → "0.500". */
 export function sig(x: number, n = 3): string {
-  if (x === 0) return '0';
+  if (Math.abs(x) < 1e-9) return '0'; // 0 and floating-point dust such as 2.2e-16
   const digits = Math.floor(Math.log10(Math.abs(x))) + 1; // digits before the point
   if (digits < n) return fixed(x, n - digits);
   const step = 10 ** (digits - n);

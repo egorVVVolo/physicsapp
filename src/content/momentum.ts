@@ -3,7 +3,7 @@
 // bigger change in momentum? A, by a lot: −2.00 against −1.20 kg m s⁻¹. Towards the wall is positive.
 // Every number below comes from src/physics; wrong options are named mistakes, recomputed by the test.
 import { G } from '../physics/kinematics.ts';
-import { momentum, momentumChange, speedFromMomentum, totalMomentum } from '../physics/momentum.ts';
+import { momentum, momentumChange, totalMomentum } from '../physics/momentum.ts';
 import { fixed, signed } from '../physics/format.ts';
 import type { BodiesFig, Lesson, WallFig } from './types.ts';
 
@@ -14,13 +14,6 @@ export const kgms = (x: number, dp = 2): string => `${fixed(x, dp)}${UNIT}`;
 /** "−0.80 kg m s⁻¹", "+0.80 kg m s⁻¹", and "0 kg m s⁻¹" for zero. */
 export const sgn = (x: number, dp = 2): string => (Math.abs(x) < 1e-9 ? `0${UNIT}` : `${signed(x, dp)}${UNIT}`);
 const ms = (x: number, dp = 1): string => `${fixed(x, dp)}${NB}m${NB}s⁻¹`;
-const SUP = '⁰¹²³⁴⁵⁶⁷⁸⁹';
-/** "4.05 × 10⁷": standard form to 3 significant figures. */
-export const sci = (x: number): string => {
-  const e = Math.floor(Math.log10(Math.abs(x)));
-  return `${fixed(x / 10 ** e, 2)} × 10${[...String(e)].map((d) => SUP[Number(d)]).join('')}`;
-};
-
 // The story and the numbers of each question.
 export const M = 0.8; // kg, each trolley (the lab trolley of "Force and acceleration")
 export const U = 1.5; // m s⁻¹, towards the wall
@@ -28,7 +21,7 @@ export const BACK = 1.0; // m s⁻¹, A's speed after the bounce
 export const CRICKET = { m: 0.16, v: 35 }; // kg, m s⁻¹
 export const BOWLING = { m: 5.0, v: 1.2 }; // kg, m s⁻¹
 export const C = { m: 1.2, v: -1.0 }; // trolley C heading at A
-export const CAR = { m: 1500, p: 27000 }; // kg, kg m s⁻¹
+export const REBOUND = { m: 0.5, u: 1.4, back: 0.6 }; // kg, m s⁻¹ towards the wall, m s⁻¹ after the rebound (exam card)
 export const TENNIS = { m: 0.058, u: 30, v: 22 }; // kg, m s⁻¹ in, m s⁻¹ out
 export const DROP = { m: 0.5, t: 1.2 }; // kg, s
 export const SKATERS = { a: { m: 70, v: 3.0 }, b: { m: 50, v: -4.0 } }; // east positive
@@ -50,7 +43,12 @@ export const ANSWERS = {
   explore: { stop: dpB, full: momentumChange(M, U, -U) },
   balls: { cricket: momentum(CRICKET.m, CRICKET.v), bowling: momentum(BOWLING.m, BOWLING.v) },
   headOn: { right: totalMomentum([{ m: M, v: U }, C]), sizes: Math.abs(p0) + Math.abs(momentum(C.m, C.v)), aOnly: p0 },
-  car: { right: speedFromMomentum(CAR.p, CAR.m), mOverP: CAR.m / CAR.p, times: CAR.m * CAR.p, twice: (2 * CAR.p) / CAR.m },
+  rebound: {
+    p0: momentum(REBOUND.m, REBOUND.u),
+    pf: momentum(REBOUND.m, -REBOUND.back),
+    right: momentumChange(REBOUND.m, REBOUND.u, -REBOUND.back),
+    forgot: momentumChange(REBOUND.m, REBOUND.u, REBOUND.back),
+  },
   tennis: {
     right: Math.abs(momentumChange(TENNIS.m, TENNIS.u, -TENNIS.v)),
     speeds: TENNIS.m * (TENNIS.u - TENNIS.v),
@@ -88,11 +86,21 @@ const headOn: BodiesFig = {
   total: 'afterCheck',
 };
 
+
+/** "+1.5 m s⁻¹", "−1.0 m s⁻¹": a velocity with its sign, as a chip. */
+const vel = (x: number, dp = 1): string => (x === 0 ? `0${NB}m${NB}s⁻¹` : `${signed(x, dp)}${NB}m${NB}s⁻¹`);
+
 export const momentumLesson: Lesson = {
   id: 'momentum',
   title: 'Momentum',
   spec: [13],
   minutes: 11,
+  chapters: [
+    { title: 'The puzzle', from: 'intro' },
+    { title: 'What momentum is', from: 'p' },
+    { title: 'Changes and totals', from: 'change' },
+  ],
+  cast: ['Ravi'],
   story: [
     {
       id: 'intro',
@@ -137,51 +145,47 @@ export const momentumLesson: Lesson = {
       why: `p = mv = ${fixed(M, 2)} kg × ${ms(U)} = ${kgms(p0)}, pointing towards the wall.`,
     },
     {
-      id: 'signs',
-      kind: 'text',
-      body: [
-        'Choose a positive direction, as you do for velocity. Here **towards the wall is +**.',
-        'After the bounce, trolley A moves the other way. Its velocity is negative, so its **momentum is negative** too.',
-      ],
-    },
-    {
-      id: 'back-p',
+      id: 'heavy-fast',
       kind: 'choice',
-      prompt: `A bounces back at ${ms(BACK)}. Towards the wall is positive. What is A's momentum now?`,
-      fig: wall({ at: 'after', p: 'afterCheck' }),
+      prompt: `Which has more momentum: a ${fixed(CRICKET.m, 2)} kg cricket ball at ${CRICKET.v} m s⁻¹, or a ${fixed(BOWLING.m, 1)} kg bowling ball rolling at ${fixed(BOWLING.v, 1)} m s⁻¹?`,
+      fig: balls,
       options: [
-        { id: 'plus', label: sgn(X.back.plus), hint: 'A now moves away from the wall, the negative way.' },
-        { id: 'zero', label: sgn(X.back.zero), hint: 'A is still moving, so it still has momentum.' },
-        { id: 'right', label: sgn(X.back.right), correct: true },
-        { id: 'before', label: sgn(X.back.before), hint: `Use its new speed, ${ms(BACK)}, not the old one.` },
+        { id: 'cricket', label: 'The cricket ball', hint: 'Fast, but very light. Multiply each mass by its speed.' },
+        { id: 'right', label: 'The bowling ball', correct: true },
+        { id: 'same', label: 'They have the same', hint: 'Close, but not equal. Multiply each mass by its speed.' },
       ],
-      why: `p = ${fixed(M, 2)} × (${signed(-BACK, 1)}) = ${sgn(pBack)}. The minus sign says it points away from the wall.`,
+      why: `Cricket ball: ${fixed(CRICKET.m, 2)} × ${CRICKET.v} = ${kgms(X.balls.cricket)}. Bowling ball: ${fixed(BOWLING.m, 1)} × ${fixed(BOWLING.v, 1)} = ${kgms(X.balls.bowling)}. Mass counts as much as speed.`,
     },
     {
       id: 'change',
       kind: 'text',
       body: [
-        'The **change in momentum** is final minus initial: **Δp = mv − mu**. Put each momentum in with its sign.',
-        'A trolley that ends with less momentum in the + direction has a negative Δp.',
+        "Choose a positive direction: here **towards the wall is +**. A's bounce reverses its velocity, so its momentum turns negative.",
+        'The **change in momentum** is final minus initial: **Δp = mv − mu**, each momentum with its sign.',
       ],
       card: { term: 'Change in momentum', text: 'Δp = mv − mu: final momentum minus initial momentum, each with its sign.' },
     },
     {
-      id: 'stop-dp',
-      kind: 'choice',
-      prompt: `Trolley B hits the wall at ${ms(U)} and stops dead. What is its change in momentum?`,
+      id: 'stop-build',
+      kind: 'build',
+      prompt: `Trolley B hits the wall at ${ms(U)} and stops dead. Towards the wall is positive. Build its change in momentum.`,
       fig: wall({ trolleys: ['B'], at: 'after', ledger: 'afterCheck' }),
-      options: [
-        { id: 'reversed', label: sgn(X.stop.reversed), hint: 'Final minus initial: 0 − (+1.20).' },
-        { id: 'right', label: sgn(X.stop.right), correct: true },
-        { id: 'final', label: sgn(X.stop.final), hint: 'Zero is its final momentum, not the change.' },
+      equation: 'Δp = {m} × ({v} − {u})',
+      boxes: { m: 'mass', v: 'final', u: 'initial' },
+      chips: [
+        { id: 'mass', label: `${fixed(M, 2)}${NB}kg` },
+        { id: 'final', label: vel(0) },
+        { id: 'initial', label: vel(U) },
+        { id: 'wrongway', label: vel(-U), hint: 'B rolled towards the wall, the positive way: u = +1.5.' },
+        { id: 'p', label: kgms(p0), hint: 'That is a momentum. The equation multiplies the mass by the velocities itself.' },
       ],
-      why: `Δp = 0 − (+${fixed(p0, 2)}) = ${sgn(dpB)}. The change points away from the wall: the wall pushed B back.`,
+      result: { symbol: 'Δp', value: dpB, unit: 'kg m s⁻¹' },
+      why: `Δp = ${fixed(M, 2)} × (0 − (+${fixed(U, 1)})) = ${sgn(dpB)}. The change points away from the wall: the wall pushed B back.`,
     },
     {
       id: 'bounce',
       kind: 'explore',
-      instruction: "Drag the slider to change how fast trolley A bounces back. Watch Δp on the momentum line.",
+      instruction: 'Drag the slider to change how fast trolley A bounces back. Watch Δp on the momentum line.',
       fig: wall({ p: 'shown', ledger: 'shown', play: true }),
       slider: { min: 0, max: U, step: 0.1, tick: 0.5, label: 'Bounce speed', unit: 'm s⁻¹', symbol: 'v', dp: 1, start: BACK },
       question: {
@@ -196,29 +200,26 @@ export const momentumLesson: Lesson = {
     },
     {
       id: 'hook-again',
-      kind: 'choice',
-      revisitOf: 'hook',
-      prompt: `Back to the puzzle. A hits at ${ms(U)} and bounces back at ${ms(BACK)}. What is A's change in momentum?`,
-      fig: wall({ ledger: 'afterCheck', at: 'after' }),
-      options: [
-        { id: 'sizes', label: sgn(X.bounce.sizes), hint: 'You dropped the signs. Coming back, p is negative: −0.80.' },
-        { id: 'reversed', label: sgn(X.bounce.reversed), hint: 'Final minus initial, not initial minus final.' },
-        { id: 'like-b', label: sgn(X.bounce.likeB), hint: 'That only takes its momentum to zero. A goes on, the other way.' },
-        { id: 'right', label: sgn(X.bounce.right), correct: true },
-      ],
+      kind: 'estimate',
+      prompt: `Back to the puzzle. A hits at ${ms(U)} and bounces back at ${ms(BACK)}. Drag to A's change in momentum.`,
+      fig: wall({ at: 'after' }),
+      after: wall({ at: 'after', ledger: 'shown' }),
+      scale: { min: -3, max: 1, step: 0.1, tick: 1, unit: 'kg m s⁻¹', symbol: 'Δp', dp: 1, label: "Change in A's momentum" },
+      answer: dpA,
+      tolerance: 0.2,
       why: `Δp = (${signed(pBack, 2)}) − (+${fixed(p0, 2)}) = ${sgn(dpA)}, bigger than B's ${sgn(dpB)}. The wall stops A, then pushes it back.`,
     },
     {
-      id: 'heavy-fast',
-      kind: 'choice',
-      prompt: `Which has more momentum: a ${fixed(CRICKET.m, 2)} kg cricket ball at ${CRICKET.v} m s⁻¹, or a ${fixed(BOWLING.m, 1)} kg bowling ball rolling at ${fixed(BOWLING.v, 1)} m s⁻¹?`,
-      fig: balls,
-      options: [
-        { id: 'cricket', label: 'The cricket ball', hint: 'Fast, but very light. Multiply each mass by its speed.' },
-        { id: 'right', label: 'The bowling ball', correct: true },
-        { id: 'same', label: 'They have the same', hint: 'Close, but not equal. Multiply each mass by its speed.' },
+      id: 'dropped-sign',
+      kind: 'spotError',
+      prompt: "Ravi works out A's change in momentum. His working has one mistake. Which line?",
+      lines: [
+        { id: 'u', text: `Towards the wall is +, so u = ${vel(U)}.`, hint: 'A rolled towards the wall: that line is right.' },
+        { id: 'v', text: `After the bounce A moves at ${vel(BACK).replace('+', '')}.`, wrong: true, fix: `It moves away from the wall: v = ${vel(-BACK)}.` },
+        { id: 'calc', text: `Δp = ${fixed(M, 2)} × (${fixed(BACK, 1)} − ${fixed(U, 1)}) = ${sgn(X.bounce.sizes)}`, hint: 'This follows from the line above. Check the number put in for v.' },
+        { id: 'end', text: `So A's momentum changes by ${sgn(X.bounce.sizes)}.`, hint: 'This only repeats the line above. Look further up for the slip.' },
       ],
-      why: `Cricket ball: ${fixed(CRICKET.m, 2)} × ${CRICKET.v} = ${kgms(X.balls.cricket)}. Bowling ball: ${fixed(BOWLING.m, 1)} × ${fixed(BOWLING.v, 1)} = ${kgms(X.balls.bowling)}. Mass counts as much as speed.`,
+      why: `With v = ${signed(-BACK, 1)} the change is ${sgn(dpA)}. With the sign dropped, ${sgn(X.bounce.sizes)} makes the bounce look gentler than B's dead stop.`,
     },
     {
       id: 'total',
@@ -231,73 +232,109 @@ export const momentumLesson: Lesson = {
     },
     {
       id: 'head-on',
-      kind: 'choice',
-      prompt: `Trolley A (${fixed(M, 2)} kg) rolls right at ${ms(U)}. Trolley C (${fixed(C.m, 2)} kg) rolls left at ${ms(-C.v)}. What is their total momentum?`,
+      kind: 'build',
+      prompt: `Trolley A (${fixed(M, 2)} kg) rolls right at ${ms(U)}. Trolley C (${fixed(C.m, 2)} kg) rolls left at ${ms(-C.v)}. Right is positive. Build their total momentum.`,
       fig: headOn,
-      options: [
-        { id: 'sizes', label: kgms(X.headOn.sizes), hint: 'They move opposite ways, so one momentum is negative.' },
-        { id: 'right', label: sgn(X.headOn.right), correct: true },
-        { id: 'a-only', label: kgms(X.headOn.aOnly), hint: "That is A alone. Add C's momentum, with its sign." },
+      equation: 'Σp = {m₁} × {u₁} + {m₂} × {u₂}',
+      boxes: { 'm₁': 'mA', 'u₁': 'uA', 'm₂': 'mC', 'u₂': 'uC' },
+      chips: [
+        { id: 'mA', label: `${fixed(M, 2)}${NB}kg` },
+        { id: 'uA', label: vel(U) },
+        { id: 'mC', label: `${fixed(C.m, 2)}${NB}kg` },
+        { id: 'uC', label: vel(C.v) },
+        { id: 'plusC', label: vel(-C.v), hint: 'C rolls left, the negative way: its velocity is −1.0.' },
       ],
+      result: { symbol: 'Σp', value: X.headOn.right, unit: 'kg m s⁻¹' },
       why: `A: +${fixed(p0, 2)}. C: ${fixed(C.m, 2)} × (${signed(C.v, 1)}) = ${signed(momentum(C.m, C.v), 2)}. They cancel: two moving trolleys, zero total. More on that next lesson.`,
     },
     {
       id: 'rules',
       kind: 'text',
-      body: [
-        'Momentum is **p = mv**, a vector: choose a positive direction and give every momentum its sign.',
-        '**Δp = mv − mu**. A bounce changes momentum more than a dead stop: the wall stops the body, then pushes it back.',
-      ],
+      body: ["A bounce changes momentum more than a dead stop: the wall stops A, then pushes it back."],
+      fig: wall({ trolleys: ['A', 'B'], at: 'after', ledger: 'shown' }),
     },
   ],
   skillCheck: [
     {
-      id: 'car',
-      kind: 'choice',
-      prompt: `A ${CAR.m} kg car has a momentum of 27${NB}000 kg m s⁻¹. How fast is it moving?`,
-      options: [
-        { id: 'm-over-p', label: ms(X.car.mOverP, 4) },
-        { id: 'right', label: ms(X.car.right), correct: true },
-        { id: 'twice', label: ms(X.car.twice) },
-        { id: 'times', label: `${sci(X.car.times)}${NB}m${NB}s⁻¹` },
+      id: 'skaters',
+      kind: 'build',
+      prompt: `A ${SKATERS.a.m} kg skater glides east at ${fixed(SKATERS.a.v, 1)} m s⁻¹. A ${SKATERS.b.m} kg skater glides west at ${fixed(-SKATERS.b.v, 1)} m s⁻¹. East is positive. Build their total momentum.`,
+      equation: 'Σp = {m₁} × {u₁} + {m₂} × {u₂}',
+      boxes: { 'm₁': 'mA', 'u₁': 'uA', 'm₂': 'mB', 'u₂': 'uB' },
+      chips: [
+        { id: 'mA', label: `${SKATERS.a.m}${NB}kg` },
+        { id: 'uA', label: vel(SKATERS.a.v) },
+        { id: 'mB', label: `${SKATERS.b.m}${NB}kg` },
+        { id: 'uB', label: vel(SKATERS.b.v) },
+        { id: 'plusB', label: vel(-SKATERS.b.v), hint: 'The second skater glides west, the negative way: −4.0.' },
       ],
-      why: `v = p / m = 27${NB}000 / ${CAR.m} = ${ms(X.car.right)}.`,
+      result: { symbol: 'Σp', value: X.skaters.right, unit: 'kg m s⁻¹' },
+      why: `East +: ${SKATERS.a.m} × ${fixed(SKATERS.a.v, 1)} + ${SKATERS.b.m} × (${signed(SKATERS.b.v, 1)}) = ${momentum(SKATERS.a.m, SKATERS.a.v)} − ${-momentum(SKATERS.b.m, SKATERS.b.v)} = +${fixed(X.skaters.right, 0)} kg m s⁻¹, east.`,
+    },
+    {
+      id: 'drop-error',
+      kind: 'spotError',
+      prompt: `A ${fixed(DROP.m, 2)} kg ball is dropped from rest and falls for ${fixed(DROP.t, 1)} s. Which line of this working is wrong?`,
+      lines: [
+        { id: 'data', text: `u = 0, a = ${G} m s⁻², t = ${fixed(DROP.t, 1)} s, m = ${fixed(DROP.m, 2)} kg`, hint: 'That line only copies the data.' },
+        { id: 'v', text: `v = u + at = 0 + ${G} × ${fixed(DROP.t, 1)} = ${ms(X.drop.v, 1)}`, hint: 'That is right: the speed just before it lands.' },
+        { id: 'p', text: `p = m × t = ${fixed(DROP.m, 2)} × ${fixed(DROP.t, 1)} = ${kgms(X.drop.mt)}`, wrong: true, fix: `p = m × v = ${fixed(DROP.m, 2)} × ${fixed(X.drop.v, 1)} = ${kgms(X.drop.right)}` },
+        { id: 'end', text: `So its momentum on landing is ${kgms(X.drop.mt)} downward.`, hint: 'This follows from the line above. Check the formula used there.' },
+      ],
+      why: `Momentum is mass times velocity, not mass times time. The ball lands at ${ms(X.drop.v, 1)}, so p = ${kgms(X.drop.right)}, downward.`,
     },
     {
       id: 'tennis',
       kind: 'choice',
-      prompt: `A ${fixed(TENNIS.m, 3)} kg tennis ball hits a wall at ${TENNIS.u} m s⁻¹ and rebounds at ${TENNIS.v} m s⁻¹. What is the size of the change in its momentum?`,
+      prompt: `A ${fixed(TENNIS.m, 3)} kg tennis ball hits a wall at ${TENNIS.u} m s⁻¹ and rebounds at ${TENNIS.v} m s⁻¹. What is the change in its momentum?`,
       options: [
-        { id: 'speeds', label: kgms(X.tennis.speeds, 3) },
-        { id: 'before', label: kgms(X.tennis.before) },
-        { id: 'right', label: kgms(X.tennis.right), correct: true },
-        { id: 'after', label: kgms(X.tennis.after) },
+        { id: 'speeds', label: `${kgms(X.tennis.speeds, 3)} away from the wall` },
+        { id: 'before', label: `${kgms(X.tennis.before)} away from the wall` },
+        { id: 'right', label: `${kgms(X.tennis.right)} away from the wall`, correct: true },
+        { id: 'toward', label: `${kgms(X.tennis.right)} towards the wall` },
       ],
-      why: `Towards the wall +: Δp = ${fixed(TENNIS.m, 3)} × (−${TENNIS.v}) − ${fixed(TENNIS.m, 3)} × ${TENNIS.u} = −${fixed(X.tennis.right, 2)}. Its size is ${kgms(X.tennis.right)}.`,
+      why: `Towards the wall +: Δp = ${fixed(TENNIS.m, 3)} × (−${TENNIS.v}) − ${fixed(TENNIS.m, 3)} × ${TENNIS.u} = −${fixed(X.tennis.right, 2)}: ${kgms(X.tennis.right)}, away from the wall.`,
     },
     {
-      id: 'drop',
-      kind: 'choice',
-      prompt: `A ${fixed(DROP.m, 2)} kg ball is dropped from rest and falls for ${fixed(DROP.t, 1)} s. Air resistance is negligible. What is its momentum just before it lands?`,
-      options: [
-        { id: 'mt', label: `${kgms(X.drop.mt, 3)} downward` },
-        { id: 'weight', label: `${kgms(X.drop.weight)} downward` },
-        { id: 'average', label: `${kgms(X.drop.average)} downward` },
-        { id: 'right', label: `${kgms(X.drop.right)} downward`, correct: true },
+      id: 'rebound',
+      kind: 'examCard',
+      context: `A ${fixed(REBOUND.m, 2)} kg trolley rolls towards a wall at ${ms(REBOUND.u)} and rebounds at ${ms(REBOUND.back)}. Towards the wall is positive.`,
+      parts: [
+        {
+          id: 'a',
+          command: 'Calculate',
+          text: "the change in the trolley's momentum.",
+          marks: 2,
+          kind: 'build',
+          build: {
+            equation: 'Δp = {m} × ({v} − {u})',
+            boxes: { m: 'mass', v: 'final', u: 'initial' },
+            chips: [
+              { id: 'mass', label: `${fixed(REBOUND.m, 2)}${NB}kg` },
+              { id: 'final', label: vel(-REBOUND.back) },
+              { id: 'initial', label: vel(REBOUND.u) },
+              { id: 'plus', label: vel(REBOUND.back), hint: 'It rebounds, so it moves the negative way: −0.6.' },
+              { id: 'minus', label: vel(-REBOUND.u), hint: 'It starts towards the wall, the positive way: +1.4.' },
+            ],
+            result: { symbol: 'Δp', value: X.rebound.right, unit: 'kg m s⁻¹' },
+          },
+          why: `Δp = ${fixed(REBOUND.m, 2)} × (−${fixed(REBOUND.back, 1)} − ${fixed(REBOUND.u, 1)}) = ${sgn(X.rebound.right)}. One mark for the signs, one for the answer.`,
+        },
+        {
+          id: 'b',
+          command: 'Explain',
+          text: 'why the change is bigger than its momentum before the hit.',
+          marks: 2,
+          kind: 'order',
+          steps: [
+            { id: 'before', text: `Before, p = +${fixed(X.rebound.p0, 2)} ${UNIT.trim()}.` },
+            { id: 'after', text: `After, it moves the other way: p = ${signed(X.rebound.pf, 2)} ${UNIT.trim()}.` },
+            { id: 'diff', text: `Δp = final − initial = ${signed(X.rebound.pf, 2)} − (+${fixed(X.rebound.p0, 2)}).` },
+            { id: 'big', text: `The size, ${fixed(Math.abs(X.rebound.right), 2)}, is more than ${fixed(X.rebound.p0, 2)}: the momentum reversed.` },
+          ],
+          why: 'The wall first stops the trolley (−0.70) and then pushes it back (a further −0.30), so the change is the sum of both.',
+        },
       ],
-      why: `v = u + at = 0 + ${G} × ${fixed(DROP.t, 1)} = ${ms(vDrop, 2)}, so p = ${fixed(DROP.m, 2)} × ${fixed(vDrop, 2)} = ${kgms(X.drop.right)}, downward.`,
-    },
-    {
-      id: 'skaters',
-      kind: 'choice',
-      prompt: `A ${SKATERS.a.m} kg skater glides east at ${fixed(SKATERS.a.v, 1)} m s⁻¹. A ${SKATERS.b.m} kg skater glides west at ${fixed(-SKATERS.b.v, 1)} m s⁻¹. What is their total momentum?`,
-      options: [
-        { id: 'sizes', label: `${kgms(X.skaters.sizes, 0)} east` },
-        { id: 'right', label: `${kgms(X.skaters.right, 0)} east`, correct: true },
-        { id: 'west', label: `${kgms(X.skaters.right, 0)} west` },
-        { id: 'zero', label: 'Zero' },
-      ],
-      why: `East +: ${SKATERS.a.m} × ${fixed(SKATERS.a.v, 1)} + ${SKATERS.b.m} × (${signed(SKATERS.b.v, 1)}) = ${momentum(SKATERS.a.m, SKATERS.a.v)} − ${-momentum(SKATERS.b.m, SKATERS.b.v)} = +${fixed(X.skaters.right, 0)}, so ${kgms(X.skaters.right, 0)} east.`,
     },
   ],
   youCanNow: [

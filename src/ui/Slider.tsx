@@ -26,6 +26,8 @@ type Props = {
 };
 
 const THUMB = 30;
+/** Wide enough for "Δp = −1.0 kg m s⁻¹" in the bold mono font at one line. */
+const BUBBLE_W = 190;
 const TRUTH_ROW = 40; // room under the ruler for the true value
 
 export function Slider({ value, min, max, step, tick = step, label, format, formatEnd = format, onChange, disabled = false, truth }: Props) {
@@ -72,7 +74,7 @@ export function Slider({ value, min, max, step, tick = step, label, format, form
         <View style={[styles.area, truth && { height: 76 + TRUTH_ROW }]} onLayout={(e: LayoutChangeEvent) => setWidth(e.nativeEvent.layout.width)}>
           {width > 0 && (
             <>
-              <View style={[styles.bubble, { backgroundColor: p.ink, left: Math.min(Math.max(x + THUMB / 2 - 75, 0), width - 150) }]} pointerEvents="none">
+              <View style={[styles.bubble, { backgroundColor: p.ink, left: Math.min(Math.max(x + THUMB / 2 - BUBBLE_W / 2, 0), width - BUBBLE_W) }]} pointerEvents="none">
                 <Text style={[styles.bubbleText, { color: p.page }]}>{format(value)}</Text>
               </View>
               <View style={[styles.track, { backgroundColor: p.drawFill, left: THUMB / 2, right: THUMB / 2 }]} />
@@ -88,7 +90,7 @@ export function Slider({ value, min, max, step, tick = step, label, format, form
                   <Rise style={[styles.truthWrap, { left: 0, right: 0 }]}>
                     <View style={[styles.truthLine, { left: toX(truth.value) + THUMB / 2 - 1, backgroundColor: p.ok }]} />
                     <View
-                      style={[styles.truthPill, { backgroundColor: p.ok, left: Math.min(Math.max(toX(truth.value) + THUMB / 2 - 75, 0), width - 150) }]}
+                      style={[styles.truthPill, { backgroundColor: p.ok, left: Math.min(Math.max(toX(truth.value) + THUMB / 2 - BUBBLE_W / 2, 0), width - BUBBLE_W) }]}
                       accessible
                       accessibilityLabel={`True value: ${truth.label}`}
                     >
@@ -115,7 +117,7 @@ export function Slider({ value, min, max, step, tick = step, label, format, form
 
 const styles = StyleSheet.create({
   area: { height: 76, justifyContent: 'flex-start' },
-  bubble: { position: 'absolute', top: 0, width: 150, height: 30, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
+  bubble: { position: 'absolute', top: 0, width: BUBBLE_W, height: 30, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
   bubbleText: { fontFamily: font.monoBold, fontSize: 14 },
   track: { position: 'absolute', top: 54, height: 4, borderRadius: 2 },
   tick: { position: 'absolute', width: 2 },
@@ -123,7 +125,7 @@ const styles = StyleSheet.create({
   band: { position: 'absolute', top: 52, height: 8, borderRadius: 4, opacity: 0.45 },
   truthWrap: { position: 'absolute', top: 0, bottom: 0 },
   truthLine: { position: 'absolute', top: 44, height: 40, width: 2 },
-  truthPill: { position: 'absolute', top: 82, width: 150, height: 30, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
+  truthPill: { position: 'absolute', top: 82, width: BUBBLE_W, height: 30, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
   thumbDot: { width: 8, height: 8, borderRadius: 4 },
   ends: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 2 },
   end: { fontFamily: font.mono, fontSize: 12 },
