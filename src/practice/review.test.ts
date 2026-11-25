@@ -66,3 +66,22 @@ test('when text', () => {
   assert.equal(whenText('2026-11-28', '2026-11-25'), 'in 3 days');
   assert.equal(whenText('2026-11-25', '2026-11-25'), 'today');
 });
+
+test('Revise rows: a level opens with its first finished lesson; the mistakes and the next review are counted', async () => {
+  const { levelRows, levelLine, mistakeCount, nextReview } = await import('./reviseRows.ts');
+  const rows = levelRows(new Set(['vectors-signs']));
+  assert.equal(rows.length, 6);
+  assert.deepEqual([rows[0].open, rows[0].lessonsDone, rows[0].questions], [true, 1, 6]);
+  assert.equal(levelLine(rows[0]), '6 questions · 1 lesson done');
+  assert.equal(rows[1].open, false);
+  assert.equal(levelLine(rows[1]), 'Finish a lesson in Forces first');
+  const bank = bankOf(['vectors-signs']);
+  const q: Queue = {
+    [bank[0].key]: { key: bank[0].key, box: 0, due: '2026-11-26', last: 'assisted' },
+    [bank[1].key]: { key: bank[1].key, box: 1, due: '2026-11-26', last: 'independent' },
+    [bank[2].key]: { key: bank[2].key, box: 2, due: '2026-11-29', last: 'independent' },
+  };
+  assert.equal(mistakeCount(q, new Set(['vectors-signs'])), 1);
+  assert.deepEqual(nextReview(q, '2026-11-25'), { day: '2026-11-26', count: 2 });
+  assert.equal(nextReview({}, '2026-11-25'), null);
+});

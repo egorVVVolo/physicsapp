@@ -6,9 +6,10 @@ import { useTheme } from '@/theme/ThemeContext';
 import { courseBlue, font } from '@/theme/tokens';
 import { OutlineButton } from './parts';
 
-type Props = { due: number; minutes: number; next?: string | null; empty: boolean; onStart: () => void };
+/** `detail` (Revise): "5 due today" instead of the question count. */
+type Props = { due: number; minutes: number; next?: string | null; empty: boolean; detail?: boolean; onStart: () => void };
 
-export function ReviewCard({ due, minutes, next, empty, onStart }: Props) {
+export function ReviewCard({ due, minutes, next, empty, detail, onStart }: Props) {
   const { palette: p } = useTheme();
   return (
     <View style={[styles.card, { backgroundColor: p.paper, borderColor: p.paperLine }]}>
@@ -22,7 +23,7 @@ export function ReviewCard({ due, minutes, next, empty, onStart }: Props) {
       ) : (
         <>
           <Text style={[styles.line, { color: p.ink }]}>
-            {due} {due === 1 ? 'question' : 'questions'} · ~{minutes} min
+            {detail ? `${due} due today` : `${due} ${due === 1 ? 'question' : 'questions'}`} · ~{minutes} min
           </Text>
           <View style={styles.pucks} accessible accessibilityLabel={`${Math.min(due, 5)} questions in this review`}>
             {Array.from({ length: Math.min(due, 5) }, (_, i) => (
