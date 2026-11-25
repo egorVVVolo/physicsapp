@@ -9,7 +9,8 @@ import { uiIcon, type UiIconName } from '@/art/uiIcons';
 import { SectionTitle } from '@/home/parts';
 import { ReviewCard } from '@/home/ReviewCard';
 import { CONTENT_MAX } from '@/lesson/Frame';
-import { dueEntries, whenText } from '@/practice/review';
+import { bankOf } from '@/practice/bank';
+import { pickReview, whenText } from '@/practice/review';
 import { MOCK_AFTER, MOCK_SET, levelLine, levelRows, mistakeCount, nextReview } from '@/practice/reviseRows';
 import { readyRefs } from '@/session/progress';
 import { dayKey } from '@/session/streak';
@@ -23,7 +24,7 @@ export default function Revise() {
   const insets = useSafeAreaInsets();
   const s = useCourseState();
   const today = dayKey(new Date());
-  const due = dueEntries(s.review, today).length;
+  const due = pickReview(s.review, bankOf(s.finished), today).length;
   const nr = nextReview(s.review, today);
   const nextText = nr ? `${whenText(nr.day, today)}, ${nr.count} ${nr.count === 1 ? 'question' : 'questions'}` : null;
   const wrong = mistakeCount(s.review, s.finished);

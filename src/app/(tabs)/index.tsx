@@ -10,7 +10,8 @@ import { lessons } from '@/content/lessons';
 import { ContinueCard } from '@/home/ContinueCard';
 import { CourseBars, ExamStrip, Greeting, SectionTitle, WeekRow } from '@/home/parts';
 import { ReviewCard } from '@/home/ReviewCard';
-import { dueEntries, nextDue, whenText } from '@/practice/review';
+import { bankOf } from '@/practice/bank';
+import { nextDue, pickReview, whenText } from '@/practice/review';
 import { CONTENT_MAX } from '@/lesson/Frame';
 import { Launch } from '@/map/Launch';
 import { MomentumSheet } from '@/map/Momentum';
@@ -35,7 +36,8 @@ export default function Home() {
   const next = nextLessonId(s.finished);
   const cards = readyRefs.filter((x) => s.finished.has(x.r.id));
   const pick = pickOfDay(cards, dayKey(now));
-  const due = dueEntries(s.review, dayKey(now)).length;
+  // what today's review would play: the due questions, or new ones from finished lessons not yet in the queue
+  const due = pickReview(s.review, bankOf(s.finished), dayKey(now)).length;
   const nd = nextDue(s.review, dayKey(now));
   const blocks = [
     <Greeting key="greet" now={now} streak={s.streak} onMomentum={() => setMomentum(true)} />,
