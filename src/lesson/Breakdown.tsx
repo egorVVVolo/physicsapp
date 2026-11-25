@@ -14,7 +14,7 @@ import { font, reward } from '@/theme/tokens';
 import { MainButton, Mark } from '@/ui/parts';
 import { Frame } from './Frame';
 
-type Props = { lesson: Lesson; state: LessonState; onNext?: () => void; onDone: () => void; onReplay: () => void };
+type Props = { lesson: Lesson; state: LessonState; onNext?: () => void; /** The main button's words when there is a next step (default: Next lesson). */ nextLabel?: string; onDone: () => void; onReplay: () => void };
 
 const CELL = 18; // a square of the ribbon
 
@@ -24,7 +24,7 @@ const FEELS: { id: NonNullable<Run['feel']>; label: string }[] = [
   { id: 'hard', label: 'Too hard' },
 ];
 
-export function Breakdown({ lesson, state, onNext, onDone, onReplay }: Props) {
+export function Breakdown({ lesson, state, onNext, nextLabel, onDone, onReplay }: Props) {
   const { palette: p } = useTheme();
   const c = colorOfLesson(lesson.id);
   const insets = useSafeAreaInsets();
@@ -36,7 +36,7 @@ export function Breakdown({ lesson, state, onNext, onDone, onReplay }: Props) {
 
   return (
     <View style={{ flex: 1, paddingTop: insets.top + 8, paddingBottom: insets.bottom, backgroundColor: p.page }}>
-      <Frame footer={<MainButton label={onNext ? 'Next lesson' : 'Back to the map'} onPress={onNext ?? onDone} tone="level" color={c} />}>
+      <Frame footer={<MainButton label={onNext ? (nextLabel ?? 'Next lesson') : 'Back to the map'} onPress={onNext ?? onDone} tone="level" color={c} />}>
         <View style={{ gap: 4 }}>
           <Text accessibilityRole="header" style={[styles.title, { color: p.ink }]}>
             Your breakdown

@@ -45,6 +45,11 @@ export const feedback = {
     haptic.pick();
     play('unlock');
   },
+  /** A level is complete: its object lands. */
+  levelUp: () => {
+    haptic.medium();
+    play('unlock');
+  },
   /** The mark hits the floor in the launch animation: each bounce is quieter and a little lower in pitch. */
   bounce: (n: number) => play('tap', 1 - n * 0.12, Math.max(0.15, 0.6 - n * 0.18)),
   /** The momentum top spins up. */

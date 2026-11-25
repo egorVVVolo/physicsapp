@@ -141,10 +141,31 @@ export async function savePrefs(change: Partial<Prefs>): Promise<Prefs> {
   return next;
 }
 
+const LEVELS_KEY = 'levels-done/v1';
+
+/** Levels whose "Level complete" has been shown. */
+export async function loadLevelsDone(): Promise<Set<string>> {
+  try {
+    const raw: unknown = JSON.parse((await AsyncStorage.getItem(LEVELS_KEY)) ?? '[]');
+    return new Set(Array.isArray(raw) ? raw.filter((x): x is string => typeof x === 'string') : []);
+  } catch {
+    return new Set();
+  }
+}
+
+/** Remembers that a level's celebration was shown, so a replay does not show it again. */
+export async function markLevelDone(levelId: string): Promise<void> {
+  const done = await loadLevelsDone();
+  done.add(levelId);
+  try {
+    await AsyncStorage.setItem(LEVELS_KEY, JSON.stringify([...done]));
+  } catch {}
+}
+
 /** Clears every lesson's progress and finished runs, the notebook cards and the day streak. Settings stay. */
 export async function resetProgress(): Promise<void> {
   try {
-    const keys = (await AsyncStorage.getAllKeys()).filter((k) => k.startsWith('progress/') || k.startsWith('runs/') || k === FINISHED_KEY || k === STREAK_KEY);
+    const keys = (await AsyncStorage.getAllKeys()).filter((k) => k.startsWith('progress/') || k.startsWith('runs/') || k === FINISHED_KEY || k === STREAK_KEY || k === LEVELS_KEY);
     await AsyncStorage.multiRemove(keys);
   } catch {}
 }
