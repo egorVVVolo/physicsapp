@@ -1,8 +1,8 @@
 // End of a lesson. One orchestrated moment: the lesson's puck drops in and a ring of force arrows bursts out of it.
 // The stamp hits next to it (gold: every Skill check answer right first try; otherwise the level's colour).
-// Then, quietly: the puzzle solved as a figure (the reading counts up), the honest tally, the lesson's card going
-// into the notebook (the first time only), the momentum top (it wobbles up if this is the day's first lesson),
-// what you can do now. Every number is real: the tally counts outcomes, the figure comes from src/physics.
+// Then, quietly: the puzzle solved as a figure, the lesson's card going into the notebook (the first time only),
+// the momentum top (it wobbles up if this is the day's first lesson), and one button: Continue, to the breakdown.
+// The honest numbers (the tally, what tripped you up) live on the breakdown, Breakdown.tsx.
 import { useEffect, useState, type ReactNode } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -11,11 +11,11 @@ import Svg, { Path, Polygon } from 'react-native-svg';
 import { stamp } from '@/art/brand';
 import { object } from '@/art/objects';
 import type { Lesson } from '@/content/types';
-import { countOutcomes, figNumbers, screenOutcome, type LessonState } from '@/session/logic';
+import { stampKind } from '@/session/breakdown';
+import { figNumbers, type LessonState } from '@/session/logic';
 import { LessonTile } from '@/figures/LessonIcon';
 import { Puck } from '@/figures/Puck';
 import { Sheet } from '@/figures/Sheet';
-import { useTween } from '@/figures/anim';
 import { useTheme } from '@/theme/ThemeContext';
 import { levelIdOf } from '@/content/course';
 import { colorOfLesson } from '@/theme/levelColor';
@@ -31,39 +31,37 @@ const BURST = 12; // arrows in the burst
 const STAMP = 84;
 const STAMP_AT = LAND_MS + 420; // the stamp starts falling a beat after the puck lands
 const STAMP_MS = 200;
-const CARD_AT = 1900; // ms: the notebook card tips up after the tally has counted
-const MOMENTUM_AT = 2500; // ms: the momentum row, a beat after the card
+const CARD_AT = 1300; // ms: the notebook card tips up after the puzzle has risen
+const MOMENTUM_AT = 1900; // ms: the momentum row, a beat after the card
 
 /** What finishing this lesson changed: a new notebook card or not, and the day streak before and after. */
 export type FinishInfo = { firstTime: boolean; runBefore: number; runAfter: number; newDay: boolean };
 
-type Props = { lesson: Lesson; state: LessonState; finish: FinishInfo | null; onNext?: () => void; onDone: () => void; onReplay: () => void };
+type Props = { lesson: Lesson; state: LessonState; finish: FinishInfo | null; onContinue: () => void };
 
-export function LessonComplete({ lesson, state, finish, onNext, onDone, onReplay }: Props) {
+export function LessonComplete({ lesson, state, finish, onContinue }: Props) {
   const { palette: p } = useTheme();
   const c = colorOfLesson(lesson.id);
   const insets = useSafeAreaInsets();
   const reduced = useReducedMotionPref();
-  const n = countOutcomes(state);
-  const firstTime = lesson.skillCheck.filter((q) => screenOutcome(state, q) === 'independent').length;
-  const counting = useAfter(reduced ? 0 : 1100);
   const figCount = figNumbers(lesson).count; // the recap is the next FIG
-  const gold = lesson.skillCheck.every((q) => screenOutcome(state, q) === 'independent');
-  const stampLabel = gold ? 'On your own' : 'With some help';
+  // gold: every Skill check answer on the first try · the level's colour: with some help · grey: most answers were shown
+  const kind = stampKind(lesson, state);
+  const stampLabel = kind === 'independent' ? 'On your own' : kind === 'assisted' ? 'With some help' : 'Answers shown';
   // the whole screen jolts down a little when the stamp hits
   const jolt = useSharedValue(0);
   const joltStyle = useAnimatedStyle(() => ({ transform: [{ translateY: jolt.get() }] }));
 
   return (
     <Animated.View style={[{ flex: 1, paddingTop: insets.top + 8, paddingBottom: insets.bottom, backgroundColor: p.page }, joltStyle]}>
-      <Frame footer={<MainButton label={onNext ? 'Next lesson' : 'Back to the map'} onPress={onNext ?? onDone} tone="level" color={c} />}>
+      <Frame footer={<MainButton label="Continue" onPress={onContinue} tone="level" color={c} />}>
         {/* the moment: puck + burst */}
         <View style={styles.hero}>
           <Burst reduced={reduced} />
           <Drop reduced={reduced}>
             <Puck size={PUCK} state="done" color={c} />
           </Drop>
-          <Stamp xml={stamp(gold ? 'independent' : 'assisted', c, reward, soonGrey)} label={stampLabel} reduced={reduced} jolt={jolt} />
+          <Stamp xml={stamp(kind, c, reward, soonGrey)} label={stampLabel} reduced={reduced} jolt={jolt} />
         </View>
         <Rise delay={350} reduced={reduced}>
           <View style={{ alignItems: 'center', gap: 4 }}>
@@ -83,29 +81,6 @@ export function LessonComplete({ lesson, state, finish, onNext, onDone, onReplay
           </View>
         </Rise>
 
-        {/* the honest tally */}
-        <Rise delay={850} reduced={reduced}>
-          <View style={{ gap: 14 }}>
-            <View style={styles.checkRow}>
-              <View style={styles.dots}>
-                {lesson.skillCheck.map((q, i) => (
-                  <CheckDot key={q.id} ok={screenOutcome(state, q) === 'independent'} delay={1100 + i * 140} reduced={reduced} color={c.main} />
-                ))}
-              </View>
-              <Text style={[styles.checkText, { color: p.ink }]}>
-                Skill check: {firstTime} of {lesson.skillCheck.length} right first time
-              </Text>
-            </View>
-            <View style={[styles.tally, { borderColor: p.line }]}>
-              <Count label="On your own" value={counting ? n.independent : 0} />
-              <View style={[styles.divider, { backgroundColor: p.line }]} />
-              <Count label="After a hint" value={counting ? n.assisted : 0} />
-              <View style={[styles.divider, { backgroundColor: p.line }]} />
-              <Count label="Answer shown" value={counting ? n.revealed : 0} />
-            </View>
-          </View>
-        </Rise>
-
         {finish?.firstTime && <NotebookCard lesson={lesson} reduced={reduced} />}
         {finish && (
           <Rise delay={MOMENTUM_AT} reduced={reduced}>
@@ -113,28 +88,6 @@ export function LessonComplete({ lesson, state, finish, onNext, onDone, onReplay
           </Rise>
         )}
 
-        {/* after the card and the top when they are there, so the screen fills from the top down */}
-        <Rise delay={finish ? MOMENTUM_AT + 300 : 1050} reduced={reduced}>
-          <View style={{ gap: 10 }}>
-            <Text style={[styles.h, { color: p.ink }]}>You can now</Text>
-            {lesson.youCanNow.map((s) => (
-              <View key={s} style={styles.item}>
-                <Svg width={20} height={20} viewBox="0 0 20 20" style={{ marginTop: 3 }}>
-                  <Path d="M4,10.5 L8.2,14.5 L16,6" fill="none" stroke={c.main} strokeWidth={2.6} strokeLinecap="round" strokeLinejoin="round" />
-                </Svg>
-                <Text style={[styles.itemText, { color: p.ink }]}>{s}</Text>
-              </View>
-            ))}
-          </View>
-        </Rise>
-        {onNext && (
-          <Text accessibilityRole="button" onPress={onDone} style={[styles.replay, { color: p.muted }]}>
-            Back to the map
-          </Text>
-        )}
-        <Text accessibilityRole="button" onPress={onReplay} style={[styles.replay, { color: p.muted }]}>
-          Play the lesson again
-        </Text>
       </Frame>
     </Animated.View>
   );
@@ -209,17 +162,6 @@ function MomentumRow({ finish, reduced }: { finish: FinishInfo; reduced: boolean
       </View>
     </View>
   );
-}
-
-/** True once `ms` have passed since the screen appeared. */
-function useAfter(ms: number): boolean {
-  const [on, setOn] = useState(ms === 0);
-  useEffect(() => {
-    if (ms === 0) return;
-    const id = setTimeout(() => setOn(true), ms);
-    return () => clearTimeout(id);
-  }, [ms]);
-  return on;
 }
 
 /** The puck drops in and settles with a small bounce. */
@@ -327,40 +269,6 @@ function BurstArrow({ i, t }: { i: number; t: SharedValue<number> }) {
   );
 }
 
-/** One Skill check question: a filled disc in the level colour with a check when right first time, an empty ring otherwise. */
-function CheckDot({ ok, delay, reduced, color }: { ok: boolean; delay: number; reduced: boolean; color: string }) {
-  const { palette: p } = useTheme();
-  const k = useSharedValue(reduced ? 1 : 0);
-  useEffect(() => {
-    if (!reduced) k.set(withDelay(delay, withSpring(1, { damping: 10, stiffness: 180 })));
-  }, [k, delay, reduced]);
-  const style = useAnimatedStyle(() => ({ transform: [{ scale: 0.4 + 0.6 * k.get() }], opacity: Math.min(1, k.get() * 1.5) }));
-  return (
-    <Animated.View
-      accessible
-      accessibilityLabel={ok ? 'right first time' : 'missed'}
-      style={[styles.dot, ok ? { backgroundColor: color } : { borderWidth: 2.5, borderColor: p.lineStrong }, style]}
-    >
-      {ok && (
-        <Svg width={14} height={14} viewBox="0 0 14 14">
-          <Path d="M3,7.5 L6,10.2 L11,4.2" fill="none" stroke="#FFFFFF" strokeWidth={2.4} strokeLinecap="round" strokeLinejoin="round" />
-        </Svg>
-      )}
-    </Animated.View>
-  );
-}
-
-function Count({ label, value }: { label: string; value: number }) {
-  const { palette: p } = useTheme();
-  const shown = useTween(value, 0, 700);
-  return (
-    <View style={styles.count} accessible accessibilityLabel={`${label}: ${value}`}>
-      <Text style={[styles.countValue, { color: p.ink }]}>{Math.round(shown)}</Text>
-      <Text style={[styles.countLabel, { color: p.muted }]}>{label}</Text>
-    </View>
-  );
-}
-
 const styles = StyleSheet.create({
   hero: { height: 190, alignItems: 'center', justifyContent: 'center', marginTop: 4 },
   // right of and below the puck's centre (95), inside the hero so it never covers the title
@@ -371,19 +279,6 @@ const styles = StyleSheet.create({
   title: { fontFamily: font.display, fontSize: 32, lineHeight: 38, letterSpacing: -0.4, textAlign: 'center' },
   lessonName: { fontFamily: font.bodyMedium, fontSize: 17, textAlign: 'center' },
   recap: { fontFamily: font.body, fontSize: 17, lineHeight: 25 },
-  checkRow: { gap: 10 },
-  dots: { flexDirection: 'row', gap: 10 },
-  dot: { width: 28, height: 28, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
-  checkText: { fontFamily: font.bodyMedium, fontSize: 17 },
-  tally: { flexDirection: 'row', borderWidth: 1, borderRadius: 14, paddingVertical: 14 },
-  divider: { width: 1, marginVertical: 4 },
-  count: { flex: 1, alignItems: 'center', gap: 2 },
-  countValue: { fontFamily: font.display, fontSize: 30, lineHeight: 36, fontVariant: ['tabular-nums'] },
-  countLabel: { fontFamily: font.bodyMedium, fontSize: 13, textAlign: 'center' },
-  h: { fontFamily: font.display, fontSize: 19 },
-  item: { flexDirection: 'row', gap: 10, alignItems: 'flex-start' },
-  itemText: { flex: 1, fontFamily: font.body, fontSize: 17, lineHeight: 25 },
-  replay: { fontFamily: font.bodyMedium, fontSize: 16, textAlign: 'center', textDecorationLine: 'underline', paddingVertical: 12 },
   nbCard: { flexDirection: 'row', alignItems: 'center', gap: 14, borderWidth: 2, borderBottomWidth: 4, borderRadius: 16, paddingHorizontal: 16, paddingVertical: 14 },
   nbLabel: { fontFamily: font.mono, fontSize: 11, letterSpacing: 0.5 },
   nbFormula: { fontFamily: font.display, fontSize: 22, lineHeight: 28, marginTop: 6 },

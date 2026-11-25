@@ -8,6 +8,7 @@ import { runOf, startState, type LessonState } from '@/session/logic';
 import { addFinishedLesson, clearProgress, loadProgress, recordFinishedDay, saveProgress, saveRun } from '@/session/storage';
 import { currentRun, dayKey } from '@/session/streak';
 import { LessonPlayer } from '@/lesson/LessonPlayer';
+import { Breakdown } from '@/lesson/Breakdown';
 import { LessonComplete, type FinishInfo } from '@/lesson/LessonComplete';
 import { LessonCover } from '@/lesson/LessonCover';
 import { useTheme } from '@/theme/ThemeContext';
@@ -19,10 +20,12 @@ export default function LessonRoute() {
   const [state, setState] = useState<LessonState | null>(null);
   const [finish, setFinish] = useState<FinishInfo | null>(null); // filled in once the finish is recorded
   const [started, setStarted] = useState(false); // the cover comes first on every visit, until Start
+  const [breakdown, setBreakdown] = useState(false); // after the celebration comes the breakdown, with no way back
 
   useEffect(() => {
     if (!lesson) return;
     setStarted(false);
+    setBreakdown(false);
     // timing starts now: time away from the app since the last save does not count
     loadProgress(lesson).then((saved) => setState({ ...(saved && !saved.state.finished ? saved.state : startState), lastAt: Date.now() }));
   }, [lesson]);
@@ -76,19 +79,14 @@ export default function LessonRoute() {
     // the next lesson in course order that can be played, if any
     const order = course.levels.flatMap((l) => l.lessons);
     const next = order.slice(order.findIndex((r) => r.id === lesson.id) + 1).find((r) => r.ready && lessons[r.id]);
-    return (
-      <LessonComplete
-        lesson={lesson}
-        state={state}
-        finish={finish}
-        onNext={next ? () => router.replace(`/lesson/${next.id}`) : undefined}
-        onDone={back}
-        onReplay={() => {
-          clearProgress(lesson.id);
-          setState({ ...startState, lastAt: Date.now() });
-        }}
-      />
-    );
+    const replay = () => {
+      clearProgress(lesson.id);
+      setBreakdown(false);
+      setState({ ...startState, lastAt: Date.now() });
+    };
+    const onNext = next ? () => router.replace(`/lesson/${next.id}`) : undefined;
+    if (!breakdown) return <LessonComplete lesson={lesson} state={state} finish={finish} onContinue={() => setBreakdown(true)} />;
+    return <Breakdown lesson={lesson} state={state} onNext={onNext} onDone={back} onReplay={replay} />;
   }
   return <LessonPlayer lesson={lesson} state={state} onChange={update} onClose={back} />;
 }
