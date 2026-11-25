@@ -68,3 +68,19 @@ test('specification status: not started, learning, secure, and a wrong review ta
   assert.equal(specStatus(13, { ...done, lastReview: { 'collisions/x': 'assisted' as Outcome } }), 'secure');
   assert.equal(specStatus(13, { ...done, lastRuns: { momentum: run('momentum', { [lessons.momentum.skillCheck[0].id]: 'assisted' }) } }), 'learning');
 });
+
+test('the 12 weeks: Monday first, the current week last, today and the future marked', async () => {
+  const { weeksGrid, levelOfPoint } = await import('./progress.ts');
+  const g = weeksGrid(['2026-11-24', '2026-11-25', '2026-09-10'], '2026-11-25');
+  assert.equal(g.length, 12);
+  const last = g[11];
+  assert.equal(last.cells[0].key, '2026-11-23'); // Monday of this week
+  assert.deepEqual(last.cells.slice(1, 3).map((c) => c.done), [true, true]);
+  assert.deepEqual(last.cells.map((c) => c.future), [false, false, false, true, true, true, true]);
+  assert.equal(g[0].month, 'SEP');
+  assert.ok(g.some((w) => w.month === 'NOV'));
+  assert.equal(g.flatMap((w) => w.cells).filter((c) => c.done).length, 3);
+  assert.equal(levelOfPoint(1), 'motion');
+  assert.equal(levelOfPoint(12), 'forces');
+  assert.equal(levelOfPoint(32), 'materials');
+});

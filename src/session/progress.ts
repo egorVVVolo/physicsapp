@@ -89,3 +89,36 @@ export function specStatus(point: number, state: { finished: Set<string>; starte
   if (secure) return 'secure';
   return ids.some((id) => state.finished.has(id) || state.started.has(id)) ? 'learning' : 'not-started';
 }
+
+// ── The 12 weeks of activity ───────────────────────────────────────────────────────────────
+
+/**
+ * 12 weeks of days as columns (Monday at the top, the current week last): each day says whether it had a lesson or a
+ * review, and whether it is still to come. A month's short name heads the column where that month begins.
+ */
+export function weeksGrid(days: string[], today: string, weeks = 12): { month: string | null; cells: { key: string; done: boolean; future: boolean }[] }[] {
+  const done = new Set(days);
+  const t = dayNumber(today);
+  const [y, m, d] = today.split('-').map(Number);
+  const monday = (new Date(y, m - 1, d).getDay() + 6) % 7; // 0 = Monday
+  const start = t - monday - 7 * (weeks - 1);
+  const names = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
+  let lastMonth = -1;
+  return Array.from({ length: weeks }, (_, w) => {
+    const cells = Array.from({ length: 7 }, (_, i) => {
+      const n = start + w * 7 + i;
+      const date = new Date(n * 86_400_000);
+      const key = `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}-${String(date.getUTCDate()).padStart(2, '0')}`;
+      return { key, done: done.has(key), future: n > t };
+    });
+    const month = Number(cells[0].key.slice(5, 7)) - 1;
+    const label = month !== lastMonth ? names[month] : null;
+    lastMonth = month;
+    return { month: label, cells };
+  });
+}
+
+/** The level a point of the specification is listed under on the Me tab: the level of its first lesson. */
+export function levelOfPoint(point: number): string {
+  return readyRefs.find((x) => x.r.spec.includes(point))?.levelId ?? course.levels[0].id;
+}
