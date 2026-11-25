@@ -8,6 +8,7 @@ import { Sheet } from '@/figures/Sheet';
 import { fixed, sig } from '@/physics/format';
 import { estimateOutcome, type Outcome, type Phase } from '@/session/logic';
 import { feedback } from '@/ui/feedback';
+import { useRightSound } from '../puzzle';
 import { MainButton, VerdictSheet, type Verdict } from '@/ui/parts';
 import { Slider } from '@/ui/Slider';
 import { Frame } from '../Frame';
@@ -23,6 +24,7 @@ function withUnit(text: string, unit: string): string {
 }
 
 export function EstimateView({ screen, figN, phase, onOutcome, onWrong, onNext }: Props) {
+  const playRight = useRightSound(screen.id);
   const sc = screen.scale;
   const mid = Math.round((sc.min + sc.max) / 2 / sc.step) * sc.step;
   const [guess, setGuess] = useState(Number(mid.toFixed(6)));
@@ -35,7 +37,7 @@ export function EstimateView({ screen, figN, phase, onOutcome, onWrong, onNext }
 
   const check = () => {
     const o = estimateOutcome(guess, screen.answer, screen.tolerance, phase);
-    if (o === 'independent') feedback.right();
+    if (o === 'independent') playRight();
     else {
       feedback.wrong();
       onWrong(String(guess));

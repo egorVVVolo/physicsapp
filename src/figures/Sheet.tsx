@@ -7,7 +7,9 @@ import type { Fig } from '@/content/types';
 import { useTheme } from '@/theme/ThemeContext';
 import { font, motion, radius } from '@/theme/tokens';
 import { useReducedMotionPref } from '@/ui/parts';
+import Animated, { Easing, useAnimatedStyle, useSharedValue, withSequence, withTiming } from 'react-native-reanimated';
 import { fixed } from '@/physics/format';
+import { PuzzleContext } from '@/lesson/puzzle';
 import { SheetScale } from './draw';
 import { LIFT_VB, LiftFigure, liftMoves, liftParams, liftShiftX, liftTargets, ShaftMarks } from './LiftFigure';
 import { LIFT_PAIR_VB, LiftPairFigure } from './LiftPairFigure';
@@ -124,6 +126,7 @@ export function Sheet({ fig, n, live, tap: tapIn, caption, compact = false, stil
   const tap = still ? undefined : tapIn;
   const { palette: p, classic } = useTheme();
   const memory = useContext(LessonFigs);
+  const puzzle = useContext(PuzzleContext);
   // the screen before showed this kind of figure: the sheet is already drawn at its width and changes from `prev`
   const shared = useContext(SharedSheet);
   const prev = shared && shared.prev.kind === fig.kind ? shared.prev : undefined;
@@ -164,6 +167,7 @@ export function Sheet({ fig, n, live, tap: tapIn, caption, compact = false, stil
   return (
     <SheetVisible.Provider value={inView}>
     <View style={[styles.sheet, { backgroundColor: p.paper, borderColor: p.paperLine }]}>
+      {puzzle?.solved && !compact && <PuzzleSolved color={puzzle.color} reduced={reduced} />}
       <View style={styles.head}>
         <Text style={[styles.fig, { color: p.label }]}>FIG. {n}</Text>
         <Text style={[styles.params, { color: p.label }]} numberOfLines={1}>
@@ -398,7 +402,31 @@ function paramsOf(fig: Fig, a: number, live: number | undefined): string {
   }
 }
 
+/**
+ * The puzzle is solved: the sheet's frame lights up in the level's colour (2 → 3 → 2 pt, once) and a chip sits on its edge.
+ * With reduced motion only the chip shows.
+ */
+function PuzzleSolved({ color, reduced }: { color: string; reduced: boolean }) {
+  const k = useSharedValue(reduced ? 1 : 0);
+  useEffect(() => {
+    if (reduced) return;
+    k.set(withSequence(withTiming(1, { duration: motion.celebrate * 0.35, easing: Easing.out(Easing.cubic) }), withTiming(0.4, { duration: motion.celebrate * 0.65, easing: Easing.inOut(Easing.cubic) })));
+  }, [k, reduced]);
+  // k: 0 nothing, 1 the flash (3 pt), 0.4 the resting frame (2 pt)
+  const frame = useAnimatedStyle(() => ({ opacity: Math.min(1, k.get() * 2.5), borderWidth: 2 + (k.get() > 0.4 ? (k.get() - 0.4) / 0.6 : 0) }));
+  return (
+    <>
+      {!reduced && <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, { borderRadius: radius.m, borderColor: color }, frame]} />}
+      <View pointerEvents="none" accessible accessibilityLabel="Puzzle solved" style={[styles.chip, { backgroundColor: color }]}>
+        <Text style={styles.chipText}>PUZZLE SOLVED</Text>
+      </View>
+    </>
+  );
+}
+
 const styles = StyleSheet.create({
+  chip: { position: 'absolute', top: -11, left: 14, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 4, zIndex: 2 },
+  chipText: { fontFamily: font.monoBold, fontSize: 11, letterSpacing: 1, color: '#FFFFFF' },
   sheet: { borderWidth: 1, borderRadius: radius.m, paddingTop: 10, paddingBottom: 8, paddingHorizontal: 10, alignSelf: 'stretch' },
   head: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', gap: 12, paddingHorizontal: 4 },
   fig: { fontFamily: font.monoBold, fontSize: 11, letterSpacing: 1 },

@@ -18,6 +18,11 @@ export const feedback = {
     haptic.right();
     play('correct');
   },
+  /** The puzzle of the lesson is solved: the right buzz, with the reveal sound. */
+  solved: () => {
+    haptic.right();
+    play('reveal');
+  },
   wrong: () => {
     haptic.wrong();
     play('wrong');

@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 import { lessons } from '../content/lessons.ts';
 import { questionIds } from '../content/types.ts';
 import { entriesOf, minutesOf, onYourOwn, predictionMarks, predictionOf, reviewLine, ribbonLabel, ribbonOf, shorten, stampKind, trippedUp } from './breakdown.ts';
+import { puzzleQuestionId } from './puzzle.ts';
 import { startState, type LessonState, type Outcome } from './logic.ts';
 
 const L = lessons['f-ma'];
@@ -95,4 +96,15 @@ test('review line and stamp', () => {
   // exactly half shown is not "more than half"
   assert.equal(check.length, 4);
   assert.equal(stampKind(L, solved({ [check[0]]: 'revealed', [check[1]]: 'revealed' })), 'assisted');
+});
+
+test('every lesson has a puzzle question, and it is a graded question of its last chapter', () => {
+  for (const lesson of Object.values(lessons)) {
+    const id = puzzleQuestionId(lesson);
+    assert.ok(id, `${lesson.id}: a puzzle question`);
+    const at = lesson.story.findIndex((s) => s.id === id);
+    const chapterStart = lesson.story.findIndex((s) => s.id === lesson.chapters[2].from);
+    assert.ok(at >= chapterStart, `${lesson.id}: it comes in the last chapter`);
+    assert.ok(entriesOf(lesson).some((e) => e.id === id), `${lesson.id}: it is graded`);
+  }
 });

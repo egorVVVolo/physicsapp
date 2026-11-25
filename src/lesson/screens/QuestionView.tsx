@@ -12,6 +12,7 @@ import { useTheme } from '@/theme/ThemeContext';
 import { font, radius } from '@/theme/tokens';
 import { MainButton, OptionCard, OptionList, VerdictSheet, type CardState, type Verdict } from '@/ui/parts';
 import { feedback } from '@/ui/feedback';
+import { useRightSound } from '../puzzle';
 import { Frame } from '../Frame';
 import { Instruction, Prompt } from '../text';
 
@@ -37,13 +38,14 @@ export function QuestionView({ screen, figN, phase, earlierPick, onOutcome, onWr
   const right = useMemo(() => screen.options.find((o) => o.correct)!, [screen]);
   // Choice cards in a fixed per-screen order; tapFig options are places on the figure, so they keep theirs.
   const shown = useMemo(() => (screen.kind === 'choice' ? shuffled(screen.options, screen.id) : screen.options), [screen]);
+  const playRight = useRightSound(screen.id);
   const tries = phase === 'check' ? 1 : STORY_TRIES;
   const locked = status === 'right' || status === 'revealed';
 
   const check = () => {
     if (!sel) return;
     if (sel === right.id) {
-      feedback.right();
+      playRight();
       onOutcome(outcomeOf(wrong.length, phase));
       setStatus('right');
       return;

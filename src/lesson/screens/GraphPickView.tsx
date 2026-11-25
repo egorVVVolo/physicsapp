@@ -12,6 +12,7 @@ import { outcomeOf, STORY_TRIES, type Outcome, type Phase } from '@/session/logi
 import { useTheme } from '@/theme/ThemeContext';
 import { font, LIP, radius, touch } from '@/theme/tokens';
 import { feedback } from '@/ui/feedback';
+import { useRightSound } from '../puzzle';
 import { Pop, Shake } from '@/ui/motion';
 import { MainButton, Mark, VerdictSheet, type Verdict } from '@/ui/parts';
 import { Frame } from '../Frame';
@@ -24,6 +25,7 @@ type Status = 'answering' | 'retry' | 'right' | 'revealed';
 const SWIPE = 40;
 
 export function GraphPickView({ screen, figN, phase, onOutcome, onWrong, onNext }: Props) {
+  const playRight = useRightSound(screen.id);
   const tries = phase === 'check' ? 1 : STORY_TRIES;
   const ids: string[] = screen.graphs.map((g) => g.id);
   const right = screen.graphs.find((g) => g.correct)!;
@@ -56,7 +58,7 @@ export function GraphPickView({ screen, figN, phase, onOutcome, onWrong, onNext 
   const check = () => {
     if (!sel) return;
     if (sel === right.id) {
-      feedback.right();
+      playRight();
       onOutcome(outcomeOf(wrong.length, phase));
       setStatus('right');
       return;

@@ -10,6 +10,7 @@ import { revealed } from '@/session/reveal';
 import { useTheme } from '@/theme/ThemeContext';
 import { font, radius, touch } from '@/theme/tokens';
 import { feedback } from '@/ui/feedback';
+import { useRightSound } from '../puzzle';
 import { Rise, Shake } from '@/ui/motion';
 import { MainButton, Mark, VerdictSheet, type Verdict } from '@/ui/parts';
 import { Frame } from '../Frame';
@@ -19,6 +20,7 @@ type Props = { screen: SpotErrorScreen; figN: number; phase: Phase; onOutcome: (
 type Status = 'answering' | 'retry' | 'right' | 'revealed';
 
 export function SpotErrorView({ screen, figN, phase, onOutcome, onWrong, onNext }: Props) {
+  const playRight = useRightSound(screen.id);
   const { palette: p } = useTheme();
   const tries = phase === 'check' ? 1 : STORY_TRIES;
   const wrongLine = screen.lines.find((l) => l.wrong)!;
@@ -30,7 +32,7 @@ export function SpotErrorView({ screen, figN, phase, onOutcome, onWrong, onNext 
   const check = () => {
     if (!sel) return;
     if (sel === wrongLine.id) {
-      feedback.right();
+      playRight();
       onOutcome(outcomeOf(missed.length, phase));
       setStatus('right');
       return;

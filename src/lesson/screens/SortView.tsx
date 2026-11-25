@@ -13,6 +13,7 @@ import { solvedPlaced, wrongItems, type Placed } from '@/session/sort';
 import { useTheme } from '@/theme/ThemeContext';
 import { font, LIP, motion, radius, touch } from '@/theme/tokens';
 import { feedback } from '@/ui/feedback';
+import { useRightSound } from '../puzzle';
 import { Pop, Rise, Shake, useReducedMotionPref } from '@/ui/motion';
 import { MainButton, Mark, VerdictSheet, type Verdict } from '@/ui/parts';
 import { Frame } from '../Frame';
@@ -26,6 +27,7 @@ type ItemState = 'placed' | 'wrong' | 'right' | 'shown';
 const SHOW_WRONG = 700;
 
 export function SortView({ screen, figN, phase, onOutcome, onWrong, onNext }: Props) {
+  const playRight = useRightSound(screen.id);
   const { palette: p } = useTheme();
   const reduced = useReducedMotionPref();
   const tries = phase === 'check' ? 1 : STORY_TRIES;
@@ -71,7 +73,7 @@ export function SortView({ screen, figN, phase, onOutcome, onWrong, onNext }: Pr
   const check = () => {
     const w = wrongItems(screen, placed);
     if (w.length === 0) {
-      feedback.right();
+      playRight();
       onOutcome(outcomeOf(misses, phase));
       setStatus('right');
       return;

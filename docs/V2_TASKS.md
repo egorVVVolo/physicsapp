@@ -76,7 +76,7 @@
 | D12 | Уроки «Stress, strain, Young modulus» и «Reading material graphs» | ✅ |
 | D13 | Урок «Elastic strain energy»; правила v3 включены для всех | ✅ |
 | E1 | Конец урока: праздник + экран разбора | ✅ |
-| E2 | «Ага»-момент при решённой загадке | |
+| E2 | «Ага»-момент при решённой загадке | ✅ |
 | E3 | Экран Level complete | |
 | F1 | Вкладки Home · Learn · Revise · Me (сложная) | |
 | F2 | Экран Home (стоп: владелец) | |

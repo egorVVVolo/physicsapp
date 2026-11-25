@@ -15,6 +15,7 @@ import { shuffled } from '@/session/shuffle';
 import { useTheme } from '@/theme/ThemeContext';
 import { font, LIP, motion, radius, touch } from '@/theme/tokens';
 import { feedback } from '@/ui/feedback';
+import { useRightSound } from '../puzzle';
 import { Shake, useReducedMotionPref } from '@/ui/motion';
 import { MainButton, Mark, OptionCard, OptionList, VerdictSheet, type CardState, type Verdict } from '@/ui/parts';
 import { Frame } from '../Frame';
@@ -38,6 +39,7 @@ export function resultText(r: BuildScreen['result']): string {
 }
 
 export function BuildView({ screen, figN, phase, onOutcome, onWrong, onNext }: Props) {
+  const playRight = useRightSound(screen.id);
   const { palette: p } = useTheme();
   const reduced = useReducedMotionPref();
   const tries = phase === 'check' ? 1 : STORY_TRIES;
@@ -89,7 +91,7 @@ export function BuildView({ screen, figN, phase, onOutcome, onWrong, onNext }: P
   const checkBoxes = () => {
     const res = checkBuild(screen, filled);
     if (res.ok) {
-      feedback.right();
+      playRight();
       record(Math.min(1, eqMisses + boxMisses)); // right after a miss: assisted
       setStatus('right');
       return;

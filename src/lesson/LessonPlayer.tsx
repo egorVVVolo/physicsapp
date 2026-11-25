@@ -1,10 +1,11 @@
 // Plays one lesson: the top bar (close, progress, Skill check dots) and the current screen.
 // Each new screen slides in; the progress fill glides, a Skill check dot pops when answered.
 // When the next screen shows the same kind of figure, its sheet stays in place and only the text moves in.
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { BackHandler, Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { Fig, Lesson } from '@/content/types';
+import { puzzleQuestionId } from '@/session/puzzle';
 import { carriedFig, chapterOf, figNumbers, figOf, itemsOf, next, progressOf, recordMarks, recordOutcome, recordPick, recordWrong, type LessonState, type Outcome } from '@/session/logic';
 import { LessonFigs, SharedSheet, type FigMemory, type SharedFig } from '@/figures/anim';
 import { useTheme } from '@/theme/ThemeContext';
@@ -13,6 +14,7 @@ import { CloseIcon } from '@/ui/parts';
 import { ScreenEnter, useReducedMotionPref } from '@/ui/motion';
 import Animated, { Easing, useAnimatedStyle, useSharedValue, withSequence, withSpring, withTiming } from 'react-native-reanimated';
 import { ChapterBanner } from './ChapterBanner';
+import { PuzzleContext, type PuzzleMoment } from './puzzle';
 import { CONTENT_MAX } from './Frame';
 import { LEAVE_SHEET_OUT, LeaveSheet } from './LeaveSheet';
 import { BuildView } from './screens/BuildView';
@@ -50,6 +52,27 @@ export function LessonPlayer({ lesson, state, onChange, onClose }: Props) {
     chain.to = s;
     onChange(s);
   };
+  // the puzzle's answer moment: plays once per lesson, on the screen of the question that solves the puzzle
+  const puzzleId = puzzleQuestionId(lesson);
+  const [puzzlePlayed] = useState({ done: false });
+  const [solvedAt, setSolvedAt] = useState<number | null>(null);
+  const puzzle = useMemo<PuzzleMoment | null>(
+    () =>
+      puzzleId
+        ? {
+            screenId: puzzleId,
+            solved: solvedAt === state.index,
+            color: c.main,
+            fire: () => {
+              if (puzzlePlayed.done) return false;
+              puzzlePlayed.done = true;
+              setSolvedAt(state.index);
+              return true;
+            },
+          }
+        : null,
+    [puzzleId, solvedAt, state.index, c.main, puzzlePlayed],
+  );
   const go = () => {
     setLeft({ index: state.index, fig: memory.shown, width: memory.width, scrollY: memory.scrollY });
     memory.shown = null;
@@ -155,7 +178,9 @@ export function LessonPlayer({ lesson, state, onChange, onClose }: Props) {
       <View style={{ flex: 1 }} key={state.index}>
         <LessonFigs.Provider value={memory}>
           <SharedSheet.Provider value={shared}>
-            <ScreenEnter still={shared !== null}>{body}</ScreenEnter>
+            <PuzzleContext.Provider value={puzzle}>
+              <ScreenEnter still={shared !== null}>{body}</ScreenEnter>
+            </PuzzleContext.Provider>
           </SharedSheet.Provider>
         </LessonFigs.Provider>
         {newChapter !== null && lesson.chapters && <ChapterBanner n={newChapter} title={lesson.chapters[newChapter].title} color={c} />}

@@ -12,6 +12,7 @@ import { shuffled } from '@/session/shuffle';
 import { useTheme } from '@/theme/ThemeContext';
 import { font, LIP, motion, radius, touch } from '@/theme/tokens';
 import { feedback } from '@/ui/feedback';
+import { useRightSound } from '../puzzle';
 import { Rise, Shake, useReducedMotionPref } from '@/ui/motion';
 import { MainButton, Mark, VerdictSheet, type Verdict } from '@/ui/parts';
 import { Frame } from '../Frame';
@@ -21,6 +22,7 @@ type Props = { screen: OrderScreen; figN: number; phase: Phase; onOutcome: (o: O
 type Status = 'answering' | 'retry' | 'right' | 'revealed';
 
 export function OrderView({ screen, figN, phase, onOutcome, onWrong, onNext }: Props) {
+  const playRight = useRightSound(screen.id);
   const reduced = useReducedMotionPref();
   const tries = phase === 'check' ? 1 : STORY_TRIES;
   const pool = useMemo(() => shuffled(screen.steps, screen.id), [screen]);
@@ -57,7 +59,7 @@ export function OrderView({ screen, figN, phase, onOutcome, onWrong, onNext }: P
   const check = () => {
     const k = firstWrongRow(screen, rows);
     if (k < 0) {
-      feedback.right();
+      playRight();
       onOutcome(outcomeOf(misses, phase));
       setStatus('right');
       return;
