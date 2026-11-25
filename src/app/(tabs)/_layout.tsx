@@ -21,7 +21,7 @@ export default function TabsLayout() {
     return <Redirect href="/welcome" />;
   }
   return (
-    <Tabs tabBar={(props) => <TabBar {...props} />} screenOptions={{ headerShown: false, sceneStyle: { backgroundColor: p.page } }}>
+    <Tabs tabBar={(props) => <TabBar {...props} />} screenOptions={{ headerShown: false, sceneStyle: { backgroundColor: p.page }, animation: 'fade', transitionSpec: { animation: 'timing', config: { duration: 180 } } }}>
       <Tabs.Screen name="index" options={{ title: 'Home' }} />
       <Tabs.Screen name="learn" options={{ title: 'Learn' }} />
       <Tabs.Screen name="revise" options={{ title: 'Revise' }} />

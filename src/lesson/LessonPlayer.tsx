@@ -12,7 +12,7 @@ import { useTheme } from '@/theme/ThemeContext';
 import { colorOfLesson } from '@/theme/levelColor';
 import { CloseIcon } from '@/ui/parts';
 import { ScreenEnter, useReducedMotionPref } from '@/ui/motion';
-import Animated, { Easing, useAnimatedStyle, useSharedValue, withSequence, withSpring, withTiming } from 'react-native-reanimated';
+import Animated, { Easing, useAnimatedStyle, useSharedValue, withSequence, withTiming } from 'react-native-reanimated';
 import { ChapterBanner } from './ChapterBanner';
 import { PuzzleContext, type PuzzleMoment } from './puzzle';
 import { CONTENT_MAX } from './Frame';
@@ -213,7 +213,7 @@ function CheckDot({ done, color }: { done: boolean; color: string }) {
   const reduced = useReducedMotionPref();
   const s = useSharedValue(1);
   useEffect(() => {
-    if (done && !reduced) s.set(withSequence(withTiming(1.5, { duration: 140 }), withSpring(1, { damping: 7, stiffness: 200 })));
+    if (done && !reduced) s.set(withSequence(withTiming(1.4, { duration: 140, easing: Easing.out(Easing.cubic) }), withTiming(1, { duration: 260, easing: Easing.inOut(Easing.cubic) })));
   }, [done, reduced, s]);
   const style = useAnimatedStyle(() => ({ transform: [{ scale: s.get() }] }));
   return <Animated.View style={[styles.dot, { backgroundColor: done ? color : p.disabled }, style]} />;

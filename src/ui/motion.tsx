@@ -2,7 +2,7 @@
 // with reduced motion everything is simply shown.
 import { useEffect, useState, type ReactNode } from 'react';
 import { AccessibilityInfo, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
-import Animated, { Easing, useAnimatedStyle, useSharedValue, withDelay, withSequence, withSpring, withTiming } from 'react-native-reanimated';
+import Animated, { Easing, useAnimatedStyle, useSharedValue, withDelay, withSequence, withTiming } from 'react-native-reanimated';
 import { motion } from '@/theme/tokens';
 
 /** True when the device asks for reduced motion (checked once). */
@@ -20,13 +20,13 @@ const out = Easing.out(Easing.cubic);
  * Slides in from the right and fades in: a whole screen, or only its text when the figure stays in place.
  * `still`: shown as it is, without moving (decided when it mounts).
  */
-export function ScreenEnter({ children, still = false, style }: { children: ReactNode; still?: boolean; style?: StyleProp<ViewStyle> }) {
+export function ScreenEnter({ children, still = false, from = 36, style }: { children: ReactNode; still?: boolean; /** Where it starts, in pt to the right of its place (negative: from the left). */ from?: number; style?: StyleProp<ViewStyle> }) {
   const reduced = useReducedMotionPref();
   const k = useSharedValue(still ? 1 : 0);
   useEffect(() => {
     if (!still) k.set(reduced ? 1 : withTiming(1, { duration: motion.screen, easing: out }));
   }, [k, reduced, still]);
-  const anim = useAnimatedStyle(() => ({ opacity: k.get(), transform: [{ translateX: (1 - k.get()) * 36 }] }));
+  const anim = useAnimatedStyle(() => ({ opacity: k.get(), transform: [{ translateX: (1 - k.get()) * from }] }));
   return <Animated.View style={[style ?? styles.fill, anim]}>{children}</Animated.View>;
 }
 
@@ -58,13 +58,13 @@ export function Rise({ children, delay = 0, style }: { children: ReactNode; dela
   return <Animated.View style={[style, anim]}>{children}</Animated.View>;
 }
 
-/** A quick "pop": scale up a little and settle back, each time `trigger` becomes true. */
+/** A quick "pop": scale up a little and ease back (no overshoot), each time `trigger` becomes true. */
 export function Pop({ children, trigger, style }: { children: ReactNode; trigger: boolean; style?: StyleProp<ViewStyle> }) {
   const reduced = useReducedMotionPref();
   const s = useSharedValue(1);
   useEffect(() => {
     if (!trigger || reduced) return;
-    s.set(withSequence(withTiming(1.045, { duration: 120, easing: out }), withSpring(1, { damping: 9, stiffness: 220 })));
+    s.set(withSequence(withTiming(1.05, { duration: 140, easing: out }), withTiming(1, { duration: 260, easing: Easing.inOut(Easing.cubic) })));
   }, [trigger, reduced, s]);
   const anim = useAnimatedStyle(() => ({ transform: [{ scale: s.get() }] }));
   return <Animated.View style={[style, anim]}>{children}</Animated.View>;

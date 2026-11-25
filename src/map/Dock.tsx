@@ -4,7 +4,7 @@
 // When every built lesson is done, the card says more are on the way (until a puck is picked).
 import { useEffect } from 'react';
 import { StyleSheet, Text, View, type LayoutChangeEvent } from 'react-native';
-import Animated, { useAnimatedStyle, useReducedMotion, useSharedValue, withSpring, withTiming } from 'react-native-reanimated';
+import Animated, { Easing, useAnimatedStyle, useReducedMotion, useSharedValue, withTiming } from 'react-native-reanimated';
 import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
 import { darkNeutral, illustration, lightNeutral } from '@/art/illustrations';
 import type { LessonRef } from '@/content/types';
@@ -36,7 +36,7 @@ export function Dock({ r, color, status, allDone = false, bottomInset, onStart, 
   const swap = useSharedValue(1);
 
   useEffect(() => {
-    if (!reduced) rise.set(withSpring(1, { damping: 16, stiffness: 120 }));
+    if (!reduced) rise.set(withTiming(1, { duration: 420, easing: Easing.out(Easing.cubic) }));
   }, [rise, reduced]);
   useEffect(() => {
     if (reduced) return;

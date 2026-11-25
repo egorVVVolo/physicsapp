@@ -246,7 +246,5 @@ export const motion = {
   easeOut: [0.22, 1, 0.36, 1],
   easeInOut: [0.65, 0, 0.35, 1],
   easeIn: [0.55, 0, 1, 0.45],
-  /** springs (Reanimated withSpring): a sheet settles without a bounce, a pop overshoots once */
-  springSheet: { damping: 22, stiffness: 240 },
-  springPop: { damping: 9, stiffness: 220 },
+  // No springs in the interface: everything eases out and stops. Only drawn bodies bounce, by formula.
 } as const;

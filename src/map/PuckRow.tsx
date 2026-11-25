@@ -11,7 +11,6 @@ import Animated, {
   withDelay,
   withRepeat,
   withSequence,
-  withSpring,
   withTiming,
 } from 'react-native-reanimated';
 import Svg, { Ellipse } from 'react-native-svg';
@@ -130,7 +129,7 @@ export function PuckRow({ r, levelId, color, state, picked, next, cx, cy, labelL
           press.set(withTiming(1, { duration: 80 }));
         }}
         onPressOut={() => {
-          press.set(withSpring(0, { damping: 9, stiffness: 260 }));
+          press.set(withTiming(0, { duration: 160, easing: Easing.out(Easing.cubic) }));
         }}
         style={[styles.abs, { left, top: top - 8, right: 0, height: PUCK_H + 16 }]}
       >

@@ -1,107 +1,104 @@
-// Revise: keep what you learned fresh. Today's review (with what is due next), practice by level (each level's object,
-// grey until a lesson of it is finished), your mistakes, the mock set and the notebook. Different shapes on purpose:
-// the review is a card, the levels a list with their objects, the rest rows with icons.
+// Revise: one main thing, today's review, and four tiles under it: practise a level (opens a sheet with the levels),
+// your mistakes, the mock set and the notebook. A tile that is not open yet is grey and says when it opens.
+import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { router, type Href } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { levelObject, object } from '@/art/objects';
 import { uiIcon, type UiIconName } from '@/art/uiIcons';
-import { SectionTitle } from '@/home/parts';
 import { ReviewCard } from '@/home/ReviewCard';
 import { CONTENT_MAX } from '@/lesson/Frame';
 import { bankOf } from '@/practice/bank';
+import { LevelSheet } from '@/practice/LevelSheet';
 import { pickReview, whenText } from '@/practice/review';
-import { MOCK_AFTER, MOCK_SET, levelLine, levelRows, mistakeCount, nextReview } from '@/practice/reviseRows';
+import { MOCK_AFTER, MOCK_SET, mistakeCount, nextReview } from '@/practice/reviseRows';
 import { readyRefs } from '@/session/progress';
 import { dayKey } from '@/session/streak';
 import { useCourseState } from '@/session/useCourseState';
 import { useTheme } from '@/theme/ThemeContext';
-import { font, levelColors, reward, soonGrey, soonReward } from '@/theme/tokens';
+import { font } from '@/theme/tokens';
 import { Art } from '@/ui/Art';
+import { Rise } from '@/ui/motion';
 
 export default function Revise() {
   const { palette: p } = useTheme();
   const insets = useSafeAreaInsets();
   const s = useCourseState();
+  const [levels, setLevels] = useState(false);
   const today = dayKey(new Date());
   const due = pickReview(s.review, bankOf(s.finished), today).length;
   const nr = nextReview(s.review, today);
   const nextText = nr ? `${whenText(nr.day, today)}, ${nr.count} ${nr.count === 1 ? 'question' : 'questions'}` : null;
   const wrong = mistakeCount(s.review, s.finished);
   const mockOpen = s.finished.size >= MOCK_AFTER;
+  const anyDone = s.finished.size > 0;
 
   return (
-    <ScrollView style={{ backgroundColor: p.page }} contentContainerStyle={[styles.content, { paddingTop: insets.top + 16 }]}>
-      <View style={styles.column}>
-        <Text accessibilityRole="header" style={[styles.title, { color: p.ink }]}>
-          Revise
-        </Text>
-        {s.loaded && (
-          <>
-            <ReviewCard detail due={due} minutes={Math.max(1, Math.ceil(Math.min(due, 5) * 0.6))} next={nextText} empty={s.finished.size === 0} onStart={() => router.push('/practice/review')} />
-
-            <View style={{ gap: 4 }}>
-              <SectionTitle>Practise a level</SectionTitle>
-              {levelRows(s.finished).map((r) => (
-                <Pressable
-                  key={r.levelId}
-                  accessibilityRole="button"
-                  accessibilityState={{ disabled: !r.open }}
-                  disabled={!r.open}
-                  accessibilityLabel={`${r.title}. ${levelLine(r)}`}
-                  onPress={() => router.push(`/practice/level-${r.levelId}` as Href)}
-                  style={({ pressed }) => [styles.level, { borderBottomColor: p.line, opacity: pressed ? 0.7 : 1 }]}
-                >
-                  <Art xml={object(levelObject[r.levelId], r.open ? levelColors[r.levelId] : soonGrey, r.open ? reward : soonReward)} width={40} />
-                  <View style={{ flex: 1 }}>
-                    <Text style={[styles.levelTitle, { color: r.open ? p.ink : p.muted }]}>{r.title}</Text>
-                    <Text style={[styles.levelLine, { color: p.muted }]}>{levelLine(r)}</Text>
-                  </View>
-                  <Art xml={uiIcon(r.open ? 'forward' : 'lock')} width={r.open ? 20 : 18} color={p.muted} />
-                </Pressable>
-              ))}
-            </View>
-
-            <View style={[styles.rows, { borderColor: p.line }]}>
-              <Row icon="why" label={wrong > 0 ? `Your mistakes · ${wrong}` : 'No mistakes to fix right now'} to={wrong > 0 ? '/practice/mistakes' : undefined} />
-              <Row icon="practice" label={`Mock set · ${MOCK_SET} questions`} sub={mockOpen ? 'One try each, an exam card at the end' : `Opens after ${MOCK_AFTER} lessons (${s.finished.size} of ${MOCK_AFTER})`} to={mockOpen ? '/practice/mock' : undefined} />
-              <Row icon="notebook" label={`Notebook · ${s.finished.size} of ${readyRefs.length}`} to="/notebook" last />
-            </View>
-          </>
-        )}
-      </View>
-    </ScrollView>
+    <View style={{ flex: 1, backgroundColor: p.page }}>
+      <ScrollView contentContainerStyle={[styles.content, { paddingTop: insets.top + 16 }]}>
+        <View style={styles.column}>
+          <Text accessibilityRole="header" style={[styles.title, { color: p.ink }]}>
+            Revise
+          </Text>
+          {s.loaded && (
+            <>
+              <Rise>
+                <ReviewCard due={due} minutes={Math.max(1, Math.ceil(Math.min(due, 5) * 0.6))} next={nextText} empty={!anyDone} onStart={() => router.push('/practice/review')} />
+              </Rise>
+              <View style={styles.grid}>
+                <Rise delay={80} style={styles.cell}>
+                  <Tile icon="practice" label="Practise a level" sub={anyDone ? 'Pick a topic' : 'After your first lesson'} onPress={anyDone ? () => setLevels(true) : undefined} />
+                </Rise>
+                <Rise delay={140} style={styles.cell}>
+                  <Tile icon="why" label="Your mistakes" sub={wrong > 0 ? `${wrong} to fix` : 'Nothing to fix'} to={wrong > 0 ? '/practice/mistakes' : undefined} />
+                </Rise>
+                <Rise delay={200} style={styles.cell}>
+                  <Tile
+                    icon="progress"
+                    label="Mock set"
+                    sub={mockOpen ? `${MOCK_SET} questions` : `Opens after ${MOCK_AFTER} lessons (${s.finished.size} of ${MOCK_AFTER})`}
+                    to={mockOpen ? '/practice/mock' : undefined}
+                  />
+                </Rise>
+                <Rise delay={260} style={styles.cell}>
+                  <Tile icon="notebook" label="Notebook" sub={`${s.finished.size} of ${readyRefs.length} cards`} to="/notebook" />
+                </Rise>
+              </View>
+            </>
+          )}
+        </View>
+      </ScrollView>
+      {levels && <LevelSheet finished={s.finished} onClose={() => setLevels(false)} />}
+    </View>
   );
 }
 
-function Row({ icon, label, sub, to, last }: { icon: UiIconName; label: string; sub?: string; to?: Href; last?: boolean }) {
+function Tile({ icon, label, sub, to, onPress }: { icon: UiIconName; label: string; sub: string; to?: Href; onPress?: () => void }) {
   const { palette: p } = useTheme();
+  const open = !!to || !!onPress;
   return (
     <Pressable
-      accessibilityRole={to ? 'button' : 'text'}
-      disabled={!to}
-      onPress={() => to && router.push(to)}
-      style={({ pressed }) => [styles.row, !last && { borderBottomWidth: 1, borderBottomColor: p.line }, { opacity: pressed ? 0.7 : 1 }]}
+      accessibilityRole={open ? 'button' : 'text'}
+      accessibilityLabel={`${label}. ${sub}`}
+      disabled={!open}
+      onPress={() => (onPress ? onPress() : to && router.push(to))}
+      style={({ pressed }) => [styles.tile, { borderColor: p.line, backgroundColor: open ? p.page : p.paper, opacity: pressed ? 0.7 : 1 }]}
     >
-      <Art xml={uiIcon(icon)} width={24} color={to ? p.ink : p.muted} />
-      <View style={{ flex: 1 }}>
-        <Text style={[styles.rowText, { color: to ? p.ink : p.muted }]}>{label}</Text>
-        {sub && <Text style={[styles.rowSub, { color: p.muted }]}>{sub}</Text>}
+      <Art xml={uiIcon(icon)} width={28} color={open ? p.ink : p.muted} />
+      <View style={{ gap: 2 }}>
+        <Text style={[styles.tileLabel, { color: open ? p.ink : p.muted }]}>{label}</Text>
+        <Text style={[styles.tileSub, { color: p.muted }]}>{sub}</Text>
       </View>
-      {to && <Art xml={uiIcon('forward')} width={20} color={p.muted} />}
     </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
   content: { paddingHorizontal: 20, paddingBottom: 32 },
-  column: { width: '100%', maxWidth: CONTENT_MAX, alignSelf: 'center', gap: 24 },
+  column: { width: '100%', maxWidth: CONTENT_MAX, alignSelf: 'center', gap: 20 },
   title: { fontFamily: font.display, fontSize: 30, lineHeight: 36 },
-  level: { flexDirection: 'row', alignItems: 'center', gap: 14, minHeight: 64, borderBottomWidth: 1 },
-  levelTitle: { fontFamily: font.bodySemi, fontSize: 17 },
-  levelLine: { fontFamily: font.body, fontSize: 14, marginTop: 2 },
-  rows: { borderWidth: 1, borderRadius: 16, paddingHorizontal: 16 },
-  row: { flexDirection: 'row', alignItems: 'center', gap: 14, minHeight: 56, paddingVertical: 10 },
-  rowText: { fontFamily: font.bodyMedium, fontSize: 17 },
-  rowSub: { fontFamily: font.body, fontSize: 14, marginTop: 2 },
+  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
+  cell: { width: '47.5%', flexGrow: 1 },
+  tile: { flex: 1, minHeight: 132, borderWidth: 2, borderRadius: 18, padding: 14, gap: 16 },
+  tileLabel: { fontFamily: font.bodySemi, fontSize: 16, lineHeight: 21 },
+  tileSub: { fontFamily: font.body, fontSize: 13.5, lineHeight: 18 },
 });

@@ -11,7 +11,7 @@ import { APP_NAME } from '@/config';
 import { course } from '@/content/course';
 import { SPEC } from '@/content/spec';
 import { Puck } from '@/figures/Puck';
-import { SectionTitle } from '@/home/parts';
+import { ExamStrip, SectionTitle } from '@/home/parts';
 import { CONTENT_MAX } from '@/lesson/Frame';
 import { momentumOf } from '@/map/Momentum';
 import { lastOutcomes } from '@/practice/review';
@@ -42,6 +42,7 @@ export default function Me() {
         <Text accessibilityRole="header" style={[styles.title, { color: p.ink }]}>
           Me
         </Text>
+        {s.loaded && s.profile.exam && <ExamStrip exam={s.profile.exam} now={new Date()} />}
         {s.loaded && empty && (
           <View style={{ alignItems: 'center', gap: 12 }}>
             <Art xml={illustration('emptyProgress', { ...courseBlue, soft: dark ? p.selectBg : courseBlue.soft }, reward, dark ? darkNeutral : lightNeutral)} width={260} />

@@ -4,7 +4,7 @@
 import { useEffect } from 'react';
 import { AccessibilityInfo, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Animated, { Easing, useAnimatedStyle, useSharedValue, withSpring, withTiming } from 'react-native-reanimated';
+import Animated, { Easing, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { useTheme } from '@/theme/ThemeContext';
 import { font, touch } from '@/theme/tokens';
 import { MainButton, useReducedMotionPref } from '@/ui/parts';
@@ -24,7 +24,7 @@ export function LeaveSheet({ closing, onStay, onLeave }: Props) {
   useEffect(() => {
     if (reduced) k.set(closing ? 0 : 1);
     else if (closing) k.set(withTiming(0, { duration: LEAVE_SHEET_OUT, easing: Easing.in(Easing.cubic) }));
-    else k.set(withSpring(1, { damping: 18, stiffness: 220, mass: 0.9 }));
+    else k.set(withTiming(1, { duration: 300, easing: Easing.out(Easing.cubic) }));
   }, [closing, reduced, k]);
 
   useEffect(() => {

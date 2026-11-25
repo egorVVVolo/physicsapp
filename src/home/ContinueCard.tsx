@@ -1,4 +1,4 @@
-// The biggest card on Home: the next lesson. Its opening figure on a strip of drawing paper, the lesson tile, the level,
+// The biggest card on Home: the next lesson. The course picture (moving) on drawing paper, the lesson tile, the level,
 // the title, where you are ("Chapter 2 of 3 · ~6 min left" or "Up next"), and one button in the level's colour.
 // When every lesson is done: the all-done picture and a pointer to Revise.
 import { StyleSheet, Text, View } from 'react-native';
@@ -6,7 +6,7 @@ import { darkNeutral, illustration, lightNeutral } from '@/art/illustrations';
 import { course, levelIdOf } from '@/content/course';
 import { lessons } from '@/content/lessons';
 import { LessonTile } from '@/figures/LessonIcon';
-import { Sheet } from '@/figures/Sheet';
+import { SceneBox } from '@/map/CourseScene';
 import { continueLine, type Saved } from '@/session/progress';
 import { useTheme } from '@/theme/ThemeContext';
 import { courseBlue, font, levelColors, reward } from '@/theme/tokens';
@@ -31,17 +31,13 @@ export function ContinueCard({ lessonId, saved, onStart }: { lessonId: string | 
   const c = levelColors[levelId];
   const lc = level(c);
   const li = course.levels.findIndex((l) => l.id === levelId);
-  const intro = lesson.story[0];
-  const fig = 'fig' in intro ? intro.fig : undefined;
   const started = !!saved && !saved.finished && saved.index > 0;
   return (
     <View style={[styles.lipWrap, { backgroundColor: lc.main }]}>
       <View style={[styles.card, { borderColor: lc.main, backgroundColor: p.page }]}>
-        {fig && (
-          <View style={styles.strip} pointerEvents="none">
-            <Sheet fig={fig} n={1} compact />
-          </View>
-        )}
+        <View style={[styles.scene, { backgroundColor: p.paper, borderBottomColor: p.paperLine }]} pointerEvents="none">
+          <SceneBox />
+        </View>
         <View style={styles.body}>
           <View style={styles.row}>
             <LessonTile lessonId={lessonId} levelId={levelId} color={c} size={44} />
@@ -63,7 +59,7 @@ export function ContinueCard({ lessonId, saved, onStart }: { lessonId: string | 
 const styles = StyleSheet.create({
   lipWrap: { borderRadius: 20, paddingBottom: 5 },
   card: { borderWidth: 2, borderRadius: 20, overflow: 'hidden' },
-  strip: { padding: 12, paddingBottom: 0 },
+  scene: { borderBottomWidth: 1 },
   body: { padding: 16, gap: 12 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   level: { fontFamily: font.mono, fontSize: 11, letterSpacing: 0.8 },

@@ -1,12 +1,11 @@
-// Small pieces of the Home screen: the greeting, the exam strip, the week of momentum, the levels at a glance,
-// a section title and the quiet outline button.
+// Small pieces shared by the tabs: the greeting, the exam strip (Me), a section title and the quiet outline button.
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { examLine } from '@/session/exam';
-import { greeting, longDate, type levelCounts } from '@/session/progress';
-import { addDays, dayKey, type Streak } from '@/session/streak';
+import { greeting, longDate } from '@/session/progress';
+import type { Streak } from '@/session/streak';
 import { MomentumChip } from '@/map/Momentum';
 import { useTheme } from '@/theme/ThemeContext';
-import { font, levelColors, reward } from '@/theme/tokens';
+import { font } from '@/theme/tokens';
 
 export function Greeting({ now, streak, onMomentum }: { now: Date; streak: Streak; onMomentum: () => void }) {
   const { palette: p } = useTheme();
@@ -55,57 +54,6 @@ export function OutlineButton({ label, onPress }: { label: string; onPress: () =
   );
 }
 
-/** The last seven days, oldest first, today last: a gold disc on a day with a lesson or a review. */
-export function weekOf(streak: Streak, today: Date): { key: string; letter: string; done: boolean; today: boolean }[] {
-  const t = dayKey(today);
-  return Array.from({ length: 7 }, (_, i) => {
-    const key = addDays(t, i - 6);
-    const [y, m, d] = key.split('-').map(Number);
-    return { key, letter: 'SMTWTFS'[new Date(y, m - 1, d).getDay()], done: streak.days.includes(key), today: i === 6 };
-  });
-}
-
-export function WeekRow({ streak, now }: { streak: Streak; now: Date }) {
-  const { palette: p } = useTheme();
-  const week = weekOf(streak, now);
-  const n = week.filter((d) => d.done).length;
-  return (
-    <View style={styles.week} accessible accessibilityLabel={`This week: ${n} of 7 days`}>
-      {week.map((d) => (
-        <View key={d.key} style={styles.day}>
-          <View style={[styles.dot, d.done ? { backgroundColor: reward.face, borderColor: reward.side } : { borderColor: p.line }, d.today && { borderColor: p.ink, borderWidth: 3 }]} />
-          <Text style={[styles.letter, { color: d.today ? p.ink : p.faint }]}>{d.letter}</Text>
-        </View>
-      ))}
-    </View>
-  );
-}
-
-export function CourseBars({ levels, onLevel }: { levels: ReturnType<typeof levelCounts>; onLevel: (levelId: string) => void }) {
-  const { palette: p, level } = useTheme();
-  return (
-    <View style={{ gap: 4 }}>
-      {levels.map((l) => {
-        const c = level(levelColors[l.levelId]);
-        return (
-          <Pressable key={l.levelId} accessibilityRole="button" accessibilityLabel={`${l.title}: ${l.done} of ${l.total} lessons. Open on the map`} onPress={() => onLevel(l.levelId)} style={styles.bar}>
-            <View style={styles.barHead}>
-              <View style={[styles.barDot, { backgroundColor: c.main }]} />
-              <Text style={[styles.barTitle, { color: p.ink }]}>{l.title}</Text>
-              <Text style={[styles.barCount, { color: p.muted }]}>
-                {l.done} of {l.total}
-              </Text>
-            </View>
-            <View style={[styles.track, { backgroundColor: p.disabled }]}>
-              <View style={[styles.fill, { backgroundColor: c.main, width: `${(l.done / Math.max(1, l.total)) * 100}%` }]} />
-            </View>
-          </Pressable>
-        );
-      })}
-    </View>
-  );
-}
-
 const styles = StyleSheet.create({
   greetRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   greet: { fontFamily: font.display, fontSize: 26, lineHeight: 32 },
@@ -117,15 +65,4 @@ const styles = StyleSheet.create({
   sectionRight: { fontFamily: font.bodyMedium, fontSize: 14 },
   outline: { minHeight: 48, borderWidth: 2, borderRadius: 999, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 20 },
   outlineText: { fontFamily: font.displaySemi, fontSize: 16 },
-  week: { flexDirection: 'row', justifyContent: 'space-between' },
-  day: { alignItems: 'center', gap: 6 },
-  dot: { width: 30, height: 30, borderRadius: 15, borderWidth: 2.5 },
-  letter: { fontFamily: font.mono, fontSize: 13 },
-  bar: { minHeight: 44, justifyContent: 'center', gap: 6, paddingVertical: 4 },
-  barHead: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  barDot: { width: 10, height: 10, borderRadius: 5 },
-  barTitle: { flex: 1, fontFamily: font.bodySemi, fontSize: 16 },
-  barCount: { fontFamily: font.mono, fontSize: 13 },
-  track: { height: 6, borderRadius: 3, overflow: 'hidden', marginLeft: 20 },
-  fill: { height: '100%', borderRadius: 3 },
 });

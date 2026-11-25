@@ -187,6 +187,24 @@ export async function savePrefs(change: Partial<Prefs>): Promise<Prefs> {
   return next;
 }
 
+const COURSE_KEY = 'course/v1';
+
+/** The course the learner opened last in Learn, or null before the first choice. Reset progress does not touch it. */
+export async function loadCourseId(): Promise<string | null> {
+  try {
+    const id = await AsyncStorage.getItem(COURSE_KEY);
+    return id && id.length < 60 ? id : null;
+  } catch {
+    return null;
+  }
+}
+
+export async function saveCourseId(id: string): Promise<void> {
+  try {
+    await AsyncStorage.setItem(COURSE_KEY, id);
+  } catch {}
+}
+
 const LEVELS_KEY = 'levels-done/v1';
 
 /** Levels whose "Level complete" has been shown. */
