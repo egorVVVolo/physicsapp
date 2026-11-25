@@ -21,6 +21,7 @@ export const uiIconBodies = {
   sun: `<circle cx="12" cy="12" r="3.8"/><path d="M12,3 V5 M12,19 V21 M3,12 H5 M19,12 H21 M5.6,5.6 L7,7 M17,17 L18.4,18.4 M18.4,5.6 L17,7 M7,17 L5.6,18.4"/>`,
   lock: `<rect x="5.5" y="10.5" width="13" height="10" rx="2.5"/><path d="M8.5,10.5 V8 A3.5,3.5 0 0 1 15.5,8 V10.5"/>`,
   why: `<circle cx="12" cy="12" r="8.5"/><path d="M9.6,9.6 A2.5,2.5 0 1 1 12,12.6 V13.8"/><circle cx="12" cy="16.6" r="1.1" ${dot}/>`,
+  home: `<path d="M4,11 L12,4 L20,11 M6.5,9.5 V20 H17.5 V9.5"/>`,
   notebook: `<rect x="6" y="4" width="13" height="16" rx="2"/><path d="M4,8 H8 M4,12 H8 M4,16 H8 M11.5,9 H15.5 M11.5,12.5 H15.5"/>`,
   learn: `<circle cx="6.5" cy="17.5" r="2.5"/><circle cx="17.5" cy="6.5" r="2.5"/><path d="M9,17.5 H13 A3,3 0 0 0 13,11.5 H11 A2.5,2.5 0 0 1 11,6.5 H15" stroke-dasharray="0.1 3.4"/>`,
   practice: `<circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r="1.2" ${dot}/>`,

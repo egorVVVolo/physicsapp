@@ -34,7 +34,7 @@ export default function LessonRoute() {
     loadProgress(lesson).then((saved) => setState({ ...(saved && !saved.state.finished ? saved.state : startState), lastAt: Date.now() }));
   }, [lesson]);
 
-  const back = () => (router.canGoBack() ? router.back() : router.replace('/'));
+  const back = () => (router.canGoBack() ? router.back() : router.replace('/learn'));
 
   if (!lesson) {
     return (

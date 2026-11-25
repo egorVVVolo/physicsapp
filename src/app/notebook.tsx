@@ -39,7 +39,7 @@ export default function Notebook() {
     }, []),
   );
 
-  const back = () => (router.canGoBack() ? router.back() : router.replace('/'));
+  const back = () => (router.canGoBack() ? router.back() : router.replace('/revise'));
   const cards = finished ? allRefs.filter((x) => finished.has(x.r.id) && lessons[x.r.id]) : [];
   /** The lesson that adds the next card: the first one you can play and have not finished. */
   const nextRef = finished ? allRefs.find((x) => x.r.ready && !finished.has(x.r.id)) : undefined;

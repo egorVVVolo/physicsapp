@@ -65,6 +65,7 @@ function Screens() {
     <>
       <StatusBar style={dark ? 'light' : 'dark'} />
       <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: p.page } }}>
+        <Stack.Screen name="(tabs)" />
         {/* a lesson rises over the map like a card and drops back down; no swipe-to-leave, only × (it asks first) */}
         <Stack.Screen name="lesson/[id]" options={{ animation: 'slide_from_bottom', gestureEnabled: false }} />
       </Stack>

@@ -35,7 +35,7 @@ export default function Settings() {
     loadPrefs().then(setPrefs);
   }, []);
 
-  const back = () => (router.canGoBack() ? router.back() : router.replace('/'));
+  const back = () => (router.canGoBack() ? router.back() : router.replace('/me'));
   const toggle = (key: 'sound' | 'haptics') => {
     if (!prefs) return;
     const value = !prefs[key];

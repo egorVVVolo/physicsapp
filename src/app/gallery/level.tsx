@@ -19,5 +19,5 @@ export default function LevelGallery() {
     gold: Math.max(0, lv.lessons.length - 1),
     next: after ? { levelId: after.id, title: after.title, firstLessonId: after.lessons[0].id } : null,
   };
-  return <LevelComplete key={lv.id} finish={finish} onNext={() => router.replace(`/lesson/${after?.lessons[0].id}`)} onDone={() => router.replace('/')} />;
+  return <LevelComplete key={lv.id} finish={finish} onNext={() => router.replace(`/lesson/${after?.lessons[0].id}`)} onDone={() => router.replace('/learn')} />;
 }

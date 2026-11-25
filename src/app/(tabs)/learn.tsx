@@ -1,28 +1,26 @@
-// Home: the course map. Levels follow the WPH11 specification; each lesson is a puck on a path.
+// Learn: the course map. Levels follow the WPH11 specification; each lesson is a puck on a path.
 // The level plate stays pinned and changes as you scroll; the card at the bottom starts the picked
 // lesson; a round button brings you back to the next lesson when it has scrolled away.
 // Coming back from a lesson just finished: its puck pops its check and a ball rolls to the next lesson.
 import { useCallback, useEffect, useMemo, useRef, useState, type ComponentRef } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions, type NativeScrollEvent, type NativeSyntheticEvent } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View, type NativeScrollEvent, type NativeSyntheticEvent } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, { useAnimatedStyle, useReducedMotion, useSharedValue, withSpring, withTiming } from 'react-native-reanimated';
 import Svg, { Path } from 'react-native-svg';
 import { levelObject, object } from '@/art/objects';
-import { uiIcon } from '@/art/uiIcons';
 import { course } from '@/content/course';
 import { lessons } from '@/content/lessons';
 import type { Level } from '@/content/types';
 import { CourseIcon } from '@/figures/CourseIcon';
-import { PUCK_FACE_Y, PUCK_VB_W, type PuckState } from '@/figures/Puck';
+import type { PuckState } from '@/figures/Puck';
 import { CONTENT_MAX } from '@/lesson/Frame';
 import { Dock } from '@/map/Dock';
-import { Launch, type LaunchTarget } from '@/map/Launch';
 import { MomentumChip, MomentumSheet } from '@/map/Momentum';
 import { LevelPlate } from '@/map/LevelPlate';
 import { PuckRow } from '@/map/PuckRow';
 import { RollingBall, type Point } from '@/map/RollingBall';
-import { LEVEL_OBJECT, PUCK, labelX, levelAt, puckX, puckY, rowLayout } from '@/map/layout';
+import { LEVEL_OBJECT, labelX, levelAt, puckX, puckY, rowLayout } from '@/map/layout';
 import { loadProgress, loadStreak } from '@/session/storage';
 import { emptyStreak, type Streak } from '@/session/streak';
 import { useTheme } from '@/theme/ThemeContext';
@@ -36,7 +34,7 @@ const PAD_TOP = 4;
 const headOf = (li: number) => (li === 0 ? 12 : 96);
 const allRefs = course.levels.flatMap((l) => l.lessons.map((r) => ({ r, level: l.id })));
 
-export default function CourseMap() {
+export default function Learn() {
   const { palette: p } = useTheme();
   const insets = useSafeAreaInsets();
   const [status, setStatus] = useState<Record<string, Status>>({});
@@ -66,8 +64,6 @@ export default function CourseMap() {
   const scroll = useRef<ComponentRef<typeof ScrollView>>(null);
   const scrollY = useRef(0);
   const savedY = useRef(0);
-  const mapTop = useRef(0); // top of the scrolling map on screen, under the header
-  const { width: screenW } = useWindowDimensions(); // where the map was when a lesson opened (the web hides the map and loses it)
   const placed = useRef(false);
 
   useFocusEffect(
@@ -185,14 +181,6 @@ export default function CourseMap() {
   };
   const [, setLaidOut] = useState(0);
 
-  /** The launch animation ends on the puck the map opens at: that puck's box on screen. */
-  const launchTarget = (): LaunchTarget | undefined => {
-    const at = puckAt(nextId || picked);
-    if (!at || !width) return undefined;
-    const k = PUCK / PUCK_VB_W;
-    return { x: (screenW - width) / 2 + at.x - PUCK / 2, y: mapTop.current + PAD_TOP + at.y - scrollY.current - PUCK_FACE_Y * k, w: PUCK };
-  };
-
   // the ball's ends, measured on every render so a late layout (width, section tops) cannot leave it stale
   const rollFrom = roll && puckAt(roll.from);
   const rollTo = roll && puckAt(roll.to);
@@ -211,22 +199,6 @@ export default function CourseMap() {
           </View>
           <View style={{ flex: 1 }} />
           <MomentumChip streak={streak} onPress={() => setMomentumOpen(true)} />
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Notebook"
-            onPress={() => router.push('/notebook')}
-            style={({ pressed }) => [styles.iconButton, { borderColor: p.chipLine, backgroundColor: p.page, transform: [{ translateY: pressed ? 2 : 0 }] }]}
-          >
-            <Art xml={uiIcon('notebook')} width={24} color={p.ink} />
-          </Pressable>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Settings"
-            onPress={() => router.push('/settings')}
-            style={({ pressed }) => [styles.iconButton, { borderColor: p.chipLine, backgroundColor: p.page, transform: [{ translateY: pressed ? 2 : 0 }] }]}
-          >
-            <Art xml={uiIcon('settings')} width={24} color={p.ink} />
-          </Pressable>
           <View style={[styles.count, { borderColor: p.chipLine, backgroundColor: p.page }]} accessibilityLabel={`${doneCount} of ${allRefs.length} lessons done`}>
             <Text style={[styles.countText, { color: p.ink }]}>
               {doneCount}/{allRefs.length}
@@ -244,7 +216,7 @@ export default function CourseMap() {
         </View>
       </View>
 
-      <View style={{ flex: 1 }} onLayout={(e) => e.nativeEvent.layout.height > 0 && (mapTop.current = e.nativeEvent.layout.y)}>
+      <View style={{ flex: 1 }}>
         <ScrollView
           ref={scroll}
           onLayout={(e) => e.nativeEvent.layout.height > 0 && setViewH(e.nativeEvent.layout.height)}
@@ -290,14 +262,13 @@ export default function CourseMap() {
           color={levelColors[pickedRef.level]}
           status={status[pickedRef.r.id] ?? 'new'}
           allDone={allDone}
-          bottomInset={insets.bottom}
+          bottomInset={0}
           onHeight={(h) => h > 0 && setDockH(h)}
           onStart={() => router.push(`/lesson/${pickedRef.r.id}`)}
         />
         <BackButton side={away} bottom={dockH + 12} onPress={() => bringBack(true)} />
       </View>
       {momentumOpen && <MomentumSheet streak={streak} onClose={() => setMomentumOpen(false)} />}
-      <Launch target={launchTarget} />
     </View>
   );
 }
@@ -405,7 +376,6 @@ const styles = StyleSheet.create({
   courseSub: { fontFamily: font.bodyMedium, fontSize: 14, lineHeight: 19, textAlign: 'center' },
   count: { alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderBottomWidth: 4, borderRadius: 999, paddingHorizontal: 12, minHeight: 44 },
   countText: { fontFamily: font.displaySemi, fontSize: 16 },
-  iconButton: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderBottomWidth: 4, borderRadius: 999 },
   plateWrap: { paddingBottom: 10, zIndex: 2 },
   list: { width: '100%', maxWidth: CONTENT_MAX, alignSelf: 'center' },
   topFade: { position: 'absolute', top: 0, left: 0, right: 0, height: 6, opacity: 0.9 },
