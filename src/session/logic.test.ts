@@ -118,7 +118,7 @@ test('chapters: which one a story screen is in, and how full each is', () => {
   assert.equal(chapterOf(L, at('slider')), 2);
   assert.equal(chapterOf(L, L.story.length - 1), 2);
   assert.equal(chapterOf(L, L.story.length), null); // the Skill check splash
-  assert.equal(chapterOf({ ...L, chapters: undefined }, 0), null);
+  assert.equal(chapterOf({ ...L, chapters: undefined } as never, 0), null);
 
   const shares = (index: number) => progressOf({ ...startState, index }, L).chapters.map((c) => c.share);
   assert.deepEqual(shares(0), [0, 0, 0]);
@@ -126,7 +126,7 @@ test('chapters: which one a story screen is in, and how full each is', () => {
   const mid = shares(at('weight') + 1);
   assert.ok(mid[1] > 0 && mid[1] < 1 && mid[2] === 0);
   assert.deepEqual(shares(L.story.length), [1, 1, 1]);
-  assert.deepEqual(progressOf(startState, { ...L, chapters: undefined }).chapters, []);
+  assert.deepEqual(progressOf(startState, { ...L, chapters: undefined } as never).chapters, []);
 });
 
 test('a text screen without a figure carries the last one, answered, under the same FIG number', () => {

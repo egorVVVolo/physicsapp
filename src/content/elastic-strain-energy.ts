@@ -3,13 +3,18 @@
 // Squash it twice as far: how much energy does it store? Four times: the push doubles too, so the triangle under the
 // graph is twice as wide and twice as tall. The ball leaves only twice as fast.
 // Every number below comes from src/physics; wrong options are named mistakes, recomputed by the test.
+// Format v3 (V2 task D13): build, estimate, spotError, order; the Skill check ends on an exam-style card.
 import { elasticEnergy, energyForForce, launchSpeed, riseHeight, springEnergy } from '../physics/elastic.ts';
-import { sig } from '../physics/format.ts';
+import { fixed, sig } from '../physics/format.ts';
 import type { LauncherFig, Lesson } from './types.ts';
 
 const NB = ' '; // a no-break space: a number never parts from its unit
 const J = (E: number): string => `${sig(E, 2)}${NB}J`;
 const MS = (v: number): string => `${sig(v)}${NB}m${NB}s⁻¹`;
+const M = (x: number): string => `${fixed(x, 3)}${NB}m`; // a chip: plain decimals, at most 14 characters
+const NEWTON = (F: number): string => `${sig(F, 2)}${NB}N`;
+const KM = (k: number): string => `${k}${NB}N${NB}m⁻¹`;
+const G9 = `9.81${NB}N${NB}kg⁻¹`;
 
 export const LAUNCHER = { k: 400, x: 0.03, m: 0.02 }; // N m⁻¹, m, kg
 export const DOUBLE = 0.06; // m, the squash in the puzzle
@@ -28,16 +33,16 @@ const E2 = elasticEnergy(F2, DOUBLE);
 /** Answers and named mistakes, used by the screens and re-checked by elastic-strain-energy.test.ts. */
 export const ANSWERS = {
   /** 3.0 cm: ½FΔx; the whole force; Δx in cm. */
-  energy: { right: E1, noHalf: F1 * LAUNCHER.x, cm: elasticEnergy(F1, LAUNCHER.x * 100) },
+  energy: { right: E1, noHalf: F1 * LAUNCHER.x, cm: elasticEnergy(F1, LAUNCHER.x * 100), F: F1 },
   /** The puzzle at 6.0 cm. */
-  stored: { right: E2, same: E1, doubled: 2 * E1, noHalf: F2 * DOUBLE, ratio: E2 / E1 },
-  /** The ball's speed from 0.72 J: √(2E ÷ m); no ½; no root; grams. */
-  speed: { right: launchSpeed(E2, LAUNCHER.m), noHalf: Math.sqrt(E2 / LAUNCHER.m), noRoot: (2 * E2) / LAUNCHER.m, grams: launchSpeed(E2, LAUNCHER.m * 1000), first: launchSpeed(E1, LAUNCHER.m) },
+  stored: { right: E2, same: E1, doubled: 2 * E1, noHalf: F2 * DOUBLE, ratio: E2 / E1, F: F2 },
+  /** The ball's speed from 0.72 J: √(2E ÷ m). The spotError's slip: the ½ left out, 1.44 J. */
+  speed: { right: launchSpeed(E2, LAUNCHER.m), first: launchSpeed(E1, LAUNCHER.m), wrongE: F2 * DOUBLE, wrong: launchSpeed(F2 * DOUBLE, LAUNCHER.m) },
   /** The same 12 N on A and on B, twice as stiff. */
   softer: { A: energyForForce(F1, LAUNCHER.k), B: energyForForce(F1, STIFFER) },
-  stretch: { right: springEnergy(SPRING.k, SPRING.x), noSquare: 0.5 * SPRING.k * SPRING.x, noHalf: SPRING.k * SPRING.x ** 2, cm: springEnergy(SPRING.k, SPRING.x * 100) },
-  wire: { right: elasticEnergy(WIRE.F, WIRE.x), noHalf: WIRE.F * WIRE.x, mm: elasticEnergy(WIRE.F, WIRE.x * 1000), mmNoHalf: WIRE.F * WIRE.x * 1000 },
-  height: { right: riseHeight(E1, LAUNCHER.m), noG: E1 / LAUNCHER.m, half: riseHeight(E1, LAUNCHER.m) / 2, grams: riseHeight(E1, LAUNCHER.m * 1000) },
+  stretch: { right: springEnergy(SPRING.k, SPRING.x), cm: springEnergy(SPRING.k, SPRING.x * 100) },
+  wire: { right: elasticEnergy(WIRE.F, WIRE.x), mm: elasticEnergy(WIRE.F, WIRE.x * 1000) },
+  height: { right: riseHeight(E1, LAUNCHER.m) },
   band: { ratio: (springEnergy(BAND.k, BAND.x2) - springEnergy(BAND.k, BAND.x1)) / springEnergy(BAND.k, BAND.x1) },
 };
 const X = ANSWERS;
@@ -49,6 +54,12 @@ export const elasticStrainEnergy: Lesson = {
   title: 'Elastic strain energy',
   spec: [32],
   minutes: 10,
+  chapters: [
+    { title: 'The puzzle', from: 'intro' },
+    { title: 'Energy in a spring', from: 'work' },
+    { title: 'Back to the launcher', from: 'hook-again' },
+  ],
+  cast: ['Yusuf', 'Lucia'],
   story: [
     {
       id: 'intro',
@@ -67,6 +78,7 @@ export const elasticStrainEnergy: Lesson = {
         { id: 'twice', label: 'Twice as much' },
         { id: 'four', label: '4 times as much', correct: true },
         { id: 'eight', label: '8 times as much' },
+        { id: 'unsure', label: "I'm not sure" },
       ],
       after: "Let's find out",
     },
@@ -81,14 +93,18 @@ export const elasticStrainEnergy: Lesson = {
     },
     {
       id: 'energy',
-      kind: 'choice',
-      prompt: 'The push grows from 0 to 12 N as the spring is squashed 3.0 cm. How much energy does the spring store?',
+      kind: 'build',
+      prompt: 'The push grows from 0 to 12 N as the spring is squashed 3.0 cm. Build the energy the spring stores.',
       fig: launcher({ rows: ['x', 'F', 'E'], ask: 'afterCheck' }),
-      options: [
-        { id: 'noHalf', label: J(X.energy.noHalf), hint: 'That uses the full 12 N all the way. The push grows from 0: take half.' },
-        { id: 'right', label: J(X.energy.right), correct: true },
-        { id: 'cm', label: J(X.energy.cm), hint: 'That uses 3.0 for the squash. In joules Δx is 0.030 m.' },
+      equation: 'E = ½ × {F} × {Δx}',
+      boxes: { F: 'force', 'Δx': 'squash' },
+      chips: [
+        { id: 'force', label: NEWTON(F1) },
+        { id: 'squash', label: M(LAUNCHER.x) },
+        { id: 'cm', label: `${fixed(LAUNCHER.x * 100, 1)}${NB}cm`, hint: 'In joules the squash is in metres: 0.030 m.' },
+        { id: 'double', label: NEWTON(F2), hint: 'That is the push at 6.0 cm. Here the squash is 3.0 cm.' },
       ],
+      result: { symbol: 'E', value: X.energy.right, unit: 'J' },
       why: `E = ½FΔx = ½ × 12 × 0.030 = ${J(X.energy.right)}: the area of the triangle under the graph.`,
     },
     {
@@ -117,31 +133,58 @@ export const elasticStrainEnergy: Lesson = {
       card: { term: 'Energy in a spring', text: 'E = ½FΔx = ½kΔx². Twice the extension, 4 times the energy.' },
     },
     {
-      id: 'stored',
-      kind: 'choice',
-      revisitOf: 'hook',
-      prompt: 'Back to the launcher, squashed 6.0 cm by a push that grows to 24 N. How much energy does it store now?',
+      id: 'times',
+      kind: 'estimate',
+      prompt: `Squashed 3.0 cm, the spring stores ${J(E1)}. Drag to how many times as much it stores when squashed 6.0 cm.`,
+      fig: launcher({ x: DOUBLE, rows: ['x', 'F'] }),
+      after: launcher({ x: DOUBLE, panel: 'graph', inner: LAUNCHER.x }),
+      scale: { min: 0, max: 10, step: 0.5, tick: 1, unit: 'times', symbol: 'n', dp: 1, label: 'Energy at 6.0 cm ÷ at 3.0 cm' },
+      answer: X.stored.ratio,
+      tolerance: 0.5,
+      why: 'The push doubles with the squash: the triangle is twice as wide and twice as tall, so it holds 4 of the small ones.',
+    },
+    {
+      id: 'hook-again',
+      kind: 'build',
+      prompt: 'Back to the launcher, squashed 6.0 cm by a push that grows to 24 N. Build the energy it stores now.',
       fig: launcher({ x: DOUBLE, rows: ['x', 'F', 'E'], ask: 'afterCheck' }),
-      options: [
-        { id: 'same', label: `${J(X.stored.same)}, the same`, hint: 'The spring is squashed further, by a bigger push: more energy.' },
-        { id: 'doubled', label: J(X.stored.doubled), hint: 'That doubles it. The push doubled too: ½ × 24 × 0.060.' },
-        { id: 'right', label: J(X.stored.right), correct: true },
-        { id: 'noHalf', label: J(X.stored.noHalf), hint: 'That forgets the ½: the push grows from 0 to 24 N.' },
+      equation: 'E = ½ × {F} × {Δx}',
+      boxes: { F: 'force', 'Δx': 'squash' },
+      chips: [
+        { id: 'force', label: NEWTON(F2) },
+        { id: 'squash', label: M(DOUBLE) },
+        { id: 'oldF', label: NEWTON(F1), hint: 'That is the push at 3.0 cm. At 6.0 cm it has grown to 24 N.' },
+        { id: 'oldE', label: J(E1), hint: 'That is the energy at 3.0 cm. Build the new one.' },
       ],
+      result: { symbol: 'E', value: X.stored.right, unit: 'J' },
       why: `E = ½FΔx = ½ × 24 × 0.060 = ${J(X.stored.right)}: 4 times the ${J(X.stored.same)}. Twice the force over twice the distance.`,
     },
     {
-      id: 'speed',
-      kind: 'choice',
-      prompt: 'All 0.72 J goes to the 20 g ball as kinetic energy. How fast does it leave the launcher?',
-      fig: launcher({ x: DOUBLE, rows: ['x', 'F', 'E'], speed: 'afterCheck', play: 'afterCheck' }),
-      options: [
-        { id: 'noHalf', label: MS(X.speed.noHalf), hint: 'That leaves out the ½ in ½mv².' },
-        { id: 'right', label: MS(X.speed.right), correct: true },
-        { id: 'noRoot', label: MS(X.speed.noRoot), hint: 'That is v². Take the square root.' },
-        { id: 'grams', label: MS(X.speed.grams), hint: 'That puts the mass in grams. 20 g is 0.020 kg.' },
+      id: 'error',
+      kind: 'spotError',
+      prompt: 'Yusuf works out how fast the 6.0 cm squash fires the 20 g ball. One line is wrong. Which?',
+      fig: launcher({ x: DOUBLE, rows: ['x', 'F'] }),
+      lines: [
+        { id: 'push', text: 'The push grows from 0 to 24 N as the spring is squashed 0.060 m', hint: 'That line is right: it grows from 0.' },
+        { id: 'energy', text: `The spring stores E = FΔx = 24 × 0.060 = ${sig(X.speed.wrongE, 3)}${NB}J`, wrong: true, fix: `The spring stores E = ½FΔx = ½ × 24 × 0.060 = ${sig(E2, 3)}${NB}J` },
+        { id: 'ball', text: 'All of it goes to the ball: ½mv² = E', hint: 'That line is right: the energy becomes kinetic.' },
+        { id: 'v', text: `v = √(2E ÷ m) = √(2 × ${sig(X.speed.wrongE, 3)} ÷ 0.020) = ${MS(X.speed.wrong)}`, hint: 'This follows from the lines above. Check the E put in.' },
       ],
-      why: `½mv² = 0.72 J, so v = √(2 × 0.72 ÷ 0.020) = ${MS(X.speed.right)}: only twice the ${MS(X.speed.first)} from 3.0 cm.`,
+      why: `The push grows from 0, so the work is half of F × Δx: ${J(E2)}, not ${sig(X.speed.wrongE, 3)}${NB}J. v = ${MS(X.speed.right)}.`,
+    },
+    {
+      id: 'chain',
+      kind: 'order',
+      prompt: 'Put the energy chain in order, from the push to the ball’s speed.',
+      fig: launcher({ x: DOUBLE, rows: ['x', 'F', 'E'], speed: 'afterCheck', play: 'afterCheck' }),
+      steps: [
+        { id: 'stored', text: `The push squashes the spring 6.0 cm: the work done is stored, ${J(E2)}.` },
+        { id: 'release', text: 'Let go: the spring pushes the ball and gives the energy back.' },
+        { id: 'kinetic', text: `The energy is now the ball’s kinetic energy: ½mv² = ${J(E2)}.` },
+        { id: 'speed', text: `So v = √(2E ÷ m) = ${MS(X.speed.right)}: only twice the ${MS(X.speed.first)} from 3.0 cm.` },
+      ],
+      hint: 'First the energy goes in, then the spring lets go, then the ball moves.',
+      why: `Elastic strain energy becomes kinetic energy: ½mv² = ${J(E2)}, so v = ${MS(X.speed.right)}. Four times the energy gives only twice the speed.`,
     },
     {
       id: 'curve',
@@ -171,48 +214,37 @@ export const elasticStrainEnergy: Lesson = {
     {
       id: 'rules',
       kind: 'text',
-      body: [
-        'The energy stored is the **area under the force–extension graph**: ½FΔx = ½kΔx² on a straight line.',
-        'Twice the extension, 4 times the energy. For the same force, the softer spring stores more.',
-      ],
+      body: ['E = ½FΔx = ½kΔx²: twice the extension, 4 times the energy.'],
+      fig: launcher({ x: DOUBLE, panel: 'graph', inner: LAUNCHER.x }),
     },
   ],
   skillCheck: [
     {
       id: 'stretch',
-      kind: 'choice',
-      prompt: 'A spring of stiffness 50 N m⁻¹ is stretched 6.0 cm. How much elastic strain energy does it store?',
-      options: [
-        { id: 'noSquare', label: J(X.stretch.noSquare) },
-        { id: 'noHalf', label: J(X.stretch.noHalf) },
-        { id: 'right', label: J(X.stretch.right), correct: true },
-        { id: 'cm', label: J(X.stretch.cm) },
+      kind: 'build',
+      prompt: 'A spring of stiffness 50 N m⁻¹ is stretched 6.0 cm. Build the elastic strain energy it stores.',
+      equation: 'E = ½ × {k} × {Δx}²',
+      boxes: { k: 'stiff', 'Δx': 'ext' },
+      chips: [
+        { id: 'stiff', label: KM(SPRING.k) },
+        { id: 'ext', label: M(SPRING.x) },
+        { id: 'cm', label: `${fixed(SPRING.x * 100, 1)}${NB}cm`, hint: 'In joules the extension is in metres: 0.060 m.' },
+        { id: 'force', label: NEWTON(SPRING.k * SPRING.x), hint: 'That is the force at the end. The equation uses k and Δx.' },
       ],
+      result: { symbol: 'E', value: X.stretch.right, unit: 'J' },
       why: `E = ½kΔx² = ½ × 50 × 0.060² = ${J(X.stretch.right)}.`,
     },
     {
-      id: 'wire',
-      kind: 'choice',
-      prompt: 'A steel wire stretches 2.2 mm under a load of 60 N, within its limit of proportionality. How much energy does it store?',
-      options: [
-        { id: 'right', label: J(X.wire.right), correct: true },
-        { id: 'noHalf', label: J(X.wire.noHalf) },
-        { id: 'mm', label: J(X.wire.mm) },
-        { id: 'mmNoHalf', label: J(X.wire.mmNoHalf) },
+      id: 'wire-error',
+      kind: 'spotError',
+      prompt: 'Lucia works out the energy stored in a steel wire that stretches 2.2 mm under 60 N. One line is wrong. Which?',
+      lines: [
+        { id: 'read', text: 'F = 60 N and Δx = 2.2 mm', hint: 'That line is right: the readings.' },
+        { id: 'law', text: 'Within the limit, E = ½FΔx', hint: 'That is the right formula for a straight line.' },
+        { id: 'sum', text: `E = ½ × 60 × 2.2 = ${sig(X.wire.mm, 2)}${NB}J`, wrong: true, fix: `Δx = 2.2 × 10⁻³ m, so E = ½ × 60 × 0.0022 = ${J(X.wire.right)}` },
+        { id: 'big', text: `So the wire stores ${sig(X.wire.mm, 2)}${NB}J`, hint: 'This follows from the line above. Check the unit of Δx.' },
       ],
-      why: `E = ½FΔx = ½ × 60 × 2.2 × 10⁻³ = ${J(X.wire.right)}.`,
-    },
-    {
-      id: 'height',
-      kind: 'choice',
-      prompt: 'The launcher squashed 3.0 cm stores 0.18 J and fires the 20 g ball straight up. How high can the ball rise?',
-      options: [
-        { id: 'noG', label: `${sig(X.height.noG, 2)}${NB}m` },
-        { id: 'half', label: `${sig(X.height.half, 2)}${NB}m` },
-        { id: 'grams', label: `${sig(X.height.grams * 1000, 2)}${NB}mm` },
-        { id: 'right', label: `${sig(X.height.right, 2)}${NB}m`, correct: true },
-      ],
-      why: `mgΔh = 0.18 J, so Δh = 0.18 ÷ (0.020 × 9.81) = ${sig(X.height.right, 2)} m.`,
+      why: `For joules the extension must be in metres: 2.2 mm = 0.0022 m. E = ½FΔx = ½ × 60 × 0.0022 = ${J(X.wire.right)}.`,
     },
     {
       id: 'band',
@@ -225,6 +257,50 @@ export const elasticStrainEnergy: Lesson = {
         { id: 'four', label: '4 times as much' },
       ],
       why: 'E grows as Δx²: 4 units at 4.0 cm, 1 unit at 2.0 cm. The second 2.0 cm adds 4 − 1 = 3 units.',
+    },
+    {
+      id: 'ball-up',
+      kind: 'examCard',
+      context: 'Yusuf squashes the launcher’s spring, stiffness 400 N m⁻¹, by 3.0 cm and fires the 20 g ball straight up. Take g = 9.81 N kg⁻¹.',
+      parts: [
+        {
+          id: 'a',
+          command: 'Calculate',
+          text: 'the energy stored in the spring.',
+          marks: 2,
+          kind: 'build',
+          build: {
+            equation: 'E = ½ × {k} × {Δx}²',
+            boxes: { k: 'stiff', 'Δx': 'squash' },
+            chips: [
+              { id: 'stiff', label: KM(LAUNCHER.k) },
+              { id: 'squash', label: M(LAUNCHER.x) },
+              { id: 'cm', label: `${fixed(LAUNCHER.x * 100, 1)}${NB}cm`, hint: 'In joules the squash is in metres: 0.030 m.' },
+            ],
+            result: { symbol: 'E', value: E1, unit: 'J' },
+          },
+          why: `E = ½kΔx² = ½ × 400 × 0.030² = ${J(E1)}. One mark for the formula, one for the answer.`,
+        },
+        {
+          id: 'b',
+          command: 'Calculate',
+          text: 'the greatest height the ball can rise.',
+          marks: 2,
+          kind: 'build',
+          build: {
+            equation: 'h = {E} ÷ ({m} × {g})',
+            boxes: { E: 'energy', m: 'mass', g: 'field' },
+            chips: [
+              { id: 'energy', label: J(E1) },
+              { id: 'mass', label: `${fixed(LAUNCHER.m, 3)}${NB}kg` },
+              { id: 'field', label: G9 },
+              { id: 'grams', label: `${LAUNCHER.m * 1000}${NB}g`, hint: 'The mass must be in kg: 0.020 kg.' },
+            ],
+            result: { symbol: 'h', value: X.height.right, unit: 'm' },
+          },
+          why: `All the energy becomes GPE: mgΔh = ${J(E1)}, so Δh = ${sig(E1, 2)} ÷ (0.020 × 9.81) = ${sig(X.height.right, 3)}${NB}m.`,
+        },
+      ],
     },
   ],
   youCanNow: [

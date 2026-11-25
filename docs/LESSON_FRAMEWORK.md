@@ -13,7 +13,7 @@ Every lesson is built from this framework: one idea per lesson, split into sessi
 
 ## 1c. Lesson format v3 (22 Nov 2026)
 
-**Supersedes 1b where it conflicts.** Owner's decisions (plan: `docs/V2_PLAN.md`, section 2): flat fills in figures; the app does the arithmetic (the learner builds the solution, there is no typing of numbers); a lesson takes 10–12 minutes. A lesson moves to v3 when its id is added to `REVISED` in `src/content/rules.test.ts`; from then on the test checks every rule below (`v3Problems`), and a synthetic lesson in the same file proves each rule is caught.
+**Supersedes 1b where it conflicts.** Owner's decisions (plan: `docs/V2_PLAN.md`, section 2): flat fills in figures; the app does the arithmetic (the learner builds the solution, there is no typing of numbers); a lesson takes 10–12 minutes. Since 25 Nov 2026 every lesson of the course follows v3: `src/content/rules.test.ts` checks every rule below for all lessons (`v3Problems`), `chapters` and `cast` are required in the `Lesson` type, and a synthetic lesson in the same file proves each rule is caught. A new lesson must pass them from its first commit.
 
 **Rules (checked by the test):**
 - **length** — the story has 12–16 screens; the Skill check exactly 4.

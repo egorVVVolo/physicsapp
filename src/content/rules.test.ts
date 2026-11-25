@@ -1,5 +1,5 @@
 // Writing rules for every lesson (docs/LESSON_FRAMEWORK.md, "Decisions of 11 Nov, night"), and the stricter
-// format v3 (section 1c) for the lessons already rebuilt to it (REVISED).
+// format v3 (section 1c), which every lesson of the course follows.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { lessons } from './lessons.ts';
@@ -298,9 +298,6 @@ for (const lesson of Object.values(lessons)) {
 
 // ── Lesson format v3 (docs/LESSON_FRAMEWORK.md, 1c; docs/V2_PLAN.md, 2.2) ───────────────────
 
-/** Lessons rebuilt to format v3. Each one added here must pass every rule below. */
-const REVISED = new Set<string>(['vectors-signs', 'motion-graphs', 'suvat', 'up-stop-down', 'resolving', 'projectiles', 'free-body', 'f-ma', 'normal-reaction', 'terminal-velocity', 'momentum', 'moments', 'collisions', 'balance', 'work', 'ke-gpe', 'conservation', 'power', 'density-upthrust', 'viscosity', 'hooke', 'young', 'material-graphs']);
-
 /** People who appear in several lessons on purpose: Rose runs through the Forces level. */
 const SHARED_CAST = new Set(['Rose']);
 
@@ -349,14 +346,17 @@ function v3Problems(lesson: Lesson, others: Lesson[] = []): string[] {
   return out;
 }
 
-for (const id of REVISED) {
+for (const id of Object.keys(lessons)) {
   test(`${id}: follows lesson format v3`, () => {
     const lesson = lessons[id];
-    assert.ok(lesson, `${id} is a lesson`);
-    const others = [...REVISED].filter((x) => x !== id).map((x) => lessons[x]);
+    const others = Object.keys(lessons).filter((x) => x !== id).map((x) => lessons[x]);
     assert.deepEqual(v3Problems(lesson, others), []);
   });
 }
+
+test('every lesson of the course follows format v3: 24 lessons, all with three chapters and a cast', () => {
+  assert.equal(Object.keys(lessons).length, 24);
+});
 
 test('the v3 rules catch every kind of break', () => {
   const choice = (id: string, labels: string[]): Question => ({ id, kind: 'choice', prompt: '?', options: labels.map((label, i) => ({ id: `o${i}`, label, ...(i === 0 ? { correct: true as const } : {}) })), why: '' });

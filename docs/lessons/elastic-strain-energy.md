@@ -51,3 +51,22 @@ All numbers from `src/physics/elastic.ts`, re-checked by `src/content/elastic-st
 1. `src/physics/elastic.ts` + test: `elasticEnergy`, `springEnergy`, `energyForForce`, `launchSpeed`, `riseHeight`, `bandForce`, `areaUnder`.
 2. `src/figures/LauncherFigure.tsx`: the launcher (spring, plunger, ball, push F, the speed after release), readings / force–squash graph with the shaded triangle / two launchers; `view: 'curve'` the rubber band on squared paper.
 3. Content `src/content/elastic-strain-energy.ts` + test, `ready: true` on the map; bank 12f.
+
+## v3 changes (25 Nov)
+
+Task D13. The puzzle (4 times the energy at twice the squash, 0.18 J → 0.72 J) and its recap are unchanged. 13 screens + 4 Skill check; chapters *The puzzle* → *Energy in a spring* → *Back to the launcher*; cast: Yusuf, Lucia. The predict now ends with "I'm not sure".
+
+| Was | Now |
+|---|---|
+| choice `energy` | **build** `E = ½ × F × Δx`, 0.18 J (wrong chips: 3.0 cm, the 24 N push of the next screen) |
+| — | **estimate** `times`: drag to how many times as much energy is stored at 6.0 cm (4, scale 0–10, tolerance 0.5) |
+| choice `stored` (the puzzle) | **build** `E = ½ × F × Δx` at 6.0 cm, 0.72 J (wrong chips: the old 12 N, the old 0.18 J) |
+| — | **spotError** `error`: Yusuf leaves out the ½ (1.44 J, so 12.0 m s⁻¹ instead of 8.49) |
+| choice `speed` | **order** `chain`: stored → release → kinetic → v = 8.49 m s⁻¹, twice the 4.24 from 3.0 cm |
+| text `rules` | one sentence, with a figure |
+
+`curve` and `softer` (choices) and `graph` (explore) stay. Skill check: **build** (a 50 N m⁻¹ spring stretched 6.0 cm, `½kΔx²`, 0.0900 J), **spotError** (Lucia's wire: 2.2 mm left in mm, 66 J instead of 0.066 J), **choice** (the second 2.0 cm adds 3 times as much), **exam card** on the launcher fired upwards: (a) Calculate the energy stored [2] (0.18 J), (b) Calculate the greatest height [2] (0.918 m). The old stretch, wire and height choices are gone.
+
+## Format v3 for every lesson (25 Nov)
+
+With this lesson all 24 lessons follow v3. `REVISED` is gone from `src/content/rules.test.ts`: every lesson is checked, `chapters` and `cast` are required in `Lesson`, and a test counts 24 lessons.
