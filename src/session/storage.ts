@@ -3,6 +3,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { Lesson } from '@/content/types';
 import { parseProgress, type LessonState, type Run, type SavedProgress } from './logic';
 import { addDay, dayKey, emptyStreak, parseStreak, type Streak } from './streak';
+import type { Entry, Queue } from '@/practice/review';
 
 const key = (lessonId: string) => `progress/v2/${lessonId}`;
 
@@ -113,6 +114,51 @@ export async function setLastRunFeel(lessonId: string, feel: Run['feel']): Promi
   await saveRuns(lessonId, runs);
 }
 
+const REVIEW_KEY = 'review/v1';
+
+/** The spaced-review queue (src/practice/review.ts): question key → box, due day, last outcome. */
+export async function loadReview(): Promise<Queue> {
+  try {
+    const raw: unknown = JSON.parse((await AsyncStorage.getItem(REVIEW_KEY)) ?? '{}');
+    if (!raw || typeof raw !== 'object') return {};
+    return Object.fromEntries(
+      Object.entries(raw as Record<string, Entry>).filter(([, e]) => e && typeof e.due === 'string' && typeof e.box === 'number' && typeof e.last === 'string'),
+    );
+  } catch {
+    return {};
+  }
+}
+
+export async function saveReview(q: Queue): Promise<void> {
+  try {
+    await AsyncStorage.setItem(REVIEW_KEY, JSON.stringify(q));
+  } catch {}
+}
+
+const PROFILE_KEY = 'profile/v1';
+
+/** Who the learner is: whether onboarding is done, and the exam session they picked ('2027-05') or null. */
+export type Profile = { onboarded: boolean; exam: string | null };
+export const emptyProfile: Profile = { onboarded: false, exam: null };
+
+export async function loadProfile(): Promise<Profile> {
+  try {
+    const raw = JSON.parse((await AsyncStorage.getItem(PROFILE_KEY)) ?? '{}') as Partial<Profile>;
+    return { onboarded: raw.onboarded === true, exam: typeof raw.exam === 'string' && /^\d{4}-\d{2}$/.test(raw.exam) ? raw.exam : null };
+  } catch {
+    return emptyProfile;
+  }
+}
+
+/** Changes part of the profile and keeps the rest. Reset progress does not touch it. */
+export async function saveProfile(change: Partial<Profile>): Promise<Profile> {
+  const next = { ...(await loadProfile()), ...change };
+  try {
+    await AsyncStorage.setItem(PROFILE_KEY, JSON.stringify(next));
+  } catch {}
+  return next;
+}
+
 const PREFS_KEY = 'prefs/v1';
 
 /** The learner's settings, kept on the device. */
@@ -165,7 +211,7 @@ export async function markLevelDone(levelId: string): Promise<void> {
 /** Clears every lesson's progress and finished runs, the notebook cards and the day streak. Settings stay. */
 export async function resetProgress(): Promise<void> {
   try {
-    const keys = (await AsyncStorage.getAllKeys()).filter((k) => k.startsWith('progress/') || k.startsWith('runs/') || k === FINISHED_KEY || k === STREAK_KEY || k === LEVELS_KEY);
+    const keys = (await AsyncStorage.getAllKeys()).filter((k) => k.startsWith('progress/') || k.startsWith('runs/') || k === FINISHED_KEY || k === STREAK_KEY || k === LEVELS_KEY || k === REVIEW_KEY);
     await AsyncStorage.multiRemove(keys);
   } catch {}
 }

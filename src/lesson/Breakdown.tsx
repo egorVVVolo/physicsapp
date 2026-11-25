@@ -8,6 +8,7 @@ import type { Lesson } from '@/content/types';
 import { minutesOf, onYourOwn, predictionMarks, predictionOf, reviewLine, ribbonLabel, ribbonOf, trippedUp } from '@/session/breakdown';
 import type { LessonState, Outcome, Run } from '@/session/logic';
 import { setLastRunFeel } from '@/session/storage';
+import { bankOf } from '@/practice/bank';
 import { useTheme } from '@/theme/ThemeContext';
 import { colorOfLesson } from '@/theme/levelColor';
 import { font, reward } from '@/theme/tokens';
@@ -116,7 +117,7 @@ export function Breakdown({ lesson, state, onNext, nextLabel, onDone, onReplay }
 
         <View style={{ gap: 6 }}>
           <Text style={[styles.h, { color: p.ink }]}>Coming back in review</Text>
-          <Text style={[styles.body, { color: p.ink }]}>{reviewLine(tripped.length)}</Text>
+          <Text style={[styles.body, { color: p.ink }]}>{reviewLine(bankOf([lesson.id]).filter((it) => (state.outcomes[it.screen.id] ?? 'revealed') !== 'independent').length)}</Text>
         </View>
 
         <View style={{ gap: 10 }}>

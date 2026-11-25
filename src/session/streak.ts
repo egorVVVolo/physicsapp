@@ -17,7 +17,7 @@ export function dayKey(d: Date): string {
 }
 
 /** Days since 1970-01-01 for a 'YYYY-MM-DD' calendar date. */
-function dayNumber(key: string): number {
+export function dayNumber(key: string): number {
   const [y, m, d] = key.split('-').map(Number);
   return Math.round(Date.UTC(y, m - 1, d) / 86_400_000);
 }
@@ -62,4 +62,10 @@ export function parseStreak(json: string | null): Streak {
   } catch {
     return emptyStreak;
   }
+}
+
+/** The calendar date `n` days after a 'YYYY-MM-DD' date (n may be negative). */
+export function addDays(key: string, n: number): string {
+  const [y, m, d] = key.split('-').map(Number);
+  return dayKey(new Date(y, m - 1, d + n));
 }

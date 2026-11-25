@@ -6,7 +6,9 @@ import { course } from '@/content/course';
 import { lessons } from '@/content/lessons';
 import { runOf, startState, type LessonState, type Run } from '@/session/logic';
 import { levelFinishOf, type LevelFinish } from '@/session/levels';
-import { addFinishedLesson, clearProgress, loadFinishedLessons, loadLevelsDone, loadProgress, loadRuns, markLevelDone, recordFinishedDay, saveProgress, saveRun } from '@/session/storage';
+import { addFinishedLesson, clearProgress, loadFinishedLessons, loadLevelsDone, loadProgress, loadReview, loadRuns, markLevelDone, recordFinishedDay, saveProgress, saveReview, saveRun } from '@/session/storage';
+import { bankOf } from '@/practice/bank';
+import { addLesson } from '@/practice/review';
 import { currentRun, dayKey } from '@/session/streak';
 import { LessonPlayer } from '@/lesson/LessonPlayer';
 import { Breakdown } from '@/lesson/Breakdown';
@@ -61,6 +63,8 @@ export default function LessonRoute() {
           newDay: !streak.before.days.includes(today),
         }),
       );
+      // every question of the lesson joins the spaced-review queue
+      loadReview().then((q) => saveReview(addLesson(q, bankOf([lesson.id]), s.outcomes, today)));
       // does this finish a level? (the first time only: a replay does not celebrate again)
       saved.then(async () => {
         const [finished, shown] = await Promise.all([loadFinishedLessons(), loadLevelsDone()]);

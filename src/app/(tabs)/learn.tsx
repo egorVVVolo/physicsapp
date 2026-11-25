@@ -1,10 +1,10 @@
-// Learn: the course map. Levels follow the WPH11 specification; each lesson is a puck on a path.
+// Learn: the course map (/learn?level=<id> opens it at that level). Levels follow the WPH11 specification; each lesson is a puck on a path.
 // The level plate stays pinned and changes as you scroll; the card at the bottom starts the picked
 // lesson; a round button brings you back to the next lesson when it has scrolled away.
 // Coming back from a lesson just finished: its puck pops its check and a ball rolls to the next lesson.
 import { useCallback, useEffect, useMemo, useRef, useState, type ComponentRef } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View, type NativeScrollEvent, type NativeSyntheticEvent } from 'react-native';
-import { router, useFocusEffect } from 'expo-router';
+import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, { useAnimatedStyle, useReducedMotion, useSharedValue, withSpring, withTiming } from 'react-native-reanimated';
 import Svg, { Path } from 'react-native-svg';
@@ -173,6 +173,21 @@ export default function Learn() {
     if (placed.current || !viewH || !loaded || sectionY.current.filter((v) => v !== undefined).length < course.levels.length) return;
     placed.current = true;
     setTimeout(() => bringBack(false), 0);
+  });
+  // opened from Home's course bars: /learn?level=forces scrolls to that level once the map is laid out
+  const { level: askLevel } = useLocalSearchParams<{ level?: string }>();
+  useEffect(() => {
+    if (!askLevel || !placed.current) return;
+    const li = course.levels.findIndex((l) => l.id === askLevel);
+    const top = sectionY.current[li];
+    if (li < 0 || top === undefined) return;
+    const y = Math.max(0, PAD_TOP + top + (li === 0 ? 0 : headOf(li) - 70));
+    router.setParams({ level: undefined });
+    // after the first placement (which opens the map at the next lesson) has run
+    setTimeout(() => {
+      scroll.current?.scrollTo({ y, animated: !reduced });
+      update(y);
+    }, 40);
   });
   const onSectionLayout = (li: number, y: number, h: number) => {
     if (h === 0) return; // hidden (the web hides the map while a lesson is open): keep the last real layout
