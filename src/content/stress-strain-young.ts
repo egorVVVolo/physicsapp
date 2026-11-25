@@ -3,6 +3,7 @@
 // the same steel carry the same 60 N; B is twice as long and twice as wide. How far does B stretch compared with A?
 // Half as far: length doubles it, width (area ∝ d²) quarters it.
 // Every number below comes from src/physics; wrong options are named mistakes, recomputed by the test.
+// Format v3 (V2 task D12): build, order, spotError; the Skill check ends on an exam-style card.
 import { fixed, sci } from '../physics/format.ts';
 import { circleArea, E_STEEL, strain, stress, wireExtension, youngFromGradient, youngModulus } from '../physics/young.ts';
 import type { Lesson, WireFig, WireSpec } from './types.ts';
@@ -10,6 +11,10 @@ import type { Lesson, WireFig, WireSpec } from './types.ts';
 const NB = ' '; // a no-break space: a number never parts from its unit
 const PA = (x: number): string => `${sci(x)}${NB}Pa`;
 const MM = (x: number): string => `${fixed(x * 1e3, 2)}${NB}mm`;
+const M = (x: number, dp = 5): string => `${fixed(x, dp)}${NB}m`; // a chip: plain decimals, at most 14 characters
+const NEWTON = (F: number): string => `${F}${NB}N`;
+const AREA = (x: number): string => `${sci(x)}${NB}m²`;
+const EP = (x: number): string => `${sci(x)}`;
 
 export const LOAD = 60; // N, on each wire
 export const WA: WireSpec = { name: 'A', L: 1.5, d: 0.5e-3 };
@@ -19,8 +24,7 @@ export const EXPLORE = { max: 70 }; // N, the slider
 export const LAB = { L: 1.6, d: 0.4e-3, k: 1.6e4 };
 // Skill check.
 export const ROD = { F: 400, L: 1.5, A: 0.8e-6 }; // N, m, m²
-export const TEST = { sigma: 1.4e8, epsilon: 2.0e-3 }; // Pa, no unit
-export const DIAMETER_ERROR = 1.02; // the diameter read 2 % too big
+export const TEST = { F: 80, L: 2.0, d: 0.5e-3, dx: 3.9e-3 }; // the exam card's wire: N, m, m, m
 
 const aA = circleArea(WA.d);
 const aB = circleArea(WB.d);
@@ -29,36 +33,26 @@ const dxA = wireExtension(LOAD, WA.L, aA, E_STEEL);
 const dxB = wireExtension(LOAD, WB.L, aB, E_STEEL);
 const epsA = strain(dxA, WA.L);
 const aLab = circleArea(LAB.d);
+const testSigma = stress(TEST.F, circleArea(TEST.d));
+const testEps = strain(TEST.dx, TEST.L);
 
 /** Answers and named mistakes, used by the screens and re-checked by stress-strain-young.test.ts. */
 export const ANSWERS = {
-  /** The stress in A: A = πr² with the radius, in m², with π. */
-  stress: { right: sigmaA, diameter: LOAD / (Math.PI * WA.d ** 2), mm2: LOAD / (aA * 1e6), noPi: LOAD / (WA.d / 2) ** 2 },
+  /** The stress in A: A = πd² ÷ 4 with the diameter, in m². */
+  stress: { right: sigmaA, radiusAsD: LOAD / circleArea(WA.d / 2), noPi: LOAD / (WA.d / 2) ** 2, wrongArea: Math.PI * WA.d ** 2, area: aA },
   /** The strain of A: Δx ÷ L, in the same unit. */
   strain: { right: epsA, noLength: dxA, mixed: (dxA * 1e3) / WA.L, upside: WA.L / dxA },
   /** The Young modulus of the steel from A's stress and strain. */
-  young: { right: youngModulus(sigmaA, epsA), upside: epsA / sigmaA, product: sigmaA * epsA, mpa: sigmaA / 1e6 / epsA },
+  young: { right: youngModulus(sigmaA, epsA), upside: epsA / sigmaA },
   /** The puzzle: B's extension. */
-  puzzle: { right: dxB, quarter: dxB / 2, same: dxA, double: 2 * dxA },
+  puzzle: { right: dxB, quarter: dxB / 2, same: dxA, double: 2 * dxA, areaB: aB, areaA: aA },
+  /** The spotError: the diameter used where πr² wants the radius. */
+  error: { area: Math.PI * WA.d ** 2, sigma: LOAD / (Math.PI * WA.d ** 2) },
   /** The lab: E from the gradient. */
-  gradient: {
-    right: youngFromGradient(LAB.k, LAB.L, aLab),
-    radius: youngFromGradient(LAB.k, LAB.L, Math.PI * LAB.d ** 2),
-    noLength: LAB.k / aLab,
-    mm2: youngFromGradient(LAB.k, LAB.L, aLab * 1e6),
-  },
-  extension: {
-    right: wireExtension(ROD.F, ROD.L, ROD.A, E_STEEL),
-    noLength: ROD.F / (ROD.A * E_STEEL),
-    divLength: ROD.F / (ROD.A * E_STEEL * ROD.L),
-    mm2: wireExtension(ROD.F, ROD.L, ROD.A * 1e3, E_STEEL),
-  },
-  modulus: { right: youngModulus(TEST.sigma, TEST.epsilon), upside: TEST.epsilon / TEST.sigma, product: TEST.sigma * TEST.epsilon },
-  /** The diameter 2 % too big: the area 4 % too big, so E about 4 % too small. */
-  diameter: {
-    ratio:
-      youngFromGradient(LAB.k, LAB.L, circleArea(LAB.d * DIAMETER_ERROR)) / youngFromGradient(LAB.k, LAB.L, aLab),
-  },
+  gradient: { right: youngFromGradient(LAB.k, LAB.L, aLab), radius: youngFromGradient(LAB.k, LAB.L, circleArea(LAB.d / 2)), noLength: LAB.k / aLab },
+  extension: { right: wireExtension(ROD.F, ROD.L, ROD.A, E_STEEL) },
+  /** The exam card: stress and Young modulus of the 2.0 m wire. */
+  test: { sigma: testSigma, eps: testEps, E: youngModulus(testSigma, testEps), dx: TEST.dx },
 };
 const X = ANSWERS;
 
@@ -71,6 +65,12 @@ export const stressStrainYoung: Lesson = {
   title: 'Stress, strain, Young modulus',
   spec: [28, 31],
   minutes: 10,
+  chapters: [
+    { title: 'The puzzle', from: 'intro' },
+    { title: 'Stress, strain, E', from: 'law' },
+    { title: 'Back to the wires', from: 'hook-again' },
+  ],
+  cast: ['Hana'],
   story: [
     {
       id: 'intro',
@@ -89,6 +89,7 @@ export const stressStrainYoung: Lesson = {
         { id: 'half', label: 'Half as far', correct: true },
         { id: 'same', label: 'The same' },
         { id: 'double', label: 'Twice as far' },
+        { id: 'unsure', label: "I'm not sure" },
       ],
       after: "Let's find out",
     },
@@ -103,16 +104,19 @@ export const stressStrainYoung: Lesson = {
     },
     {
       id: 'stress',
-      kind: 'choice',
-      prompt: 'Wire A is 0.50 mm across and carries 60 N. What is the stress in it?',
+      kind: 'build',
+      prompt: 'Wire A is 0.50 mm across and carries 60 N. Build the stress in it. The area of the circle is πd² ÷ 4.',
       fig: wireFig({ wires: [WA], panel: 'section' }),
-      options: [
-        { id: 'diameter', label: PA(X.stress.diameter), hint: 'That puts the diameter in for the radius. The radius is 0.25 mm.' },
-        { id: 'mm2', label: PA(X.stress.mm2), hint: 'That leaves A in mm². 1 mm² is 10⁻⁶ m².' },
-        { id: 'right', label: PA(X.stress.right), correct: true },
-        { id: 'noPi', label: PA(X.stress.noPi), hint: 'That forgets π: the area is πr², not r².' },
+      equation: 'σ = {F} ÷ (π × {d}² ÷ 4)',
+      boxes: { F: 'force', d: 'diameter' },
+      chips: [
+        { id: 'force', label: NEWTON(LOAD) },
+        { id: 'diameter', label: M(WA.d) },
+        { id: 'radius', label: M(WA.d / 2), hint: 'That is the radius. This equation has d² ÷ 4 for it.' },
+        { id: 'mm', label: `${fixed(WA.d * 1e3, 2)}${NB}mm`, hint: 'Work in metres: 1 mm is 10⁻³ m.' },
       ],
-      why: `A = π(0.25 × 10⁻³)² = 1.96 × 10⁻⁷ m². σ = F ÷ A = 60 ÷ 1.96 × 10⁻⁷ = ${PA(X.stress.right)}.`,
+      result: { symbol: 'σ', value: X.stress.right / 1e6, unit: 'MPa' },
+      why: `A = π(0.50 × 10⁻³)² ÷ 4 = ${sci(X.stress.area)} m². σ = F ÷ A = 60 ÷ ${sci(X.stress.area)} = ${PA(X.stress.right)}.`,
     },
     {
       id: 'strain',
@@ -120,12 +124,12 @@ export const stressStrainYoung: Lesson = {
       prompt: 'The 60 N stretches wire A, 1.5 m long, by 2.18 mm. What is its strain?',
       fig: wireFig({ wires: [WA], panel: 'readings', rows: ['L', 'ext'] }),
       options: [
-        { id: 'noLength', label: sci(X.strain.noLength), hint: 'That is the extension in metres. Divide by the length, 1.5 m.' },
+        { id: 'noLength', label: EP(X.strain.noLength), hint: 'That is the extension in metres. Divide by the length, 1.5 m.' },
         { id: 'mixed', label: fixed(X.strain.mixed, 2), hint: 'That mixes mm and m. Use 0.00218 m ÷ 1.5 m.' },
-        { id: 'right', label: sci(X.strain.right), correct: true },
+        { id: 'right', label: EP(X.strain.right), correct: true },
         { id: 'upside', label: fixed(X.strain.upside, 0), hint: 'That is L ÷ Δx. Strain is extension ÷ length.' },
       ],
-      why: `ε = Δx ÷ L = 0.00218 ÷ 1.5 = ${sci(X.strain.right)}. Every metre of the wire stretches by 1.46 mm.`,
+      why: `ε = Δx ÷ L = 0.00218 ÷ 1.5 = ${EP(X.strain.right)}. Every metre of the wire stretches by 1.46 mm.`,
     },
     {
       id: 'graph',
@@ -154,36 +158,69 @@ export const stressStrainYoung: Lesson = {
     },
     {
       id: 'young',
-      kind: 'choice',
-      prompt: 'Wire A has a stress of 306 MPa and a strain of 1.46 × 10⁻³. What is the Young modulus of the steel?',
+      kind: 'build',
+      prompt: 'Wire A has a stress of 306 MPa and carries 60 N over 1.5 m, stretching 2.18 mm. Build the Young modulus of the steel.',
       fig: wireFig({ wires: [WA], panel: 'readings', rows: ['stress', 'strain', 'E'], ask: { row: 'E', col: 0, hide: 'afterCheck' } }),
-      options: [
-        { id: 'upside', label: PA(X.young.upside), hint: 'That is ε ÷ σ. E = stress ÷ strain.' },
-        { id: 'product', label: PA(X.young.product), hint: 'That multiplies them. E is the stress divided by the strain.' },
-        { id: 'right', label: PA(X.young.right), correct: true },
-        { id: 'mpa', label: PA(X.young.mpa), hint: 'That leaves the stress in MPa. 306 MPa is 3.06 × 10⁸ Pa.' },
+      equation: 'E = {σ} ÷ {ε}',
+      boxes: { 'σ': 'stress', 'ε': 'strain' },
+      chips: [
+        { id: 'stress', label: PA(sigmaA) },
+        { id: 'strain', label: EP(epsA) },
+        { id: 'ext', label: MM(dxA), hint: 'That is the extension. Strain is extension ÷ length, with no unit.' },
+        { id: 'length', label: `${fixed(WA.L, 1)}${NB}m`, hint: 'That is the length. The strain is Δx ÷ L: a ratio.' },
       ],
-      why: `E = σ ÷ ε = 3.06 × 10⁸ ÷ 1.46 × 10⁻³ = ${PA(X.young.right)}. Steel is stiff: it takes a huge stress to strain it.`,
+      result: { symbol: 'E', value: X.young.right / 1e9, unit: 'GPa' },
+      why: `E = σ ÷ ε = ${sci(sigmaA)} ÷ ${sci(epsA)} = ${PA(X.young.right)}. Steel is stiff: it takes a huge stress to strain it.`,
     },
     {
       id: 'hook-again',
-      kind: 'choice',
-      revisitOf: 'hook',
-      prompt: 'Back to the two wires. Wire B is twice as long and twice as wide. How far does it stretch under 60 N?',
+      kind: 'build',
+      prompt: 'Back to the two wires. Wire B is twice as long and twice as wide. Build how far it stretches under 60 N.',
       fig: wireFig({ rows: ['L', 'A', 'ext'], ask: { row: 'ext', col: 1, hide: 'afterCheck' }, stretch: 'afterCheck' }),
-      options: [
-        { id: 'quarter', label: MM(X.puzzle.quarter), hint: 'Twice as wide quarters it, but twice as long doubles it again.' },
-        { id: 'right', label: MM(X.puzzle.right), correct: true },
-        { id: 'same', label: `${MM(X.puzzle.same)}, the same as A`, hint: 'Twice the width is 4 times the area, not twice.' },
-        { id: 'double', label: MM(X.puzzle.double), hint: 'Twice as long doubles it, but the wider wire cuts it back.' },
+      equation: 'Δx = {F} × {L} ÷ ({A} × {E})',
+      boxes: { F: 'force', L: 'length', A: 'area', E: 'modulus' },
+      chips: [
+        { id: 'force', label: NEWTON(LOAD) },
+        { id: 'length', label: `${fixed(WB.L, 1)}${NB}m` },
+        { id: 'area', label: AREA(aB) },
+        { id: 'modulus', label: PA(E_STEEL) },
+        { id: 'lenA', label: `${fixed(WA.L, 1)}${NB}m`, hint: 'That is wire A’s length. B is twice as long.' },
+        { id: 'areaA', label: AREA(aA), hint: 'That is wire A’s area. B is twice as wide: 4 times the area.' },
       ],
-      why: `Δx = FL ÷ (AE). Twice the length doubles it; twice the width is 4 times the area, which quarters it: half overall, ${MM(X.puzzle.right)}.`,
+      result: { symbol: 'Δx', value: X.puzzle.right * 1e3, unit: 'mm' },
+      why: `Δx = FL ÷ (AE) = 60 × 3.0 ÷ (${sci(aB)} × ${sci(E_STEEL)}) = ${MM(X.puzzle.right)}. Twice the length doubles it; 4 times the area quarters it: half of A's ${MM(X.puzzle.same)}.`,
+    },
+    {
+      id: 'error',
+      kind: 'spotError',
+      prompt: 'Hana works out the stress in wire A, which is 0.50 mm across and carries 60 N. One line is wrong. Which?',
+      fig: wireFig({ wires: [WA], panel: 'section' }),
+      lines: [
+        { id: 'r', text: 'The wire is 0.50 mm across, so r = 0.25 mm', hint: 'That line is right: the radius is half the diameter.' },
+        { id: 'area', text: `A = πr² = π × (0.50 × 10⁻³)² = ${AREA(X.error.area)}`, wrong: true, fix: `A = π × (0.25 × 10⁻³)² = ${AREA(aA)}` },
+        { id: 'sigma', text: `σ = F ÷ A = 60 ÷ ${sci(X.error.area)} = ${PA(X.error.sigma)}`, hint: 'This follows from the line above. Check the A put in.' },
+        { id: 'low', text: 'So A carries about 76 MPa', hint: 'This follows from the lines above. Is that stress too low?' },
+      ],
+      why: `πr² needs the radius, 0.25 mm. With the diameter the area comes out 4 times too big and the stress 4 times too small. σ = ${PA(X.stress.right)}.`,
+    },
+    {
+      id: 'cp2',
+      kind: 'order',
+      prompt: 'Core Practical 2: find the Young modulus of a wire. Put the steps of the experiment in order.',
+      fig: labFig({ view: 'rig' }),
+      steps: [
+        { id: 'length', text: 'Measure the wire’s length from the clamp to the marker.' },
+        { id: 'diameter', text: 'Measure its diameter in several places with a micrometer.' },
+        { id: 'load', text: 'Add the load in equal steps and note the extension each time.' },
+        { id: 'plot', text: 'Plot force against extension and find the gradient.' },
+      ],
+      hint: 'First the wire’s own size, then the loading, and the graph last.',
+      why: 'Length and diameter give L and A. The loads and extensions give the graph; its gradient is k, and E = kL ÷ A.',
     },
     {
       id: 'long-thin',
       kind: 'choice',
       prompt: 'In the lab, why use a long, thin wire to find the Young modulus?',
-      fig: labFig({ view: 'rig' }),
       options: [
         { id: 'right', label: 'The extension is big enough to measure with a small load', correct: true },
         { id: 'smallE', label: 'A long, thin wire has a smaller Young modulus', hint: 'E belongs to the material. Length and width do not change it.' },
@@ -194,38 +231,56 @@ export const stressStrainYoung: Lesson = {
     },
     {
       id: 'gradient',
-      kind: 'choice',
-      prompt: 'A 1.60 m wire, 0.40 mm across, gives a force–extension graph of gradient 1.6 × 10⁴ N m⁻¹. What is its Young modulus?',
+      kind: 'build',
+      prompt: 'A 1.60 m wire, 0.40 mm across, gives a force–extension graph of gradient 16 000 N m⁻¹. Build its Young modulus.',
       fig: labFig({ view: 'plot' }),
-      options: [
-        { id: 'radius', label: PA(X.gradient.radius), hint: 'That uses 0.40 mm as the radius. It is the diameter.' },
-        { id: 'noLength', label: PA(X.gradient.noLength), hint: 'That leaves out the length. E = gradient × L ÷ A.' },
-        { id: 'right', label: PA(X.gradient.right), correct: true },
-        { id: 'mm2', label: PA(X.gradient.mm2), hint: 'That puts A in mm². 1 mm² is 10⁻⁶ m².' },
+      equation: 'E = {k} × {L} ÷ (π × {d}² ÷ 4)',
+      boxes: { k: 'gradient', L: 'length', d: 'diameter' },
+      chips: [
+        { id: 'gradient', label: `${LAB.k}${NB}N${NB}m⁻¹` },
+        { id: 'length', label: `${fixed(LAB.L, 2)}${NB}m` },
+        { id: 'diameter', label: M(LAB.d) },
+        { id: 'radius', label: M(LAB.d / 2), hint: 'That is the radius. 0.40 mm is the diameter.' },
       ],
-      why: `The gradient is k = EA ÷ L, so E = kL ÷ A = 1.6 × 10⁴ × 1.60 ÷ 1.26 × 10⁻⁷ = ${PA(X.gradient.right)}.`,
+      result: { symbol: 'E', value: X.gradient.right / 1e9, unit: 'GPa' },
+      why: `The gradient is k = EA ÷ L, so E = kL ÷ A = ${LAB.k} × ${fixed(LAB.L, 2)} ÷ ${sci(aLab)} = ${PA(X.gradient.right)}.`,
     },
     {
       id: 'rules',
       kind: 'text',
-      body: [
-        '**Stress** σ = F ÷ A, **strain** ε = Δx ÷ L, and **E = σ ÷ ε**, a property of the material.',
-        'Δx = FL ÷ (AE): longer stretches more, wider stretches less, with the area going as d². Next: where the line stops being straight.',
-      ],
+      body: ['σ = F ÷ A, ε = Δx ÷ L, E = σ ÷ ε: a property of the material.'],
+      fig: wireFig({ rows: ['L', 'A', 'stress', 'ext'] }),
     },
   ],
   skillCheck: [
     {
       id: 'extension',
-      kind: 'choice',
-      prompt: 'Steel has E = 2.1 × 10¹¹ Pa. A 1.5 m steel wire has a cross-section of 0.80 mm². How far does a 400 N load stretch it?',
-      options: [
-        { id: 'noLength', label: MM(X.extension.noLength) },
-        { id: 'right', label: MM(X.extension.right), correct: true },
-        { id: 'divLength', label: MM(X.extension.divLength) },
-        { id: 'mm2', label: `${fixed(X.extension.mm2 * 1e6, 2)}${NB}μm` },
+      kind: 'build',
+      prompt: 'Steel has E = 2.1 × 10¹¹ Pa. A 1.5 m steel wire has a cross-section of 0.80 mm². Build how far a 400 N load stretches it.',
+      equation: 'Δx = {F} × {L} ÷ ({A} × {E})',
+      boxes: { F: 'force', L: 'length', A: 'area', E: 'modulus' },
+      chips: [
+        { id: 'force', label: NEWTON(ROD.F) },
+        { id: 'length', label: `${fixed(ROD.L, 1)}${NB}m` },
+        { id: 'area', label: AREA(ROD.A) },
+        { id: 'modulus', label: PA(E_STEEL) },
+        { id: 'mm2', label: `0.80${NB}mm²`, hint: 'Work in m²: 1 mm² is 10⁻⁶ m².' },
       ],
+      result: { symbol: 'Δx', value: X.extension.right * 1e3, unit: 'mm' },
       why: `Δx = FL ÷ (AE) = 400 × 1.5 ÷ (0.80 × 10⁻⁶ × 2.1 × 10¹¹) = ${MM(X.extension.right)}.`,
+    },
+    {
+      id: 'elastic-why',
+      kind: 'order',
+      prompt: 'Why must the wire in the lab stay below its elastic limit? Put the steps in order.',
+      steps: [
+        { id: 'past', text: 'Past the elastic limit, part of the extension is permanent.' },
+        { id: 'curve', text: 'Then the force–extension graph stops being a straight line.' },
+        { id: 'gradient', text: 'So its gradient is no longer the stiffness k.' },
+        { id: 'young', text: 'And E = kL ÷ A would give the wrong value.' },
+      ],
+      hint: 'Start with what happens past the limit, and end with what goes wrong for E.',
+      why: 'E = kL ÷ A holds only on the straight part of the graph, where the wire is elastic and force is proportional to extension.',
     },
     {
       id: 'halved',
@@ -240,28 +295,47 @@ export const stressStrainYoung: Lesson = {
       why: 'The same load on the same area: the same stress, so the same strain and E. Half the length: half the extension, twice the k.',
     },
     {
-      id: 'modulus',
-      kind: 'choice',
-      prompt: 'A rod under a stress of 1.4 × 10⁸ Pa has a strain of 2.0 × 10⁻³. What is the Young modulus of its material?',
-      options: [
-        { id: 'upside', label: PA(X.modulus.upside) },
-        { id: 'product', label: PA(X.modulus.product) },
-        { id: 'unit', label: `${sci(X.modulus.right)}${NB}N${NB}m⁻¹` },
-        { id: 'right', label: PA(X.modulus.right), correct: true },
+      id: 'steel-wire',
+      kind: 'examCard',
+      context: `Hana hangs ${TEST.F} N from a steel wire ${fixed(TEST.L, 1)} m long and ${fixed(TEST.d * 1e3, 2)} mm across. It stretches ${fixed(TEST.dx * 1e3, 1)} mm.`,
+      parts: [
+        {
+          id: 'a',
+          command: 'Calculate',
+          text: 'the stress in the wire.',
+          marks: 2,
+          kind: 'build',
+          build: {
+            equation: 'σ = {F} ÷ (π × {d}² ÷ 4)',
+            boxes: { F: 'force', d: 'diameter' },
+            chips: [
+              { id: 'force', label: NEWTON(TEST.F) },
+              { id: 'diameter', label: M(TEST.d) },
+              { id: 'radius', label: M(TEST.d / 2), hint: 'That is the radius. This equation has d² ÷ 4 for it.' },
+            ],
+            result: { symbol: 'σ', value: X.test.sigma / 1e6, unit: 'MPa' },
+          },
+          why: `A = π(0.50 × 10⁻³)² ÷ 4 = ${sci(circleArea(TEST.d))} m², so σ = ${TEST.F} ÷ ${sci(circleArea(TEST.d))} = ${PA(X.test.sigma)}. One mark for the area, one for the stress.`,
+        },
+        {
+          id: 'b',
+          command: 'Calculate',
+          text: 'the Young modulus of the steel.',
+          marks: 2,
+          kind: 'build',
+          build: {
+            equation: 'E = {σ} ÷ {ε}',
+            boxes: { 'σ': 'stress', 'ε': 'strain' },
+            chips: [
+              { id: 'stress', label: PA(X.test.sigma) },
+              { id: 'strain', label: EP(X.test.eps) },
+              { id: 'ext', label: MM(TEST.dx), hint: 'That is the extension. Strain is extension ÷ length, with no unit.' },
+            ],
+            result: { symbol: 'E', value: X.test.E / 1e9, unit: 'GPa' },
+          },
+          why: `ε = Δx ÷ L = ${fixed(TEST.dx, 4)} ÷ ${fixed(TEST.L, 1)} = ${EP(X.test.eps)}, so E = σ ÷ ε = ${PA(X.test.sigma)} ÷ ${EP(X.test.eps)} = ${PA(X.test.E)}.`,
+        },
       ],
-      why: `E = σ ÷ ε = 1.4 × 10⁸ ÷ 2.0 × 10⁻³ = ${PA(X.modulus.right)}, which is N m⁻². Strain has no unit, so E has the unit of stress.`,
-    },
-    {
-      id: 'diameter',
-      kind: 'choice',
-      prompt: 'A student reads the wire’s diameter 2 % too big; the other readings are right. What happens to the value of E?',
-      options: [
-        { id: 'big2', label: 'About 2 % too big' },
-        { id: 'small2', label: 'About 2 % too small' },
-        { id: 'big4', label: 'About 4 % too big' },
-        { id: 'right', label: 'About 4 % too small', correct: true },
-      ],
-      why: 'A ∝ d², so the area comes out about 4 % too big. E = kL ÷ A is then about 4 % too small.',
     },
   ],
   youCanNow: [

@@ -52,3 +52,17 @@ All numbers from `src/physics/materials.ts`, re-checked by `src/content/reading-
 1. `src/physics/materials.ts` + test: the copper curve (`loadingStress`), `elasticRecovery`, `permanentStrain`, `unloadingStress`, `breakingForce`.
 2. `src/figures/MaterialFigure.tsx`: `view: 'loop'` (zoomed real-scale graph, loading curve, unloading line, brackets for the part that springs back and the permanent part), `view: 'sketch'` (the full ductile curve, letters P E Y U B as tap targets, a legend when they are not), `view: 'compare'` (three sketched curves A, B, C).
 3. Content `src/content/reading-material-graphs.ts` + test, `ready: true` on the map; bank 12f.
+
+## v3 changes (25 Nov)
+
+Task D12. The puzzle (3.0 × 10⁻³ of strain stays) and its recap are unchanged. 14 screens + 4 Skill check; chapters *The puzzle* → *Elastic and plastic* → *Back to the wire*; cast: Felix. The predict now ends with "I'm not sure".
+
+| Was | Now |
+|---|---|
+| — | **sort** `elastic-sort`: elastic or plastic for six everyday things |
+| — | **estimate** `left-strain`: drag to the strain left in the wire (3.0 × 10⁻³, scale 0–8, tolerance 0.5); the wire is released after Check |
+| choice `left` (how much longer) | **build** `Δx = ε × L`, 4.50 mm (wrong chips: the springy 2.0 × 10⁻³, the whole 5.0 × 10⁻³) |
+| tapFig `brittle` | **graphPick** `brittle`: three sketched stress–strain curves with no numbers on the axes (ductile, brittle, soft); made with `PlotFigure` (`sketch: true`) |
+| text `rules` | one sentence, with a figure |
+
+`elastic-limit` and `uts` (tap the sketch), `release` (explore) and `load` (choice, 171 N) stay. Skill check: **build** (another copper wire, 0.60 mm across, `F = σ × π × d² ÷ 4`, 96.1 N), **graphPick** (the unloading of a wire stretched to 3.5 × 10⁻³: parallel line, retraced curve, straight down), **choice** (what ductile means), **exam card** on Felix's wire (2.0 m, 300 MPa, 4.0 × 10⁻³): (a) Calculate the strain that springs back [2] (2.5 × 10⁻³), (b) Calculate how much longer the wire is [2] (3.0 mm). Different from the task: it keeps the build and the choice the v3 rules ask for, so the sort lives in the story. The beyond-the-limit choice and the thick-wire choice are gone.

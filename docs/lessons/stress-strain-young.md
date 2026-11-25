@@ -54,3 +54,19 @@ All numbers from `src/physics/young.ts`, re-checked by `src/content/stress-strai
 1. `src/physics/young.ts` + test: `circleArea`, `stress`, `strain`, `youngModulus`, `wireExtension`, `wireStiffness`, `youngFromGradient`.
 2. `src/figures/WireFigure.tsx`: beam and hanging wires (the stretch magnified ×300, said on the sheet), cross-sections to scale / readings / stress–strain graph on the right; `view: 'rig'` the lab; `view: 'plot'` the force–extension plot with a gradient triangle.
 3. Content `src/content/stress-strain-young.ts` + test, `ready: true` on the map; bank 12f.
+
+## v3 changes (25 Nov)
+
+Task D12. The puzzle (B stretches half as far as A, 1.09 mm against 2.18 mm) and its recap are unchanged. 14 screens + 4 Skill check; chapters *The puzzle* → *Stress, strain, E* → *Back to the wires*; cast: Hana. The predict now ends with "I'm not sure".
+
+| Was | Now |
+|---|---|
+| choice `stress` | **build** `σ = F ÷ (π × d² ÷ 4)`, 306 MPa (wrong chips: the radius 0.00025 m, the diameter in mm) |
+| choice `young` | **build** `E = σ ÷ ε`, 210 GPa (wrong chips: the extension 2.18 mm, the length 1.5 m) |
+| choice `hook-again` | **build** `Δx = F × L ÷ (A × E)` for B, 1.09 mm (wrong chips: A's length and area) |
+| — | **spotError** `error`: Hana puts the diameter into πr² (stress 76.4 MPa, 4 times too small) |
+| — | **order** `cp2`: Core Practical 2 — length, diameter, loading, graph |
+| choice `gradient` | **build** `E = k × L ÷ (π × d² ÷ 4)`, 204 GPa (wrong chip: the radius) |
+| text `rules` | one sentence, with a figure |
+
+`strain` and `long-thin` (choices) and `graph` (explore) stay. Skill check: **build** (a 400 N load on a 1.5 m, 0.80 mm² steel wire, 3.57 mm), **order** (why the wire must stay below its elastic limit), **choice** (the wire cut in half), **exam card** on Hana's steel wire (80 N on 2.0 m, 0.50 mm across, 3.9 mm): (a) Calculate the stress [2] (407 MPa), (b) Calculate the Young modulus [2] (209 GPa). The 2 %-too-big diameter, the modulus from σ and ε, and the extension choices are gone. Chips are plain decimals (`0.00050 m`) or `3.06 × 10⁸ Pa`: at most 14 characters.

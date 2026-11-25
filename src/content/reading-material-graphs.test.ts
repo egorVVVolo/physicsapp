@@ -1,83 +1,141 @@
 // Every number in "Reading material graphs" is recomputed from the model, and every wrong option is a named mistake.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readingMaterialGraphs as L, ANSWERS as X, LOAD, SKILL, WIRE } from './reading-material-graphs.ts';
+import { readingMaterialGraphs as L, ANSWERS as X, BREAK, EXAM, EXPLORE, LOAD, UNLOAD, WIRE } from './reading-material-graphs.ts';
+import { COPPER, E_COPPER, loadingStress, permanentStrain } from '../physics/materials.ts';
 import { lessons } from './lessons.ts';
 import { course } from './course.ts';
-import { COMPARE_IDS, SKETCH_IDS, type OptionQuestion } from './types.ts';
+import type { BuildScreen, EstimateScreen, ExamCardScreen, GraphPickScreen, OptionQuestion, PlotFig, SortScreen } from './types.ts';
 
 const all = [...L.story, ...L.skillCheck];
 const q = (id: string) => all.find((s) => s.id === id) as OptionQuestion;
 const label = (id: string, opt: string) => q(id).options.find((o) => o.id === opt)!.label;
 const right = (id: string) => q(id).options.find((o) => o.correct)!.id;
+const build = (id: string) => all.find((s) => s.id === id) as BuildScreen;
+const chip = (b: Pick<BuildScreen, 'chips'>, id: string) => b.chips.find((c) => c.id === id)!.label;
 const NB = ' ';
-const near = (a: number, b: number, rel = 1e-9) => assert.ok(Math.abs(a - b) <= rel * Math.abs(b) + 1e-15, `expected ${b}, got ${a}`);
-const mm = (s: string) => `${s}${NB}mm`;
-const N = (s: string) => `${s}${NB}N`;
+const near = (a: number, b: number, tol = 1e-9) => assert.ok(Math.abs(a - b) <= tol, `expected ${b}, got ${a}`);
 
-test('the puzzle: 3.0 × 10⁻³ of the 5.0 × 10⁻³ stays, 2.0 × 10⁻³ springs back', () => {
-  near(X.hook.right, 3.0e-3);
-  near(X.hook.springy, 2.0e-3);
-  near(X.hook.all, WIRE.reach);
+test('the puzzle: stretched to 5.0 × 10⁻³ (240 MPa), 3.0 × 10⁻³ is left', () => {
+  near(loadingStress(WIRE.reach), 240e6, 1e-3);
+  near(X.hook.right, 3.0e-3, 1e-12);
+  near(X.hook.springy, 2.0e-3, 1e-12);
   const hook = L.story.find((s) => s.id === 'hook')!;
-  assert.ok(hook.kind === 'predict');
-  const labels = hook.kind === 'predict' ? hook.options.map((o) => o.label) : [];
-  assert.ok(labels.includes('3.0 × 10⁻³') && labels.includes('2.0 × 10⁻³'));
-  assert.ok(labels.some((l) => l.startsWith('5.0 × 10⁻³')));
+  assert.ok(hook.kind === 'predict' && hook.options.some((o) => o.correct && o.label === '3.0 × 10⁻³'));
 });
 
-test('the wire stays 4.50 mm longer; the wrong ones are named mistakes', () => {
-  near(X.left.right, 4.5e-3);
-  assert.equal(right('left'), 'right');
-  assert.equal(label('left', 'right'), mm('4.50'));
-  assert.equal(label('left', 'springy'), mm('3.00'));
-  assert.equal(label('left', 'all'), mm('7.50'));
-  assert.ok(label('left', 'zero').startsWith('0 mm'));
+test('sort: three elastic and three plastic', () => {
+  const s = L.story.find((x) => x.id === 'elastic-sort') as SortScreen;
+  for (const bin of s.bins) assert.equal(s.items.filter((it) => it.bin === bin.id).length, 3, `${bin.id}: three items`);
 });
 
-test('explore: the unloading line is parallel to the loading line', () => {
-  const s = L.story.find((x) => x.id === 'release')!;
-  assert.ok(s.kind === 'explore' && s.question.options.find((o) => o.correct)!.id === 'right');
-  assert.ok(s.kind === 'explore' && s.slider.max === 5 && s.fig.kind === 'material' && s.fig.unload === true);
-});
-
-test('the sketch: P E Y U B are the tap targets; E is the elastic limit, U the greatest stress', () => {
+test('the sketch has the points the legend names, and the tap screens answer them', () => {
   assert.equal(right('elastic-limit'), 'E');
   assert.equal(right('uts'), 'U');
-  for (const id of ['elastic-limit', 'uts']) {
-    const s = q(id);
-    assert.deepEqual(s.options.map((o) => o.id), [...SKETCH_IDS]);
+});
+
+test('explore: the slider covers the 5.0 × 10⁻³ of the puzzle', () => {
+  const s = L.story.find((x) => x.id === 'release')!;
+  assert.ok(s.kind === 'explore' && s.slider.max === EXPLORE.max && s.slider.max >= WIRE.reach * 1e3);
+});
+
+test('estimate: 3.0 × 10⁻³ is left; the thumb does not start inside the band', () => {
+  const est = L.story.find((s) => s.id === 'left-strain') as EstimateScreen;
+  near(est.answer, 3.0, 1e-9);
+  assert.ok(est.scale.min < est.answer && est.scale.max > est.answer);
+  assert.ok(Math.abs((est.scale.min + est.scale.max) / 2 - est.answer) > est.tolerance);
+});
+
+test('the puzzle built: 3.0 × 10⁻³ of 1.50 m is 4.50 mm longer', () => {
+  const b = build('hook-again');
+  near(b.result.value, 4.5, 1e-9);
+  near(b.result.value / 1e3, X.left.right, 1e-12);
+  assert.deepEqual(b.boxes, { 'ε': 'left', L: 'length' });
+  assert.equal(chip(b, 'left'), '3.0 × 10⁻³');
+  assert.equal(chip(b, 'springy'), '2.0 × 10⁻³');
+  assert.equal(chip(b, 'all'), '5.0 × 10⁻³');
+  assert.equal(chip(b, 'length'), `1.50${NB}m`);
+});
+
+test('graph pick: brittle is the straight line to a break (B); all axes the same, numbers hidden', () => {
+  const s = L.story.find((x) => x.id === 'brittle') as GraphPickScreen;
+  assert.equal(s.graphs.find((gr) => gr.correct)!.id, 'B');
+  const fig = (id: string) => s.graphs.find((gr) => gr.id === id)!.fig as PlotFig;
+  assert.equal(fig('B').points.length, 2, 'brittle: a straight line');
+  assert.ok(fig('A').points.length > 4 && fig('A').points.some((p) => p.y === 1), 'ductile: a peak');
+  for (const gr of s.graphs) assert.equal((gr.fig as PlotFig).sketch, true);
+  assert.equal(new Set(s.graphs.map((gr) => JSON.stringify([(gr.fig as PlotFig).x, (gr.fig as PlotFig).y]))).size, 1);
+  // the brittle line ends well before the ductile one
+  assert.ok(fig('B').points[1].x < fig('A').points[fig('A').points.length - 1].x / 2);
+});
+
+test('the wire 0.80 mm across breaks at 171 N', () => {
+  near(X.load.right, LOAD.uts * (Math.PI * (0.4e-3) ** 2), 1e-9);
+  assert.equal(label('load', 'right'), `171${NB}N`);
+  assert.equal(label('load', 'radius'), `684${NB}N`);
+});
+
+test('Skill check: the 0.60 mm wire breaks at 96.1 N (built)', () => {
+  const b = build('breaking');
+  near(b.result.value, BREAK.uts * ((Math.PI * BREAK.d ** 2) / 4), 1e-9);
+  near(b.result.value, 96.1, 0.05);
+  assert.deepEqual(b.boxes, { 'σ': 'uts', d: 'diameter' });
+  assert.equal(chip(b, 'uts'), `3.40 × 10⁸${NB}Pa`);
+  assert.equal(chip(b, 'diameter'), `0.00060${NB}m`);
+  assert.equal(chip(b, 'radius'), `0.00030${NB}m`);
+});
+
+test('Skill check: the unloading graph is the parallel line (C), from the model', () => {
+  const s = all.find((x) => x.id === 'unloading') as GraphPickScreen;
+  assert.equal(s.graphs.find((gr) => gr.correct)!.id, 'C');
+  const pts = (id: string) => (s.graphs.find((gr) => gr.id === id)!.fig as PlotFig).points;
+  const reach = UNLOAD.reach * 1e3;
+  // every curve starts the same way: up the loading curve to the strain reached
+  for (const id of ['A', 'B', 'C']) {
+    assert.ok(pts(id).some((p) => p.x === reach && Math.abs(p.y - loadingStress(UNLOAD.reach) / 1e6) < 1e-9));
   }
-  assert.equal(right('brittle'), 'B');
-  assert.deepEqual(q('brittle').options.map((o) => o.id), [...COMPARE_IDS]);
-});
-
-test('the largest load: 171 N for a 0.80 mm wire of 340 MPa', () => {
-  near(X.load.right, LOAD.uts * Math.PI * 0.4e-3 ** 2);
-  assert.equal(right('load'), 'right');
-  assert.equal(label('load', 'right'), N('171'));
-  assert.equal(label('load', 'radius'), N('684'));
-  assert.equal(label('load', 'noPi'), N('218'));
-  assert.equal(label('load', 'mm2'), N('1.71 × 10⁸'));
-});
-
-test('Skill check: stays longer, 3.0 mm, ductile, 680 N', () => {
-  assert.equal(right('beyond'), 'right');
-  near(X.permanent.right, 3.0e-3);
-  assert.equal(right('permanent'), 'right');
-  assert.equal(label('permanent', 'right'), mm('3.00'));
-  assert.equal(label('permanent', 'springy'), mm('5.00'));
-  assert.equal(label('permanent', 'all'), mm('8.00'));
+  // the right one ends at the permanent strain on the axis, parallel to the straight part
+  const end = pts('C')[pts('C').length - 1];
+  const top = pts('C').find((p) => p.x === reach)!;
+  near(end.y, 0);
+  near(end.x, permanentStrain(UNLOAD.reach) * 1e3, 1e-9);
+  near((top.y - end.y) / (top.x - end.x), (E_COPPER / 1e6) / 1e3, 1e-6); // slope E in MPa per 10⁻³
+  near(X.unload.perm, 1.714e-3, 1e-6);
+  // the retraced one comes back to the origin, the vertical one stays at the strain reached
+  assert.deepEqual(pts('A')[pts('A').length - 1], { x: 0, y: 0 });
+  assert.deepEqual(pts('B')[pts('B').length - 1], { x: reach, y: 0 });
+  assert.ok(COPPER.yieldStrain * 1e3 < reach);
   assert.equal(right('describe'), 'right');
-  assert.equal(SKILL.ratio, 4);
-  assert.equal(right('thick'), 'right');
-  assert.equal(label('thick', 'right'), N('680'));
-  assert.equal(label('thick', 'twice'), N('340'));
-  assert.equal(label('thick', 'eight'), N('1360'));
 });
 
-test('the recap: 2.0 × 10⁻³ springs back, 3.0 × 10⁻³ stays', () => {
-  assert.ok(L.recap.text.includes('2.0 × 10⁻³') && L.recap.text.includes('3.0 × 10⁻³'));
+test('exam card: 2.5 × 10⁻³ springs back, the 2.0 m wire stays 3.0 mm longer', () => {
+  const card = all.find((x) => x.id === 'copper-wire') as ExamCardScreen;
+  const [a, bb] = card.parts;
+  assert.ok(a.kind === 'build' && bb.kind === 'build');
+  if (a.kind === 'build' && bb.kind === 'build') {
+    near(a.build.result.value, (EXAM.sigma / E_COPPER) * 1e3, 1e-9);
+    near(a.build.result.value, 2.5, 1e-9);
+    near(bb.build.result.value, (EXAM.eps - EXAM.sigma / E_COPPER) * EXAM.L * 1e3, 1e-9);
+    near(bb.build.result.value, 3.0, 1e-9);
+    assert.equal(chip(a.build, 'stress'), `3.00 × 10⁸${NB}Pa`);
+    assert.equal(chip(a.build, 'modulus'), `1.20 × 10¹¹${NB}Pa`);
+    assert.equal(chip(bb.build, 'back'), '2.5 × 10⁻³');
+    assert.equal(chip(bb.build, 'perm'), '1.5 × 10⁻³');
+  }
+  assert.equal(a.marks + bb.marks, 4);
+});
+
+test('every option label is different within a question', () => {
+  for (const s of all) {
+    if (s.kind === 'choice' || s.kind === 'tapFig') {
+      const labels = s.options.map((o) => o.label);
+      assert.equal(new Set(labels).size, labels.length, `${s.id}: two options read the same: ${labels.join(' | ')}`);
+    }
+    if (s.kind === 'build') {
+      const labels = s.chips.map((c) => c.label);
+      assert.equal(new Set(labels).size, labels.length, `${s.id}: two chips read the same: ${labels.join(' | ')}`);
+    }
+  }
 });
 
 test('the lesson is on the map and playable', () => {

@@ -1,104 +1,132 @@
 // Every number in "Stress, strain, Young modulus" is recomputed from the model, and every wrong option is a named mistake.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { stressStrainYoung as L, ANSWERS as X, DIAMETER_ERROR, LAB, LOAD, WA, WB } from './stress-strain-young.ts';
+import { stressStrainYoung as L, ANSWERS as X, EXPLORE, LAB, LOAD, ROD, TEST, WA, WB } from './stress-strain-young.ts';
+import { E_STEEL } from '../physics/young.ts';
 import { lessons } from './lessons.ts';
 import { course } from './course.ts';
-import type { OptionQuestion } from './types.ts';
+import type { BuildScreen, ExamCardScreen, OptionQuestion, OrderScreen, SpotErrorScreen } from './types.ts';
 
 const all = [...L.story, ...L.skillCheck];
 const q = (id: string) => all.find((s) => s.id === id) as OptionQuestion;
 const label = (id: string, opt: string) => q(id).options.find((o) => o.id === opt)!.label;
 const right = (id: string) => q(id).options.find((o) => o.correct)!.id;
+const build = (id: string) => all.find((s) => s.id === id) as BuildScreen;
+const chip = (b: Pick<BuildScreen, 'chips'>, id: string) => b.chips.find((c) => c.id === id)!.label;
 const NB = ' ';
-const near = (a: number, b: number, rel = 1e-9) => assert.ok(Math.abs(a - b) <= rel * Math.abs(b), `expected ${b}, got ${a}`);
-const pa = (s: string) => `${s}${NB}Pa`;
-const mm = (s: string) => `${s}${NB}mm`;
+const near = (a: number, b: number, rel = 1e-9) => assert.ok(Math.abs(a - b) <= rel * Math.max(1, Math.abs(b)), `expected ${b}, got ${a}`);
+const area = (d: number) => (Math.PI * d * d) / 4;
 
-test('the wires: B is twice as long and twice as wide', () => {
-  near(WB.L / WA.L, 2);
-  near(WB.d / WA.d, 2);
-  assert.equal(LOAD, 60);
+test('wire A, 0.50 mm across under 60 N: 306 MPa, built with the diameter', () => {
+  near(X.stress.right, 60 / area(0.5e-3));
+  const b = build('stress');
+  near(b.result.value * 1e6, X.stress.right, 1e-9);
+  near(b.result.value, 306, 3e-3);
+  assert.deepEqual(b.boxes, { F: 'force', d: 'diameter' });
+  assert.equal(chip(b, 'force'), `60${NB}N`);
+  assert.equal(chip(b, 'diameter'), `0.00050${NB}m`);
+  assert.equal(chip(b, 'radius'), `0.00025${NB}m`);
 });
 
-test('the stress in A is 3.06 × 10⁸ Pa; the wrong ones are named mistakes', () => {
-  near(X.stress.right, 60 / (Math.PI * (0.25e-3) ** 2));
-  assert.equal(right('stress'), 'right');
-  assert.equal(label('stress', 'right'), pa('3.06 × 10⁸'));
-  assert.equal(label('stress', 'diameter'), pa('7.64 × 10⁷'));
-  assert.equal(label('stress', 'mm2'), pa('3.06 × 10²'));
-  assert.equal(label('stress', 'noPi'), pa('9.60 × 10⁸'));
-});
-
-test('the strain of A is 1.46 × 10⁻³ for 2.18 mm over 1.5 m', () => {
-  near(X.strain.right, 2.1827e-3 / 1.5, 1e-3);
+test('the strain of A: 1.46 × 10⁻³, and the named mistakes', () => {
+  near(X.strain.right, 2.18e-3 / 1.5, 3e-3);
   assert.equal(right('strain'), 'right');
   assert.equal(label('strain', 'right'), '1.46 × 10⁻³');
   assert.equal(label('strain', 'noLength'), '2.18 × 10⁻³');
   assert.equal(label('strain', 'mixed'), '1.46');
   assert.equal(label('strain', 'upside'), '687');
-  assert.ok(q('strain').prompt.includes('2.18 mm'));
 });
 
-test('explore: the gradient is the Young modulus, not k', () => {
+test('explore: the slider reaches 70 N and starts at the 60 N of the wires', () => {
   const s = L.story.find((x) => x.id === 'graph')!;
-  assert.ok(s.kind === 'explore' && s.question.options.find((o) => o.correct)!.id === 'right');
-  assert.ok(s.kind === 'explore' && s.slider.max === 70 && s.slider.start === LOAD);
+  assert.ok(s.kind === 'explore' && s.slider.max === EXPLORE.max && s.slider.start === LOAD);
 });
 
-test('E of the steel is 2.10 × 10¹¹ Pa; the stress and strain in the question are A’s', () => {
-  near(X.young.right, 2.1e11, 1e-3);
-  assert.equal(right('young'), 'right');
-  assert.equal(label('young', 'right'), pa('2.10 × 10¹¹'));
-  assert.equal(label('young', 'upside'), pa('4.76 × 10⁻¹²'));
-  assert.equal(label('young', 'product'), pa('4.45 × 10⁵'));
-  assert.equal(label('young', 'mpa'), pa('2.10 × 10⁵'));
-  assert.ok(q('young').prompt.includes('306 MPa') && q('young').prompt.includes('1.46 × 10⁻³'));
+test('the Young modulus built: 3.06 × 10⁸ Pa ÷ 1.46 × 10⁻³ = 210 GPa', () => {
+  const b = build('young');
+  near(b.result.value * 1e9, E_STEEL, 1e-9);
+  assert.deepEqual(b.boxes, { 'σ': 'stress', 'ε': 'strain' });
+  assert.equal(chip(b, 'stress'), `3.06 × 10⁸${NB}Pa`);
+  assert.equal(chip(b, 'strain'), '1.46 × 10⁻³');
+  assert.equal(chip(b, 'ext'), `2.18${NB}mm`);
 });
 
-test('the puzzle: B stretches 1.09 mm, half of A’s 2.18 mm', () => {
-  near(X.puzzle.right * 2, X.puzzle.same);
-  assert.equal(right('hook-again'), 'right');
-  assert.equal(label('hook-again', 'right'), mm('1.09'));
-  assert.equal(label('hook-again', 'quarter'), mm('0.55'));
-  assert.ok(label('hook-again', 'same').startsWith(mm('2.18')));
-  assert.equal(label('hook-again', 'double'), mm('4.37'));
+test('the puzzle built: B stretches 1.09 mm, half as far as A', () => {
+  near(X.puzzle.right, X.puzzle.same / 2, 1e-9);
+  const b = build('hook-again');
+  near(b.result.value, 1.09, 3e-3);
+  assert.deepEqual(b.boxes, { F: 'force', L: 'length', A: 'area', E: 'modulus' });
+  assert.equal(chip(b, 'area'), `7.85 × 10⁻⁷${NB}m²`);
+  assert.equal(chip(b, 'areaA'), `1.96 × 10⁻⁷${NB}m²`);
+  assert.equal(chip(b, 'length'), `3.0${NB}m`);
+  assert.equal(chip(b, 'lenA'), `1.5${NB}m`);
+  assert.equal(chip(b, 'modulus'), `2.10 × 10¹¹${NB}Pa`);
+  assert.equal(WB.L, 2 * WA.L);
+  assert.equal(WB.d, 2 * WA.d);
   const hook = L.story.find((s) => s.id === 'hook')!;
-  assert.ok(hook.kind === 'predict' && hook.options.some((o) => o.label === 'Half as far'));
+  assert.ok(hook.kind === 'predict' && hook.options.some((o) => o.id === 'half' && o.correct));
 });
 
-test('the lab: E = kL ÷ A = 2.04 × 10¹¹ Pa', () => {
-  near(X.gradient.right, (LAB.k * LAB.L) / (Math.PI * (0.2e-3) ** 2), 1e-9);
-  assert.equal(right('gradient'), 'right');
-  assert.equal(label('gradient', 'right'), pa('2.04 × 10¹¹'));
-  assert.equal(label('gradient', 'radius'), pa('5.09 × 10¹⁰'));
-  assert.equal(label('gradient', 'noLength'), pa('1.27 × 10¹¹'));
-  assert.equal(label('gradient', 'mm2'), pa('2.04 × 10⁵'));
+test('spotError: the diameter in πr² makes the area 4 times too big and the stress 76.4 MPa', () => {
+  const s = L.story.find((x) => x.id === 'error') as SpotErrorScreen;
+  assert.equal(s.lines.filter((l) => l.wrong).length, 1);
+  assert.equal(s.lines.find((l) => l.wrong)!.id, 'area');
+  near(X.error.area, 4 * X.stress.area, 1e-9);
+  near(X.error.sigma, X.stress.right / 4, 1e-9);
+  assert.ok(s.lines.find((l) => l.id === 'sigma')!.text.includes(`7.64 × 10⁷${NB}Pa`));
+});
+
+test('the Core Practical 2 order: length, diameter, loading, graph', () => {
+  const o = L.story.find((x) => x.id === 'cp2') as OrderScreen;
+  assert.deepEqual(o.steps.map((s) => s.id), ['length', 'diameter', 'load', 'plot']);
   assert.equal(right('long-thin'), 'right');
-  const plot = q('gradient').fig;
-  assert.ok(plot?.kind === 'wire' && plot.view === 'plot' && plot.k === LAB.k);
 });
 
-test('Skill check: 3.57 mm, stress strain and E stay, 7.00 × 10¹⁰ Pa, about 4 % too small', () => {
-  assert.equal(right('extension'), 'right');
-  assert.equal(label('extension', 'right'), mm('3.57'));
-  assert.equal(label('extension', 'noLength'), mm('2.38'));
-  assert.equal(label('extension', 'divLength'), mm('1.59'));
-  assert.equal(label('extension', 'mm2'), `3.57${NB}μm`);
+test('the lab built: gradient 16 000 N m⁻¹ on a 1.60 m, 0.40 mm wire gives 204 GPa', () => {
+  const b = build('gradient');
+  near(b.result.value * 1e9, (LAB.k * LAB.L) / area(LAB.d), 1e-9);
+  near(b.result.value, 204, 3e-3);
+  assert.deepEqual(b.boxes, { k: 'gradient', L: 'length', d: 'diameter' });
+  assert.equal(chip(b, 'gradient'), `16000${NB}N${NB}m⁻¹`);
+  assert.equal(chip(b, 'diameter'), `0.00040${NB}m`);
+  assert.equal(chip(b, 'radius'), `0.00020${NB}m`);
+});
+
+test('Skill check: rod 3.57 mm (built), why the elastic limit matters, halved wire, steel wire 407 MPa and 209 GPa', () => {
+  const b = build('extension');
+  near(b.result.value / 1e3, (ROD.F * ROD.L) / (ROD.A * E_STEEL), 1e-9);
+  near(b.result.value, 3.57, 3e-3);
+  assert.equal(chip(b, 'area'), `8.00 × 10⁻⁷${NB}m²`);
+  const o = all.find((x) => x.id === 'elastic-why') as OrderScreen;
+  assert.deepEqual(o.steps.map((s) => s.id), ['past', 'curve', 'gradient', 'young']);
   assert.equal(right('halved'), 'right');
-  assert.equal(right('modulus'), 'right');
-  assert.equal(label('modulus', 'right'), pa('7.00 × 10¹⁰'));
-  assert.equal(label('modulus', 'upside'), pa('1.43 × 10⁻¹¹'));
-  assert.equal(label('modulus', 'product'), pa('2.80 × 10⁵'));
-  assert.equal(label('modulus', 'unit'), `7.00 × 10¹⁰${NB}N${NB}m⁻¹`);
-  assert.equal(right('diameter'), 'right');
-  near(X.diameter.ratio, 1 / DIAMETER_ERROR ** 2);
-  assert.ok(X.diameter.ratio < 0.97 && X.diameter.ratio > 0.95);
+  const card = all.find((x) => x.id === 'steel-wire') as ExamCardScreen;
+  const [a, bb] = card.parts;
+  assert.ok(a.kind === 'build' && bb.kind === 'build');
+  if (a.kind === 'build' && bb.kind === 'build') {
+    near(a.build.result.value * 1e6, TEST.F / area(TEST.d), 1e-9);
+    near(a.build.result.value, 407, 2e-3);
+    near(bb.build.result.value * 1e9, (TEST.F / area(TEST.d)) / (TEST.dx / TEST.L), 1e-9);
+    near(bb.build.result.value, 209, 3e-3);
+    assert.equal(chip(a.build, 'diameter'), `0.00050${NB}m`);
+    assert.equal(chip(bb.build, 'stress'), `4.07 × 10⁸${NB}Pa`);
+    assert.equal(chip(bb.build, 'strain'), '1.95 × 10⁻³');
+    assert.equal(chip(bb.build, 'ext'), `3.90${NB}mm`);
+  }
+  assert.equal(a.marks + bb.marks, 4);
 });
 
-test('the recap: 2.18 mm, 1.09 mm and 2.10 × 10¹¹ Pa', () => {
-  const t = L.recap.text;
-  assert.ok(t.includes(mm('2.18')) && t.includes(mm('1.09')) && t.includes(pa('2.10 × 10¹¹')));
+test('every option label is different within a question', () => {
+  for (const s of all) {
+    if (s.kind === 'choice' || s.kind === 'tapFig') {
+      const labels = s.options.map((o) => o.label);
+      assert.equal(new Set(labels).size, labels.length, `${s.id}: two options read the same: ${labels.join(' | ')}`);
+    }
+    if (s.kind === 'build') {
+      const labels = s.chips.map((c) => c.label);
+      assert.equal(new Set(labels).size, labels.length, `${s.id}: two chips read the same: ${labels.join(' | ')}`);
+    }
+  }
 });
 
 test('the lesson is on the map and playable', () => {

@@ -497,6 +497,8 @@ export type PlotFig = {
   y: { label: string; max: number; tick: number };
   /** The curve in the axes' units, from the origin outwards. */
   points: { x: number; y: number }[];
+  /** A sketch, not to scale: only the axis titles are written, no numbers on the axes. */
+  sketch?: true;
 };
 
 /**
