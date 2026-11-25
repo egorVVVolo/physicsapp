@@ -33,6 +33,11 @@ const easeInOut = Easing.inOut(Easing.cubic);
 
 let played = false; // module state: survives navigation, resets when the app starts again
 
+/** The app opens on onboarding: no launch animation this time. */
+export function skipLaunch() {
+  played = true;
+}
+
 export function Launch({ target }: { target: () => LaunchTarget | undefined }) {
   const reduced = useReducedMotion();
   const [show, setShow] = useState(() => !played && !reduced);

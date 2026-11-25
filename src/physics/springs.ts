@@ -67,6 +67,7 @@ export type Bob = { x: number; v: number };
  * (semi-implicit Euler), so a figure can follow a target that changes while it moves (the explore's slider).
  */
 export function bobStep(bob: Bob, xEq: number, omega: number, zeta: number, dt: number): Bob {
+  'worklet'; // also runs on the UI thread (the Welcome puck)
   const n = Math.max(1, Math.ceil(dt / 0.002));
   const h = dt / n;
   let { x, v } = bob;

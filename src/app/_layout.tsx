@@ -69,6 +69,7 @@ function Screens() {
         {/* a lesson rises over the map like a card and drops back down; no swipe-to-leave, only × (it asks first) */}
         <Stack.Screen name="lesson/[id]" options={{ animation: 'slide_from_bottom', gestureEnabled: false }} />
         <Stack.Screen name="practice/[mode]" options={{ animation: 'slide_from_bottom', gestureEnabled: false }} />
+        <Stack.Screen name="welcome" options={{ animation: 'fade', gestureEnabled: false }} />
       </Stack>
     </>
   );

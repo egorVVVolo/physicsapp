@@ -26,6 +26,12 @@ export function nextSessions(today: Date): Session[] {
   return out;
 }
 
+/** The session's name in words: "May–June 2027". */
+export function sessionName(key: string): string {
+  const [y, m] = key.split('-').map(Number);
+  return SESSIONS.find((x) => x.month === m)?.name(y) ?? key;
+}
+
 /** The session's name for the strip: "MAY–JUNE 2027". */
 export function sessionLabel(key: string): string {
   const [y, m] = key.split('-').map(Number);

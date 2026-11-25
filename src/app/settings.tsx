@@ -1,14 +1,15 @@
 // Settings: sound, vibration, appearance, the phone's reduced-motion setting (shown, not changed here),
 // and resetting progress (asked first in a sheet). Everything is kept on the device in prefs/v1.
 // Send feedback stays hidden until there is a form to send it to.
-import { useEffect, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import { AccessibilityInfo, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import Animated, { Easing, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { uiIcon, type UiIconName } from '@/art/uiIcons';
 import { CONTENT_MAX } from '@/lesson/Frame';
-import { loadPrefs, resetProgress, savePrefs, type Prefs } from '@/session/storage';
+import { loadPrefs, loadProfile, resetProgress, savePrefs, type Prefs } from '@/session/storage';
+import { sessionName } from '@/session/exam';
 import { useTheme, type ThemeMode } from '@/theme/ThemeContext';
 import { font, touch } from '@/theme/tokens';
 import { Art } from '@/ui/Art';
@@ -34,6 +35,13 @@ export default function Settings() {
   useEffect(() => {
     loadPrefs().then(setPrefs);
   }, []);
+  // the exam session, read again when coming back from changing it
+  const [exam, setExam] = useState<string | null>(null);
+  useFocusEffect(
+    useCallback(() => {
+      loadProfile().then((pr) => setExam(pr.exam));
+    }, []),
+  );
 
   const back = () => (router.canGoBack() ? router.back() : router.replace('/me'));
   const toggle = (key: 'sound' | 'haptics') => {
@@ -50,7 +58,7 @@ export default function Settings() {
     <View style={{ flex: 1, backgroundColor: p.page, paddingTop: insets.top }}>
       <View style={styles.column}>
         <View style={styles.header}>
-          <Pressable accessibilityRole="button" accessibilityLabel="Back to the map" onPress={back} hitSlop={4} style={styles.backButton}>
+          <Pressable accessibilityRole="button" accessibilityLabel="Back" onPress={back} hitSlop={4} style={styles.backButton}>
             <Art xml={uiIcon('back')} width={24} color={p.ink} />
           </Pressable>
           <Text accessibilityRole="header" style={[styles.heading, { color: p.ink }]}>
@@ -107,6 +115,17 @@ export default function Settings() {
               </View>
               <Text style={[styles.value, { color: p.muted }]}>{reduced ? 'On' : 'Off'}</Text>
             </View>
+          </View>
+
+          <View style={[styles.group, { borderColor: p.line }]}>
+            <Pressable accessibilityRole="button" onPress={() => router.push({ pathname: '/onboarding/exam', params: { from: 'settings' } })} style={({ pressed }) => [styles.row, { opacity: pressed ? 0.6 : 1 }]}>
+              <Art xml={uiIcon('info')} width={22} color={p.ink} />
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.label, { color: p.ink }]}>Exam date</Text>
+                <Text style={[styles.hint, { color: p.muted }]}>{exam ? sessionName(exam) : 'Not set'}</Text>
+              </View>
+              <Art xml={uiIcon('forward')} width={20} color={p.muted} />
+            </Pressable>
           </View>
 
           <View style={[styles.group, { borderColor: p.line }]}>
