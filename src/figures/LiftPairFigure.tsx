@@ -8,7 +8,7 @@ import type { LiftPairFig } from '@/content/types';
 import { useTheme } from '@/theme/ThemeContext';
 import { stroke } from '@/theme/tokens';
 import { useTween } from './anim';
-import { AccChevrons, ForceArrow, ForceLetter, Hatch, MonoLabel } from './draw';
+import { AccChevrons, ForceArrow, ForceLetter, MonoLabel } from './draw';
 import { Person, Scales, SCALES_H } from './people';
 
 export const LIFT_PAIR_VB = { w: 340, h: 236 };
@@ -41,8 +41,7 @@ function MiniLift({ x, n, caption, acc }: { x: number; n: number; caption: strin
   return (
     <Group>
       <Line x1={cx} y1={0} x2={cx} y2={TOP} stroke={p.draw} strokeWidth={stroke.body} />
-      <Rect x={x} y={TOP} width={CAR.w} height={CAR.h} fill={p.page} stroke={p.draw} strokeWidth={stroke.body} />
-      <Hatch x1={x} x2={x + CAR.w} y={FLOOR} color={p.draw} />
+      <Rect x={x} y={TOP} width={CAR.w} height={CAR.h} rx={12} fill="none" stroke={p.ink} strokeWidth={1.8} />
       <Group transform={`translate(${cx} ${FLOOR}) scale(${S}) translate(${-cx} ${-FLOOR})`}>
         <Scales x={cx} y={FLOOR} reading={kg} />
         <Person x={cx} y={FLOOR - SCALES_H + 3} cg={false} />

@@ -32,9 +32,9 @@ const SCALES_W = 100;
 const Z_X = 10;
 const Z_W = 300;
 const ZONE = {
-  you: { y: 6, h: 180, tag: 'FORCES ON YOU' },
-  scales: { y: 194, h: 80, tag: 'FORCES ON THE SCALES' },
-  earth: { y: 282, h: 74, tag: 'FORCES ON THE EARTH' },
+  you: { y: 6, h: 180, tag: 'forces on you' },
+  scales: { y: 194, h: 80, tag: 'forces on the scales' },
+  earth: { y: 282, h: 74, tag: 'forces on the Earth' },
 } as const;
 
 const SOLES = 176;
@@ -81,7 +81,7 @@ export function pairsTargets(): TapTarget[] {
 
 /** `kept`: the screen before showed these bodies and arrows already, so they are simply there. */
 export function PairsFigure({ fig, tap, clock = STILL, kept = false }: { fig: PairsFig; tap?: TapProps; clock?: DrawClock; kept?: boolean }) {
-  const { palette: p, material: m } = useTheme();
+  const { palette: p, soft } = useTheme();
   // the timeline (seconds): bodies move apart, zones appear, arrows grow one by one. It waits while the figure draws itself.
   const explode = !!fig.explode;
   const t = useOnceTime(explode ? 3.2 : 1.4, !clock.on, kept);
@@ -135,7 +135,7 @@ export function PairsFigure({ fig, tap, clock = STILL, kept = false }: { fig: Pa
 
   const zone = (z: (typeof ZONE)[keyof typeof ZONE]) => (
     <Group key={z.tag} opacity={zones}>
-      <DrawnShape clock={explode ? STILL : clock} pen={PEN.zones} {...rectPath(Z_X, z.y, Z_W, z.h, 10)} fill={p.page} stroke={p.paperLine} strokeWidth={stroke.thin} />
+      <DrawnShape clock={explode ? STILL : clock} pen={PEN.zones} {...rectPath(Z_X, z.y, Z_W, z.h, 14)} fill={soft.paper} stroke={soft.border} strokeWidth={stroke.body} />
       <MonoLabel x={Z_X + 10} y={z.y + 16} text={z.tag} color={p.label} size={9} anchor="start" />
     </Group>
   );
@@ -151,7 +151,7 @@ export function PairsFigure({ fig, tap, clock = STILL, kept = false }: { fig: Pa
       <DrawnFade clock={clock} from={FILLS[0]} to={FILLS[1]}>
         <Path
           d={`M${Z_X + 1},${EARTH_EDGE} Q${Z_X + Z_W / 2},${EARTH_CTRL} ${Z_X + Z_W - 1},${EARTH_EDGE} L${Z_X + Z_W - 1},${zb - 10} A9,9 0 0 1 ${Z_X + Z_W - 10},${zb - 1} L${Z_X + 10},${zb - 1} A9,9 0 0 1 ${Z_X + 1},${zb - 10} Z`}
-          fill={p.drawFill}
+          fill={soft.metal.fill}
         />
       </DrawnFade>
       {/* the arc is a little longer than its chord of 298 */}
@@ -164,7 +164,7 @@ export function PairsFigure({ fig, tap, clock = STILL, kept = false }: { fig: Pa
 
       {/* you: large and pale, so the force arrows read clearly over the body; the CG mark stays sharp */}
       <Group transform={personDy ? `translate(0 ${personDy})` : undefined}>
-        <Group opacity={0.42}>
+        <Group opacity={0.6}>
           <Person x={PX} y={SOLES} scale={PERSON_S} cg={false} clock={clock} pen={PEN.person} />
         </Group>
         <DrawnFade clock={clock} from={CG_MARK[0]} to={CG_MARK[1]}>
@@ -188,7 +188,7 @@ function PairBracket({ color, text }: { color: string; text: string }) {
   const y2 = F.P.y + L / 2;
   const mid = (y1 + y2) / 2;
   const h = ((y2 - y1) / 2) * k;
-  const lines = ['THIRD-LAW PAIR', 'same size,', 'opposite', 'direction'];
+  const lines = ['third-law pair', 'same size,', 'opposite', 'direction'];
   return (
     <Group opacity={k}>
       <Path d={`M${x - 8},${mid - h} L${x},${mid - h} L${x},${mid + h} L${x - 8},${mid + h}`} fill="none" stroke={color} strokeWidth={stroke.body} strokeLinejoin="round" />

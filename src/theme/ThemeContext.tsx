@@ -6,7 +6,7 @@ import { createContext, useContext, useEffect, useMemo, useState, type ReactNode
 import { useColorScheme } from 'react-native';
 import { loadPrefs, savePrefs, type Prefs } from '@/session/storage';
 import { themed } from './levelColor';
-import { darkMaterial, darkPalette, darkSoft, material, palette, soft, stroke, type LevelColor, type Material, type Palette, type Soft } from './tokens';
+import { darkMaterial, darkPalette, darkSoft, darkSoftMaterial, material, palette, soft, softMaterial, stroke, type LevelColor, type Material, type Palette, type Soft } from './tokens';
 
 export type ThemeMode = Prefs['mode'];
 type Theme = {
@@ -80,6 +80,6 @@ export function ThemeOverride({ dark, classic = false, children }: { dark: boole
 /** Inside a style-3 sheet "paper" is the sheet's white, so label patches and fills match it. */
 export function CleanTheme({ children }: { children: ReactNode }) {
   const outer = useTheme();
-  const value = useMemo(() => ({ ...outer, palette: { ...outer.palette, paper: outer.soft.paper, paperLine: outer.soft.grid } }), [outer]);
+  const value = useMemo(() => ({ ...outer, material: outer.dark ? darkSoftMaterial : softMaterial, palette: { ...outer.palette, paper: outer.soft.paper, paperLine: outer.soft.grid } }), [outer]);
   return <ThemeCtx.Provider value={value}>{children}</ThemeCtx.Provider>;
 }

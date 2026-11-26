@@ -57,8 +57,22 @@ export const SCALES_H = 30;
  * ("60.0 kg", or "- - -" when it is hidden); with `reading` null the front face is plain.
  */
 export function Scales({ x, y, reading, width = 96, clock = STILL, pen = [0, 1] }: { x: number; y: number; reading: string | null; width?: number; clock?: DrawClock; pen?: Pen }) {
-  const { palette: p, material: m, stroke, pick } = useTheme();
+  const { palette: p, material: m, soft, stroke, pick } = useTheme();
+  const clean = useContext(SheetClean);
   const w = width / 2;
+  if (clean) {
+    return (
+      <DrawnFade clock={clock} from={pen[0]} to={pen[1]}>
+        <Path d={rectPath(x - w, y - SCALES_H + 3, width, SCALES_H - 3, 8).d} fill={soft.metal.fill} stroke={soft.metal.edge} strokeWidth={1.6} />
+        {reading !== null && (
+          <G>
+            <Path d={rectPath(x - 33, y - SCALES_H + 7, 66, 19, 6).d} fill={soft.paper} />
+            <MonoLabel x={x} y={y - SCALES_H + 21} text={reading} color={p.ink} size={12} />
+          </G>
+        )}
+      </DrawnFade>
+    );
+  }
   const front = 23; // front face height
   const top = y - front;
   const topFace = polyPath([[x - w, top], [x + w, top], [x + w - 7, y - SCALES_H], [x - w + 7, y - SCALES_H]]);

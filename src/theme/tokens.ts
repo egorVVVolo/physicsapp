@@ -271,3 +271,31 @@ export const darkSoft: Soft = {
   B: { fill: '#1E534A', edge: '#62C3B1' },
   metal: { fill: '#2D333F', edge: '#808999' },
 };
+
+/** The materials on a style-3 sheet: the same names, softer fills. */
+export const softMaterial: Material = {
+  ...material,
+  wood: '#F2D9B5',
+  woodSide: '#E3BF8C',
+  metal: '#E9EBEF',
+  metalSide: '#CDD2DB',
+  plastic: '#F1E8D8',
+  plasticSide: '#DFD0B4',
+  clothA: soft.A.fill,
+  clothB: soft.B.fill,
+  carA: soft.A.fill,
+  carB: '#EBDABC',
+  trousers: '#8C96AC',
+};
+export const darkSoftMaterial: Material = {
+  ...darkMaterial,
+  wood: '#6E5433',
+  woodSide: '#574127',
+  metal: '#2D333F',
+  metalSide: '#454D5C',
+  clothA: darkSoft.A.fill,
+  clothB: darkSoft.B.fill,
+  carA: darkSoft.A.fill,
+  carB: '#6B5C40',
+  trousers: '#4A546A',
+};
