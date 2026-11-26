@@ -76,7 +76,7 @@ export const collidePlays = (fig: CollideFig): boolean => fig.play !== undefined
 type Props = { fig: CollideFig; live?: number; playing: boolean; clock?: DrawClock };
 
 export function CollideFigure({ fig, live, playing, clock = STILL }: Props) {
-  const { palette: p, material: m } = useTheme();
+  const { palette: p } = useTheme();
   const bodies = bodiesOf(fig, live);
   const { k, x0 } = fit(fig.massRange ? [bodiesOf(fig, fig.massRange[0]), bodiesOf(fig, fig.massRange[1])] : [fig.bodies]);
   const c = collisionOf(bodies, k);
@@ -89,8 +89,8 @@ export function CollideFigure({ fig, live, playing, clock = STILL }: Props) {
   const run = collisionRun(t, c);
   const squashed = collisionSquash(t, c) * k;
   const ledger = fig.ledger !== undefined;
-  const floor = ledger ? 96 : 140;
-  const rows = [150, 202];
+  const floor = ledger ? 100 : 150;
+  const rows = [154, 206];
 
   // A: its unsquashed buffer tip; B: its front face
   const tipA = x0 + run.sA * k;
@@ -118,20 +118,20 @@ export function CollideFigure({ fig, live, playing, clock = STILL }: Props) {
           {stage(clock, 
             PEN.trolleys,
             i === 0 ? (
-              <Trolley rear={rearA} floor={floor} facing={1} text={`${b.id} ${fixed(b.m, 2)} kg`} buffer={buffer} squashed={squashed} />
+              <Trolley rear={rearA} floor={floor} facing={1} text={`${b.id} ${fixed(b.m, 2)} kg`} buffer={buffer} squashed={squashed} tone="A" />
             ) : (
-              <Trolley rear={rearB} floor={floor} facing={-1} text={`${b.id} ${fixed(b.m, 2)} kg`} buffer="none" />
+              <Trolley rear={rearB} floor={floor} facing={-1} text={`${b.id} ${fixed(b.m, 2)} kg`} buffer="none" tone="B" />
             ),
           )}
-          {stage(clock, PEN.labels, <Velocity x={mids[i]} y={floor - 54} v={vs[i]} dp={t < tHit ? 1 : 2} />)}
+          {stage(clock, PEN.labels, <Velocity x={mids[i]} y={floor - 61} v={vs[i]} dp={t < tHit ? 1 : 2} />)}
         </Group>
       ))}
       {ledger &&
         stage(clock, 
           PEN.labels,
           <Group>
-            <LedgerRow y={rows[0]} title="BEFORE" ids={[bodies[0].id, bodies[1].id]} ps={before} axis={axis} show={fig.ledger === 'shown'} unknown={fig.ledger !== 'shown'} />
-            <LedgerRow y={rows[1]} title="AFTER" ids={[bodies[0].id, bodies[1].id]} ps={after} axis={axis} show={fig.ledger === 'shown' && hit} unknown={fig.ledger !== 'shown'} />
+            <LedgerRow y={rows[0]} title="Before" ids={[bodies[0].id, bodies[1].id]} ps={before} axis={axis} show={fig.ledger === 'shown'} unknown={fig.ledger !== 'shown'} />
+            <LedgerRow y={rows[1]} title="After" ids={[bodies[0].id, bodies[1].id]} ps={after} axis={axis} show={fig.ledger === 'shown' && hit} unknown={fig.ledger !== 'shown'} />
             {fig.ledger === 'shown' && hit && (
               <Line x1={axis.X(before[0] + before[1])} y1={rows[0] + 18} x2={axis.X(after[0] + after[1])} y2={rows[1] - 4} stroke={p.ink} strokeWidth={stroke.thin} strokeDasharray="3 3" opacity={0.7} />
             )}
@@ -143,7 +143,7 @@ export function CollideFigure({ fig, live, playing, clock = STILL }: Props) {
 
 /** A hollow velocity arrow over a trolley with its value (as given: 1 decimal before the hit, 2 after); "at rest" when still. */
 function Velocity({ x, y, v, dp }: { x: number; y: number; v: number; dp: number }) {
-  const { palette: p, material: m } = useTheme();
+  const { palette: p } = useTheme();
   const still = Math.abs(v) < 0.005;
   const len = Math.sign(v) * Math.max(14, Math.abs(v) * KV); // a slow trolley still gets an arrow you can read
   return (
@@ -167,7 +167,7 @@ function axisOf(min: number, max: number): Axis {
 
 /** One row of the momentum line: A's arrow from 0, the other body's from A's tip, the total marked under the axis. */
 function LedgerRow({ y, title, ids, ps, axis, show, unknown }: { y: number; title: string; ids: [string, string]; ps: number[]; axis: Axis; show: boolean; unknown?: boolean }) {
-  const { palette: p, material: m } = useTheme();
+  const { palette: p } = useTheme();
   const { X } = axis;
   const total = ps[0] + ps[1];
   const ticks: number[] = [];
@@ -175,14 +175,14 @@ function LedgerRow({ y, title, ids, ps, axis, show, unknown }: { y: number; titl
   const sum = Math.abs(total) < 0.005 ? '0' : signed(total, 2);
   return (
     <Group>
-      <MonoLabel x={8} y={y - 6} text={title} color={p.label} size={8} anchor="start" />
-      <MonoLabel x={8} y={y + 8} text={show ? `Σp ${sum}` : unknown ? 'Σp ?' : ''} color={p.ink} size={9} anchor="start" />
+      <MonoLabel x={8} y={y - 8} text={title} color={p.label} size={8} anchor="start" />
+      <MonoLabel x={8} y={y + 10} text={show ? `Σp ${sum}` : unknown ? 'Σp ?' : ''} color={p.ink} size={9} anchor="start" />
       <Line x1={AXIS.x0} y1={y} x2={AXIS.x1} y2={y} stroke={p.draw} strokeWidth={stroke.thin} />
       {ticks.map((v, i) => (
         <Group key={v}>
           <Line x1={X(v)} y1={y - (v === 0 ? 5 : 3)} x2={X(v)} y2={y + (v === 0 ? 5 : 3)} stroke={p.draw} strokeWidth={v === 0 ? stroke.thin : stroke.hair} />
           {/* the end numbers lean inwards so they stay on the sheet */}
-          <MonoLabel x={X(v) + (i === ticks.length - 1 ? 3 : i === 0 ? -3 : 0)} anchor={i === ticks.length - 1 ? 'end' : i === 0 ? 'start' : 'middle'} y={y + 15} text={v === 0 ? '0' : signed(v, axis.step < 0.5 ? 1 : axis.step < 1 ? 1 : 0)} color={p.label} size={7.5} />
+          <MonoLabel x={X(v) + (i === ticks.length - 1 ? 3 : i === 0 ? -3 : 0)} anchor={i === ticks.length - 1 ? 'end' : i === 0 ? 'start' : 'middle'} y={y + 16} text={v === 0 ? '0' : signed(v, axis.step < 0.5 ? 1 : axis.step < 1 ? 1 : 0)} color={p.label} size={7.5} />
         </Group>
       ))}
       {show && (
@@ -200,7 +200,7 @@ function LedgerRow({ y, title, ids, ps, axis, show, unknown }: { y: number; titl
 
 /** One body's momentum on the line: a solid ink arrow with its letter over the middle (a dot when it is zero). */
 function Segment({ x1, x2, y, id }: { x1: number; x2: number; y: number; id: string }) {
-  const { palette: p, material: m } = useTheme();
+  const { palette: p } = useTheme();
   if (Math.abs(x2 - x1) < 1.5) return <Path d={`M${x1 - 2.4},${y} a2.4,2.4 0 1 0 4.8,0 a2.4,2.4 0 1 0 -4.8,0`} fill={p.ink} />;
   return (
     <Group>

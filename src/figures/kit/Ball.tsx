@@ -17,16 +17,19 @@ export function Ball({ x, y, r, look = 'shaded', tone = 'A' }: { x: number; y: n
         <Path d={`M${x - r * 0.55},${y - r * 0.35} A${r * 0.62},${r * 0.62} 0 0 1 ${x + r * 0.2},${y - r * 0.68}`} stroke={p.paper} strokeWidth={Math.max(1, r * 0.16)} fill="none" strokeLinecap="round" />
       </Group>
     );
+  // style 3: the cricket ball has the first body tone, the bowling ball the second
+  const body = clean ? soft[look === 'cricket' ? 'A' : 'B'] : undefined;
+  const detail = body?.edge ?? p.draw;
   return (
     <Group>
-      <Circle cx={x} cy={y} r={r} fill={look === 'bowling' ? p.drawFillDark : p.drawFill} stroke={p.draw} strokeWidth={stroke.body} />
+      <Circle cx={x} cy={y} r={r} fill={body?.fill ?? (look === 'bowling' ? p.drawFillDark : p.drawFill)} stroke={body?.edge ?? p.draw} strokeWidth={body ? 2 : stroke.body} />
       {look === 'cricket' ? (
-        <Path d={`M${x - r * 0.35},${y - r * 0.9} Q${x + r * 0.25},${y} ${x - r * 0.35},${y + r * 0.9}`} fill="none" stroke={p.draw} strokeWidth={stroke.thin} />
+        <Path d={`M${x - r * 0.35},${y - r * 0.9} Q${x + r * 0.25},${y} ${x - r * 0.35},${y + r * 0.9}`} fill="none" stroke={detail} strokeWidth={stroke.thin} />
       ) : (
         <Group>
-          <Circle cx={x - 6} cy={y - 8} r={2.6} fill={p.draw} />
-          <Circle cx={x + 2} cy={y - 10} r={2.6} fill={p.draw} />
-          <Circle cx={x - 1} cy={y - 1} r={3} fill={p.draw} />
+          <Circle cx={x - 6} cy={y - 8} r={2.6} fill={detail} />
+          <Circle cx={x + 2} cy={y - 10} r={2.6} fill={detail} />
+          <Circle cx={x - 1} cy={y - 1} r={3} fill={detail} />
         </Group>
       )}
     </Group>

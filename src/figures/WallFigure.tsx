@@ -30,8 +30,8 @@ const hitOf = (fig: WallFig, id: 'A' | 'B', live?: number): WallHit => ({ u: fig
 
 /** The lanes (floor of each trolley) and the rows of the momentum line. */
 function layout(n: number, ledger: boolean): { floors: number[]; rows: number[] } {
-  if (!ledger) return n === 1 ? { floors: [128], rows: [] } : { floors: [92, 180], rows: [] };
-  return n === 1 ? { floors: [92], rows: [176] } : { floors: [52, 106], rows: [162, 208] };
+  if (!ledger) return n === 1 ? { floors: [146], rows: [] } : { floors: [92, 184], rows: [] };
+  return n === 1 ? { floors: [96], rows: [180] } : { floors: [53, 108], rows: [161, 209] };
 }
 
 /** The given values in the sheet header; on the explore screen (bounce speed from the slider) A's change in momentum. */
@@ -45,7 +45,7 @@ export const wallPlays = (fig: WallFig): boolean => fig.play === true;
 type Props = { fig: WallFig; live?: number; playing: boolean; clock?: DrawClock };
 
 export function WallFigure({ fig, live, playing, clock = STILL }: Props) {
-  const { palette: p, material: m } = useTheme();
+  const { palette: p, soft } = useTheme();
   const { floors, rows } = layout(fig.trolleys.length, fig.ledger !== undefined);
   // the clip lasts until the slower of the two has had TAIL seconds after its hit
   const ends = fig.trolleys.map((id) => wallContact(hitOf(fig, id, live)).tEnd);
@@ -56,7 +56,7 @@ export function WallFigure({ fig, live, playing, clock = STILL }: Props) {
   const rowsGrow = useTween(fig.ledger === 'shown' ? 1 : 0, fig.ledger === 'shown' ? 1 : 0, 520);
   // two trolleys over two rows of the momentum line: no room for arrows over the trolleys, the rows tell the story
   const compact = rows.length > 1;
-  const top = floors[0] - (compact ? 48 : 60);
+  const top = floors[0] - (compact ? 50 : 66);
   const last = floors[floors.length - 1];
 
   return (
@@ -67,15 +67,9 @@ export function WallFigure({ fig, live, playing, clock = STILL }: Props) {
           {floors.map((y) => (
             <Group key={y}>
               <Line x1={8} y1={y} x2={WALL_X} y2={y} stroke={p.draw} strokeWidth={stroke.body} />
-              {Array.from({ length: 34 }, (_, i) => 10 + i * 9).map((x) => (
-                <Line key={x} x1={x} y1={y + 7} x2={x + 7} y2={y} stroke={p.draw} strokeWidth={stroke.hair} opacity={0.5} />
-              ))}
             </Group>
           ))}
-          <Rect x={WALL_X} y={top} width={8} height={last - top} fill={p.drawFillDark} stroke={p.draw} strokeWidth={stroke.body} />
-          {Array.from({ length: Math.floor((last - top) / 9) }, (_, i) => top + 4 + i * 9).map((y) => (
-            <Line key={y} x1={WALL_X + 8} y1={y + 7} x2={WALL_X + 14} y2={y} stroke={p.draw} strokeWidth={stroke.hair} opacity={0.55} />
-          ))}
+          <Rect x={WALL_X} y={top} width={12} height={last - top + 1} rx={3} fill={soft.metal.fill} stroke={p.draw} strokeWidth={stroke.body} />
           {rows.length === 0 && (
             <Group>
               <Path d={`M14,${last + 24} H40`} stroke={p.label} strokeWidth={stroke.thin} />
@@ -98,10 +92,10 @@ export function WallFigure({ fig, live, playing, clock = STILL }: Props) {
         const back = front - TROLLEY.w;
         const mid = (back + front) / 2;
         const pNow = momentum(fig.m, run.v);
-        const arrowY = y - 50;
+        const arrowY = y - 60;
         return (
           <Group key={id}>
-            {stage(clock, PEN.trolleys, <Trolley rear={back} floor={y} facing={1} text={`${id} ${fixed(fig.m, 2)} kg`} buffer={id === 'A' ? 'spring' : 'putty'} squashed={squashed} />)}
+            {stage(clock, PEN.trolleys, <Trolley rear={back} floor={y} facing={1} text={`${id} ${fixed(fig.m, 2)} kg`} buffer={id === 'A' ? 'spring' : 'putty'} squashed={squashed} tone={id === 'A' ? 'A' : 'B'} />)}
             {!compact && stage(clock, 
               PEN.labels,
               fig.p === undefined ? (
@@ -121,11 +115,11 @@ export function WallFigure({ fig, live, playing, clock = STILL }: Props) {
         stage(clock, 
           PEN.labels,
           <Group>
-            <MonoLabel x={LINE.x0} y={rows[0] - 30} text="MOMENTUM LINE · kg m s⁻¹" color={p.label} size={8} anchor="start" />
-            <Circle cx={LINE.x1 - 84} cy={rows[0] - 33} r={3} fill={p.paper} stroke={p.ink} strokeWidth={stroke.thin} />
-            <MonoLabel x={LINE.x1 - 78} y={rows[0] - 30} text="before" color={p.label} size={8} anchor="start" />
-            <Circle cx={LINE.x1 - 30} cy={rows[0] - 33} r={3} fill={p.ink} />
-            <MonoLabel x={LINE.x1 - 24} y={rows[0] - 30} text="after" color={p.label} size={8} anchor="start" />
+            <MonoLabel x={LINE.x0} y={rows[0] - 34} text="Momentum line · kg m s⁻¹" color={p.label} size={8} anchor="start" />
+            <Circle cx={LINE.x1 - 84} cy={rows[0] - 37} r={3} fill={p.paper} stroke={p.ink} strokeWidth={stroke.thin} />
+            <MonoLabel x={LINE.x1 - 78} y={rows[0] - 34} text="before" color={p.label} size={8} anchor="start" />
+            <Circle cx={LINE.x1 - 30} cy={rows[0] - 37} r={3} fill={p.ink} />
+            <MonoLabel x={LINE.x1 - 24} y={rows[0] - 34} text="after" color={p.label} size={8} anchor="start" />
           </Group>,
         )}
     </Group>
@@ -137,7 +131,7 @@ export function WallFigure({ fig, live, playing, clock = STILL }: Props) {
  * a hollow one (velocity) or a dashed stub ("?"). The text sits left of the arrow if there is room, otherwise right.
  */
 function Arrowed({ x, y, len, text, hollow, dashed }: { x: number; y: number; len: number; text: string; hollow?: boolean; dashed?: boolean }) {
-  const { palette: p, material: m } = useTheme();
+  const { palette: p } = useTheme();
   const lo = Math.min(x, x + len);
   const hi = Math.max(x, x + len);
   const mono = useMonoSize(9); // labels may have grown: widths are measured at the size they are drawn
@@ -155,7 +149,7 @@ function Arrowed({ x, y, len, text, hollow, dashed }: { x: number; y: number; le
 
 /** One row of the momentum line: the axis with its numbers, p before (○), p after (●) and the Δp arrow from one to the other. */
 function LedgerRow({ y, id, before, after, k, show }: { y: number; id: string; before: number; after: number; k: number; show: boolean }) {
-  const { palette: p, material: m } = useTheme();
+  const { palette: p } = useTheme();
   const X = (v: number) => LINE.zero + v * KL;
   const ticks: number[] = [];
   for (let v = -LINE.range; v <= LINE.range + 1e-9; v += 0.4) ticks.push(Math.round(v * 10) / 10);
@@ -169,7 +163,7 @@ function LedgerRow({ y, id, before, after, k, show }: { y: number; id: string; b
       {ticks.map((v) => (
         <Group key={v}>
           <Line x1={X(v)} y1={y - (v === 0 ? 5 : 3)} x2={X(v)} y2={y + (v === 0 ? 5 : 3)} stroke={p.draw} strokeWidth={v === 0 ? 1.4 : 1} />
-          <MonoLabel x={X(v)} y={y + 13} text={v === 0 ? '0' : signed(v, 1)} color={p.label} size={7.5} />
+          <MonoLabel x={X(v)} y={y + 17} text={v === 0 ? '0' : signed(v, 1)} color={p.label} size={7.5} />
         </Group>
       ))}
       {show ? (

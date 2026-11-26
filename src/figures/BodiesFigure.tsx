@@ -16,12 +16,12 @@ export const BODIES_VB = { w: 340, h: 230 };
 
 const PEN = { ground: [0, 0.35], bodies: [0.25, 0.65], labels: [0.65, 0.95] } as const;
 const LANES = [88, 186]; // centre of each body (lanes mode)
-const START = 70; // where the arrows start (lanes mode)
-const ROOM = 230; // the longest arrow (lanes mode)
+const START = 74; // where the arrows start (lanes mode)
+const ROOM = 228; // the longest arrow (lanes mode)
 const SHARED = { floor: 150, KP: 50, KV: 30 };
 
-const NAMES = { cricket: 'CRICKET BALL', bowling: 'BOWLING BALL', trolley: 'TROLLEY' } as const;
-const radius = (look: BodiesFig['bodies'][number]['look']) => (look === 'bowling' ? 22 : look === 'cricket' ? 6 : 0);
+const NAMES = { cricket: 'Cricket ball', bowling: 'Bowling ball', trolley: 'Trolley' } as const;
+const radius = (look: BodiesFig['bodies'][number]['look']) => (look === 'bowling' ? 27 : look === 'cricket' ? 9 : 0);
 
 type Props = { fig: BodiesFig; clock?: DrawClock };
 
@@ -35,7 +35,7 @@ type Part = { fig: BodiesFig; grow: number; stage: (pen: readonly [number, numbe
 
 /** One lane each: the body on the left, its velocity and (revealed) momentum running right, each to one scale. */
 function Lanes({ fig, grow, stage }: Part) {
-  const { palette: p, material: m } = useTheme();
+  const { palette: p } = useTheme();
   const ps = fig.bodies.map((b) => momentum(b.m, b.v));
   const kp = ROOM / Math.max(...ps.map(Math.abs));
   const kv = ROOM / Math.max(...fig.bodies.map((b) => Math.abs(b.v)));
@@ -55,7 +55,7 @@ function Lanes({ fig, grow, stage }: Part) {
                 <Hatch x1={10} x2={330} y={y + r} color={p.draw} />
               ),
             )}
-            {stage(PEN.bodies, <Body look={b.look} x={START - 30} y={y} r={r} />)}
+            {stage(PEN.bodies, <Body look={b.look} x={START - 36} y={y} r={r} tone={i === 0 ? 'A' : 'B'} />)}
             {stage(
               PEN.labels,
               <Group>
@@ -78,7 +78,7 @@ function Lanes({ fig, grow, stage }: Part) {
 
 /** All on one track, heading at each other: velocities, momenta (revealed) and the total under the track. */
 function Shared({ fig, grow, stage }: Part) {
-  const { palette: p, material: m } = useTheme();
+  const { palette: p } = useTheme();
   const y = SHARED.floor;
   const total = totalMomentum(fig.bodies);
   const totalText = fig.total === 'shown' ? `Σp = ${Math.abs(total) < 0.005 ? '0' : `${signed(total, 2)} kg m s⁻¹`}` : 'Σp = ?';
@@ -102,16 +102,16 @@ function Shared({ fig, grow, stage }: Part) {
         const vLen = b.v * SHARED.KV;
         return (
           <Group key={b.id}>
-            {stage(PEN.bodies, <Trolley rear={rears[i]} floor={y} facing={facing} text={`${b.id} ${fixed(b.m, 2)} kg`} buffer="spring" />)}
+            {stage(PEN.bodies, <Trolley rear={rears[i]} floor={y} facing={facing} text={`${b.id} ${fixed(b.m, 2)} kg`} buffer="spring" tone={i === 0 ? 'A' : 'B'} />)}
             {stage(
               PEN.labels,
               <Group>
-                <HollowArrow from={[mid, y - 52]} to={[mid + vLen, y - 52]} color={p.label} weight="track" minLen={4} />
-                <MonoLabel x={mid + vLen / 2} y={y - 67} text={`v = ${signed(b.v, 1)} m s⁻¹`} color={p.ink} size={9} />
+                <HollowArrow from={[mid, y - 64]} to={[mid + vLen, y - 64]} color={p.label} weight="track" minLen={4} />
+                <MonoLabel x={mid + vLen / 2} y={y - 79} text={`v = ${signed(b.v, 1)} m s⁻¹`} color={p.ink} size={9} />
                 {fig.p !== undefined && (
                   <Group>
-                    {grow > 0.02 && <ForceArrow x1={mid} y1={y - 88} x2={mid + pb * SHARED.KP * grow} y2={y - 88} color={p.ink} width={3.2} />}
-                    <MonoLabel x={mid + (pb * SHARED.KP) / 2} y={y - 99} text={fig.p === 'shown' ? `p = ${signed(pb, 2)}` : 'p = ?'} color={p.ink} size={9} />
+                    {grow > 0.02 && <ForceArrow x1={mid} y1={y - 100} x2={mid + pb * SHARED.KP * grow} y2={y - 100} color={p.ink} width={3.2} />}
+                    <MonoLabel x={mid + (pb * SHARED.KP) / 2} y={y - 113} text={fig.p === 'shown' ? `p = ${signed(pb, 2)}` : 'p = ?'} color={p.ink} size={9} />
                   </Group>
                 )}
               </Group>,
@@ -132,7 +132,7 @@ function Shared({ fig, grow, stage }: Part) {
 }
 
 /** A cricket ball (small, with a seam) or a bowling ball (large, three finger holes), flat. */
-function Body({ look, x, y, r }: { look: BodiesFig['bodies'][number]['look']; x: number; y: number; r: number }) {
-  if (look === 'trolley') return <Trolley rear={x - TROLLEY.w / 2} floor={y} facing={1} text="" buffer="none" />;
+function Body({ look, x, y, r, tone }: { look: BodiesFig['bodies'][number]['look']; x: number; y: number; r: number; tone: 'A' | 'B' }) {
+  if (look === 'trolley') return <Trolley rear={x - TROLLEY.w / 2} floor={y} facing={1} text="" buffer="none" tone={tone} />;
   return <Ball look={look} x={x} y={y} r={r} />;
 }
