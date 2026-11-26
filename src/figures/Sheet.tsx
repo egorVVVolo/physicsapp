@@ -102,9 +102,10 @@ const STYLE_2 = new Set<Fig['kind']>([
 ]);
 
 /** Figures redrawn in style 3 (a white gridded sheet, soft bodies), stage by stage: docs/V4_FIGURES_TASKS.md. */
-const CLEAN = new Set<Fig['kind']>(['lift', 'track', 'scales', 'pairs', 'liftPair', 'vt', 'graph', 'equations', 'brakeVt', 'throwVt', 'fallGraph', 'plot', 'road', 'chase', 'throw', 'bench', 'kick', 'vectors', 'resolve', 'sledge', 'hill', 'crate', 'ladder', 'particle', 'pulley', 'fall', 'fallVt', 'wall', 'bodies', 'collide', 'spanner', 'pole', 'bar', 'beam', 'broom', 'platform', 'ramp', 'kinetic', 'height', 'cliff', 'slide', 'ride', 'winch', 'tank', 'dunk', 'tube', 'flow']);
+const CLEAN = new Set<Fig['kind']>(['lift', 'track', 'scales', 'pairs', 'liftPair', 'vt', 'graph', 'equations', 'brakeVt', 'throwVt', 'fallGraph', 'plot', 'road', 'chase', 'throw', 'bench', 'kick', 'vectors', 'resolve', 'sledge', 'hill', 'crate', 'ladder', 'particle', 'pulley', 'fall', 'fallVt', 'wall', 'bodies', 'collide', 'spanner', 'pole', 'bar', 'beam', 'broom', 'platform', 'ramp', 'kinetic', 'height', 'cliff', 'slide', 'ride', 'winch', 'tank', 'dunk', 'tube', 'flow', 'spring', 'wire', 'material', 'launcher']);
 /** Figures on squared paper of their own, where a square means something: they get no second grid. */
-const OWN_GRID: Fig['kind'][] = ['vectors', 'resolve'];
+const ownGrid = (fig: Fig): boolean =>
+  fig.kind === 'vectors' || fig.kind === 'resolve' || fig.kind === 'material' || ((fig.kind === 'launcher' || fig.kind === 'wire' || fig.kind === 'spring') && (fig.view === 'curve' || fig.view === 'plot' || fig.view === 'lines'));
 const GRID = 34; // viewBox units between grid lines
 
 /** The faint grid under a style-3 figure. */
@@ -254,7 +255,7 @@ function Drawing({ fig, n, live, tap: tapIn, caption, compact = false, still: st
           <View style={{ width: w, height: h, alignSelf: 'center' }}>
             <Svg width={w} height={h} viewBox={`0 0 ${vb.w} ${vb.h}`}>
               {/* labels grow to stay readable on a full sheet; a compact sheet is only a reminder and keeps the drawing's proportions */}
-              {clean && !OWN_GRID.includes(fig.kind) && <Grid w={vb.w} h={vb.h} />}
+              {clean && !ownGrid(fig) && <Grid w={vb.w} h={vb.h} />}
               <SheetClean.Provider value={clean}>
               <SheetReplay.Provider value={replays}>
               <SheetScale.Provider value={STYLE_2.has(fig.kind) && !classic && !compact ? scale : 0}>

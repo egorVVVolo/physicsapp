@@ -85,7 +85,7 @@ function Launchers({ fig, x, since, clock }: { fig: LauncherFig; x: number; sinc
 type Run = { since: number; k: number; m: number };
 
 function OneLauncher({ cy, squash, F, name, released: releasedIn, speed, run, clock }: { cy: number; squash: number; F: number; name: string; released: boolean; speed: number; run?: Run; clock: DrawClock }) {
-  const { palette: p, material: m } = useTheme();
+  const { palette: p, soft } = useTheme();
   // played: held until `since` reaches 0, then the spring pushes plunger and ball out by the model (releaseRun)
   const state = run && run.since > 0 ? releaseRun(run.k, squash, run.m, run.since) : undefined;
   const released = run ? run.since > 0 : releasedIn;
@@ -114,14 +114,14 @@ function OneLauncher({ cy, squash, F, name, released: releasedIn, speed, run, cl
           {/* the tube: open at the right, closed at the left */}
           <Line x1={TUBE.x1} y1={top} x2={TUBE.x2} y2={top} stroke={p.draw} strokeWidth={stroke.body} />
           <Line x1={TUBE.x1} y1={top + TUBE.h} x2={TUBE.x2} y2={top + TUBE.h} stroke={p.draw} strokeWidth={stroke.body} />
-          <Rect x={TUBE.x1} y={top} width={5} height={TUBE.h} fill={m.metalSide} stroke={p.draw} strokeWidth={stroke.thin} />
+          <Rect x={TUBE.x1} y={top} width={5} height={TUBE.h} fill={soft.metal.fill} stroke={p.draw} strokeWidth={stroke.thin} />
           {/* where the plunger sits with no squash */}
           {!released && cm > 0.05 && <Line x1={NATURAL} y1={top - 4} x2={NATURAL} y2={top + TUBE.h + 4} stroke={p.label} strokeWidth={stroke.thin} strokeDasharray="3 3" />}
           <Path d={zig.join(' ')} stroke={p.draw} strokeWidth={stroke.body} fill="none" strokeLinejoin="round" />
-          <Rect x={xp} y={cy - 10} width={PLUNGER} height={20} rx={1} fill={m.metalSide} stroke={p.draw} strokeWidth={stroke.thin} />
-          <Circle cx={ball} cy={cy} r={BALL} fill={m.ball} stroke={p.draw} strokeWidth={stroke.thin} />
+          <Rect x={xp} y={cy - 10} width={PLUNGER} height={20} rx={2} fill={soft.metal.fill} stroke={p.draw} strokeWidth={stroke.thin} />
+          <Circle cx={ball} cy={cy} r={BALL} fill={soft.A.fill} stroke={soft.A.edge} strokeWidth={2} />
           {name !== '' && <MonoLabel x={TUBE.x1} y={top - 6} text={name} color={p.ink} size={10} anchor="start" />}
-          {run && <MonoLabel x={TUBE.x1} y={cy + TUBE.h / 2 + 22} text={`${SLOW}× SLOWER`} color={p.label} size={8} anchor="start" />}
+          {run && <MonoLabel x={TUBE.x1} y={cy + TUBE.h / 2 + 22} text={`${SLOW}× slower`} color={p.label} size={8} anchor="start" />}
         </Group>,
       )}
       {stage(
@@ -161,7 +161,7 @@ const gx = (cm: number) => GB.x1 + (cm / GB.xMax) * (GB.x2 - GB.x1);
 const gy = (F: number) => GB.y2 - (F / GB.fMax) * (GB.y2 - GB.y1);
 
 function Panel({ fig, x }: { fig: LauncherFig; x: number }) {
-  const { palette: p, material: m } = useTheme();
+  const { palette: p, soft } = useTheme();
   const F = fig.k * x;
   const E = springEnergy(fig.k, x);
   const hidden = fig.ask !== undefined;
@@ -211,11 +211,11 @@ function Panel({ fig, x }: { fig: LauncherFig; x: number }) {
           <MonoLabel key={l.id} x={PR} y={18 + i * 14} text={`${l.id}: ${fixed(l.cm, 1)} cm · E ${hidden ? '?' : J(l.E)}`} color={p.ink} size={8.5} anchor="end" />
         ))}
         {axes}
-        {!hidden && <Polygon points={tri(lines[0].cm, F)} fill={p.drawFillDark} opacity={0.75} />}
-        {!hidden && <Polygon points={tri(lines[1].cm, F)} fill={p.label} opacity={0.4} />}
+        {!hidden && <Polygon points={tri(lines[0].cm, F)} fill={soft.A.fill} opacity={0.8} />}
+        {!hidden && <Polygon points={tri(lines[1].cm, F)} fill={soft.B.fill} />}
         {lines.map((l) => (
           <Group key={l.id}>
-            <Line x1={gx(0)} y1={gy(0)} x2={gx(l.cm)} y2={gy(F)} stroke={p.ink} strokeWidth={stroke.body} />
+            <Line x1={gx(0)} y1={gy(0)} x2={gx(l.cm)} y2={gy(F)} stroke={soft[l.id === 'A' ? 'A' : 'B'].edge} strokeWidth={stroke.force} />
             <Circle cx={gx(l.cm)} cy={gy(F)} r={3} fill={p.ink} />
             <MonoLabel x={gx(l.cm) + (l.id === 'A' ? 8 : -8)} y={gy(F) - 6} text={l.id} color={p.ink} size={9.5} />
           </Group>
@@ -229,10 +229,10 @@ function Panel({ fig, x }: { fig: LauncherFig; x: number }) {
       <MonoLabel x={PR} y={18} text={`Δx ${fixed(cm, 1)} cm · F ${sig(F, 2)} N`} color={p.ink} size={8.5} anchor="end" />
       <MonoLabel x={PR} y={32} text={`E = ½FΔx = ${hidden ? '?' : J(E)}`} color={p.ink} size={8.5} anchor="end" />
       {axes}
-      {F > 0 && <Polygon points={tri(cm, F)} fill={p.drawFillDark} opacity={0.75} />}
+      {F > 0 && <Polygon points={tri(cm, F)} fill={soft.A.fill} opacity={0.85} />}
       {fig.inner !== undefined && <Polygon points={tri(fig.inner * 100, fig.k * fig.inner)} fill="none" stroke={p.ink} strokeWidth={stroke.thin} strokeDasharray="3 2" />}
       <Line x1={gx(0)} y1={gy(0)} x2={gx(GB.fMax / fig.k * 100)} y2={gy(GB.fMax)} stroke={p.label} strokeWidth={stroke.thin} strokeDasharray="3 3" />
-      {F > 0 && <Line x1={gx(0)} y1={gy(0)} x2={gx(cm)} y2={gy(F)} stroke={p.ink} strokeWidth={stroke.body} />}
+      {F > 0 && <Line x1={gx(0)} y1={gy(0)} x2={gx(cm)} y2={gy(F)} stroke={soft.A.edge} strokeWidth={stroke.force} />}
       <Circle cx={gx(cm)} cy={gy(F)} r={4} fill={p.paper} stroke={p.ink} strokeWidth={stroke.body} />
     </Group>
   );
@@ -245,7 +245,7 @@ const cx = (cm: number) => CB.x1 + (cm / CB.xMax) * (CB.x2 - CB.x1);
 const cy = (F: number) => CB.y2 - (F / CB.fMax) * (CB.y2 - CB.y1);
 
 function Curve({ clock }: { clock: DrawClock }) {
-  const { palette: p, material: m } = useTheme();
+  const { palette: p, soft } = useTheme();
   const grid: string[] = [];
   for (let f = 1; f <= CB.fMax; f++) grid.push(`M${CB.x1},${cy(f)} H${CB.x2}`);
   for (let c = 2; c <= CB.xMax; c += 2) grid.push(`M${cx(c)},${CB.y1} V${CB.y2}`);
@@ -277,9 +277,9 @@ function Curve({ clock }: { clock: DrawClock }) {
         clock,
         [0.4, 0.95],
         <Group>
-          {area > 0 && <Polygon points={`${cx(0)},${cy(0)} ${pts.join(' ')} ${cx(CB.xMax)},${cy(0)}`} fill={p.drawFillDark} opacity={0.6} />}
-          <Path d={`M${pts.join(' L')}`} stroke={p.ink} strokeWidth={stroke.body} fill="none" />
-          <MonoLabel x={cx(17.6)} y={cy(7.2)} text="RUBBER BAND" color={p.label} size={8} anchor="end" />
+          {area > 0 && <Polygon points={`${cx(0)},${cy(0)} ${pts.join(' ')} ${cx(CB.xMax)},${cy(0)}`} fill={soft.A.fill} opacity={0.85} />}
+          <Path d={`M${pts.join(' L')}`} stroke={soft.A.edge} strokeWidth={stroke.force} fill="none" />
+          <MonoLabel x={cx(17.6)} y={cy(7.2)} text="Rubber band" color={p.label} size={8} anchor="end" />
         </Group>,
       )}
     </Group>

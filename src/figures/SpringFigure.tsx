@@ -22,8 +22,8 @@ export const SPRING_VB = { w: 340, h: 230 };
 
 const PEN = { ground: [0, 0.25], stand: [0.1, 0.45], springs: [0.35, 0.7], labels: [0.65, 0.98] } as const;
 const BENCH = 214;
-const BAR = 13; // the stand's arm
-const TOP = 20; // the top of every spring
+const BAR = 18; // the stand's arm
+const TOP = 25; // the top of every spring
 const K = 7; // viewBox units per cm
 const COILS = 14; // coils in the whole spring
 const BLOCK = { w: 42, h: 20, hook: 6 }; // wide enough for its load written on it
@@ -33,6 +33,8 @@ const PX = 196; // the panel's left edge
 const PR = 334; // … and right edge
 
 const Y = (cm: number) => TOP + cm * K;
+/** "NO LOAD" → "No load": no capitals on a style-3 sheet. */
+const title = (name: string) => name.charAt(0) + name.slice(1).toLowerCase();
 
 export function springParams(fig: SpringFig): string {
   if (fig.view === 'lines') return 'force against extension';
@@ -84,7 +86,7 @@ export function SpringFigure({ fig, live, playing, tap, clock = STILL }: Props) 
 }
 
 function Hanging({ fig, live, playing, clock }: { fig: SpringFig; live?: number; playing: boolean; clock: DrawClock }) {
-  const { palette: p, material: m } = useTheme();
+  const { palette: p, soft } = useTheme();
   const nums = fig.springs.map((s) => springNumbers(fig, s, live));
   const xs = useBobs(
     nums.map((n) => n.rest),
@@ -93,7 +95,7 @@ function Hanging({ fig, live, playing, clock }: { fig: SpringFig; live?: number;
   );
   const lanes = fig.springs.length === 1 ? [104] : [92, 150];
   const ticks: string[] = [];
-  for (let cm = 0; cm <= 22; cm++) ticks.push(`M50,${Y(cm)} h${cm % 5 === 0 ? -5 : -3}`);
+  for (let cm = 0; cm <= 22; cm++) ticks.push(`M54,${Y(cm)} h${cm % 5 === 0 ? -5 : -3}`);
   const armEnd = lanes[lanes.length - 1] + 16;
 
   return (
@@ -104,14 +106,14 @@ function Hanging({ fig, live, playing, clock }: { fig: SpringFig; live?: number;
         PEN.stand,
         <Group>
           {/* the stand: a base, a rod and an arm; the ruler hangs from the arm with its 0 at the springs' tops */}
-          <Rect x={8} y={BENCH - 6} width={40} height={6} fill={m.metalSide} stroke={p.draw} strokeWidth={stroke.thin} />
+          <Rect x={8} y={BENCH - 6} width={40} height={6} rx={2} fill={soft.metal.fill} stroke={p.draw} strokeWidth={stroke.thin} />
           <Line x1={18} y1={BENCH - 6} x2={18} y2={4} stroke={p.draw} strokeWidth={stroke.force} />
-          <Rect x={13} y={BAR - 5} width={10} height={10} rx={1.5} fill={m.metalSide} stroke={p.draw} strokeWidth={stroke.thin} />
+          <Rect x={13} y={BAR - 5} width={10} height={10} rx={2} fill={soft.metal.fill} stroke={p.draw} strokeWidth={stroke.thin} />
           <Line x1={23} y1={BAR} x2={armEnd} y2={BAR} stroke={p.draw} strokeWidth={stroke.force} />
-          <Rect x={32} y={TOP - 4} width={18} height={22 * K + 8} fill={p.paper} stroke={p.draw} strokeWidth={stroke.thin} />
+          <Rect x={27} y={TOP - 4} width={27} height={22 * K + 8} fill={p.paper} stroke={p.draw} strokeWidth={stroke.thin} />
           <Path d={ticks.join(' ')} stroke={p.label} strokeWidth={stroke.hair} />
           {[0, 5, 10, 15, 20].map((cm) => (
-            <MonoLabel key={cm} x={38} y={Y(cm) + 2.5} text={`${cm}`} color={p.label} size={7} />
+            <MonoLabel key={cm} x={39} y={Y(cm) + 4} text={`${cm}`} color={p.label} size={7} />
           ))}
           <MonoLabel x={41} y={Y(22) + 16} text="cm" color={p.label} size={7.5} />
         </Group>,
@@ -121,7 +123,7 @@ function Hanging({ fig, live, playing, clock }: { fig: SpringFig; live?: number;
         PEN.springs,
         <Group>
           {fig.springs.map((s, i) => (
-            <OneSpring key={i} s={s} cx={lanes[i]} n={nums[i]} x={xs[i]} live={live} />
+            <OneSpring key={i} tone={i === 0 ? 'A' : 'B'} s={s} cx={lanes[i]} n={nums[i]} x={xs[i]} live={live} />
           ))}
         </Group>,
       )}
@@ -132,8 +134,8 @@ function Hanging({ fig, live, playing, clock }: { fig: SpringFig; live?: number;
 }
 
 /** A spring from the arm, its coils stretched to its length now, and its weight (hung, or on the bench under it). */
-function OneSpring({ s, cx, n, x, live }: { s: SpringHang; cx: number; n: ReturnType<typeof springNumbers>; x: number; live?: number }) {
-  const { palette: p, material: m } = useTheme();
+function OneSpring({ s, cx, n, x, live, tone }: { tone: 'A' | 'B'; s: SpringHang; cx: number; n: ReturnType<typeof springNumbers>; x: number; live?: number }) {
+  const { palette: p, soft } = useTheme();
   const L = (n.L0 + x) * 100; // cm, now
   const bottom = Y(L);
   const coils = Math.max(2, Math.round(COILS * s.part));
@@ -167,15 +169,13 @@ function OneSpring({ s, cx, n, x, live }: { s: SpringHang; cx: number; n: Return
       {s.mark && (
         <Group>
           <Rect x={cx - 9} y={markY - 2} width={18} height={4} rx={1} fill={p.ink} />
-          <MonoLabel x={cx - 18} y={markY + 3} text="MARK" color={p.ink} size={7} anchor="end" />
+          <MonoLabel x={cx - 18} y={markY + 3} text="mark" color={p.ink} size={7} anchor="end" />
         </Group>
       )}
       {showBlock && (
         <Group>
           {n.hung && <Line x1={cx} y1={bottom + 4} x2={cx} y2={blockTop} stroke={p.draw} strokeWidth={stroke.thin} />}
-          <Path d={`M${cx - BLOCK.w / 2},${blockTop} l4,-4 h${BLOCK.w} l-4,4 Z`} fill={m.metal} stroke={p.draw} strokeWidth={stroke.thin} strokeLinejoin="round" />
-          <Path d={`M${cx + BLOCK.w / 2},${blockTop + BLOCK.h} l4,-4 v${-BLOCK.h} l-4,4 Z`} fill={p.label} stroke={p.draw} strokeWidth={stroke.thin} strokeLinejoin="round" />
-          <Rect x={cx - BLOCK.w / 2} y={blockTop} width={BLOCK.w} height={BLOCK.h} fill={m.metalSide} stroke={p.draw} strokeWidth={stroke.thin} />
+          <Rect x={cx - BLOCK.w / 2} y={blockTop} width={BLOCK.w} height={BLOCK.h} rx={5} fill={soft[tone].fill} stroke={soft[tone].edge} strokeWidth={2} />
           {!(s.pull && n.hung) && <MonoLabel x={cx} y={blockTop + 13.5} text={loadText} color={p.ink} size={8.5} />}
         </Group>
       )}
@@ -193,14 +193,14 @@ function OneSpring({ s, cx, n, x, live }: { s: SpringHang; cx: number; n: Return
           <ForceLetter x={cx + 12} y={blockTop + BLOCK.h / 2 + (W * KF) / 2 + 12} text={`W = ${fixed(W, 1)} N`} color={p.forceText} size={11} anchor="start" />
         </Group>
       )}
-      <MonoLabel x={cx} y={BAR - 1.5} text={s.name} color={p.label} size={7} />
+      <MonoLabel x={cx} y={BAR - 4} text={title(s.name)} color={p.label} size={7} />
     </Group>
   );
 }
 
 /** The numbers on the right: readings, the halves, or the force–extension graph. */
 function Panel({ fig, nums, live }: { fig: SpringFig; nums: ReturnType<typeof springNumbers>[]; live?: number }) {
-  const { palette: p, material: m } = useTheme();
+  const { palette: p } = useTheme();
   if (fig.panel === 'graph') return <TraceGraph fig={fig} n={nums[0]} live={live} />;
   const hidden = (row: string, col: number) => fig.ask && fig.ask.row === row && fig.ask.col === col;
   if (fig.panel === 'halves') {
@@ -213,7 +213,7 @@ function Panel({ fig, nums, live }: { fig: SpringFig; nums: ReturnType<typeof sp
     ];
     return (
       <Group>
-        <MonoLabel x={PX} y={34} text="ON THE RULER, cm" color={p.label} size={8} anchor="start" />
+        <MonoLabel x={PX} y={34} text="On the ruler, cm" color={p.label} size={8} anchor="start" />
         <MonoLabel x={PR} y={50} text={`0 N → ${fixed(n.load, 1)} N`} color={p.label} size={8} anchor="end" />
         {rows.map(([k, v], i) => (
           <Group key={k}>
@@ -245,7 +245,7 @@ function Panel({ fig, nums, live }: { fig: SpringFig; nums: ReturnType<typeof sp
   return (
     <Group>
       {fig.springs.map((s, i) => (
-        <MonoLabel key={i} x={cols[i]} y={37} text={s.name} color={p.label} size={8} anchor="end" />
+        <MonoLabel key={i} x={cols[i]} y={37} text={title(s.name)} color={p.label} size={8} anchor="end" />
       ))}
       {/* one spring: name and value side by side; two springs: the name on its own line, the two values under it */}
       {!two && <Rows rows={rows.map((row) => [names[row], value(row, 0)] as [string, string])} x={PX} right={PR} y0={62} step={26} />}
@@ -265,7 +265,7 @@ function Panel({ fig, nums, live }: { fig: SpringFig; nums: ReturnType<typeof sp
 
 /** The explore's graph: force up, extension along; the point at the load now, the line traced from the origin. */
 function TraceGraph({ fig, n, live }: { fig: SpringFig; n: ReturnType<typeof springNumbers>; live?: number }) {
-  const { palette: p, material: m } = useTheme();
+  const { palette: p, soft } = useTheme();
   const box = { x1: 214, x2: 330, y1: 46, y2: 180 };
   const fMax = 6;
   const xMax = (fMax / n.k) * 100; // cm at the top of the force axis
@@ -289,7 +289,7 @@ function TraceGraph({ fig, n, live }: { fig: SpringFig; n: ReturnType<typeof spr
       ))}
       <MonoLabel x={box.x1 - 4} y={box.y1 - 9} text="F / N" color={p.label} size={7.5} anchor="start" />
       <MonoLabel x={box.x2} y={box.y2 + 26} text="Δx / cm" color={p.label} size={7.5} anchor="end" />
-      {F > 0 && <Line x1={gx(0)} y1={gy(0)} x2={gx(ext)} y2={gy(F)} stroke={p.ink} strokeWidth={stroke.body} />}
+      {F > 0 && <Line x1={gx(0)} y1={gy(0)} x2={gx(ext)} y2={gy(F)} stroke={soft.A.edge} strokeWidth={stroke.force} />}
       <Circle cx={gx(ext)} cy={gy(F)} r={4} fill={p.paper} stroke={p.ink} strokeWidth={stroke.body} />
     </Group>
   );
@@ -320,7 +320,7 @@ export function springTargets(fig: SpringFig): TapTarget[] {
 }
 
 function LinesGraph({ fig, tap, clock }: { fig: SpringFig; tap?: TapProps; clock: DrawClock }) {
-  const { palette: p, material: m } = useTheme();
+  const { palette: p, soft } = useTheme();
   const grid: string[] = [];
   for (let f = 1; f <= LG.fMax; f++) grid.push(`M${LG.x1},${ly(f)} H${LG.x2}`);
   for (let c = 2; c <= LG.xMax; c += 2) grid.push(`M${lx(c)},${LG.y1} V${LG.y2}`);
@@ -344,7 +344,7 @@ function LinesGraph({ fig, tap, clock }: { fig: SpringFig; tap?: TapProps; clock
           const e = lineEnd(l.k);
           return (
             <Group key={l.id}>
-              <Line x1={lx(0)} y1={ly(0)} x2={e.ex} y2={e.ey} stroke={p.ink} strokeWidth={stroke.body} />
+              <Line x1={lx(0)} y1={ly(0)} x2={e.ex} y2={e.ey} stroke={soft.A.edge} strokeWidth={stroke.force} />
               <MonoLabel x={e.tx} y={e.ty + 4} text={l.id} color={p.ink} size={12} />
             </Group>
           );

@@ -69,7 +69,7 @@ function partOf(pts: [number, number][], share: number): [number, number][] {
 const pathOf = (pts: [number, number][]) => 'M' + pts.map((q) => `${q[0]},${q[1]}`).join(' L');
 
 function Loop({ fig, live, playing, clock }: { fig: MaterialFig; live?: number; playing: boolean; clock: DrawClock }) {
-  const { palette: p, material: m } = useTheme();
+  const { palette: p, soft } = useTheme();
   const reduced = useReducedMotionPref();
   const plays = materialPlays(fig, live);
   const t = useLoopTime(plays && playing && !reduced, START_S + LOAD_S + UNLOAD_S + HOLD_S, fig, 0);
@@ -116,10 +116,10 @@ function Loop({ fig, live, playing, clock }: { fig: MaterialFig; live?: number; 
         clock,
         PEN.curves,
         <Group>
-          <Path d={load} stroke={p.ink} strokeWidth={stroke.body} fill="none" strokeLinejoin="round" />
+          <Path d={load} stroke={soft.A.edge} strokeWidth={stroke.force} fill="none" strokeLinejoin="round" />
           {unloading && perm > 0.001 && (
             <Group>
-              {unloadShare > 0 && <Path d={pathOf(unloaded)} stroke={p.ink} strokeWidth={stroke.body} strokeDasharray="5 4" fill="none" />}
+              {unloadShare > 0 && <Path d={pathOf(unloaded)} stroke={soft.A.edge} strokeWidth={stroke.force} strokeDasharray="5 4" fill="none" />}
               {done && <Circle cx={lx(perm)} cy={ly(0)} r={3} fill={p.ink} />}
               {done && <Path d={bracket(0, perm) + ' ' + bracket(perm, reach)} stroke={p.label} strokeWidth={stroke.thin} fill="none" />}
             </Group>
@@ -201,7 +201,7 @@ const LEGEND: [string, string, string?][] = [
 ];
 
 function Sketch({ fig, tap, clock }: { fig: MaterialFig; tap?: TapProps; clock: DrawClock }) {
-  const { palette: p, material: m } = useTheme();
+  const { palette: p, soft } = useTheme();
   const step = useLineStep(7.5); // the legend's two-line names
   const { x2, X, Y } = geometry(fig);
   const c = badges(fig);
@@ -229,7 +229,7 @@ function Sketch({ fig, tap, clock }: { fig: MaterialFig; tap?: TapProps; clock: 
         PEN.curves,
         fig.view === 'sketch' ? (
           <Group>
-            <Path d={ductile} stroke={p.ink} strokeWidth={stroke.body} fill="none" strokeLinejoin="round" />
+            <Path d={ductile} stroke={soft.A.edge} strokeWidth={stroke.force} fill="none" strokeLinejoin="round" />
             {(['P', 'E', 'Y', 'U'] as const).map((id) => (
               <Circle key={id} cx={X(d[id].x)} cy={Y(d[id].y)} r={2.6} fill={p.ink} />
             ))}
@@ -242,7 +242,7 @@ function Sketch({ fig, tap, clock }: { fig: MaterialFig; tap?: TapProps; clock: 
               const end = cv.path[cv.path.length - 1];
               return (
                 <Group key={id}>
-                  <Path d={poly(cv.path)} stroke={p.ink} strokeWidth={stroke.body} fill="none" strokeLinejoin="round" />
+                  <Path d={poly(cv.path)} stroke={soft.A.edge} strokeWidth={stroke.force} fill="none" strokeLinejoin="round" />
                   <Path d={cross(end[0], end[1])} stroke={p.ink} strokeWidth={stroke.body} />
                 </Group>
               );

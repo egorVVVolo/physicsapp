@@ -50,13 +50,11 @@ export function WireFigure({ fig, live, clock = STILL }: Props) {
 }
 
 function Hanging({ fig, F, clock }: { fig: WireFig; F: number; clock: DrawClock }) {
-  const { palette: p, material: m } = useTheme();
+  const { palette: p, soft } = useTheme();
   const two = fig.wires.length > 1;
   const xs = two ? [56, 140] : [92];
   // the stretch comes in once the question is answered
   const grow = useTween(fig.stretch ? 0 : 1, undefined, 900, 250);
-  const hatch: string[] = [];
-  for (let x = BEAM.x1; x < BEAM.x2; x += 9) hatch.push(`M${x},${BEAM.y} l8,-8`);
   const dp = 1;
 
   return (
@@ -64,8 +62,7 @@ function Hanging({ fig, F, clock }: { fig: WireFig; F: number; clock: DrawClock 
       {stage(clock, 
         PEN.top,
         <Group>
-          <Path d={hatch.join(' ')} stroke={p.draw} strokeWidth={stroke.thin} opacity={0.55} />
-          <Rect x={BEAM.x1} y={BEAM.y} width={BEAM.x2 - BEAM.x1} height={BEAM.h} fill={m.metalSide} stroke={p.draw} strokeWidth={stroke.thin} />
+          <Rect x={BEAM.x1} y={BEAM.y} width={BEAM.x2 - BEAM.x1} height={BEAM.h} rx={3} fill={soft.metal.fill} stroke={p.draw} strokeWidth={stroke.thin} />
         </Group>,
       )}
 
@@ -90,9 +87,7 @@ function Hanging({ fig, F, clock }: { fig: WireFig; F: number; clock: DrawClock 
                 {grow > 0.02 && n.dx > 0 && <Line x1={cx - 15} y1={natural} x2={cx + 11} y2={natural} stroke={p.label} strokeWidth={stroke.thin} strokeDasharray="3 3" />}
                 <Line x1={cx} y1={TOP} x2={cx} y2={drawn} stroke={p.ink} strokeWidth={width} />
                 <Circle cx={cx} cy={drawn + 3} r={BLOCK.ring - 1.5} fill="none" stroke={p.draw} strokeWidth={stroke.thin} />
-                <Path d={`M${cx - BLOCK.w / 2},${blockTop} l4,-4 h${BLOCK.w} l-4,4 Z`} fill={m.metal} stroke={p.draw} strokeWidth={stroke.thin} strokeLinejoin="round" />
-                <Path d={`M${cx + BLOCK.w / 2},${blockTop + BLOCK.h} l4,-4 v${-BLOCK.h} l-4,4 Z`} fill={p.label} stroke={p.draw} strokeWidth={stroke.thin} strokeLinejoin="round" />
-                <Rect x={cx - BLOCK.w / 2} y={blockTop} width={BLOCK.w} height={BLOCK.h} fill={m.metalSide} stroke={p.draw} strokeWidth={stroke.thin} />
+                <Rect x={cx - BLOCK.w / 2} y={blockTop} width={BLOCK.w} height={BLOCK.h} rx={5} fill={soft[i === 0 ? 'A' : 'B'].fill} stroke={soft[i === 0 ? 'A' : 'B'].edge} strokeWidth={2} />
                 <MonoLabel x={cx} y={blockTop + 12.5} text={`${fixed(F, 0)} N`} color={p.ink} size={8.5} />
                 <MonoLabel x={cx - 12} y={TOP + 14} text={w.name} color={p.ink} size={9} anchor="end" />
               </Group>
@@ -108,7 +103,7 @@ function Hanging({ fig, F, clock }: { fig: WireFig; F: number; clock: DrawClock 
 
 /** The numbers on the right: cross-sections to scale, the readings, or the stress–strain graph. */
 function Panel({ fig, F }: { fig: WireFig; F: number }) {
-  const { palette: p, material: m } = useTheme();
+  const { palette: p, soft } = useTheme();
   const nums = fig.wires.map((w) => wireNumbers(fig, w, F));
   if (fig.panel === 'graph') return <TraceGraph fig={fig} F={F} />;
   const two = fig.wires.length > 1;
@@ -116,10 +111,10 @@ function Panel({ fig, F }: { fig: WireFig; F: number }) {
     const cxs = two ? [232, 304] : [266];
     return (
       <Group>
-        <MonoLabel x={PX} y={34} text="TO SCALE" color={p.label} size={8} anchor="start" />
+        <MonoLabel x={PX} y={34} text="To scale" color={p.label} size={8} anchor="start" />
         {fig.wires.map((w, i) => (
           <Group key={i}>
-            <Circle cx={cxs[i]} cy={96} r={(w.d / 2) * SECTION} fill={m.metal} stroke={p.draw} strokeWidth={stroke.thin} />
+            <Circle cx={cxs[i]} cy={96} r={(w.d / 2) * SECTION} fill={soft[i === 0 ? 'A' : 'B'].fill} stroke={soft[i === 0 ? 'A' : 'B'].edge} strokeWidth={2} />
             <MonoLabel x={cxs[i]} y={146} text={w.name} color={p.ink} size={9.5} />
             <MonoLabel x={cxs[i]} y={162} text={`d ${fixed(w.d * 1e3, 2)}`} color={p.label} size={8} />
             <MonoLabel x={cxs[i]} y={176} text={`A ${sig(nums[i].A * 1e6)}`} color={p.ink} size={8} />
@@ -178,7 +173,7 @@ function Panel({ fig, F }: { fig: WireFig; F: number }) {
 
 /** The explore's graph: stress up, strain along; the point at the load now, the line traced from the origin. */
 function TraceGraph({ fig, F }: { fig: WireFig; F: number }) {
-  const { palette: p, material: m } = useTheme();
+  const { palette: p, soft } = useTheme();
   const box = { x1: 214, x2: 330, y1: 46, y2: 180 };
   const sMax = 400; // MPa
   const eMax = 2.0; // × 10⁻³
@@ -205,7 +200,7 @@ function TraceGraph({ fig, F }: { fig: WireFig; F: number }) {
       ))}
       <MonoLabel x={box.x1 - 4} y={box.y1 - 9} text="σ / MPa" color={p.label} size={7.5} anchor="start" />
       <MonoLabel x={box.x2} y={box.y2 + 26} text="ε / 10⁻³" color={p.label} size={7.5} anchor="end" />
-      {F > 0 && <Line x1={gx(0)} y1={gy(0)} x2={gx(e)} y2={gy(s)} stroke={p.ink} strokeWidth={stroke.body} />}
+      {F > 0 && <Line x1={gx(0)} y1={gy(0)} x2={gx(e)} y2={gy(s)} stroke={soft.A.edge} strokeWidth={stroke.force} />}
       <Circle cx={gx(e)} cy={gy(s)} r={4} fill={p.paper} stroke={p.ink} strokeWidth={stroke.body} />
     </Group>
   );
@@ -216,7 +211,7 @@ function TraceGraph({ fig, F }: { fig: WireFig; F: number }) {
 const WIRE_X = 96;
 
 function Rig({ fig, clock }: { fig: WireFig; clock: DrawClock }) {
-  const { palette: p, material: m } = useTheme();
+  const { palette: p, soft } = useTheme();
   const w = fig.wires[0];
   const arm = 12;
   const marker = 148;
@@ -233,11 +228,11 @@ function Rig({ fig, clock }: { fig: WireFig; clock: DrawClock }) {
       <DrawnFade clock={clock} from={0} to={0.4}>
         <Hatch x1={8} x2={186} y={214} color={p.draw} clock={clock} from={0} to={0.3} />
         {/* the stand: a base, a rod and an arm; the wire hangs from a clamp on the arm */}
-        <Rect x={8} y={208} width={40} height={6} fill={m.metalSide} stroke={p.draw} strokeWidth={stroke.thin} />
+        <Rect x={8} y={208} width={40} height={6} rx={2} fill={soft.metal.fill} stroke={p.draw} strokeWidth={stroke.thin} />
         <Line x1={18} y1={208} x2={18} y2={4} stroke={p.draw} strokeWidth={stroke.force} />
-        <Rect x={13} y={arm - 5} width={10} height={10} rx={1.5} fill={m.metalSide} stroke={p.draw} strokeWidth={stroke.thin} />
+        <Rect x={13} y={arm - 5} width={10} height={10} rx={2} fill={soft.metal.fill} stroke={p.draw} strokeWidth={stroke.thin} />
         <Line x1={23} y1={arm} x2={WIRE_X + 8} y2={arm} stroke={p.draw} strokeWidth={stroke.force} />
-        <Rect x={WIRE_X - 5} y={arm + 1} width={10} height={9} fill={m.metalSide} stroke={p.draw} strokeWidth={stroke.thin} />
+        <Rect x={WIRE_X - 5} y={arm + 1} width={10} height={9} rx={2} fill={soft.metal.fill} stroke={p.draw} strokeWidth={stroke.thin} />
       </DrawnFade>
 
       <DrawnFade clock={clock} from={0.3} to={0.75}>
@@ -253,7 +248,7 @@ function Rig({ fig, clock }: { fig: WireFig; clock: DrawClock }) {
         <MonoLabel x={57} y={(arm + marker) / 2 + 3} text={`${fixed(w.L, 2)} m`} color={p.label} size={8} anchor="end" />
         {/* the micrometer round the wire: a frame, an anvil, a spindle, a thimble */}
         <Path d={`M${WIRE_X - 16},44 h32 v26 h-32 Z`} fill="none" stroke={p.draw} strokeWidth={stroke.thin} />
-        <Rect x={WIRE_X + 16} y={50} width={22} height={14} fill={m.metal} stroke={p.draw} strokeWidth={stroke.thin} />
+        <Rect x={WIRE_X + 16} y={50} width={22} height={14} rx={3} fill={soft.metal.fill} stroke={p.draw} strokeWidth={stroke.thin} />
         <Path d={`M${WIRE_X + 20},50 v14 M${WIRE_X + 25},50 v14 M${WIRE_X + 30},50 v14 M${WIRE_X + 35},50 v14`} stroke={p.label} strokeWidth={stroke.hair} />
         <MonoLabel x={WIRE_X + 16} y={41} text={`d ${fixed(w.d * 1e3, 2)}`} color={p.label} size={8} anchor="start" />
         {/* the marker: a flag on the wire, against a mm scale */}
@@ -265,12 +260,12 @@ function Rig({ fig, clock }: { fig: WireFig; clock: DrawClock }) {
         {/* the hanger and its weights */}
         <Path d={`M${WIRE_X},176 v6`} stroke={p.draw} strokeWidth={stroke.thin} />
         {[0, 1, 2].map((i) => (
-          <Rect key={i} x={WIRE_X - 14} y={182 + i * 7} width={28} height={6} rx={1} fill={m.metalSide} stroke={p.draw} strokeWidth={stroke.thin} />
+          <Rect key={i} x={WIRE_X - 14} y={182 + i * 7} width={28} height={6} rx={2} fill={soft.A.fill} stroke={soft.A.edge} strokeWidth={1.6} />
         ))}
       </DrawnFade>
 
       <DrawnFade clock={clock} from={0.65} to={0.98}>
-        <MonoLabel x={PX} y={34} text="WHAT IS MEASURED" color={p.label} size={8} anchor="start" />
+        <MonoLabel x={PX} y={34} text="What is measured" color={p.label} size={8} anchor="start" />
         {rows.map(([k, v], r) => (
           <Group key={k}>
             <MonoLabel x={PX} y={62 + r * 30} text={k} color={p.ink} size={10} anchor="start" />
@@ -291,7 +286,7 @@ const py = (F: number) => PG.y2 - (F / PG.fMax) * (PG.y2 - PG.y1);
 const SCATTER = [0.012, -0.01, 0.008, -0.012, 0.006, 0.01, -0.008, 0.004]; // mm, a few readings off the line
 
 function Plot({ fig, clock }: { fig: WireFig; clock: DrawClock }) {
-  const { palette: p, material: m } = useTheme();
+  const { palette: p, soft } = useTheme();
   const k = fig.k ?? 1.6e4;
   const mmAt = (F: number) => (F / k) * 1e3;
   const grid: string[] = [];
@@ -315,14 +310,14 @@ function Plot({ fig, clock }: { fig: WireFig; clock: DrawClock }) {
         <MonoLabel x={PG.x2} y={PG.y2 + 27} text="Δx / mm" color={p.label} size={8} anchor="end" />
       </DrawnFade>
       <DrawnFade clock={clock} from={0.4} to={0.95}>
-        <Line x1={px(0)} y1={py(0)} x2={px(p2.x)} y2={py(p2.y)} stroke={p.ink} strokeWidth={stroke.body} />
+        <Line x1={px(0)} y1={py(0)} x2={px(p2.x)} y2={py(p2.y)} stroke={soft.A.edge} strokeWidth={stroke.force} />
         {SCATTER.map((off, i) => (
           <Circle key={i} cx={px(mmAt(i + 1) + off)} cy={py(i + 1)} r={2.6} fill={p.paper} stroke={p.ink} strokeWidth={stroke.thin} />
         ))}
         {/* the gradient triangle, large, on the line */}
-        <Path d={`M${px(p1.x)},${py(p1.y)} H${px(p2.x)} V${py(p2.y)}`} fill="none" stroke={p.force} strokeWidth={stroke.body} strokeDasharray="4 3" />
-        <MonoLabel x={(px(p1.x) + px(p2.x)) / 2} y={py(p1.y) + 14} text={`Δx = ${fixed(p2.x - p1.x, 2)} mm`} color={p.forceText} size={8.5} />
-        <MonoLabel x={px(p2.x) - 6} y={(py(p1.y) + py(p2.y)) / 2 + 3} text={`ΔF = ${fixed(p2.y - p1.y, 1)} N`} color={p.forceText} size={8.5} anchor="end" />
+        <Path d={`M${px(p1.x)},${py(p1.y)} H${px(p2.x)} V${py(p2.y)}`} fill="none" stroke={p.ink} strokeWidth={stroke.body} strokeDasharray="4 3" />
+        <MonoLabel x={(px(p1.x) + px(p2.x)) / 2} y={py(p1.y) + 14} text={`Δx = ${fixed(p2.x - p1.x, 2)} mm`} color={p.ink} size={8.5} />
+        <MonoLabel x={px(p2.x) - 6} y={(py(p1.y) + py(p2.y)) / 2 + 3} text={`ΔF = ${fixed(p2.y - p1.y, 1)} N`} color={p.ink} size={8.5} anchor="end" />
       </DrawnFade>
     </Group>
   );
