@@ -22,7 +22,7 @@ const PEN = { cliff: [0, 0.3], launch: [0.28, 0.5], path: [0.45, 0.78], labels: 
 const SEA = 196;
 const K = 6.8; // viewBox units per metre
 const EDGE = 54; // the stones leave from here, just beyond the cliff's edge
-const R = 4.5;
+const R = 6;
 const KV = 2; // viewBox units per m s⁻¹ of every velocity arrow: the throws, the speeds at the sea, the followed stone
 const COL = { x: 252, w: 26, k: 1.25 }; // the energy column: x, width, viewBox units per joule
 const HOLD = 1.3;
@@ -52,7 +52,7 @@ export function cliffParams(fig: CliffFig, live?: number): string {
 type Props = { fig: CliffFig; live?: number; playing: boolean; clock?: DrawClock };
 
 export function CliffFigure({ fig, live, playing, clock = STILL }: Props) {
-  const { palette: p, material: m } = useTheme();
+  const { palette: p, soft } = useTheme();
   const reduced = useReducedMotionPref();
   const plays = cliffPlays(fig) && live === undefined;
   const length = Math.max(...fig.stones.map((s) => flightTime(launchOf(fig, s.angle))));
@@ -65,25 +65,17 @@ export function CliffFigure({ fig, live, playing, clock = STILL }: Props) {
   const face = `M6,${T} H${EDGE - 5} L${EDGE - 6},${T + 26} L${EDGE - 12},${T + 52} L${EDGE - 8},${T + 84} L${EDGE - 15},${T + 112} L${EDGE - 12},${SEA}`;
   const waves: string[] = [];
   for (let x = EDGE - 12; x < 334; x += 12) waves.push(`M${x},${SEA} q3,-3 6,0 q3,3 6,0`);
-  const ripples: string[] = [];
-  for (let i = 0; i < 9; i++) {
-    const x = EDGE + 6 + ((i * 37) % 270);
-    const y = SEA + 10 + ((i * 13) % 26);
-    if (x < 330) ripples.push(`M${x},${y} q3,-2.5 6,0 q3,2.5 6,0`);
-  }
 
   return (
     <Group>
       {/* the cliff and the sea */}
       <DrawnFade clock={clock} from={PEN.cliff[0]} to={PEN.cliff[1]}>
-        <Path d={`${face} L6,${SEA} Z`} fill={p.drawFill} />
-        <Path d={`M8,${T + 30} L${EDGE - 4},${T + 36} M8,${T + 70} L${EDGE - 9},${T + 64} M8,${T + 104} L${EDGE - 12},${T + 110}`} stroke={p.draw} strokeWidth={stroke.hair} opacity={0.3} fill="none" />
+        <Path d={`${face} L6,${SEA} Z`} fill={soft.metal.fill} />
         <Path d={face} stroke={p.draw} strokeWidth={stroke.body} fill="none" strokeLinejoin="round" />
         <Path d={waves.join(' ')} stroke={p.draw} strokeWidth={stroke.thin} fill="none" />
-        <Path d={ripples.join(' ')} stroke={p.draw} strokeWidth={stroke.hair} fill="none" opacity={0.35} />
         {/* the height of the cliff */}
         <Path d={`M16,${T + 4} V${SEA - 4} M12,${T + 4} H20 M12,${SEA - 4} H20`} stroke={p.label} strokeWidth={stroke.thin} fill="none" />
-        <Rect x={9} y={(T + SEA) / 2 - 8} width={34} height={13} rx={2} fill={p.drawFill} />
+        <Rect x={9} y={(T + SEA) / 2 - 8} width={34} height={13} rx={2} fill={soft.metal.fill} />
         <MonoLabel x={26} y={(T + SEA) / 2 + 2} text={`${fig.h} m`} color={p.ink} size={9} />
       </DrawnFade>
 
@@ -129,7 +121,7 @@ export function CliffFigure({ fig, live, playing, clock = STILL }: Props) {
               <Path d={`M${x - 9},${SEA - 2} q4,-7 6,-11 M${x + 9},${SEA - 2} q-4,-7 -6,-11 M${x},${SEA - 4} v-12`} stroke={p.draw} strokeWidth={stroke.thin} fill="none" strokeLinecap="round" />
             ) : (
               <Group>
-                <Circle cx={x} cy={y} r={R} fill={p.drawFillDark} stroke={p.draw} strokeWidth={stroke.thin} />
+                <Circle cx={x} cy={y} r={R} fill={soft.A.fill} stroke={soft.A.edge} strokeWidth={2} />
                 {/* the letters wait until the stones have parted: at the throw all three are in one place */}
                 {plays && fig.stones.length > 1 && t > 0.25 && <MonoLabel x={x} y={y - 8} text={s.id} color={p.label} size={8} />}
               </Group>
@@ -162,14 +154,14 @@ function pathOf(fig: CliffFig, l: Launch, until: number): { d: string; len: numb
 
 /** At the sea: once shown, every stone's velocity just before it lands, to the throws' scale; the speeds, "?" until answered. */
 function SpeedTable({ fig, shown }: { fig: CliffFig; shown: boolean }) {
-  const { palette: p, material: m } = useTheme();
+  const { palette: p } = useTheme();
   const x = 246;
   const v = speedAfterDrop(fig.u, fig.h);
   const many = fig.stones.length > 1;
   const listY = 132;
   return (
     <Group>
-      <MonoLabel x={x} y={44} text="AT THE SEA" color={p.label} size={8.5} anchor="start" />
+      <MonoLabel x={x} y={44} text="At the sea" color={p.label} size={8.5} anchor="start" />
       {/* each stone's velocity just before it lands, side by side, to the throws' scale */}
       {shown &&
         fig.stones.map((s, i) => {
@@ -192,7 +184,7 @@ function SpeedTable({ fig, shown }: { fig: CliffFig; shown: boolean }) {
 
 /** The followed stone's velocity, and its energy column: GPE above the sea, kinetic energy stacked on it. */
 function Followed({ fig, angle, t }: { fig: CliffFig; angle: number; t: number }) {
-  const { palette: p, material: m } = useTheme();
+  const { palette: p, soft } = useTheme();
   const l = launchOf(fig, angle);
   const tt = Math.min(t, flightTime(l));
   const pos = projectilePosition(tt, l);
@@ -211,9 +203,9 @@ function Followed({ fig, angle, t }: { fig: CliffFig; angle: number; t: number }
   return (
     <Group>
       <HollowArrow from={[x, y]} to={[x + vel.vx * KV, y - vel.vy * KV]} color={p.draw} weight="thin" />
-      <Circle cx={x} cy={y} r={R} fill={p.drawFillDark} stroke={p.draw} strokeWidth={stroke.thin} />
-      <Rect x={COL.x} y={SEA - hEp} width={COL.w} height={hEp} fill={p.drawFillDark} stroke={p.draw} strokeWidth={stroke.thin} />
-      <Rect x={COL.x} y={SEA - hEp - hEk} width={COL.w} height={hEk} fill={p.paper} stroke={p.draw} strokeWidth={stroke.thin} />
+      <Circle cx={x} cy={y} r={R} fill={soft.A.fill} stroke={soft.A.edge} strokeWidth={2} />
+      <Rect x={COL.x} y={SEA - hEp} width={COL.w} height={hEp} fill={soft.B.fill} stroke={soft.B.edge} strokeWidth={1.6} />
+      <Rect x={COL.x} y={SEA - hEp - hEk} width={COL.w} height={hEk} fill={soft.A.fill} stroke={soft.A.edge} strokeWidth={1.6} />
       <Line x1={COL.x - 6} y1={yTotal} x2={COL.x + COL.w + 6} y2={yTotal} stroke={p.lineStrong} strokeWidth={stroke.thin} strokeDasharray="3 3" />
       <MonoLabel x={COL.x + COL.w / 2} y={yTotal - 7} text={`total ${sig(total)} J`} color={p.ink} size={9} />
       {hEp > 1 && <MonoLabel x={lx} y={yEp} text={`Ep ${sig(ep)} J`} color={p.label} size={8.5} anchor="end" />}

@@ -102,7 +102,7 @@ const STYLE_2 = new Set<Fig['kind']>([
 ]);
 
 /** Figures redrawn in style 3 (a white gridded sheet, soft bodies), stage by stage: docs/V4_FIGURES_TASKS.md. */
-const CLEAN = new Set<Fig['kind']>(['lift', 'track', 'scales', 'pairs', 'liftPair', 'vt', 'graph', 'equations', 'brakeVt', 'throwVt', 'fallGraph', 'plot', 'road', 'chase', 'throw', 'bench', 'kick', 'vectors', 'resolve', 'sledge', 'hill', 'crate', 'ladder', 'particle', 'pulley', 'fall', 'fallVt', 'wall', 'bodies', 'collide', 'spanner', 'pole', 'bar', 'beam', 'broom', 'platform', 'ramp', 'kinetic', 'height']);
+const CLEAN = new Set<Fig['kind']>(['lift', 'track', 'scales', 'pairs', 'liftPair', 'vt', 'graph', 'equations', 'brakeVt', 'throwVt', 'fallGraph', 'plot', 'road', 'chase', 'throw', 'bench', 'kick', 'vectors', 'resolve', 'sledge', 'hill', 'crate', 'ladder', 'particle', 'pulley', 'fall', 'fallVt', 'wall', 'bodies', 'collide', 'spanner', 'pole', 'bar', 'beam', 'broom', 'platform', 'ramp', 'kinetic', 'height', 'cliff', 'slide', 'ride', 'winch']);
 /** Figures on squared paper of their own, where a square means something: they get no second grid. */
 const OWN_GRID: Fig['kind'][] = ['vectors', 'resolve'];
 const GRID = 34; // viewBox units between grid lines

@@ -25,7 +25,7 @@ const KM = 12; // viewBox units per metre of road: the road slides past at v × 
 const KF = 2.6; // viewBox units per newton, both forces
 const KV = 4; // viewBox units per m s⁻¹ of the velocity arrow
 const POST = 84; // gap between posts when they do not mark the seconds
-const HATCH = 9;
+const HATCH = 24; // gap between the marks under the road: they show it streaming past
 const R = 15; // wheel radius in the bike's own units
 const GEAR = 2.6; // wheel turns per turn of the cranks
 const CG: Pt = [-4, -40]; // centre of gravity of rider and bike, in the bike's own units
@@ -100,13 +100,13 @@ type LaneProps = {
 
 /** One road with one rider: the air and the road stream past, the forces, and the speed and power written in. */
 function Lane({ fig, v, scroll, lane, clock, stage, compact }: LaneProps) {
-  const { palette: p, material: m } = useTheme();
+  const { palette: p } = useTheme();
   const { ground: GY, scale: S, cx: CX } = lane;
   const D = dragForce(fig.k, v);
   const P = powerFromForce(D, v);
   const gap = fig.perSecond ? Math.max(24, v * KM) : POST;
   const ticks: string[] = [];
-  for (let x = 6 - (scroll % HATCH); x < 334; x += HATCH) if (x >= 6) ticks.push(`M${x},${GY + 8} L${x + 8},${GY}`);
+  for (let x = 6 - (scroll % HATCH); x < 334; x += HATCH) if (x >= 6) ticks.push(`M${x},${GY + 7} L${x + 7},${GY}`);
   const posts: number[] = [];
   for (let x = 30 - (scroll % gap); x < 334; x += gap) if (x >= 8) posts.push(x);
   // the air streams past as fast as the road: dashes in a few rows above it
@@ -138,8 +138,9 @@ function Lane({ fig, v, scroll, lane, clock, stage, compact }: LaneProps) {
         <Group>
           <Path d={air.join(' ')} stroke={p.paperLine} strokeWidth={stroke.thin} strokeLinecap="round" />
           <Line x1={6} y1={GY} x2={334} y2={GY} stroke={p.draw} strokeWidth={compact ? 1.6 : 2} />
-          <Path d={ticks.join(' ')} stroke={p.draw} strokeWidth={stroke.thin} opacity={0.55} />
-          {posts.map((x) => (
+          <Path d={ticks.join(' ')} stroke={p.draw} strokeWidth={stroke.thin} opacity={0.4} />
+          {/* posts only where they measure the metres of each second */}
+          {fig.perSecond && posts.map((x) => (
             <Path key={x} d={`M${x},${GY} V${GY - 16} M${x - 3},${GY - 16} H${x + 3}`} stroke={p.label} strokeWidth={stroke.body} />
           ))}
         </Group>,
@@ -216,7 +217,7 @@ function knee(hip: Pt, foot: Pt, l: number): Pt {
  * `roll`: how far the wheels have turned (rad); the cranks turn GEAR times slower.
  */
 function Cyclist({ roll, clock }: { roll: number; clock: DrawClock }) {
-  const { palette: p, material: m } = useTheme();
+  const { palette: p, soft } = useTheme();
   const crank = roll / GEAR;
   const BB: Pt = [-4, -13];
   const pedal = (k: number): Pt => [BB[0] + 6.5 * Math.cos(crank + k * Math.PI), BB[1] + 6.5 * Math.sin(crank + k * Math.PI)];
@@ -225,18 +226,19 @@ function Cyclist({ roll, clock }: { roll: number; clock: DrawClock }) {
   const head: Pt = [18, -69];
   const LEG = 21;
   const poly = (pts: Pt[]) => pts.map((q, i) => `${i ? 'L' : 'M'}${q[0].toFixed(1)},${q[1].toFixed(1)}`).join(' ');
-  const limb = (pts: Pt[], color: string, w: number) => (
+  // the rider is a pictogram: one soft tone with an edge of the same hue
+  const limb = (pts: Pt[], w: number) => (
     <Group>
-      <Path d={poly(pts)} stroke={p.draw} strokeWidth={w + 2.4} strokeLinecap="round" strokeLinejoin="round" fill="none" />
-      <Path d={poly(pts)} stroke={color} strokeWidth={w} strokeLinecap="round" strokeLinejoin="round" fill="none" />
+      <Path d={poly(pts)} stroke={soft.A.edge} strokeWidth={w + 2.4} strokeLinecap="round" strokeLinejoin="round" fill="none" />
+      <Path d={poly(pts)} stroke={soft.A.fill} strokeWidth={w} strokeLinecap="round" strokeLinejoin="round" fill="none" />
     </Group>
   );
-  const leg = (k: number, color: string) => {
+  const leg = (k: number) => {
     const f = pedal(k);
     return (
       <Group>
-        {limb([hip, knee(hip, f, LEG), f], color, 5.2)}
-        <Path d={`M${f[0] - 2.5},${f[1] + 0.5} H${f[0] + 4.5}`} stroke={p.shoe} strokeWidth={stroke.force} strokeLinecap="round" />
+        {limb([hip, knee(hip, f, LEG), f], 5.2)}
+        <Path d={`M${f[0] - 2.5},${f[1] + 0.5} H${f[0] + 4.5}`} stroke={p.draw} strokeWidth={stroke.force} strokeLinecap="round" />
       </Group>
     );
   };
@@ -258,7 +260,7 @@ function Cyclist({ roll, clock }: { roll: number; clock: DrawClock }) {
     <Group>
       <DrawnFade clock={clock} from={PEN.rider[0]} to={PEN.rider[1]}>
         {/* the far leg, behind the bike */}
-        <Group opacity={0.75}>{leg(1, m.trousers)}</Group>
+        <Group opacity={0.6}>{leg(1)}</Group>
       </DrawnFade>
       <DrawnFade clock={clock} from={PEN.bike[0]} to={PEN.bike[1]}>
         {wheel(-27)}
@@ -267,17 +269,16 @@ function Cyclist({ roll, clock }: { roll: number; clock: DrawClock }) {
         <Path d="M-27,-15 L-4,-13 L-11,-38 Z M-11,-38 L19,-37 L21,-31 L-4,-13 M21,-31 L27,-15" fill="none" stroke={p.draw} strokeWidth={stroke.body} strokeLinejoin="round" />
         <Path d="M-17,-41 H-7" stroke={p.draw} strokeWidth={stroke.force} strokeLinecap="round" />
         <Path d="M-11,-38 L-12,-41 M19,-37 L21,-42 H25 Q29,-42 27,-37" fill="none" stroke={p.draw} strokeWidth={stroke.body} strokeLinecap="round" strokeLinejoin="round" />
-        <Circle cx={BB[0]} cy={BB[1]} r={3.2} fill={m.metal} stroke={p.draw} strokeWidth={stroke.thin} />
+        <Circle cx={BB[0]} cy={BB[1]} r={3.2} fill={soft.metal.fill} stroke={p.draw} strokeWidth={stroke.thin} />
         <Line x1={pedal(0)[0]} y1={pedal(0)[1]} x2={pedal(1)[0]} y2={pedal(1)[1]} stroke={p.draw} strokeWidth={stroke.body} />
       </DrawnFade>
       <DrawnFade clock={clock} from={PEN.rider[0]} to={PEN.rider[1]}>
-        {limb([hip, shoulder], m.clothA, 9)}
-        {leg(0, m.trousers)}
-        {limb([[shoulder[0] + 1, shoulder[1] + 2], [20, -52], [25, -42]], m.clothA, 3.6)}
-        <Circle cx={25} cy={-42} r={2.3} fill={m.skinA} stroke={p.draw} strokeWidth={stroke.thin} />
-        <Circle cx={head[0]} cy={head[1]} r={6.5} fill={m.skinA} stroke={p.draw} strokeWidth={stroke.body} />
+        {limb([hip, shoulder], 9)}
+        {leg(0)}
+        {limb([[shoulder[0] + 1, shoulder[1] + 2], [20, -52], [25, -42]], 3.6)}
+        <Circle cx={head[0]} cy={head[1]} r={6.5} fill={soft.A.fill} stroke={soft.A.edge} strokeWidth={1.4} />
         {/* the helmet */}
-        <Path d={`M${head[0] - 7.5},${head[1] - 0.5} A7.5,7.5 0 0 1 ${head[0] + 7},${head[1] - 2.5} L${head[0] - 7.5},${head[1] - 0.5} Z`} fill={m.clothB} stroke={p.draw} strokeWidth={stroke.thin} strokeLinejoin="round" />
+        <Path d={`M${head[0] - 7.5},${head[1] - 0.5} A7.5,7.5 0 0 1 ${head[0] + 7},${head[1] - 2.5} L${head[0] - 7.5},${head[1] - 0.5} Z`} fill={soft.B.fill} stroke={soft.B.edge} strokeWidth={stroke.thin} strokeLinejoin="round" />
       </DrawnFade>
     </Group>
   );

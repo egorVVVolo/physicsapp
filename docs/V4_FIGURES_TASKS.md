@@ -26,7 +26,7 @@
 | 6 | Momentum and moments: wall, bodies, collide | ✅ |
 | 7 | Momentum and moments: spanner, pole, bar, beam, broom | ✅ |
 | 8 | Energy: platform, ramp, kinetic, height | ✅ |
-| 9 | Energy: cliff, slide, ride, winch (велосипедистка и ребёнок — пиктограммы; `Mitten` — простая скруглённая кисть того же тона) | |
+| 9 | Energy: cliff, slide, ride, winch (велосипедистка и ребёнок — пиктограммы; `Mitten` — простая скруглённая кисть того же тона) | ✅ |
 | 10 | Fluids: tank, dunk, tube, flow | |
 | 11 | Materials: spring, wire, material, launcher | |
 | 12 | Уборка: `STYLE_2`, `classic`/`pick`, `/gallery/style` удалить; когда `CLEAN` — все виды, убрать набор. Картинки курса и предметов уровней (`src/art/`) не трогать. Стоп: владелец | |
