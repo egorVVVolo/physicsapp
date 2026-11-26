@@ -19,16 +19,16 @@ import { DrawnPath, ForceArrow, ForceLetter, MonoLabel } from './draw';
 import { Person } from './people';
 import { HollowArrow, Ruler, stage, Tag, type RulerTick } from './kit';
 
-export const TRACK_VB = { w: 340, h: 276 };
+export const TRACK_VB = { w: 340, h: 328 };
 
 /** The race is played this many times faster than real time. */
 export const TRACK_SPEEDUP = 20;
 const HOLD = 1.6; // s the played figure waits on its last frame
-const XL = 22; // the ruler runs from XL to XR
-const XR = 318;
-const RULER_Y = 256;
-const SCALE = 0.55; // of the shared person: 75 units tall
-const HEAD = 78; // from the ground to just above the head
+const XL = 18; // the ruler runs from XL to XR
+const XR = 322;
+const RULER_Y = 308;
+const SCALE = 0.72; // of the shared person: 98 units tall
+const HEAD = 100; // from the ground to just above the head
 /** How far runner B's own start is moved east when the two lanes must not line up (`apart`), in metres. */
 const APART = 230;
 const KV = 8; // viewBox units per m s⁻¹ of velocity
@@ -44,10 +44,10 @@ const PEN = {
 
 /** y of the ground of each runner's lane: two lanes, or one in the middle when a runner is alone. */
 function groundOf(fig: TrackFig, id: 'A' | 'B'): number {
-  if (fig.runners.length === 1) return 180;
+  if (fig.runners.length === 1) return 224;
   // with both routes drawn, runner A needs room above for two arrows
-  if (fig.legs) return id === 'A' ? 136 : fig.apart ? 238 : 220;
-  return id === 'A' ? 112 : 214;
+  if (fig.legs) return id === 'A' ? 160 : fig.apart ? 294 : 276;
+  return id === 'A' ? 134 : 270;
 }
 
 /** The times where a run changes part, and its end. */
@@ -141,7 +141,7 @@ export function TrackFigure({ fig, live, playing, clock = STILL }: Props) {
       )}
 
       {/* runner A's legs: one arrow per part of its run, stacked above its lane, joined where it turns */}
-      {fig.legs && runnerA && stage(clock, PEN.marks, <Legs trip={runnerA.trip} tEnd={fig.tEnd} top={fig.runners.length > 1 ? 20 : groundOf(fig, 'A') - 128} gap={fig.runners.length > 1 ? 24 : 26} X={X} />)}
+      {fig.legs && runnerA && stage(clock, PEN.marks, <Legs trip={runnerA.trip} tEnd={fig.tEnd} top={fig.runners.length > 1 ? 24 : groundOf(fig, 'A') - 160} gap={fig.runners.length > 1 ? 28 : 32} X={X} />)}
       {/* runner B's one leg goes under its lane, its length written past the tail (until a displacement takes the place) */}
       {fig.legs && runnerB && fig.disp === undefined && stage(clock, PEN.marks, <Route x1={x0 + shiftOf('B')} x2={X(tripPosition(fig.tEnd, runnerB.trip)) + shiftOf('B')} y={groundOf(fig, 'B') + (fig.apart ? -HEAD - 14 : 18)} text={routeText(tripPosition(fig.tEnd, runnerB.trip))} />)}
 
@@ -161,7 +161,7 @@ export function TrackFigure({ fig, live, playing, clock = STILL }: Props) {
         return (
           <Group key={r.id} transform={shiftOf(r.id) ? `translate(${shiftOf(r.id)} 0)` : undefined}>
             <Person x={X(s)} y={y} scale={SCALE} cg={false} who={r.id} halo clock={clock} pen={PEN.runner} />
-            {stage(clock, PEN.marks, <ForceLetter x={X(s) + 18} y={y - 50} text={r.id} color={p.ink} size={18} anchor="start" />)}
+            {stage(clock, PEN.marks, <ForceLetter x={X(s) + 22} y={y - 64} text={r.id} color={p.ink} size={21} anchor="start" />)}
             {moving && Math.abs(v) > 1e-9 && stage(clock, PEN.marks, <HollowArrow from={[X(s), arrowY]} to={[X(s) + dx, arrowY]} color={p.draw} weight="track" />)}
             {moving && fig.values && stage(clock, PEN.marks, <Tag x={vAt[0]} y={vAt[1]} text={vText} />)}
             {showDisp && stage(clock, PEN.marks, <Displacement x1={x0} x2={X(tripPosition(fig.tEnd, r.trip))} y={y + 17} text={fig.disp === 'shown' ? `s = ${signedMetres(sign * tripPosition(fig.tEnd, r.trip))}` : 's = ?'} unknown={fig.disp !== 'shown'} />)}
@@ -198,9 +198,10 @@ function TrackRuler({ lo, hi, X, plus, numbers, clock }: { lo: number; hi: numbe
   const tipX = plus === 'east' ? XR + 10 : XL - 10;
   return (
     <Ruler axis="x" at={RULER_Y} from={XL - 4} to={XR + 4} arrow={plus === 'east' ? 'end' : 'start'} ticks={ticks} side={-1} labelAt={12} clock={clock} pen={PEN.ruler}>
-      <ForceLetter x={tipX - sign * 5} y={RULER_Y - 9} text="+" color={p.label} size={14} />
-      <MonoLabel x={XL - 6} y={RULER_Y + 12} text="W" color={p.ink} size={9.5} anchor="start" />
-      <MonoLabel x={XR + 6} y={RULER_Y + 12} text="E" color={p.ink} size={9.5} anchor="end" />
+      <ForceLetter x={tipX - sign * 30} y={RULER_Y - 9} text="+" color={p.label} size={14} />
+      {/* above the axis, clear of the numbers under it */}
+      <MonoLabel x={XL - 6} y={RULER_Y - 9} text="W" color={p.ink} size={9.5} anchor="start" />
+      <MonoLabel x={XR + 6} y={RULER_Y - 9} text="E" color={p.ink} size={9.5} anchor="end" />
     </Ruler>
   );
 }

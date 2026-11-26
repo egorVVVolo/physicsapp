@@ -35,9 +35,9 @@ const STUB = 34; // length of the dashed "N = ?" stub
 const CAR = { x: 22, y: 34, w: 146, h: 252 }; // floor at y = 286
 const FLOOR = CAR.y + CAR.h;
 const CX = CAR.x + CAR.w / 2;
-const PAD = { w: 112, h: 38 }; // the scales: one block with its display
+const PAD = { w: 122, h: 38 }; // the scales: one block with its display
 const SOLES = FLOOR - PAD.h;
-const PERSON_S = 1.3;
+const PERSON_S = 1.48;
 
 // when the pen draws each part, as shares of the draw-in
 const PEN = {
@@ -64,8 +64,9 @@ export function liftMoves(fig: LiftFig, a: number): boolean {
 
 /** With nothing drawn to the right, the lift sits in the middle of the sheet. */
 export function liftShiftX(fig: LiftFig): number {
-  const hasRight = fig.forces.length > 0 || !!fig.candidates || !!fig.motion || !!fig.showAcc;
-  return hasRight ? 0 : 75;
+  if (fig.forces.length > 0 || fig.candidates) return 0;
+  // with only an arrow and its words beside the car, the two stand in the middle together
+  return fig.motion || fig.showAcc ? 42 : 75;
 }
 
 /** The values written in the sheet header. On an explore screen `a` is on the slider, so it is left out. */
@@ -134,8 +135,9 @@ export function LiftFigure({ fig, a, tap, clock = STILL, prev, shift: shiftNow }
       </Group>
 
       {/* ── motion or acceleration, between the lift and the diagram ── */}
+      {/* the arrow stands beside the car, so it moves aside with it */}
       {fig.motion && motionDir && (
-        <Group opacity={room}>
+        <Group opacity={room} transform={`translate(${shift} 0)`}>
           <MotionArrow x={MID_X} y={134} dir={motionDir} length={72} color={p.draw} clock={clock} pen={PEN.motion} />
           {splitLabel(fig.motion.text).map((line, i) => (
             <MonoLabel key={i} x={MID_X} y={192 + i * step9} text={line} color={p.label} size={9} />
@@ -143,7 +145,7 @@ export function LiftFigure({ fig, a, tap, clock = STILL, prev, shift: shiftNow }
         </Group>
       )}
       {fig.showAcc && !fig.motion && Math.abs(a) > 1e-9 && (
-        <Group opacity={room}>
+        <Group opacity={room} transform={`translate(${shift} 0)`}>
           {stage(clock, PEN.marks, <DriftingChevrons x={MID_X} y={134} dir={a > 0 ? 'up' : 'down'} color={p.draw} />)}
           <MonoLabel x={MID_X} y={170} text="a" color={p.label} size={11} />
         </Group>

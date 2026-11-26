@@ -194,7 +194,7 @@ export function useTooSmall(size: number): boolean {
 
 /** True on a sheet in figure style 3: its labels are larger and in the app's own display face, not mono. */
 export const SheetClean = createContext(false);
-const CLEAN_MIN = 12.5;
+const CLEAN_MIN = 14;
 
 /** A small label in the drawing-sheet voice (IBM Plex Mono; Space Grotesk on a style-3 sheet). */
 export function MonoLabel({ x, y, text, color, size = 10, anchor = 'middle' }: { x: number; y: number; text: string; color: string; size?: number; anchor?: 'start' | 'middle' | 'end' }) {

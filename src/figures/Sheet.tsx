@@ -1,7 +1,7 @@
 // The drawing sheet: every figure sits on pale drafting paper with a FIG number and its given values.
 // It sizes the SVG to the available width and lays tap targets (if any) over the drawing.
 import { useContext, useEffect, useState } from 'react';
-import { AppState, Pressable, StyleSheet, Text, View } from 'react-native';
+import { AppState, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import Svg, { Path, Rect } from 'react-native-svg';
 import type { Fig } from '@/content/types';
 import { CleanTheme, useTheme } from '@/theme/ThemeContext';
@@ -119,8 +119,10 @@ const NO_REPLAY: Fig['kind'][] = ['lift', 'liftPair', 'flow', 'ride', 'spring'];
 
 /** Every figure is drawn at the same size on every screen, so the drawing never jumps between screens. */
 const MAX_H = 270;
-/** Style-3 figures are drawn larger. */
-const CLEAN_MAX_H = 310;
+/** Style-3 figures are drawn larger: up to this height, and never more than a share of the screen's height. */
+const CLEAN_MAX_H = 372;
+const CLEAN_MIN_H = 270;
+const CLEAN_SHARE = 0.42;
 /** A compact sheet is at most this share of the full height. */
 const COMPACT = 0.6;
 /** The figures that draw themselves the first time their kind appears in a lesson. */
@@ -151,6 +153,7 @@ function Drawing({ fig, n, live, tap: tapIn, caption, compact = false, still: st
   const still = compact || stillProp;
   const tap = still ? undefined : tapIn;
   const { palette: p, soft, classic } = useTheme();
+  const screenH = useWindowDimensions().height;
   const clean = CLEAN.has(fig.kind);
   const memory = useContext(LessonFigs);
   const puzzle = useContext(PuzzleContext);
@@ -177,7 +180,7 @@ function Drawing({ fig, n, live, tap: tapIn, caption, compact = false, still: st
   }, [memory, fig, aNow, compact]);
   let w = width;
   let h = (width * vb.h) / vb.w;
-  const maxH = (fig.kind === 'pairs' ? PAIRS_MAX_H : clean ? CLEAN_MAX_H : MAX_H) * (compact ? COMPACT : 1);
+  const maxH = (fig.kind === 'pairs' ? PAIRS_MAX_H : clean ? Math.min(CLEAN_MAX_H, Math.max(CLEAN_MIN_H, screenH * CLEAN_SHARE)) : MAX_H) * (compact ? COMPACT : 1);
   if (h > maxH) {
     h = maxH;
     w = (h * vb.w) / vb.h;
@@ -193,7 +196,7 @@ function Drawing({ fig, n, live, tap: tapIn, caption, compact = false, still: st
 
   return (
     <SheetVisible.Provider value={inView}>
-    <View style={[styles.sheet, { backgroundColor: p.paper, borderColor: clean ? soft.border : p.paperLine }, clean && styles.cleanSheet]}>
+    <View style={[styles.sheet, { backgroundColor: p.paper, borderColor: clean ? soft.border : p.paperLine }, clean && styles.cleanSheet, clean && !compact && styles.wideSheet]}>
       {puzzle?.solved && !compact && <PuzzleSolved color={puzzle.color} reduced={reduced} />}
       <View style={styles.head}>
         <Text style={[styles.fig, { color: p.label }]}>FIG. {n}</Text>
@@ -458,6 +461,8 @@ function PuzzleSolved({ color, reduced }: { color: string; reduced: boolean }) {
 
 const styles = StyleSheet.create({
   cleanSheet: { borderRadius: 20 },
+  // a full style-3 sheet reaches nearly to the edges of the phone
+  wideSheet: { marginHorizontal: -12 },
   chip: { position: 'absolute', top: -11, left: 14, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 4, zIndex: 2 },
   chipText: { fontFamily: font.monoBold, fontSize: 11, letterSpacing: 1, color: '#FFFFFF' },
   sheet: { borderWidth: 1, borderRadius: radius.m, paddingTop: 10, paddingBottom: 8, paddingHorizontal: 10, alignSelf: 'stretch' },
