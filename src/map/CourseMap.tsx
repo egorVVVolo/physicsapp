@@ -22,6 +22,7 @@ import { PuckRow } from '@/map/PuckRow';
 import { RollingBall, type Point } from '@/map/RollingBall';
 import { LEVEL_OBJECT, labelX, levelAt, puckX, puckY, rowLayout } from '@/map/layout';
 import { loadProgress, loadStreak } from '@/session/storage';
+import { sameData } from '@/session/same';
 import { emptyStreak, type Streak } from '@/session/streak';
 import { useTheme } from '@/theme/ThemeContext';
 import { font, levelColors, reward, soonGrey, soonReward } from '@/theme/tokens';
@@ -42,7 +43,9 @@ export function CourseMap({ onBack }: { onBack: () => void }) {
   const ready = useMemo(() => allRefs.filter((x) => x.r.ready), []);
   /** The next lesson to do: the first ready one not finished yet. */
   const nextId = ready.find((x) => status[x.r.id] !== 'done')?.r.id ?? '';
-  const [picked, setPicked] = useState<string>(ready[0]?.r.id ?? allRefs[0].r.id);
+  /** The puck the learner picked; until then the card follows the next lesson. */
+  const [chosen, setPicked] = useState('');
+  const picked = chosen || nextId || (ready[0]?.r.id ?? allRefs[0].r.id);
   /** Picked a puck since the map came into view: then the card shows that lesson even when all are done. */
   const [touched, setTouched] = useState(false);
   const allDone = ready.length > 0 && ready.every((x) => status[x.r.id] === 'done') && !touched;
@@ -66,6 +69,8 @@ export function CourseMap({ onBack }: { onBack: () => void }) {
   const scrollY = useRef(0);
   const savedY = useRef(0);
   const placed = useRef(false);
+  /** Nothing of the map shows until it stands at the next lesson, so it never draws at the top and then jumps. */
+  const [shown, setShown] = useState(false);
 
   useFocusEffect(
     useCallback(() => {
@@ -73,7 +78,7 @@ export function CourseMap({ onBack }: { onBack: () => void }) {
       setTouched(false);
       setPopId('');
       setArrived('');
-      loadStreak().then((s) => alive && setStreak(s));
+      loadStreak().then((s) => alive && setStreak((old) => (sameData(old, s) ? old : s)));
       Promise.all(
         ready.map(async ({ r }) => {
           const saved = await loadProgress(lessons[r.id]);
@@ -84,7 +89,8 @@ export function CourseMap({ onBack }: { onBack: () => void }) {
         const now: Record<string, Status> = Object.fromEntries(pairs);
         const before = prevStatus.current;
         prevStatus.current = now;
-        setStatus(now);
+        // nothing new: no redraw of the whole map while the tab is fading in
+        setStatus((old) => (sameData(old, now) ? old : now));
         // back from a lesson: the web hid the map (display: none) and reset its scroll, so put it back
         if (placed.current) {
           scroll.current?.scrollTo({ y: savedY.current, animated: false });
@@ -173,7 +179,10 @@ export function CourseMap({ onBack }: { onBack: () => void }) {
   useEffect(() => {
     if (placed.current || !viewH || !loaded || sectionY.current.filter((v) => v !== undefined).length < course.levels.length) return;
     placed.current = true;
-    setTimeout(() => bringBack(false), 0);
+    setTimeout(() => {
+      bringBack(false);
+      setShown(true);
+    }, 0);
   });
   // opened from Home's course bars: /learn?level=forces scrolls to that level once the map is laid out
   const { level: askLevel } = useLocalSearchParams<{ level?: string }>();
@@ -203,7 +212,6 @@ export function CourseMap({ onBack }: { onBack: () => void }) {
   const doneCount = Object.values(status).filter((s) => s === 'done').length;
   const plateLevel = course.levels[plateIdx];
   const pickedRef = allRefs.find((x) => x.r.id === picked) ?? allRefs[0];
-  let order = 0;
 
   return (
     <View style={{ flex: 1, backgroundColor: p.page, paddingTop: insets.top }}>
@@ -222,8 +230,10 @@ export function CourseMap({ onBack }: { onBack: () => void }) {
             </Text>
           </View>
         </View>
-        <View style={styles.plateWrap}>
+        <View style={[styles.plateWrap, !shown && styles.hidden]}>
+          {/* a fresh plate once the map is in place: it starts at the right level instead of rolling to it */}
           <LevelPlate
+            key={shown ? 'placed' : 'placing'}
             index={plateIdx}
             title={plateLevel.title}
             color={levelColors[plateLevel.id]}
@@ -239,7 +249,7 @@ export function CourseMap({ onBack }: { onBack: () => void }) {
           onLayout={(e) => e.nativeEvent.layout.height > 0 && setViewH(e.nativeEvent.layout.height)}
           onScroll={(e: NativeSyntheticEvent<NativeScrollEvent>) => update(e.nativeEvent.contentOffset.y)}
           scrollEventThrottle={16}
-          contentContainerStyle={{ paddingTop: PAD_TOP, paddingHorizontal: 20, paddingBottom: dockH + 40 }}
+          contentContainerStyle={[{ paddingTop: PAD_TOP, paddingHorizontal: 20, paddingBottom: dockH + 40 }, !shown && styles.hidden]}
         >
           <View style={styles.list} onLayout={(e) => e.nativeEvent.layout.width > 0 && setWidth(e.nativeEvent.layout.width)}>
             <View style={styles.courseHead}>
@@ -249,6 +259,7 @@ export function CourseMap({ onBack }: { onBack: () => void }) {
               <Text style={[styles.courseSub, { color: p.muted }]}>Edexcel IAL Unit 1 (WPH11)</Text>
             </View>
             {width > 0 &&
+              loaded &&
               course.levels.map((level, li) => (
                 <LevelSection
                   key={level.id}
@@ -260,7 +271,6 @@ export function CourseMap({ onBack }: { onBack: () => void }) {
                   nextId={nextId}
                   arriving={arriving}
                   popIds={[popId, arrived]}
-                  firstOrder={(order += level.lessons.length) - level.lessons.length}
                   onPick={(id) => {
                     setPicked(id);
                     setTouched(true);
@@ -274,15 +284,21 @@ export function CourseMap({ onBack }: { onBack: () => void }) {
         {/* soft edge under the pinned plate */}
         <View pointerEvents="none" style={[styles.topFade, { backgroundColor: p.page }]} />
 
-        <Dock
-          r={pickedRef.r}
-          color={levelColors[pickedRef.level]}
-          status={status[pickedRef.r.id] ?? 'new'}
-          allDone={allDone}
-          bottomInset={0}
-          onHeight={(h) => h > 0 && setDockH(h)}
-          onStart={() => router.push(`/lesson/${pickedRef.r.id}`)}
-        />
+        {loaded && (
+          <Dock
+            r={pickedRef.r}
+            color={levelColors[pickedRef.level]}
+            status={status[pickedRef.r.id] ?? 'new'}
+            allDone={allDone}
+            bottomInset={0}
+            onHeight={(h) => h > 0 && setDockH(h)}
+            onStart={() => {
+              // the card stays on this lesson until the ball rolls on from it
+              setPicked(pickedRef.r.id);
+              router.push(`/lesson/${pickedRef.r.id}`);
+            }}
+          />
+        )}
         <BackButton side={away} bottom={dockH + 12} onPress={() => bringBack(true)} />
       </View>
       {momentumOpen && <MomentumSheet streak={streak} onClose={() => setMomentumOpen(false)} />}
@@ -290,7 +306,7 @@ export function CourseMap({ onBack }: { onBack: () => void }) {
   );
 }
 
-function LevelSection({ level, li, width, status, picked, nextId, arriving, popIds, firstOrder, onPick, onLayoutY }: {
+function LevelSection({ level, li, width, status, picked, nextId, arriving, popIds, onPick, onLayoutY }: {
   level: Level;
   li: number;
   width: number;
@@ -300,7 +316,6 @@ function LevelSection({ level, li, width, status, picked, nextId, arriving, popI
   /** The next lesson while the ball is still rolling to it: shown as open until it arrives. */
   arriving: string;
   popIds: string[];
-  firstOrder: number;
   onPick: (id: string) => void;
   onLayoutY: (y: number, h: number) => void;
 }) {
@@ -340,7 +355,6 @@ function LevelSection({ level, li, width, status, picked, nextId, arriving, popI
               cx={points[i].x}
               cy={points[i].y - rows.tops[i]}
               labelLeft={labelX(width)}
-              order={firstOrder + i}
               onPick={() => onPick(r.id)}
             />
           </View>
@@ -386,6 +400,7 @@ function BackButton({ side, bottom, onPress }: { side: 0 | 1 | -1; bottom: numbe
 }
 
 const styles = StyleSheet.create({
+  hidden: { opacity: 0 },
   column: { width: '100%', maxWidth: CONTENT_MAX + 40, alignSelf: 'center', paddingHorizontal: 20 },
   topBar: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingTop: 10, paddingBottom: 12 },
   courses: { flexDirection: 'row', alignItems: 'center', gap: 2, minHeight: 44, paddingRight: 8 },

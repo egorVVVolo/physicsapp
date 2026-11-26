@@ -5,6 +5,7 @@ import { useFocusEffect } from 'expo-router';
 import { lessons } from '@/content/lessons';
 import type { Run } from './logic';
 import { readyRefs, type Saved } from './progress';
+import { sameData } from './same';
 import { emptyProfile, loadFinishedLessons, loadProfile, loadProgress, loadReview, loadRuns, loadStreak, type Profile } from './storage';
 import type { Queue } from '@/practice/review';
 import { emptyStreak, type Streak } from './streak';
@@ -25,8 +26,11 @@ export type CourseState = {
 
 const empty: CourseState = { loaded: false, finished: new Set(), started: new Set(), saved: {}, lastRuns: {}, streak: emptyStreak, profile: emptyProfile, review: {} };
 
+/** What the last tab loaded: a tab opened for the first time draws it at once instead of popping in a moment later. */
+let last: CourseState = empty;
+
 export function useCourseState(): CourseState {
-  const [state, setState] = useState<CourseState>(empty);
+  const [state, setState] = useState<CourseState>(last);
   useFocusEffect(
     useCallback(() => {
       let alive = true;
@@ -43,7 +47,11 @@ export function useCourseState(): CourseState {
         );
         const finished = new Set([...ever, ...Object.entries(saved).filter(([, s]) => s.finished).map(([id]) => id)]);
         const started = new Set(Object.entries(saved).filter(([, s]) => !s.finished && s.index > 0).map(([id]) => id));
-        if (alive) setState({ loaded: true, finished, started, saved, lastRuns, streak, profile, review });
+        const next: CourseState = { loaded: true, finished, started, saved, lastRuns, streak, profile, review };
+        if (!alive) return;
+        last = next;
+        // nothing new: keep the old object, so coming back to a tab does not redraw it
+        setState((now) => (sameData(now, next) ? now : next));
       })();
       return () => {
         alive = false;

@@ -8,7 +8,6 @@ import Animated, {
   useAnimatedStyle,
   useReducedMotion,
   useSharedValue,
-  withDelay,
   withRepeat,
   withSequence,
   withTiming,
@@ -44,26 +43,19 @@ type Props = {
   cx: number;
   cy: number;
   labelLeft: number;
-  order: number; // position on the whole map, for the opening stagger
   /** The puck pops once when this turns true (its check just appeared, or it just opened). */
   pop?: boolean;
   onPick: () => void;
 };
 
-export function PuckRow({ r, levelId, color, state, picked, next, cx, cy, labelLeft, order, pop = false, onPick }: Props) {
+export function PuckRow({ r, levelId, color, state, picked, next, cx, cy, labelLeft, pop = false, onPick }: Props) {
   const { palette: p, level } = useTheme();
   const reduced = useReducedMotion();
   const press = useSharedValue(0);
-  const appear = useSharedValue(reduced ? 1 : 0);
   const pulse = useSharedValue(0);
   const bob = useSharedValue(0);
   const tileIn = useSharedValue(1); // the tile dropping in when this lesson becomes the next one
   const wasNext = useRef(next);
-
-  useEffect(() => {
-    if (reduced) return;
-    appear.set(withDelay(Math.min(order, 12) * 45, withTiming(1, { duration: 360, easing: Easing.out(Easing.cubic) })));
-  }, [appear, order, reduced]);
 
   useEffect(() => {
     if (!picked || reduced) {
@@ -86,20 +78,15 @@ export function PuckRow({ r, levelId, color, state, picked, next, cx, cy, labelL
     bob.set(withRepeat(withTiming(1, { duration: 1300, easing: Easing.inOut(Easing.sin) }), -1, true));
   }, [next, bob, reduced]);
 
-  const puckStyle = useAnimatedStyle(() => ({
-    opacity: appear.get(),
-    transform: [{ translateY: (1 - appear.get()) * 14 }, { scale: 0.7 + 0.3 * appear.get() }],
-  }));
-  const labelStyle = useAnimatedStyle(() => ({ opacity: appear.get() }));
   const haloStyle = useAnimatedStyle(() => ({
-    opacity: appear.get() * (1 - 0.35 * pulse.get()),
+    opacity: 1 - 0.35 * pulse.get(),
     transform: [{ scale: 1 + 0.05 * pulse.get() - 0.04 * press.get() }],
   }));
   const tileStyle = useAnimatedStyle(() => ({
-    opacity: appear.get() * tileIn.get(),
-    transform: [{ translateY: -7 * bob.get() + (1 - appear.get()) * 20 - (1 - tileIn.get()) * 14 + press.get() * 5 }],
+    opacity: tileIn.get(),
+    transform: [{ translateY: -7 * bob.get() - (1 - tileIn.get()) * 14 + press.get() * 5 }],
   }));
-  const tileShadow = useAnimatedStyle(() => ({ opacity: appear.get() * tileIn.get() * (0.22 - 0.1 * bob.get()), transform: [{ scale: 1 - 0.18 * bob.get() }] }));
+  const tileShadow = useAnimatedStyle(() => ({ opacity: tileIn.get() * (0.22 - 0.1 * bob.get()), transform: [{ scale: 1 - 0.18 * bob.get() }] }));
 
   const top = cy - FACE_Y;
   const left = cx - PUCK / 2;
@@ -133,20 +120,20 @@ export function PuckRow({ r, levelId, color, state, picked, next, cx, cy, labelL
         }}
         style={[styles.abs, { left, top: top - 8, right: 0, height: PUCK_H + 16 }]}
       >
-        <Animated.View style={[{ marginTop: 8 }, puckStyle]}>
+        <View style={{ marginTop: 8 }}>
           <Pop trigger={pop}>
             <Puck size={PUCK} state={state} color={color} press={press} />
           </Pop>
-        </Animated.View>
+        </View>
       </Pressable>
 
-      <Animated.View pointerEvents="none" style={[styles.abs, styles.label, { left: labelLeft, top, height: PUCK_H * 0.82 }, labelStyle]}>
+      <View pointerEvents="none" style={[styles.abs, styles.label, { left: labelLeft, top, height: PUCK_H * 0.82 }]}>
         <Text style={[styles.title, { color: titleColor }, next && styles.titleNext]} numberOfLines={2} maxFontSizeMultiplier={1.3}>
           {r.title}
         </Text>
         {state === 'soon' && <Text style={[styles.soon, { color: p.faint }]}>Soon</Text>}
         {next && <Text style={[styles.soon, { color: level(color).text }]}>Up next</Text>}
-      </Animated.View>
+      </View>
 
       {next && (
         <>
