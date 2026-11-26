@@ -161,7 +161,7 @@ function Lane({ fig, v, scroll, lane, clock, stage, compact }: LaneProps) {
           )}
           <Circle cx={cg[0]} cy={cg[1]} r={2.8} fill={p.force} />
           <Circle cx={rear[0]} cy={GY - 1.5} r={2.8} fill={p.force} />
-          <ForceText x={cg[0] - dLen - 6} y={cg[1] + 3.5} text={`D = ${fixed(D, 1)} N`} anchor="end" />
+          <ForceText x={cg[0] - Math.max(dLen + 6, 22 * S)} y={cg[1] + 3.5} text={`D = ${fixed(D, 1)} N`} anchor="end" />
           <ForceText x={rear[0] + Math.max(dLen, 18) / 2} y={GY + (compact ? 18 : 20)} text={`F = ${fixed(D, 1)} N`} />
           {pair !== undefined && (
             <Group>

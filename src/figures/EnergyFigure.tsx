@@ -223,7 +223,7 @@ export function HeightFigure({ fig, live, clock = STILL }: { fig: HeightFig; liv
           {h > 0.3 && (
             <Group>
               <Line x1={RULER_X + 6} y1={carY} x2={HOOK_X - 28} y2={carY} stroke={p.lineStrong} strokeWidth={stroke.thin} strokeDasharray="3 3" />
-              <Tag x={60} y={carY - 5} text={`h = ${fixed(h, 1)} m`} />
+              <Tag x={50} y={carY - 5} text={`h = ${fixed(h, 1)} m`} />
             </Group>
           )}
           {/* the energy bars, one scale */}

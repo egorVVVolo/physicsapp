@@ -192,7 +192,9 @@ function TraceGraph({ fig, F }: { fig: WireFig; F: number }) {
   for (let v = 0.5; v <= eMax + 0.01; v += 0.5) grid.push(`M${gx(v)},${box.y1} V${box.y2}`);
   return (
     <Group>
-      <MonoLabel x={PR} y={18} text={`σ ${sig(s)} MPa · ε ${fixed(e, 2)} × 10⁻³`} color={p.ink} size={8.5} anchor="end" />
+      {/* two lines, so the readout never reaches back to the beam */}
+      <MonoLabel x={PR} y={10} text={`σ ${sig(s)} MPa`} color={p.ink} size={8.5} anchor="end" />
+      <MonoLabel x={PR} y={22} text={`ε ${fixed(e, 2)} × 10⁻³`} color={p.ink} size={8.5} anchor="end" />
       <Path d={grid.join(' ')} stroke={p.paperLine} strokeWidth={stroke.hair} />
       <Path d={`M${box.x1},${box.y1 - 6} V${box.y2} H${box.x2 + 4}`} stroke={p.draw} strokeWidth={stroke.thin} fill="none" />
       {[0, 100, 200, 300, 400].map((v) => (

@@ -181,10 +181,12 @@ function TrackRuler({ lo, hi, X, plus, numbers, clock }: { lo: number; hi: numbe
 /** A street lamp standing on the ground at (x, y): a pole, an arm and a lamp head. */
 function LampPost({ x, y, clock }: { x: number; y: number; clock: DrawClock }) {
   const { palette: p, material: m } = useTheme();
-  const top = y - 60;
+  // the lamp hangs clear above a runner's head, so it never looks like a hat
+  const tall = HEAD + 14;
+  const top = y - tall;
   return (
     <Group>
-      <DrawnPath clock={clock} len={60 + 14} from={PEN.post[0]} to={PEN.post[1]} d={`M${x},${y} V${top} H${x + 14}`} stroke={p.draw} strokeWidth={stroke.force} strokeLinejoin="round" fill="none" />
+      <DrawnPath clock={clock} len={tall + 14} from={PEN.post[0]} to={PEN.post[1]} d={`M${x},${y} V${top} H${x + 14}`} stroke={p.draw} strokeWidth={stroke.force} strokeLinejoin="round" fill="none" />
       <DrawnFade clock={clock} from={FILLS[0]} to={FILLS[1]}>
         <Rect x={x - 5} y={y - 4} width={10} height={4} fill={p.draw} />
         <Path d={`M${x + 8},${top + 1} H${x + 22} L${x + 19},${top + 7} H${x + 11} Z`} fill={m.metalSide} stroke={p.draw} strokeWidth={stroke.thin} strokeLinejoin="round" />
