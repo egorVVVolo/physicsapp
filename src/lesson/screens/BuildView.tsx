@@ -29,6 +29,8 @@ type Props = {
   /** Every wrong Check: the wrong equation, or each wrong chip. */
   onWrong: (id: string) => void;
   onNext: () => void;
+  /** The first build of the story or of the Skill check: only it explains how the boxes are filled. */
+  explain?: boolean;
 };
 
 type Status = 'answering' | 'retry' | 'right' | 'revealed';
@@ -38,7 +40,7 @@ export function resultText(r: BuildScreen['result']): string {
   return `${sig(r.value, r.sf ?? 3)} ${r.unit}`;
 }
 
-export function BuildView({ screen, figN, phase, onOutcome, onWrong, onNext }: Props) {
+export function BuildView({ screen, figN, phase, onOutcome, onWrong, onNext, explain = false }: Props) {
   const playRight = useRightSound(screen.id);
   const { palette: p } = useTheme();
   const reduced = useReducedMotionPref();
@@ -181,6 +183,8 @@ export function BuildView({ screen, figN, phase, onOutcome, onWrong, onNext }: P
       fig={screen.fig && <Sheet fig={locked ? revealed(screen.fig) : screen.fig} n={figN} />}
       footer={footer}
       sheet={verdict ? <VerdictSheet verdict={verdict} button={button} /> : null}
+      // the values must be above the button: on arrival, and again once the first one is placed
+      endInView={stage === 'fill' && !verdict ? (used.size > 0 ? 2 : 1) : undefined}
     >
       <Prompt>{screen.prompt}</Prompt>
       {stage === 'choose' && screen.choose ? (
@@ -202,7 +206,7 @@ export function BuildView({ screen, figN, phase, onOutcome, onWrong, onNext }: P
           </OptionList>
         </View>
       ) : null}
-      {stage === 'fill' ? <Instruction>Tap a value to put it in the next empty box. Tap a box to empty it.</Instruction> : null}
+      {stage === 'fill' && explain ? <Instruction>Tap a value to put it in the next empty box. Tap a box to empty it.</Instruction> : null}
       {stage === 'fill' ? (
         <EquationBoard build={screen} filled={filled} boxState={boxState} disabled={status !== 'answering'} onTapBox={tapBox} count={locked ? count : null} />
       ) : null}
@@ -248,6 +252,7 @@ export function EquationBoard({ build, filled, boxState, disabled, onTapBox, cou
           const box = item.box;
           return (
             <View key={i} style={styles.glue}>
+              {item.lead !== undefined && <Text style={[styles.eqText, { color: p.ink }]}>{item.lead}</Text>}
               {item.text !== undefined && <Text style={[styles.eqText, { color: p.ink }]}>{item.text}</Text>}
               {box !== undefined && <Box name={box} label={label(filled[box])} state={boxState(box)} disabled={disabled} onPress={() => onTapBox(box)} />}
               {item.after !== undefined && <Text style={[styles.eqText, { color: p.ink }]}>{item.after}</Text>}
@@ -278,8 +283,22 @@ export function ChipRow({ chips, used, dim, disabled, onTap }: { chips: BuildScr
 /**
  * What wraps as one unit on the equation's line: a word of text, or a box with what is written right against it: a bracket
  * or a function name before it ("cos", "√(", "(") and a power or bracket after it ("²)"). Those never part at a line end.
+ * An operator goes to the next line together with what follows it, so no line ends on a hanging "÷".
  */
-type LineItem = { text?: string; box?: string; after?: string };
+type LineItem = { lead?: string; text?: string; box?: string; after?: string };
+const OPERATOR = /^[=×÷+−·]$/;
+function leadOperators(items: LineItem[]): LineItem[] {
+  const out: LineItem[] = [];
+  let lead: string[] = [];
+  items.forEach((item, i) => {
+    if (item.box === undefined && item.text !== undefined && OPERATOR.test(item.text) && i < items.length - 1) lead.push(item.text);
+    else {
+      out.push(lead.length ? { ...item, lead: lead.join(' ') } : item);
+      lead = [];
+    }
+  });
+  return out;
+}
 function lineItems(pieces: ReturnType<typeof parseEquation>): LineItem[] {
   const items: LineItem[] = [];
   let open = false; // the last item is a word with nothing after it, written right against the box that comes next
@@ -302,7 +321,7 @@ function lineItems(pieces: ReturnType<typeof parseEquation>): LineItem[] {
     else items.push({ box: piece.box });
     open = false;
   }
-  return items;
+  return leadOperators(items);
 }
 
 export type BoxState = 'empty' | 'active' | 'filled' | 'wrong' | 'right' | 'shown';

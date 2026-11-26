@@ -134,7 +134,8 @@ export function LessonPlayer({ lesson, state, onChange, onClose }: Props) {
     }
     if (s.kind === 'build' || s.kind === 'order' || s.kind === 'spotError' || s.kind === 'sort' || s.kind === 'estimate' || s.kind === 'graphPick') {
       const graded = { figN: n, phase: item.phase, onOutcome: (o: Outcome) => change((st) => recordOutcome(st, s.id, o)), onWrong: (o: string) => change((st) => recordWrong(st, s.id, o)), onNext: go };
-      if (s.kind === 'build') body = <BuildView screen={s} {...graded} />;
+      const firstBuild = [lesson.story, lesson.skillCheck].some((part) => part.find((x) => x.kind === 'build')?.id === s.id);
+      if (s.kind === 'build') body = <BuildView screen={s} {...graded} explain={firstBuild} />;
       if (s.kind === 'order') body = <OrderView screen={s} {...graded} />;
       if (s.kind === 'spotError') body = <SpotErrorView screen={s} {...graded} />;
       if (s.kind === 'sort') body = <SortView screen={s} {...graded} />;

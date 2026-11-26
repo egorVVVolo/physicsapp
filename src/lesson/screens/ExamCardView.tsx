@@ -206,7 +206,7 @@ export function ExamCardView({ screen, figN, onPart, onWrong, onNext }: Props) {
     );
   }
 
-  const instruction = part.kind === 'choice' ? 'Tap an answer, then Check. One try.' : part.kind === 'build' ? 'Tap a value to put it in the next empty box. One try.' : 'Tap the statements in order. One try.';
+  const instruction = part.kind === 'choice' ? 'Tap an answer, then Check. One try.' : part.kind === 'build' ? 'One try.' : 'Tap the statements in order. One try.';
   const total = screen.parts.reduce((n, x) => n + x.marks, 0);
 
   return (

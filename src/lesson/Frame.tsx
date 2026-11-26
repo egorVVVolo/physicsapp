@@ -27,9 +27,11 @@ type Props = {
   figStill?: boolean;
   /** Each time this changes (a paragraph is added), the content scrolls to its end so the new part is in view. */
   follow?: number;
+  /** Set, and each time it changes: if the end of the content is hidden below the footer, scroll it into view. */
+  endInView?: number;
 };
 
-export function Frame({ children, footer, sheet, center, fig, figFirst, figStill, follow }: Props) {
+export function Frame({ children, footer, sheet, center, fig, figFirst, figStill, follow, endInView }: Props) {
   const reduced = useReducedMotionPref();
   const memory = useContext(LessonFigs);
   const shared = useContext(SharedSheet);
@@ -57,6 +59,13 @@ export function Frame({ children, footer, sheet, center, fig, figFirst, figStill
     const id = setTimeout(() => scroll.current?.scrollToEnd({ animated: !reduced }), 120);
     return () => clearTimeout(id);
   }, [follow, followed, reduced]);
+
+  useEffect(() => {
+    if (endInView === undefined) return;
+    // after the blocks have risen into place, so the learner sees the top of the screen first
+    const id = setTimeout(() => scroll.current?.scrollToEnd({ animated: !reduced }), endInView > 1 ? 60 : 700);
+    return () => clearTimeout(id);
+  }, [endInView, reduced]);
 
   useEffect(() => {
     if (cover <= 0) return;
