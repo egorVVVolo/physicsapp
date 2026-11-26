@@ -94,7 +94,7 @@
 | S2 | Компактный лист без нечитаемых подписей | ✅ |
 | S3 | Revise: список вместо сетки 2×2 | ✅ |
 | F1 | Подписи не лежат на телах; фонарь на дорожке | ✅ |
-| L1 | Пилот: «Which way is positive?» по чек-листу (стоп: владелец) | ✅ (ждёт владельца) |
+| L1 | Пилот: «Which way is positive?» по чек-листу (стоп: владелец) | ✅ (одобрено 26 нояб.) |
 | L2 | «Reading motion graphs» и «Picking the equation» | |
 | L3 | «Up, stop, down» и «Splitting a vector» | |
 | L4 | «Two motions at once» и «Drawing the forces» | |

@@ -143,7 +143,7 @@ export function TrackFigure({ fig, live, playing, clock = STILL }: Props) {
         const vAt: [number, number] = groundOf(fig, r.id) === Math.min(...fig.runners.map((q) => groundOf(fig, q.id))) ? [X(s) + dx * 0.5, arrowY - 11] : [X(s) + dx + Math.sign(v) * ((vText.length * 5.4 + 8) / 2 + 4), arrowY + 3];
         return (
           <Group key={r.id}>
-            <Person x={X(s)} y={y} scale={SCALE} cg={false} who={r.id} clock={clock} pen={PEN.runner} />
+            <Person x={X(s)} y={y} scale={SCALE} cg={false} who={r.id} halo clock={clock} pen={PEN.runner} />
             {stage(clock, PEN.marks, <ForceLetter x={X(s) + 14} y={y - 40} text={r.id} color={p.ink} size={13} anchor="start" />)}
             {moving && Math.abs(v) > 1e-9 && stage(clock, PEN.marks, <HollowArrow from={[X(s), arrowY]} to={[X(s) + dx, arrowY]} color={p.draw} weight="track" />)}
             {moving && fig.values && stage(clock, PEN.marks, <Tag x={vAt[0]} y={vAt[1]} text={vText} />)}
