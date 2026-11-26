@@ -23,7 +23,7 @@ const MARKS: readonly [number, number] = [0.8, 0.95];
 const VT = { x: 52, top: 26, w: 260, h: 160 }; // plot area; v = 0 runs through the middle
 
 export function ThrowVtFigure({ fig, clock = STILL }: { fig: ThrowVtFig; clock?: DrawClock }) {
-  const { palette: p } = useTheme();
+  const { palette: p, soft } = useTheme();
   const m = { s0: 0, u: fig.u, a: -G };
   const vMax = fig.u * 1.25;
   const X = (t: number) => VT.x + (t / fig.tEnd) * VT.w * 0.92;
@@ -58,14 +58,14 @@ export function ThrowVtFigure({ fig, clock = STILL }: { fig: ThrowVtFig; clock?:
         <MonoLabel x={VT.x + 6} y={VT.top - 4} text="v / m s⁻¹" color={p.label} anchor="start" />
       </DrawnFade>
       {/* the flight: one straight line, gradient −g */}
-      <DrawnPath clock={clock} len={lineLen} from={LINE[0]} to={LINE[1]} d={`M${X(0)},${Y(fig.u)} L${x2},${Y(vEnd)}`} stroke={p.ink} strokeWidth={stroke.force} strokeLinecap="round" />
+      <DrawnPath clock={clock} len={lineLen} from={LINE[0]} to={LINE[1]} d={`M${X(0)},${Y(fig.u)} L${x2},${Y(vEnd)}`} stroke={soft.A.edge} strokeWidth={stroke.force} strokeLinecap="round" />
       {/* the top: v = 0 for an instant, the line goes straight through */}
       <DrawnFade clock={clock} from={MARKS[0]} to={MARKS[1]}>
-        <Circle cx={X(tTop)} cy={Y(0)} r={4.5} fill={p.page} stroke={p.ink} strokeWidth={stroke.body} />
-        <MonoLabel x={X(tTop) + 8} y={Y(0) - 10} text="TOP: v = 0" color={p.ink} size={9.5} anchor="start" />
+        <Circle cx={X(tTop)} cy={Y(0)} r={4.5} fill={p.paper} stroke={soft.A.edge} strokeWidth={stroke.body} />
+        <MonoLabel x={X(tTop) + 8} y={Y(0) - 10} text="top: v = 0" color={p.ink} size={9.5} anchor="start" />
         {/* between the line and the axis: above it the ball moves up, below it the ball moves down */}
-        <MonoLabel x={X(fig.tEnd * 0.05)} y={Y(0) - 8} text="MOVING UP" color={p.label} size={9} anchor="start" />
-        <MonoLabel x={x2 - 14} y={Y(vEnd) + 14} text="MOVING DOWN" color={p.label} size={9} anchor="end" />
+        <MonoLabel x={X(fig.tEnd * 0.05)} y={Y(0) - 8} text="moving up" color={p.label} size={9} anchor="start" />
+        <MonoLabel x={x2 - 14} y={Y(vEnd) + 14} text="moving down" color={p.label} size={9} anchor="end" />
       </DrawnFade>
     </Group>
   );
@@ -85,7 +85,7 @@ const HEIGHTS = [0.2, 0.4, 0.6, 0.8, 1.0, 1.2];
 const SCATTER = [0.002, -0.003, 0.003, -0.002, 0.002, -0.002];
 
 export function FallGraphFigure({ fig, clock = STILL }: { fig: FallGraphFig; clock?: DrawClock }) {
-  const { palette: p, material: m } = useTheme();
+  const { palette: p, soft } = useTheme();
   const X = (t2: number) => FG.x + (t2 / T2_MAX) * FG.w;
   const Y = (h: number) => FG.top + FG.h - (h / H_MAX) * FG.h;
   const t2End = Math.min(T2_MAX, (H_MAX * 1.04) / fig.gradient);
@@ -122,7 +122,7 @@ export function FallGraphFigure({ fig, clock = STILL }: { fig: FallGraphFig; clo
         })}
       </DrawnFade>
       {/* best-fit line through the origin */}
-      <DrawnPath clock={clock} len={lineLen} from={LINE[0]} to={LINE[1]} d={`M${X(0)},${Y(0)} L${X(t2End)},${Y(fig.gradient * t2End)}`} stroke={p.ink} strokeWidth={stroke.force} strokeLinecap="round" />
+      <DrawnPath clock={clock} len={lineLen} from={LINE[0]} to={LINE[1]} d={`M${X(0)},${Y(0)} L${X(t2End)},${Y(fig.gradient * t2End)}`} stroke={soft.A.edge} strokeWidth={stroke.force} strokeLinecap="round" />
       <DrawnFade clock={clock} from={MARKS[0]} to={MARKS[1]}>
         <Path d={tri} fill="none" stroke={p.label} strokeWidth={stroke.thin} strokeDasharray="4 3" />
         <MonoLabel x={(X(a) + X(b)) / 2} y={Y(fig.gradient * a) + 14} text="Δt²" color={p.label} size={9.5} />

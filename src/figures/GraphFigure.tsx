@@ -90,7 +90,9 @@ export function graphTargets(fig: GraphFig): TapTarget[] {
 type Props = { fig: GraphFig; live?: number; tap?: TapProps; clock?: DrawClock };
 
 export function GraphFigure({ fig, live, tap, clock = STILL }: Props) {
-  const { palette: p, material: m } = useTheme();
+  const { palette: p, soft } = useTheme();
+  // each line has its body's tone; the areas under it are filled with the same tone
+  const toneOf = (id: string) => (fig.lines.findIndex((l) => l.id === id) === 1 ? soft.B : soft.A);
   const { yMin, X, Y, value, lineOf, untilOf } = frame(fig);
   const fills = (children: ReactNode) => (
     <DrawnFade clock={clock} from={FILLS[0]} to={FILLS[1]}>
@@ -105,6 +107,12 @@ export function GraphFigure({ fig, live, tap, clock = STILL }: Props) {
   const tLabelY = yMin < 0 ? PLOT.bottom + 15 : axisY + 17;
   const cursor = fig.cursor ? Math.min(live ?? 0, fig.tMax) : null;
 
+  /** A second area under the same line is a little paler, so the two read apart. */
+  const fillOf = (i: number) => {
+    const line = fig.areas?.[i].line;
+    return (fig.areas?.slice(0, i).filter((a) => a.line === line).length ?? 0) % 2 === 0 ? 0.65 : 0.35;
+  };
+
   /** The area between a line and the time axis from → to, as a closed polygon. */
   const under = (trip: Trip, from: number, to: number): Pt[] => [...samples(fig, trip, from, to), { x: X(to), y: axisY }, { x: X(from), y: axisY }];
 
@@ -113,7 +121,9 @@ export function GraphFigure({ fig, live, tap, clock = STILL }: Props) {
     const pts = samples(fig, line.trip, 0, untilOf(line));
     const end = pts[pts.length - 1];
     const edge = end.x + 5 > GRAPH_VB.w - 12;
-    return { x: Math.min(end.x + 5, GRAPH_VB.w - 12), y: end.y + (edge ? -8 : 5) };
+    // a line ending on the time axis keeps its letter above the axis numbers
+    const onAxis = Math.abs(end.y - Y(0)) < 1;
+    return { x: Math.min(end.x + 5, GRAPH_VB.w - 12), y: end.y + (edge || onAxis ? -8 : 5) };
   });
   if (letters.length === 2 && Math.abs(letters[0].x - letters[1].x) < 24) {
     const gap = Math.abs(letters[0].y - letters[1].y);
@@ -152,8 +162,8 @@ export function GraphFigure({ fig, live, tap, clock = STILL }: Props) {
           if (size < 0) for (let x = X(area.from) + 4; x < X(area.to); x += 6) hatch.push(`M${x},${axisY} V${Y(value(trip, ((x - PLOT.x) / PLOT.w) * fig.tMax))}`);
           return (
             <Group key={i}>
-              <Path d={pathOf(poly) + ' Z'} fill={i % 2 === 0 ? p.drawFill : p.drawFillDark} />
-              {hatch.length > 0 && <Path d={hatch.join(' ')} stroke={p.draw} strokeWidth={stroke.thin} opacity={0.5} fill="none" />}
+              <Path d={pathOf(poly) + ' Z'} fill={toneOf(area.line).fill} fillOpacity={fillOf(i)} />
+              {hatch.length > 0 && <Path d={hatch.join(' ')} stroke={toneOf(area.line).edge} strokeWidth={stroke.thin} opacity={0.5} fill="none" />}
             </Group>
           );
         }),
@@ -163,13 +173,13 @@ export function GraphFigure({ fig, live, tap, clock = STILL }: Props) {
         fig.between?.map((reg, i) => {
           const a = samples(fig, fig.lines[0].trip, reg.from, reg.to);
           const b = samples(fig, fig.lines[1].trip, reg.from, reg.to).reverse();
-          return <Path key={i} d={pathOf([...a, ...b]) + ' Z'} fill={i % 2 === 0 ? p.drawFillDark : p.drawFill} />;
+          return <Path key={i} d={pathOf([...a, ...b]) + ' Z'} fill={(i % 2 === 0 ? soft.A : soft.B).fill} fillOpacity={0.55} />;
         }),
       )}
       {/* explore: the area under each line up to the cursor */}
       {cursor !== null &&
         cursor > 0 &&
-        fig.lines.map((line, i) => <Path key={line.id} d={pathOf(under(line.trip, 0, Math.min(cursor, untilOf(line)))) + ' Z'} fill={i % 2 === 0 ? p.drawFill : p.drawFillDark} />)}
+        fig.lines.map((line) => <Path key={line.id} d={pathOf(under(line.trip, 0, Math.min(cursor, untilOf(line)))) + ' Z'} fill={toneOf(line.id).fill} fillOpacity={0.55} />)}
 
       {/* axes */}
       <Axes
@@ -181,7 +191,7 @@ export function GraphFigure({ fig, live, tap, clock = STILL }: Props) {
         xTicks={tTicks.map((t) => ({ x: X(t), label: String(t) }))}
         xLabelY={tLabelY}
         yTicks={yTicks.map((y) => ({ y: Y(y), label: fixed(y, 0) }))}
-        xTitle={{ x: PLOT.x + PLOT.w + 14, y: PLOT.bottom + 30, text: 't / s', anchor: 'end' }}
+        xTitle={{ x: PLOT.x + PLOT.w + 14, y: PLOT.bottom + 34, text: 't / s', anchor: 'end' }}
         yTitle={{ x: PLOT.x + 7, y: PLOT.top - 9, text: TITLE[fig.y], anchor: 'start' }}
         clock={clock}
         pen={AXES}
@@ -192,7 +202,7 @@ export function GraphFigure({ fig, live, tap, clock = STILL }: Props) {
         const pts = samples(fig, line.trip, 0, untilOf(line));
         return (
           <Group key={line.id || i}>
-            <DrawnPath clock={clock} len={lengthOf(pts)} from={LINES[0] + i * 0.1} to={LINES[1] + i * 0.1} d={pathOf(pts)} stroke={p.ink} strokeWidth={stroke.force} strokeLinecap="round" strokeLinejoin="round" fill="none" />
+            <DrawnPath clock={clock} len={lengthOf(pts)} from={LINES[0] + i * 0.1} to={LINES[1] + i * 0.1} d={pathOf(pts)} stroke={toneOf(line.id).edge} strokeWidth={stroke.force} strokeLinecap="round" strokeLinejoin="round" fill="none" />
             {line.id !== '' && stage(clock, MARKS, <ForceLetter x={letters[i].x} y={letters[i].y} text={line.id} color={p.ink} size={15} anchor="start" />)}
           </Group>
         );
@@ -211,7 +221,7 @@ export function GraphFigure({ fig, live, tap, clock = STILL }: Props) {
             return (
               <Group key={i}>
                 {/* on a hatched area the number stands on a clear patch */}
-                {hatched && <Rect x={c.x - text.length * 2.9 - 3} y={c.y - 6} width={text.length * 5.8 + 6} height={13} rx={2} fill={i % 2 === 0 ? p.drawFill : p.drawFillDark} />}
+                {hatched && <Rect x={c.x - text.length * 2.9 - 3} y={c.y - 6} width={text.length * 5.8 + 6} height={13} rx={2} fill={p.paper} />}
                 <MonoLabel x={c.x} y={c.y + 3.5} text={text} color={p.ink} size={area.value === 'shown' ? 9.5 : 13} />
               </Group>
             );
@@ -235,8 +245,8 @@ export function GraphFigure({ fig, live, tap, clock = STILL }: Props) {
           <Line x1={X(cursor)} y1={PLOT.top - 6} x2={X(cursor)} y2={PLOT.bottom} stroke={p.ink} strokeWidth={stroke.thin} strokeDasharray="4 3" />
           {fig.lines.map((line, i) => (
             <Group key={line.id}>
-              <Rect x={PLOT.x + 12} y={PLOT.top + 2 + i * 16} width={9} height={9} rx={2} fill={i % 2 === 0 ? p.drawFill : p.drawFillDark} stroke={p.draw} strokeWidth={stroke.thin} />
-              <MonoLabel x={PLOT.x + 27} y={PLOT.top + 10 + i * 16} text={`${line.id}: ${fixed(tripPosition(Math.min(cursor, untilOf(line)), line.trip), 1)} m`} color={p.ink} size={10} anchor="start" />
+              <Rect x={PLOT.x + 12} y={PLOT.top + 2 + i * 18} width={10} height={10} rx={3} fill={toneOf(line.id).fill} stroke={toneOf(line.id).edge} strokeWidth={stroke.body} />
+              <MonoLabel x={PLOT.x + 27} y={PLOT.top + 11 + i * 18} text={`${line.id}: ${fixed(tripPosition(Math.min(cursor, untilOf(line)), line.trip), 1)} m`} color={p.ink} size={10} anchor="start" />
             </Group>
           ))}
         </Group>
@@ -247,7 +257,7 @@ export function GraphFigure({ fig, live, tap, clock = STILL }: Props) {
 
 /** A rise-over-run triangle under a line, with both sides labelled. */
 function Gradient({ fig }: { fig: GraphFig }) {
-  const { palette: p, material: m } = useTheme();
+  const { palette: p } = useTheme();
   const { X, Y, value, lineOf } = frame(fig);
   if (!fig.gradient) return null;
   const { from, to } = fig.gradient;
@@ -266,7 +276,7 @@ function Gradient({ fig }: { fig: GraphFig }) {
 
 /** The tangent to a line at one time: a straight line with the gradient the curve has there. */
 function Tangent({ fig }: { fig: GraphFig }) {
-  const { palette: p, material: m } = useTheme();
+  const { palette: p } = useTheme();
   const { yMin, X, Y, value, lineOf } = frame(fig);
   if (!fig.tangent) return null;
   const { at } = fig.tangent;
@@ -281,7 +291,7 @@ function Tangent({ fig }: { fig: GraphFig }) {
     <Group>
       <Line x1={X(t1)} y1={Y(yAt(t1))} x2={X(t2)} y2={Y(yAt(t2))} stroke={p.label} strokeWidth={stroke.body} />
       <Circle cx={X(at)} cy={Y(y0)} r={4} fill={p.page} stroke={p.ink} strokeWidth={stroke.body} />
-      <MonoLabel x={X(t2) + 5} y={Y(yAt(t2)) + 3} text="TANGENT" color={p.label} size={8.5} anchor="start" />
+      <MonoLabel x={X(t2) + 5} y={Y(yAt(t2)) + 3} text="tangent" color={p.label} size={8.5} anchor="start" />
     </Group>
   );
 }

@@ -102,7 +102,7 @@ const STYLE_2 = new Set<Fig['kind']>([
 ]);
 
 /** Figures redrawn in style 3 (a white gridded sheet, soft bodies), stage by stage: docs/V4_FIGURES_TASKS.md. */
-const CLEAN = new Set<Fig['kind']>(['lift', 'track', 'scales', 'pairs', 'liftPair', 'vt']);
+const CLEAN = new Set<Fig['kind']>(['lift', 'track', 'scales', 'pairs', 'liftPair', 'vt', 'graph', 'equations', 'brakeVt', 'throwVt', 'fallGraph', 'plot']);
 const GRID = 34; // viewBox units between grid lines
 
 /** The faint grid under a style-3 figure. */

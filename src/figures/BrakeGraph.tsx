@@ -12,7 +12,7 @@ import { stroke } from '@/theme/tokens';
 import { STILL, type DrawClock } from './anim';
 import { DrawnFade, DrawnPath, FILLS, ForceLetter, MonoLabel } from './draw';
 
-export const BRAKE_VT_VB = { w: 340, h: 220 };
+export const BRAKE_VT_VB = { w: 340, h: 228 };
 
 const PLOT = { x: 52, y: 186, w: 244, h: 148 }; // origin and the size of the largest triangle
 const AXES: readonly [number, number] = [0, 0.36];
@@ -20,7 +20,9 @@ const LINES: readonly [number, number] = [0.36, 0.62];
 const MARKS: readonly [number, number] = [0.8, 0.95];
 
 export function BrakeVtFigure({ fig, clock = STILL }: { fig: BrakeVtFig; clock?: DrawClock }) {
-  const { palette: p, material: m } = useTheme();
+  const { palette: p, soft } = useTheme();
+  // each car keeps the tone of its place in the lesson: the first A, the second B
+  const toneOf = (id: string) => (fig.cars.findIndex((c) => c.id === id) === 1 ? soft.B : soft.A);
   const cars = [...fig.cars].sort((m, n) => m.u - n.u); // slowest first
   const fast = cars[cars.length - 1];
   const slow = cars[0];
@@ -39,8 +41,8 @@ export function BrakeVtFigure({ fig, clock = STILL }: { fig: BrakeVtFig; clock?:
     <Group>
       {/* the areas: the distance each car travels */}
       <DrawnFade clock={clock} from={FILLS[0]} to={FILLS[1]}>
-        <Path d={tri(0, 0, tMax, 0, 0, fast.u)} fill={p.drawFill} />
-        {cars.length > 1 && <Path d={tri(0, 0, tS, 0, 0, slow.u)} fill={p.drawFillDark} />}
+        <Path d={tri(0, 0, tMax, 0, 0, fast.u)} fill={toneOf(fast.id).fill} fillOpacity={0.5} />
+        {cars.length > 1 && <Path d={tri(0, 0, tS, 0, 0, slow.u)} fill={toneOf(slow.id).fill} />}
       </DrawnFade>
 
       {/* axes: v up the left, t along the bottom */}
@@ -60,7 +62,7 @@ export function BrakeVtFigure({ fig, clock = STILL }: { fig: BrakeVtFig; clock?:
           </Group>
         ))}
         <MonoLabel x={PLOT.x - 8} y={PLOT.y + 3.5} text="0" color={p.label} anchor="end" />
-        <MonoLabel x={PLOT.x + PLOT.w + 22} y={PLOT.y + 30} text="t / s" color={p.label} anchor="end" />
+        <MonoLabel x={PLOT.x + PLOT.w + 22} y={PLOT.y + 33} text="t / s" color={p.label} anchor="end" />
         <MonoLabel x={PLOT.x + 8} y={PLOT.y - PLOT.h - 10} text="v / m s⁻¹" color={p.label} anchor="start" />
       </DrawnFade>
 
@@ -75,7 +77,7 @@ export function BrakeVtFigure({ fig, clock = STILL }: { fig: BrakeVtFig; clock?:
             from={LINES[0] + i * 0.12}
             to={LINES[1] + i * 0.12}
             d={`M${X(0)},${Y(c.u)} L${X(tOf(c.u))},${Y(0)}`}
-            stroke={p.ink}
+            stroke={toneOf(c.id).edge}
             strokeWidth={stroke.force}
             strokeLinecap="round"
             fill="none"
@@ -99,7 +101,7 @@ export function BrakeVtFigure({ fig, clock = STILL }: { fig: BrakeVtFig; clock?:
         )}
         {cars.map((c) => (
           <Group key={c.id}>
-            <Circle cx={X(0)} cy={Y(c.u)} r={3.6} fill={p.ink} />
+            <Circle cx={X(0)} cy={Y(c.u)} r={4} fill={toneOf(c.id).edge} />
             {/* the car's letter, just above its line, a little way along it */}
             <ForceLetter x={X(tOf(c.u) * 0.3) + 7} y={Y(c.u * 0.7) - 5} text={c.id} color={p.ink} size={15} anchor="start" />
           </Group>

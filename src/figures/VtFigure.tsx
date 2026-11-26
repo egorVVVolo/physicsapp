@@ -35,7 +35,7 @@ export function vtTargets(fig: VtFig): TapTarget[] {
 }
 
 export function VtFigure({ fig, tap }: { fig: VtFig; tap?: TapProps }) {
-  const { palette: p, material: m } = useTheme();
+  const { palette: p, soft } = useTheme();
   const { total, pts, X, Y } = layout(fig);
   const ticks: number[] = [];
   for (let t = 0; t <= total; t += 2) ticks.push(t);
@@ -64,7 +64,7 @@ export function VtFigure({ fig, tap }: { fig: VtFig; tap?: TapProps }) {
         xTitle={{ x: O.x + PLOT_W + 4, y: O.y + 32, text: 't / s', anchor: 'end' }}
         yTitle={{ x: O.x - 6, y: O.y - PLOT_H - 30, text: 'v / m s⁻¹', anchor: 'start' }}
       />
-      <Polyline points={pts.map((q) => `${X(q.t)},${Y(q.v)}`).join(' ')} fill="none" stroke={p.ink} strokeWidth={stroke.force} strokeLinejoin="round" />
+      <Polyline points={pts.map((q) => `${X(q.t)},${Y(q.v)}`).join(' ')} fill="none" stroke={soft.A.edge} strokeWidth={stroke.force} strokeLinejoin="round" />
     </Group>
   );
 }

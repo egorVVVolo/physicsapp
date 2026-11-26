@@ -30,7 +30,7 @@ export function equationsTargets(fig: EquationsFig): TapTarget[] {
 }
 
 export function EquationsFigure({ fig, tap, clock = STILL }: { fig: EquationsFig; tap?: TapProps; clock?: DrawClock }) {
-  const { palette: p, material: m } = useTheme();
+  const { palette: p } = useTheme();
   const x = eqX(fig);
   const w = eqW(fig);
   const wide = !fig.list;
@@ -38,7 +38,7 @@ export function EquationsFigure({ fig, tap, clock = STILL }: { fig: EquationsFig
     <Group>
       {fig.list && <List fig={fig} clock={clock} />}
       <DrawnFade clock={clock} from={FILLS[0]} to={FILLS[1]}>
-        <MonoLabel x={x + 2} y={15} text="EQUATIONS" color={p.label} size={8.5} anchor="start" />
+        <MonoLabel x={x + 2} y={15} text="Equations" color={p.label} size={8.5} anchor="start" />
       </DrawnFade>
       {EQUATION_IDS.map((id, i) => {
         const y = TOP + i * EQ.pitch;
@@ -64,7 +64,7 @@ export function EquationsFigure({ fig, tap, clock = STILL }: { fig: EquationsFig
             {/* the quantity this equation leaves out: its letter in a dashed ring, struck through */}
             {fig.leftOut === 'shown' && (
               <DrawnFade clock={clock} from={PEN.marks[0]} to={PEN.marks[1]}>
-                <MonoLabel x={cx - 15} y={cy + 3.2} text="NO" color={p.label} size={8.5} anchor="end" />
+                <MonoLabel x={cx - 15} y={cy + 3.2} text="no" color={p.label} size={8.5} anchor="end" />
                 <Circle cx={cx} cy={cy} r={10.5} fill={p.paper} stroke={p.label} strokeWidth={stroke.thin} strokeDasharray="3 3" />
                 <ForceLetter x={cx} y={cy + 4.4} text={out} color={p.ink} size={13} />
                 <Line x1={cx - 8} y1={cy + 8} x2={cx + 8} y2={cy - 8} stroke={p.label} strokeWidth={stroke.thin} />
@@ -79,13 +79,13 @@ export function EquationsFigure({ fig, tap, clock = STILL }: { fig: EquationsFig
 
 /** Your list: one row per quantity. Known ones carry their value, the wanted one a "?", the fifth is "not given". */
 function List({ fig, clock }: { fig: EquationsFig; clock: DrawClock }) {
-  const { palette: p, material: m } = useTheme();
+  const { palette: p } = useTheme();
   if (!fig.list) return null;
   const { known, want } = fig.list;
   return (
     <Group>
       <DrawnFade clock={clock} from={FILLS[0]} to={FILLS[1]}>
-        <MonoLabel x={LIST.x + 2} y={15} text="YOUR LIST" color={p.label} size={8.5} anchor="start" />
+        <MonoLabel x={LIST.x + 2} y={15} text="Your list" color={p.label} size={8.5} anchor="start" />
       </DrawnFade>
       {QUANTITIES.map((q, i) => {
         const y = TOP + i * LIST.pitch;
@@ -117,7 +117,7 @@ function List({ fig, clock }: { fig: EquationsFig; clock: DrawClock }) {
               {wanted && (
                 <>
                   <MonoLabel x={LIST.x + 30} y={base + 3.4} text="= ?" color={p.ink} size={9.5} anchor="start" />
-                  <MonoLabel x={LIST.x + LIST.w - 8} y={base + 3} text="WANTED" color={p.label} size={8} anchor="end" />
+                  <MonoLabel x={LIST.x + LIST.w - 8} y={base + 3} text="wanted" color={p.label} size={8} anchor="end" />
                 </>
               )}
               {!given && !wanted && <MonoLabel x={LIST.x + 30} y={base + 3.4} text="not given" color={p.faint} size={9.5} anchor="start" />}
