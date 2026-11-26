@@ -18,7 +18,7 @@ export const VECTORS_VB = { w: 340, h: 230 };
 // the area the drawing is fitted into
 const AL = 52;
 const AR = 316;
-const AT = 24;
+const AT = 36;
 const AB = 206;
 const ARC_R = 30;
 /** Played: each leg grows in LEG_S seconds, the next starting from its tip; then the resultant. */
@@ -49,7 +49,7 @@ export function vectorsResult(fig: VectorsFig): { size: number; angle: number } 
 }
 
 export function VectorsFigure({ fig, clock = STILL }: { fig: VectorsFig; clock?: DrawClock }) {
-  const { palette: p, material: m } = useTheme();
+  const { palette: p } = useTheme();
   const plays = fig.play === true;
   const t = useOnceTime(clipLength(fig.legs.length), plays);
   const g = plays ? growth(fig.legs.length, t) : { legs: fig.legs.map(() => 1), resultant: 1 };
@@ -124,7 +124,7 @@ export function VectorsFigure({ fig, clock = STILL }: { fig: VectorsFig; clock?:
             <ForceLetter x={22} y={64} text="N" color={p.ink} size={12} />
           </Group>
         )}
-        <MonoLabel x={332} y={222} text={`GRID ${fixed(fig.grid, fig.grid < 1 ? 1 : 0)} ${fig.unit}`} color={p.label} size={8} anchor="end" />
+        <MonoLabel x={332} y={222} text={`grid ${fixed(fig.grid, fig.grid < 1 ? 1 : 0)} ${fig.unit}`} color={p.label} size={8} anchor="end" />
       </DrawnFade>
 
       {legs.map(({ a, b }, i) => {

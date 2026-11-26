@@ -17,7 +17,7 @@ export const RESOLVE_VB = { w: 340, h: 230 };
 
 const RAD = Math.PI / 180;
 const O: [number, number] = [118, 196]; // the tail
-const L = 150; // drawn length of the vector
+const L = 164; // drawn length of the vector
 const GRID = 20;
 /** Played: dashed lines drop from the tip to the axes, then the components slide out from the tail along them. */
 const DROP = [0.3, 0.5] as const;
@@ -32,7 +32,7 @@ export function resolveParts(fig: ResolveFig): { x: number; y: number } {
 }
 
 export function ResolveFigure({ fig, clock = STILL }: { fig: ResolveFig; clock?: DrawClock }) {
-  const { palette: p, material: m } = useTheme();
+  const { palette: p } = useTheme();
   const phi = (fig.from === 'horizontal' ? fig.angle : 90 - fig.angle) * RAD; // above the horizontal
   const d: [number, number] = [Math.cos(phi), -Math.sin(phi)];
   const tip: [number, number] = [O[0] + d[0] * L, O[1] + d[1] * L];

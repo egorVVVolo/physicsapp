@@ -7,6 +7,7 @@
 // "hill": a sledge resting on a snowy hill; its weight acts down from the centre of gravity and is split along the
 // slope and into it (`onSlope`), with the angle between W and the line into the slope marked: the hill's angle again.
 // The first figure of each kind draws itself: snow → sledge → rope → forces → components → labels.
+import { useContext } from 'react';
 import { Circle, G as Group, Line, Path, Rect } from 'react-native-svg';
 import { components, onSlope } from '@/physics/vectors';
 import { fixed } from '@/physics/format';
@@ -14,7 +15,7 @@ import { SLEDGE_IDS, type HillFig, type PartLabel, type SledgeFig } from '@/cont
 import { useTheme } from '@/theme/ThemeContext';
 import { stroke } from '@/theme/tokens';
 import { STILL, type DrawClock } from './anim';
-import { CgMark, ForceArrow, Hatch, MonoLabel, useMonoSize } from './draw';
+import { CgMark, ForceArrow, Hatch, MonoLabel, SheetClean, useMonoSize } from './draw';
 import type { TapProps, TapTarget } from './Sheet';
 import { stage, Tag, TapBoxes } from './kit';
 
@@ -43,9 +44,9 @@ const SLEDGE_LEN = 74;
 type View = { snowY: number; s: number; kf: number; rope: number; anaBack: number; benBack: number };
 const VIEW: Record<SledgeFig['who'], View> = {
   // Ana alone: large, room for the rope from flat to straight up
-  A: { snowY: 212, s: 1.25, kf: 1.5, rope: 172, anaBack: 50, benBack: 0 },
+  A: { snowY: 212, s: 1.5, kf: 1.38, rope: 164, anaBack: 36, benBack: 0 },
   // both: Ben on the left, Ana on the right
-  AB: { snowY: 204, s: 1.1, kf: 1.0, rope: 140, anaBack: 160, benBack: 34 },
+  AB: { snowY: 204, s: 1.25, kf: 1.0, rope: 132, anaBack: 144, benBack: 30 },
 };
 
 /** "50.0 N", or the name, or "?" (the label of a component). */
@@ -94,7 +95,7 @@ export function sledgeTargets(fig: SledgeFig, angle = fig.angle): TapTarget[] {
 type Props = { fig: SledgeFig; live?: number; tap?: TapProps; clock?: DrawClock };
 
 export function SledgeFigure({ fig, live, tap, clock = STILL }: Props) {
-  const { palette: p, material: m } = useTheme();
+  const { palette: p } = useTheme();
   const angle = live ?? fig.angle;
   const g = geometry(fig, angle);
   const { v, hitch, d, tip, c, fwd, up } = g;
@@ -131,7 +132,7 @@ export function SledgeFigure({ fig, live, tap, clock = STILL }: Props) {
       {fig.targets && <TapBoxes targets={sledgeTargets(fig, angle)} tap={tap} />}
 
       {stage(clock, PEN.sledge, <Sledge x={v.anaBack} y={v.snowY} s={v.s} />)}
-      {fig.who === 'AB' && stage(clock, PEN.sledge, <Sledge x={v.benBack} y={v.snowY} s={v.s} />)}
+      {fig.who === 'AB' && stage(clock, PEN.sledge, <Sledge x={v.benBack} y={v.snowY} s={v.s} who="B" />)}
 
       {/* Ana's rope and hand */}
       {stage(clock, 
@@ -139,7 +140,7 @@ export function SledgeFigure({ fig, live, tap, clock = STILL }: Props) {
         <Group>
           <Line x1={hitch[0]} y1={hitch[1]} x2={mitten[0]} y2={mitten[1]} stroke={p.draw} strokeWidth={stroke.body} />
           <Mitten x={mitten[0]} y={mitten[1]} dx={d[0]} dy={d[1]} />
-          <MonoLabel x={mitten[0] + n[0] * 17} y={mitten[1] + n[1] * 17 + 3} text="ANA" color={p.label} size={9} />
+          <MonoLabel x={mitten[0] - n[0] * 24} y={mitten[1] - n[1] * 24 + 5} text="Ana" color={p.label} size={9} />
         </Group>,
       )}
       {fig.who === 'AB' &&
@@ -147,7 +148,7 @@ export function SledgeFigure({ fig, live, tap, clock = STILL }: Props) {
           PEN.rope,
           <Group>
             <Mitten x={benPush[0] - 7} y={benPush[1]} dx={-1} dy={0} who="B" />
-            <MonoLabel x={benPush[0] - 20} y={benPush[1] - 14} text="BEN" color={p.label} size={9} />
+            <MonoLabel x={benPush[0] - 20} y={benPush[1] - 14} text="Ben" color={p.label} size={9} />
           </Group>,
         )}
 
@@ -202,13 +203,13 @@ export function SledgeFigure({ fig, live, tap, clock = STILL }: Props) {
 
 
 /** A sledge: a flat deck on two struts and a runner that curls up at the front. Back of the runner at (x, y), facing right. */
-function Sledge({ x, y, s, flip }: { x: number; y: number; s: number; flip?: boolean }) {
-  const { palette: p, material: m } = useTheme();
+function Sledge({ x, y, s, flip, who = 'A' }: { x: number; y: number; s: number; flip?: boolean; who?: 'A' | 'B' }) {
+  const { palette: p, soft } = useTheme();
+  const tone = soft[who];
   return (
     <Group transform={`translate(${x} ${y}) scale(${flip ? -s : s} ${s})`}>
       <Path d="M14,-7 V0 M52,-7 V0" stroke={p.draw} strokeWidth={stroke.body} />
-      <Rect x={4} y={-15} width={58} height={8} rx={2} fill={m.wood} stroke={p.draw} strokeWidth={stroke.body} />
-      <Path d="M24,-15 V-7 M43,-15 V-7" stroke={p.draw} strokeWidth={stroke.thin} opacity={0.6} />
+      <Rect x={4} y={-18} width={58} height={11} rx={3} fill={tone.fill} stroke={tone.edge} strokeWidth={2 / s} />
       <Path d={`M0,0 H64 Q${SLEDGE_LEN},0 ${SLEDGE_LEN},-9 Q${SLEDGE_LEN},-15 68,-15`} fill="none" stroke={p.draw} strokeWidth={stroke.body} strokeLinecap="round" />
     </Group>
   );
@@ -216,8 +217,20 @@ function Sledge({ x, y, s, flip }: { x: number; y: number; s: number; flip?: boo
 
 /** A gloved hand at (x, y) with the sleeve going off along (dx, dy): the person is off the drawing. */
 export function Mitten({ x, y, dx, dy, who = 'A' }: { x: number; y: number; dx: number; dy: number; who?: 'A' | 'B' }) {
-  const { palette: p, material: m, stroke, pick } = useTheme();
+  const { palette: p, material: m, soft, stroke, pick } = useTheme();
+  const clean = useContext(SheetClean);
   const [ex, ey] = [x + dx * 18, y + dy * 18];
+  if (clean) {
+    // a sleeve and, at its end, a rounded hand, in the body's tone
+    const tone = soft[who];
+    return (
+      <Group>
+        <Line x1={x} y1={y} x2={ex} y2={ey} stroke={tone.edge} strokeWidth={10} strokeLinecap="round" />
+        <Line x1={x} y1={y} x2={ex} y2={ey} stroke={tone.fill} strokeWidth={6.4} strokeLinecap="round" />
+        <Circle cx={x} cy={y} r={7.5} fill={tone.fill} stroke={tone.edge} strokeWidth={1.8} />
+      </Group>
+    );
+  }
   return (
     <Group>
       <Line x1={x} y1={y} x2={ex} y2={ey} stroke={p.draw} strokeWidth={10.5} strokeLinecap="round" />
@@ -231,14 +244,14 @@ export function Mitten({ x, y, dx, dy, who = 'A' }: { x: number; y: number; dx: 
 
 // The slope runs up to the right; its foot is off the sheet (so the forces can be drawn large), and its angle is marked
 // against a dashed horizontal line at `mark`.
-const HILL = { foot: -150, footY: 222, at: 212, mark: 36, kf: 0.56, cgUp: 9, s: 0.8 };
+const HILL = { foot: -150, footY: 222, at: 212, mark: 36, kf: 0.56, cgUp: 11, s: 1 };
 
 export function hillParams(fig: HillFig): string {
   return `W = ${fixed(fig.weight, 0)} N, hill at ${fixed(fig.angle, 0)}°`;
 }
 
 export function HillFigure({ fig, clock = STILL }: { fig: HillFig; clock?: DrawClock }) {
-  const { palette: p, material: m } = useTheme();
+  const { palette: p } = useTheme();
   const th = fig.angle * RAD;
   const tan = Math.tan(th);
   const yAt = (x: number) => HILL.footY - (x - HILL.foot) * tan;
@@ -246,12 +259,13 @@ export function HillFigure({ fig, clock = STILL }: { fig: HillFig; clock?: DrawC
   const P: [number, number] = [HILL.at, yAt(HILL.at)];
   const cg: [number, number] = [P[0] - HILL.cgUp * Math.sin(th), P[1] - HILL.cgUp * Math.cos(th)];
   const parts = onSlope(fig.weight, fig.angle);
-  const wLen = fig.weight * HILL.kf;
+  const kf = Math.min(HILL.kf, (HILL_VB.h - 8 - cg[1]) / fig.weight); // a heavy sledge gets a smaller scale, so all of W stays on the sheet
+  const wLen = fig.weight * kf;
   const downSlope: [number, number] = [-Math.cos(th), Math.sin(th)];
   const into: [number, number] = [Math.sin(th), Math.cos(th)];
   const wTip: [number, number] = [cg[0], cg[1] + wLen];
-  const aTip: [number, number] = [cg[0] + downSlope[0] * parts.along * HILL.kf, cg[1] + downSlope[1] * parts.along * HILL.kf];
-  const iTip: [number, number] = [cg[0] + into[0] * parts.into * HILL.kf, cg[1] + into[1] * parts.into * HILL.kf];
+  const aTip: [number, number] = [cg[0] + downSlope[0] * parts.along * kf, cg[1] + downSlope[1] * parts.along * kf];
+  const iTip: [number, number] = [cg[0] + into[0] * parts.into * kf, cg[1] + into[1] * parts.into * kf];
   const alongText = partText(fig.along, 'along', parts.along);
   const intoText = partText(fig.into, 'into', parts.into);
   const mono = useMonoSize(9); // labels may have grown: widths are measured at the size they are drawn
