@@ -76,7 +76,7 @@ test('at 120 s both move west; runner A is the faster one', () => {
   assert.ok(X.vA < 0 && X.vB < 0 && Math.abs(X.vA) > Math.abs(X.vB));
 });
 
-test('runner A is back at the lamp post at 150 s, after 600 m', () => {
+test('runner A is back at the start at 150 s, after 600 m', () => {
   near(tripPosition(X.tHome, RUN_A), 0);
   near(X.tHome, 150);
   near(X.distHome, 600);

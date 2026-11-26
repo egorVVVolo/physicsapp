@@ -6,12 +6,14 @@ import { createContext, useContext, useEffect, useMemo, useState, type ReactNode
 import { useColorScheme } from 'react-native';
 import { loadPrefs, savePrefs, type Prefs } from '@/session/storage';
 import { themed } from './levelColor';
-import { darkMaterial, darkPalette, material, palette, stroke, type LevelColor, type Material, type Palette } from './tokens';
+import { darkMaterial, darkPalette, darkSoft, material, palette, soft, stroke, type LevelColor, type Material, type Palette, type Soft } from './tokens';
 
 export type ThemeMode = Prefs['mode'];
 type Theme = {
   palette: Palette;
   material: Material;
+  /** Figure style 3: the white sheet, its grid, and soft bodies with an edge of the same hue. */
+  soft: Soft;
   stroke: typeof stroke;
   dark: boolean;
   mode: ThemeMode;
@@ -28,7 +30,7 @@ type Theme = {
 const now = <T,>(n: T) => n;
 const before = <T,>(_n: T, b: T) => b;
 
-const light: Theme = { palette, material, stroke, dark: false, mode: 'system', setMode: () => {}, level: (c) => c, classic: false, pick: now };
+const light: Theme = { palette, material, soft, stroke, dark: false, mode: 'system', setMode: () => {}, level: (c) => c, classic: false, pick: now };
 const ThemeCtx = createContext<Theme>(light);
 
 export function useTheme(): Theme {
@@ -39,6 +41,7 @@ function build(dark: boolean, mode: ThemeMode, setMode: (m: ThemeMode) => void, 
   return {
     palette: dark ? darkPalette : palette,
     material: dark ? darkMaterial : material,
+    soft: dark ? darkSoft : soft,
     stroke,
     dark,
     mode,
@@ -71,5 +74,12 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 export function ThemeOverride({ dark, classic = false, children }: { dark: boolean; classic?: boolean; children: ReactNode }) {
   const outer = useTheme();
   const value = useMemo(() => build(dark, outer.mode, outer.setMode, classic), [dark, classic, outer.mode, outer.setMode]);
+  return <ThemeCtx.Provider value={value}>{children}</ThemeCtx.Provider>;
+}
+
+/** Inside a style-3 sheet "paper" is the sheet's white, so label patches and fills match it. */
+export function CleanTheme({ children }: { children: ReactNode }) {
+  const outer = useTheme();
+  const value = useMemo(() => ({ ...outer, palette: { ...outer.palette, paper: outer.soft.paper, paperLine: outer.soft.grid } }), [outer]);
   return <ThemeCtx.Provider value={value}>{children}</ThemeCtx.Provider>;
 }

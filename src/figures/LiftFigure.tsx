@@ -1,4 +1,5 @@
-// FIG: a person on bathroom scales in a lift (left) and the free-body diagram of the person (right).
+// FIG: a person on bathroom scales in a lift (left) and the free-body diagram of the person (right). Style 3: big, with
+// only what the physics needs (cable, car, floor, scales, person).
 // Arrow lengths and the scales reading come from src/physics/dynamics (normalInLift, weight, scaleKg).
 // A moving lift is shown by the shaft sliding past the car (ShaftMarks), driven on the UI thread by
 // s = ut + ½at² from src/physics/kinematics, so it stays smooth even while React is busy.
@@ -8,7 +9,8 @@
 import { useEffect, useState } from 'react';
 import { StyleSheet } from 'react-native';
 import Animated, { useAnimatedStyle, useFrameCallback, useSharedValue, withTiming } from 'react-native-reanimated';
-import Svg, { G as Group, Line, Rect, Circle, Polygon } from 'react-native-svg';
+import Svg, { G as Group, Line, Rect, Circle, Text as SvgText } from 'react-native-svg';
+import { svgLetter } from '@/theme/svgFont';
 import { G, position, velocity } from '@/physics/kinematics';
 import { normalInLift, scaleKg, weight } from '@/physics/dynamics';
 import { fixed, signed } from '@/physics/format';
@@ -16,24 +18,26 @@ import { CANDIDATE_IDS, type LiftFig } from '@/content/types';
 import { useTheme } from '@/theme/ThemeContext';
 import { stroke } from '@/theme/tokens';
 import { CHANGE_DELAY, DRAWN_MS, STILL, useTween, useWave, type DrawClock } from './anim';
-import { AccChevrons, DrawnFade, DrawnPath, DrawnShape, FILLS, ForceArrow, ForceLetter, Hatch, MonoLabel, MotionArrow, rectPath, useLineStep } from './draw';
-import { Person, Scales, SCALES_H } from './people';
+import { AccChevrons, DrawnFade, DrawnPath, ForceArrow, ForceLetter, MonoLabel, MotionArrow, rectPath, useLineStep } from './draw';
+import { Person } from './people';
 import { type TapProps, type TapTarget } from './Sheet';
 import { stage } from './kit';
 
-export const LIFT_VB = { w: 340, h: 260 };
+export const LIFT_VB = { w: 340, h: 300 };
 
-const DOT = { x: 272, y: 138 }; // the particle of the free-body diagram
+const DOT = { x: 272, y: 158 }; // the particle of the free-body diagram
 const MID_X = 206; // motion / acceleration marks, between the lift and the diagram
 const CAND_X: Record<(typeof CANDIDATE_IDS)[number], number> = { shorter: 238, equal: 272, longer: 306 };
 const CAND_K: Record<(typeof CANDIDATE_IDS)[number], number> = { shorter: 0.6, equal: 1, longer: 1.4 };
 const STUB = 34; // length of the dashed "N = ?" stub
 
 // The car and what stands in it
-const CAR = { x: 24, y: 30, w: 142, h: 212 }; // floor at y = 242
+const CAR = { x: 22, y: 34, w: 146, h: 252 }; // floor at y = 286
 const FLOOR = CAR.y + CAR.h;
 const CX = CAR.x + CAR.w / 2;
-const SOLES = FLOOR - SCALES_H + 3; // the soles stand on the middle of the top face
+const PAD = { w: 112, h: 38 }; // the scales: one block with its display
+const SOLES = FLOOR - PAD.h;
+const PERSON_S = 1.3;
 
 // when the pen draws each part, as shares of the draw-in
 const PEN = {
@@ -51,7 +55,7 @@ const PEN = {
 } as const;
 
 /** Pixels per newton: the longest N the slider can make (a = +3 m s⁻²) fits above the dot. */
-const scaleFor = (m: number) => 100 / (m * (G + 3));
+const scaleFor = (m: number) => 114 / (m * (G + 3));
 
 /** True when the figure shows a moving lift (the shaft slides, a pause button appears). */
 export function liftMoves(fig: LiftFig, a: number): boolean {
@@ -91,7 +95,7 @@ type LiftProps = {
 };
 
 export function LiftFigure({ fig, a, tap, clock = STILL, prev, shift: shiftNow }: LiftProps) {
-  const { palette: p, material: m, stroke, pick } = useTheme();
+  const { palette: p, stroke, pick } = useTheme();
   const step9 = useLineStep(9); // two-line labels: the distance between their lines
   const drawing = clock.on;
   const line = (d: string, len: number, pen: readonly [number, number], color: string, width: number, cap?: 'round') => (
@@ -122,46 +126,33 @@ export function LiftFigure({ fig, a, tap, clock = STILL, prev, shift: shiftNow }
         {a <= -G + 1e-9
           ? line(`M${CX},${CAR.y} L${CX},20 L${CX - 4},16 M${CX},20 L${CX + 4},15`, 24, PEN.cable, p.draw, pick(stroke.body, 2), 'round')
           : line(`M${CX},0 V${CAR.y}`, CAR.y, PEN.cable, p.draw, pick(stroke.body, 2))}
-        {/* the car: a white box, a plastic ceiling strip, the floor indicator and a metal handrail on the back wall */}
-        <DrawnShape clock={clock} pen={PEN.car} {...rectPath(CAR.x, CAR.y, CAR.w, CAR.h)} fill={p.page} stroke={p.draw} strokeWidth={pick(stroke.body, 2.4)} />
-        <DrawnShape clock={clock} pen={PEN.ceiling} {...rectPath(CAR.x, CAR.y, CAR.w, 6)} fill={pick(m.plasticSide, p.drawFill)} stroke={p.draw} strokeWidth={stroke.thin} />
-        <DrawnFade clock={clock} from={FILLS[0]} to={FILLS[1]}>
-          <Rect x={CX - 14} y={CAR.y + 12} width={28} height={13} rx={3} fill={p.ink} />
-          {motionDir ? (
-            <Polygon points={motionDir === 'up' ? `${CX - 5},${CAR.y + 22} ${CX + 5},${CAR.y + 22} ${CX},${CAR.y + 15}` : `${CX - 5},${CAR.y + 15} ${CX + 5},${CAR.y + 15} ${CX},${CAR.y + 22}`} fill={p.page} />
-          ) : (
-            <Line x1={CX - 5} y1={CAR.y + 18.5} x2={CX + 5} y2={CAR.y + 18.5} stroke={p.page} strokeWidth={stroke.body} strokeLinecap="round" />
-          )}
-        </DrawnFade>
-        {line(`M${CAR.x + 8},148 H${CAR.x + CAR.w - 8}`, CAR.w - 16, PEN.rail, pick(m.metalSide, p.lineStrong), pick(stroke.force, 3), 'round')}
-        {line(`M${CAR.x + 14},148 V155`, 7, PEN.rail, pick(m.metalSide, p.lineStrong), pick(stroke.body, 2))}
-        {line(`M${CAR.x + CAR.w - 14},148 V155`, 7, PEN.rail, pick(m.metalSide, p.lineStrong), pick(stroke.body, 2))}
-        <Hatch x1={CAR.x} x2={CAR.x + CAR.w} y={FLOOR} color={p.draw} clock={clock} from={PEN.floor[0]} to={PEN.floor[1]} />
+        {/* the car: a plain outline, a heavier floor line */}
+        <DrawnPath clock={clock} len={2 * (CAR.w + CAR.h)} from={PEN.car[0]} to={PEN.car[1]} d={rectPath(CAR.x, CAR.y, CAR.w, CAR.h, 12).d} fill="none" stroke={p.ink} strokeWidth={1.8} />
         <Display fig={fig} n={N} clock={clock} from={readingFrom} />
-        <Person x={CX} y={SOLES} clock={clock} pen={PEN.person} />
+        <Person x={CX} y={SOLES} scale={PERSON_S} clock={clock} pen={PEN.person} />
         {fig.nOnPerson && <NOnPerson drawing={drawing} />}
       </Group>
 
       {/* ── motion or acceleration, between the lift and the diagram ── */}
       {fig.motion && motionDir && (
         <Group opacity={room}>
-          <MotionArrow x={MID_X} y={118} dir={motionDir} length={62} color={p.draw} clock={clock} pen={PEN.motion} />
+          <MotionArrow x={MID_X} y={134} dir={motionDir} length={72} color={p.draw} clock={clock} pen={PEN.motion} />
           {splitLabel(fig.motion.text).map((line, i) => (
-            <MonoLabel key={i} x={MID_X} y={168 + i * step9} text={line} color={p.label} size={9} />
+            <MonoLabel key={i} x={MID_X} y={192 + i * step9} text={line} color={p.label} size={9} />
           ))}
         </Group>
       )}
       {fig.showAcc && !fig.motion && Math.abs(a) > 1e-9 && (
         <Group opacity={room}>
-          {stage(clock, PEN.marks, <DriftingChevrons x={MID_X} y={118} dir={a > 0 ? 'up' : 'down'} color={p.draw} />)}
-          <MonoLabel x={MID_X} y={150} text="a" color={p.label} size={11} />
+          {stage(clock, PEN.marks, <DriftingChevrons x={MID_X} y={134} dir={a > 0 ? 'up' : 'down'} color={p.draw} />)}
+          <MonoLabel x={MID_X} y={170} text="a" color={p.label} size={11} />
         </Group>
       )}
 
       {/* ── free-body diagram of the person ── */}
       {(showW || showN || fig.candidates) && (
         <Group opacity={room}>
-          <MonoLabel x={DOT.x} y={252} text="FREE-BODY" color={p.label} size={9} />
+          <MonoLabel x={DOT.x} y={292} text="forces on you" color={p.label} size={9} />
           {showW && <WForce len={W * k} w={W} values={!!fig.values} drawing={drawing} from={wFrom} kept={!!prev} />}
           {showN && !fig.unknownN && <NForce n={N} k={k} values={!!fig.values} drawing={drawing} from={nPrev} fromK={prevK} kept={!!prev} />}
           {showN && fig.unknownN && (
@@ -224,8 +215,22 @@ function DriftingChevrons({ x, y, dir, color }: { x: number; y: number; dir: 'up
 /** The scales with their display. The number counts smoothly to a new value (its own component, so only it re-renders). */
 function Display({ fig, n, clock, from }: { fig: LiftFig; n: number; clock: DrawClock; from?: number }) {
   const shown = useTween(n, from, 360, from !== undefined ? CHANGE_DELAY : 0);
-  const reading = fig.reading === 'shown' ? `${fixed(scaleKg(shown), 1)} kg` : '- - -';
-  return <Scales x={CX} y={FLOOR} reading={reading} clock={clock} pen={PEN.scales} />;
+  const reading = fig.reading === 'shown' ? `${fixed(scaleKg(shown), 1)} kg` : '– – –';
+  return <Pad reading={reading} clock={clock} />;
+}
+
+/** The scales as one soft block with a white display. */
+function Pad({ reading, clock }: { reading: string; clock: DrawClock }) {
+  const { palette: p, soft } = useTheme();
+  return (
+    <DrawnFade clock={clock} from={PEN.scales[0]} to={PEN.scales[1]}>
+      <Rect x={CX - PAD.w / 2} y={SOLES} width={PAD.w} height={PAD.h} rx={9} fill={soft.metal.fill} stroke={soft.metal.edge} strokeWidth={1.8} />
+      <Rect x={CX - 40} y={SOLES + 7} width={80} height={24} rx={7} fill={soft.paper} />
+      <SvgText x={CX} y={SOLES + 24.5} fontSize={16} fontFamily={svgLetter} fill={p.ink} textAnchor="middle">
+        {reading}
+      </SvgText>
+    </DrawnFade>
+  );
 }
 
 /** The W arrow of the free-body diagram: grows out of the dot when the figure appears (from `from` on a kept sheet). */

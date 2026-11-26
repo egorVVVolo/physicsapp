@@ -2,10 +2,11 @@
 // Never blue (blue is for forces). Two heroes: A in plum, B in grey-teal (`who`).
 // The scales are drawn in the same flat "vector 3D" as the pucks on the map: a light top face and a darker front.
 // Both can draw themselves: pass the running clock and the stretch of the draw-in (`pen`) their outlines take.
+import { useContext } from 'react';
 import { Circle, G, Path, Rect } from 'react-native-svg';
 import { useTheme } from '@/theme/ThemeContext';
 import { STILL, type DrawClock } from './anim';
-import { CgMark, DrawnFade, DrawnShape, FILLS, MonoLabel, penPart, polyPath, rectPath, type Pen } from './draw';
+import { CgMark, DrawnFade, DrawnShape, FILLS, MonoLabel, penPart, polyPath, rectPath, SheetClean, type Pen } from './draw';
 
 /** Height of the person from the soles to the top of the head, in viewBox units at scale 1. */
 export const PERSON_H = 136;
@@ -24,15 +25,17 @@ const HEAD_R = 13;
 
 /** A person standing, soles at (x, y). With a running clock the shape fades in over the pen's stretch, then the CG mark. */
 export function Person({ x, y, scale = 1, cg = true, who = 'A', halo = false, clock = STILL, pen = [0, 1] }: { x: number; y: number; scale?: number; cg?: boolean; who?: 'A' | 'B'; /** Fill the slit between the legs with paper, so a post behind the person does not show through it. */ halo?: boolean; clock?: DrawClock; pen?: Pen }) {
-  const { palette: p, material: m } = useTheme();
-  const color = who === 'A' ? m.clothA : m.clothB;
+  const { palette: p, material: m, soft } = useTheme();
+  const clean = useContext(SheetClean);
+  // style 3: a soft fill with an edge of the same hue, about 2 pt whatever the figure's scale
+  const look = clean ? { fill: soft[who].fill, stroke: soft[who].edge, strokeWidth: 1.8 / scale, strokeLinejoin: 'round' as const } : { fill: who === 'A' ? m.clothA : m.clothB };
   return (
     <G transform={`translate(${x} ${y}) scale(${scale})`}>
       <DrawnFade clock={clock} from={pen[0]} to={pen[1]}>
         {/* paper in the slit between the legs, stopping short of the ground line */}
         {halo && <Rect x={-2.5} y={-52} width={5} height={50} fill={p.paper} />}
-        <Circle cx={0} cy={HEAD_Y} r={HEAD_R} fill={color} />
-        <Path d={BODY} fill={color} />
+        <Circle cx={0} cy={HEAD_Y} r={HEAD_R} {...look} />
+        <Path d={BODY} {...look} />
       </DrawnFade>
       {cg && (
         <DrawnFade clock={clock} from={CG_MARK[0]} to={CG_MARK[1]}>

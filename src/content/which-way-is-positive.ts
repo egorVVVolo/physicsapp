@@ -46,7 +46,7 @@ export const ANSWERS = (() => {
   const dispA = tripPosition(T, RUN_A);
   const distA = tripDistance(0, T, RUN_A);
   const vBack = tripVelocity(tTurn + 1, RUN_A);
-  const tHome = tTurn + out / Math.abs(vBack); // runner A passes the lamp post on the way back
+  const tHome = tTurn + out / Math.abs(vBack); // runner A passes the start on the way back
   const hike = sizeAtRightAngles(HIKE.north, HIKE.east);
   const swim = sizeAtRightAngles(SWIM.across, SWIM.current);
   const chord = chordAround(LAP.round, 0.5);
@@ -130,14 +130,14 @@ export const whichWayIsPositive: Lesson = {
       id: 'intro',
       kind: 'intro',
       title: 'Which way is positive?',
-      body: `Runners A and B leave a lamp post. In ${secs(T)}, A runs ${metres(x.out)} east, then ${metres(-x.back)} west. B walks ${metres(-x.dispB)} west.`,
-      fig: track(),
+      body: `Runners A and B start from the same point. In ${secs(T)}, A runs ${metres(x.out)} east, then ${metres(-x.back)} west. B walks ${metres(-x.dispB)} west.`,
+      fig: track({ apart: true }),
     },
     {
       id: 'hook',
       kind: 'predict',
       prompt: `Both runs take ${secs(T)}. Whose average velocity is greater?`,
-      fig: track({ legs: true }),
+      fig: track({ legs: true, apart: true }),
       options: [
         { id: 'A', label: "Runner A's" },
         { id: 'B', label: "Runner B's" },
@@ -203,7 +203,7 @@ export const whichWayIsPositive: Lesson = {
         { id: 'disp', label: `${signed(x.dispA, 0)}${NB}m` },
         { id: 'time', label: secs(T) },
         { id: 'path', label: metres(x.distA), hint: `That is the distance A ran, not the displacement.` },
-        { id: 'plus', label: `${signed(-x.dispA, 0)}${NB}m`, hint: 'Runner A finishes west of the lamp post, so s is negative.' },
+        { id: 'plus', label: `${signed(-x.dispA, 0)}${NB}m`, hint: 'Runner A finishes west of the start, so s is negative.' },
         { id: 'leg', label: metres(x.out), hint: 'That is the first leg alone. Use the whole displacement.' },
         { id: 'first', label: secs(x.tTurn), hint: `${secs(x.tTurn)} is only the first leg. The average uses all ${secs(T)}.` },
         { id: 'second', label: secs(T - x.tTurn), hint: `${secs(T - x.tTurn)} is only the way back. The average uses all ${secs(T)}.` },
@@ -281,7 +281,7 @@ export const whichWayIsPositive: Lesson = {
       fig: track({ at: 'end', disp: 'shown' }),
       options: [
         { id: 'A', label: "Runner A's", hint: 'A ran farther, but finished in the same place. Velocity uses displacement.' },
-        { id: 'B', label: "Runner B's", hint: `Both end ${metres(-x.dispA)} west of the lamp post after ${secs(T)}.` },
+        { id: 'B', label: "Runner B's", hint: `Both end ${metres(-x.dispA)} west of the start after ${secs(T)}.` },
         { id: 'same', label: 'They are the same', correct: true },
       ],
       why: `Both end ${metres(-x.dispA)} west after ${secs(T)}: ${vel(x.avgVelA)} each. Runner A's average speed, ${speed(x.avgSpeedA)}, is four times runner B's.`,
@@ -293,11 +293,11 @@ export const whichWayIsPositive: Lesson = {
       fig: track({ numbers: true }),
       slider: { min: 0, max: T, step: 5, tick: 25, label: 'Time since the runners set off', unit: 's', symbol: 't', dp: 0 },
       question: {
-        prompt: 'When is runner A back at the lamp post?',
+        prompt: 'When is runner A back at the start?',
         options: [
-          { id: 'turn', label: `At ${secs(x.tTurn)}`, hint: `At ${secs(x.tTurn)} runner A turns round, ${metres(x.out)} east of the lamp post.` },
+          { id: 'turn', label: `At ${secs(x.tTurn)}`, hint: `At ${secs(x.tTurn)} runner A turns round, ${metres(x.out)} east of the start.` },
           { id: 'home', label: `At ${secs(x.tHome)}`, correct: true },
-          { id: 'end', label: `At ${secs(T)}`, hint: `At ${secs(T)} runner A is ${metres(-x.dispA)} west. It passed the lamp post earlier.` },
+          { id: 'end', label: `At ${secs(T)}`, hint: `At ${secs(T)} runner A is ${metres(-x.dispA)} west. It passed the start earlier.` },
         ],
         right: `Right: at ${secs(x.tHome)}. Distance ${metres(x.distHome)}, displacement 0${NB}m.`,
       },

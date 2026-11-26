@@ -4,13 +4,13 @@ import { useContext, useEffect, useState } from 'react';
 import { AppState, Pressable, StyleSheet, Text, View } from 'react-native';
 import Svg, { Path, Rect } from 'react-native-svg';
 import type { Fig } from '@/content/types';
-import { useTheme } from '@/theme/ThemeContext';
+import { CleanTheme, useTheme } from '@/theme/ThemeContext';
 import { font, motion, radius } from '@/theme/tokens';
 import { useReducedMotionPref } from '@/ui/parts';
 import Animated, { Easing, useAnimatedStyle, useSharedValue, withSequence, withTiming } from 'react-native-reanimated';
 import { fixed } from '@/physics/format';
 import { PuzzleContext } from '@/lesson/puzzle';
-import { SheetMinText, SheetScale, TINY } from './draw';
+import { SheetClean, SheetMinText, SheetScale, TINY } from './draw';
 import { LIFT_VB, LiftFigure, liftMoves, liftParams, liftShiftX, liftTargets, ShaftMarks } from './LiftFigure';
 import { LIFT_PAIR_VB, LiftPairFigure } from './LiftPairFigure';
 import { SCALES_VB, ScalesFigure } from './ScalesFigure';
@@ -101,11 +101,26 @@ const STYLE_2 = new Set<Fig['kind']>([
   'spring', 'wire', 'material', 'launcher',
 ]);
 
+/** Figures redrawn in style 3 (a white gridded sheet, soft bodies): the pilot is the lift and the track. */
+const CLEAN = new Set<Fig['kind']>(['lift', 'track']);
+const GRID = 34; // viewBox units between grid lines
+
+/** The faint grid under a style-3 figure. */
+function Grid({ w, h }: { w: number; h: number }) {
+  const { soft } = useTheme();
+  const d: string[] = [];
+  for (let x = GRID / 2; x < w; x += GRID) d.push(`M${x},0 V${h}`);
+  for (let y = GRID / 2; y < h; y += GRID) d.push(`M0,${y} H${w}`);
+  return <Path d={d.join(' ')} stroke={soft.grid} strokeWidth={1} fill="none" />;
+}
+
 /** Moving figures with no clip to start again: endless flows, or a load that only settles. */
 const NO_REPLAY: Fig['kind'][] = ['lift', 'liftPair', 'flow', 'ride', 'spring'];
 
 /** Every figure is drawn at the same size on every screen, so the drawing never jumps between screens. */
 const MAX_H = 270;
+/** Style-3 figures are drawn larger. */
+const CLEAN_MAX_H = 310;
 /** A compact sheet is at most this share of the full height. */
 const COMPACT = 0.6;
 /** The figures that draw themselves the first time their kind appears in a lesson. */
@@ -121,10 +136,22 @@ function useAppActive(): boolean {
   return active;
 }
 
-export function Sheet({ fig, n, live, tap: tapIn, caption, compact = false, still: stillProp = false }: Props) {
+export function Sheet(props: Props) {
+  // a style-3 sheet is white: everything on it that paints "paper" must paint that white
+  return CLEAN.has(props.fig.kind) ? (
+    <CleanTheme>
+      <Drawing {...props} />
+    </CleanTheme>
+  ) : (
+    <Drawing {...props} />
+  );
+}
+
+function Drawing({ fig, n, live, tap: tapIn, caption, compact = false, still: stillProp = false }: Props) {
   const still = compact || stillProp;
   const tap = still ? undefined : tapIn;
-  const { palette: p, classic } = useTheme();
+  const { palette: p, soft, classic } = useTheme();
+  const clean = CLEAN.has(fig.kind);
   const memory = useContext(LessonFigs);
   const puzzle = useContext(PuzzleContext);
   // the screen before showed this kind of figure: the sheet is already drawn at its width and changes from `prev`
@@ -150,7 +177,7 @@ export function Sheet({ fig, n, live, tap: tapIn, caption, compact = false, stil
   }, [memory, fig, aNow, compact]);
   let w = width;
   let h = (width * vb.h) / vb.w;
-  const maxH = (fig.kind === 'pairs' ? PAIRS_MAX_H : MAX_H) * (compact ? COMPACT : 1);
+  const maxH = (fig.kind === 'pairs' ? PAIRS_MAX_H : clean ? CLEAN_MAX_H : MAX_H) * (compact ? COMPACT : 1);
   if (h > maxH) {
     h = maxH;
     w = (h * vb.w) / vb.h;
@@ -166,7 +193,7 @@ export function Sheet({ fig, n, live, tap: tapIn, caption, compact = false, stil
 
   return (
     <SheetVisible.Provider value={inView}>
-    <View style={[styles.sheet, { backgroundColor: p.paper, borderColor: p.paperLine }]}>
+    <View style={[styles.sheet, { backgroundColor: p.paper, borderColor: clean ? soft.border : p.paperLine }, clean && styles.cleanSheet]}>
       {puzzle?.solved && !compact && <PuzzleSolved color={puzzle.color} reduced={reduced} />}
       <View style={styles.head}>
         <Text style={[styles.fig, { color: p.label }]}>FIG. {n}</Text>
@@ -222,6 +249,8 @@ export function Sheet({ fig, n, live, tap: tapIn, caption, compact = false, stil
           <View style={{ width: w, height: h, alignSelf: 'center' }}>
             <Svg width={w} height={h} viewBox={`0 0 ${vb.w} ${vb.h}`}>
               {/* labels grow to stay readable on a full sheet; a compact sheet is only a reminder and keeps the drawing's proportions */}
+              {clean && <Grid w={vb.w} h={vb.h} />}
+              <SheetClean.Provider value={clean}>
               <SheetReplay.Provider value={replays}>
               <SheetScale.Provider value={STYLE_2.has(fig.kind) && !classic && !compact ? scale : 0}>
               <SheetMinText.Provider value={compact ? TINY / scale : 0}>
@@ -279,6 +308,7 @@ export function Sheet({ fig, n, live, tap: tapIn, caption, compact = false, stil
               </SheetMinText.Provider>
               </SheetScale.Provider>
               </SheetReplay.Provider>
+              </SheetClean.Provider>
             </Svg>
             {fig.kind === 'lift' && !compact && <ShaftMarks fig={fig} a={aNow} scale={scale} playing={run} clock={clock} shift={shift} />}
             {targets.map((t) => (
@@ -427,6 +457,7 @@ function PuzzleSolved({ color, reduced }: { color: string; reduced: boolean }) {
 }
 
 const styles = StyleSheet.create({
+  cleanSheet: { borderRadius: 20 },
   chip: { position: 'absolute', top: -11, left: 14, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 4, zIndex: 2 },
   chipText: { fontFamily: font.monoBold, fontSize: 11, letterSpacing: 1, color: '#FFFFFF' },
   sheet: { borderWidth: 1, borderRadius: radius.m, paddingTop: 10, paddingBottom: 8, paddingHorizontal: 10, alignSelf: 'stretch' },

@@ -1,4 +1,4 @@
-// FIG: a straight east–west track seen from the side, with a lamp post at 0 m. Each runner has its own lane and a run
+// FIG: a straight east–west track seen from the side, with a start dot at 0 m (style 3). Each runner has its own lane and a run
 // made of parts of steady velocity (a Trip, east positive); every position and velocity comes from tripPosition and
 // tripVelocity (src/physics/kinematics). The ruler along the bottom is the axis: its + end is the direction the
 // lesson calls positive, so choosing west flips the numbers, never the motion.
@@ -7,7 +7,7 @@
 // The velocity is an outline arrow over the runner's head; it flips when the runner turns.
 // A played figure runs the race sped up (the sheet says how much), holds the last frame and starts again.
 // The first track figure of a lesson draws itself: track → ruler → lamp post → runners; arrows and labels come last.
-import { G as Group, Line, Path, Rect } from 'react-native-svg';
+import { G as Group, Circle, Line } from 'react-native-svg';
 import { tripDistance, tripDuration, tripPosition, tripVelocity, type Trip } from '@/physics/kinematics';
 import { fixed, signed } from '@/physics/format';
 import type { TrackFig } from '@/content/types';
@@ -15,20 +15,22 @@ import { useTheme } from '@/theme/ThemeContext';
 import { stroke } from '@/theme/tokens';
 import { useReducedMotionPref } from '@/ui/parts';
 import { STILL, useLoopTime, type DrawClock } from './anim';
-import { DrawnFade, DrawnPath, FILLS, ForceArrow, ForceLetter, Hatch, MonoLabel } from './draw';
+import { DrawnPath, ForceArrow, ForceLetter, MonoLabel } from './draw';
 import { Person } from './people';
 import { HollowArrow, Ruler, stage, Tag, type RulerTick } from './kit';
 
-export const TRACK_VB = { w: 340, h: 230 };
+export const TRACK_VB = { w: 340, h: 276 };
 
 /** The race is played this many times faster than real time. */
 export const TRACK_SPEEDUP = 20;
 const HOLD = 1.6; // s the played figure waits on its last frame
 const XL = 22; // the ruler runs from XL to XR
 const XR = 318;
-const RULER_Y = 216;
-const SCALE = 0.42; // of the shared person: 57 units tall
-const HEAD = 60; // from the ground to just above the head
+const RULER_Y = 256;
+const SCALE = 0.55; // of the shared person: 75 units tall
+const HEAD = 78; // from the ground to just above the head
+/** How far runner B's own start is moved east when the two lanes must not line up (`apart`), in metres. */
+const APART = 230;
 const KV = 8; // viewBox units per m s⁻¹ of velocity
 const MARGIN = 50; // m of track beyond the farthest point of any run
 
@@ -42,10 +44,10 @@ const PEN = {
 
 /** y of the ground of each runner's lane: two lanes, or one in the middle when a runner is alone. */
 function groundOf(fig: TrackFig, id: 'A' | 'B'): number {
-  if (fig.runners.length === 1) return 150;
+  if (fig.runners.length === 1) return 180;
   // with both routes drawn, runner A needs room above for two arrows
-  if (fig.legs) return id === 'A' ? 116 : 182;
-  return id === 'A' ? 92 : 176;
+  if (fig.legs) return id === 'A' ? 136 : fig.apart ? 238 : 220;
+  return id === 'A' ? 112 : 214;
 }
 
 /** The times where a run changes part, and its end. */
@@ -101,6 +103,8 @@ export function TrackFigure({ fig, live, playing, clock = STILL }: Props) {
   const k = (XR - XL) / (hi - lo);
   const X = (s: number) => XL + (s - lo) * k;
   const x0 = X(0);
+  // with `apart`, each lane has its own start, so the drawing does not show whether the finishes line up
+  const shiftOf = (id: 'A' | 'B') => (fig.apart && id === 'B' ? APART * k : 0);
   const sign = fig.plus === 'east' ? 1 : -1; // a position east of the lamp post, as the lesson writes it
   const plays = trackPlays(fig);
   const clip = fig.tEnd / TRACK_SPEEDUP;
@@ -116,17 +120,30 @@ export function TrackFigure({ fig, live, playing, clock = STILL }: Props) {
   return (
     <Group>
       {fig.runners.map((r) => (
-        <Hatch key={r.id} x1={6} x2={334} y={groundOf(fig, r.id)} color={p.draw} clock={clock} from={PEN.track[0]} to={PEN.track[1]} />
+        <DrawnPath key={r.id} clock={clock} len={328} from={PEN.track[0]} to={PEN.track[1]} d={`M6,${groundOf(fig, r.id)} H334`} stroke={p.ink} strokeWidth={1.8} fill="none" />
       ))}
-      <TrackRuler lo={lo} hi={hi} X={X} plus={fig.plus} numbers={fig.numbers === true} clock={clock} />
-      {/* the lamp post on the top lane, and a dashed line down from it through every lane to the 0 of the ruler */}
-      <DrawnPath clock={clock} len={RULER_Y - topGround} from={PEN.post[0]} to={PEN.post[1]} d={`M${x0},${topGround} V${RULER_Y}`} stroke={p.lineStrong} strokeWidth={stroke.thin} strokeDasharray="3 4" fill="none" />
-      <LampPost x={x0} y={topGround} clock={clock} />
+      {fig.apart ? (
+        // no common axis: a start dot for each lane, and which way is east
+        <Group>
+          {fig.runners.map((r) => (
+            <Circle key={r.id} cx={x0 + shiftOf(r.id)} cy={groundOf(fig, r.id)} r={4} fill={p.ink} />
+          ))}
+          <ForceArrow x1={266} y1={RULER_Y + 6} x2={322} y2={RULER_Y + 6} color={p.label} width={1.8} />
+          <MonoLabel x={258} y={RULER_Y + 10.5} text="east" color={p.label} size={10} anchor="end" />
+        </Group>
+      ) : (
+        <Group>
+          <TrackRuler lo={lo} hi={hi} X={X} plus={fig.plus} numbers={fig.numbers === true} clock={clock} />
+          {/* a dashed line from the start on the top lane down through every lane to the 0 of the ruler */}
+          <DrawnPath clock={clock} len={RULER_Y - topGround} from={PEN.post[0]} to={PEN.post[1]} d={`M${x0},${topGround} V${RULER_Y}`} stroke={p.lineStrong} strokeWidth={stroke.thin} strokeDasharray="3 4" fill="none" />
+          <Circle cx={x0} cy={topGround} r={4} fill={p.ink} />
+        </Group>
+      )}
 
       {/* runner A's legs: one arrow per part of its run, stacked above its lane, joined where it turns */}
-      {fig.legs && runnerA && stage(clock, PEN.marks, <Legs trip={runnerA.trip} tEnd={fig.tEnd} top={fig.runners.length > 1 ? 16 : groundOf(fig, 'A') - 104} gap={fig.runners.length > 1 ? 18 : 20} X={X} />)}
+      {fig.legs && runnerA && stage(clock, PEN.marks, <Legs trip={runnerA.trip} tEnd={fig.tEnd} top={fig.runners.length > 1 ? 20 : groundOf(fig, 'A') - 128} gap={fig.runners.length > 1 ? 24 : 26} X={X} />)}
       {/* runner B's one leg goes under its lane, its length written past the tail (until a displacement takes the place) */}
-      {fig.legs && runnerB && fig.disp === undefined && stage(clock, PEN.marks, <Route x1={x0} x2={X(tripPosition(fig.tEnd, runnerB.trip))} y={groundOf(fig, 'B') + 19} text={routeText(tripPosition(fig.tEnd, runnerB.trip))} />)}
+      {fig.legs && runnerB && fig.disp === undefined && stage(clock, PEN.marks, <Route x1={x0 + shiftOf('B')} x2={X(tripPosition(fig.tEnd, runnerB.trip)) + shiftOf('B')} y={groundOf(fig, 'B') + (fig.apart ? -HEAD - 14 : 18)} text={routeText(tripPosition(fig.tEnd, runnerB.trip))} />)}
 
       {plays && !reduced && <MonoLabel x={332} y={11} text={`t = ${fixed(t, 0)} s   × ${TRACK_SPEEDUP}`} color={p.label} size={9} anchor="end" />}
 
@@ -142,9 +159,9 @@ export function TrackFigure({ fig, live, playing, clock = STILL }: Props) {
         // it sits beyond the arrow's tip
         const vAt: [number, number] = groundOf(fig, r.id) === Math.min(...fig.runners.map((q) => groundOf(fig, q.id))) ? [X(s) + dx * 0.5, arrowY - 11] : [X(s) + dx + Math.sign(v) * ((vText.length * 5.4 + 8) / 2 + 4), arrowY + 3];
         return (
-          <Group key={r.id}>
+          <Group key={r.id} transform={shiftOf(r.id) ? `translate(${shiftOf(r.id)} 0)` : undefined}>
             <Person x={X(s)} y={y} scale={SCALE} cg={false} who={r.id} halo clock={clock} pen={PEN.runner} />
-            {stage(clock, PEN.marks, <ForceLetter x={X(s) + 14} y={y - 40} text={r.id} color={p.ink} size={13} anchor="start" />)}
+            {stage(clock, PEN.marks, <ForceLetter x={X(s) + 18} y={y - 50} text={r.id} color={p.ink} size={18} anchor="start" />)}
             {moving && Math.abs(v) > 1e-9 && stage(clock, PEN.marks, <HollowArrow from={[X(s), arrowY]} to={[X(s) + dx, arrowY]} color={p.draw} weight="track" />)}
             {moving && fig.values && stage(clock, PEN.marks, <Tag x={vAt[0]} y={vAt[1]} text={vText} />)}
             {showDisp && stage(clock, PEN.marks, <Displacement x1={x0} x2={X(tripPosition(fig.tEnd, r.trip))} y={y + 17} text={fig.disp === 'shown' ? `s = ${signedMetres(sign * tripPosition(fig.tEnd, r.trip))}` : 's = ?'} unknown={fig.disp !== 'shown'} />)}
@@ -188,26 +205,9 @@ function TrackRuler({ lo, hi, X, plus, numbers, clock }: { lo: number; hi: numbe
   );
 }
 
-/** A street lamp standing on the ground at (x, y): a pole, an arm and a lamp head. */
-function LampPost({ x, y, clock }: { x: number; y: number; clock: DrawClock }) {
-  const { palette: p, material: m } = useTheme();
-  // the lamp hangs clear above a runner's head, so it never looks like a hat
-  const tall = HEAD + 14;
-  const top = y - tall;
-  return (
-    <Group>
-      <DrawnPath clock={clock} len={tall + 14} from={PEN.post[0]} to={PEN.post[1]} d={`M${x},${y} V${top} H${x + 14}`} stroke={p.draw} strokeWidth={stroke.force} strokeLinejoin="round" fill="none" />
-      <DrawnFade clock={clock} from={FILLS[0]} to={FILLS[1]}>
-        <Rect x={x - 5} y={y - 4} width={10} height={4} fill={p.draw} />
-        <Path d={`M${x + 8},${top + 1} H${x + 22} L${x + 19},${top + 7} H${x + 11} Z`} fill={m.metalSide} stroke={p.draw} strokeWidth={stroke.thin} strokeLinejoin="round" />
-      </DrawnFade>
-    </Group>
-  );
-}
-
 /** Each part of a run as an arrow, stacked one under the next and joined where the runner turns, with its length. */
 function Legs({ trip, tEnd, top, gap, X }: { trip: Trip; tEnd: number; top: number; gap: number; X: (s: number) => number }) {
-  const { palette: p, material: m } = useTheme();
+  const { palette: p, soft } = useTheme();
   const ts = corners(trip, Math.min(tEnd, tripDuration(trip)));
   const parts = ts.slice(1).map((t, i) => ({ from: tripPosition(ts[i], trip), to: tripPosition(t, trip) }));
   return (
@@ -219,8 +219,8 @@ function Legs({ trip, tEnd, top, gap, X }: { trip: Trip; tEnd: number; top: numb
         return (
           <Group key={i}>
             {i > 0 && <Line x1={X(part.from)} y1={y - gap} x2={X(part.from)} y2={y} stroke={p.label} strokeWidth={stroke.thin} strokeDasharray="2 3" />}
-            <ForceArrow x1={X(part.from)} y1={y} x2={X(part.to)} y2={y} color={p.draw} width={1.8} />
-            <Tag x={(X(part.from) + X(part.to)) / 2} y={y - 5} text={`${fixed(len, 0)} m ${east ? 'E' : 'W'}`} />
+            <ForceArrow x1={X(part.from)} y1={y} x2={X(part.to)} y2={y} color={soft.A.edge} width={3.4} />
+            <Tag x={(X(part.from) + X(part.to)) / 2} y={y - 6} size={11} text={`${fixed(len, 0)} m ${east ? 'E' : 'W'}`} />
           </Group>
         );
       })}
@@ -230,11 +230,11 @@ function Legs({ trip, tEnd, top, gap, X }: { trip: Trip; tEnd: number; top: numb
 
 /** A one-way route: the same thin arrow as runner A's legs, from the lamp post, with its length and direction beside it. */
 function Route({ x1, x2, y, text }: { x1: number; x2: number; y: number; text: string }) {
-  const { palette: p } = useTheme();
+  const { soft } = useTheme();
   return (
     <Group>
-      <ForceArrow x1={x1} y1={y} x2={x2} y2={y} color={p.draw} width={1.8} />
-      <Tag x={x2 < x1 ? x1 + 8 : x1 - 8} y={y + 3.5} text={text} anchor={x2 < x1 ? 'start' : 'end'} />
+      <ForceArrow x1={x1} y1={y} x2={x2} y2={y} color={soft.B.edge} width={3.4} />
+      <Tag x={(x1 + x2) / 2} y={y - 6} size={11} text={text} />
     </Group>
   );
 }

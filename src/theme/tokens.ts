@@ -248,3 +248,26 @@ export const motion = {
   easeIn: [0.55, 0, 1, 0.45],
   // No springs in the interface: everything eases out and stops. Only drawn bodies bounce, by formula.
 } as const;
+
+/**
+ * Figure style 3 ("like Brilliant", chosen 26 Nov): a white sheet with a faint grid, big bodies with a soft fill and a
+ * darker edge of the same hue, thin ink lines. Rolled out figure by figure (CLEAN in figures/Sheet.tsx).
+ */
+export const soft = {
+  paper: '#FFFFFF',
+  border: '#E3E5E8',
+  grid: '#EFF1F4',
+  A: { fill: '#CDB0F2', edge: '#8650CB' },
+  B: { fill: '#A9DED3', edge: '#23816F' },
+  metal: { fill: '#E9EBEF', edge: '#8B93A1' },
+};
+export type Soft = typeof soft;
+
+export const darkSoft: Soft = {
+  paper: '#171B22',
+  border: '#2C323D',
+  grid: '#222833',
+  A: { fill: '#4F3878', edge: '#B494EC' },
+  B: { fill: '#1E534A', edge: '#62C3B1' },
+  metal: { fill: '#2D333F', edge: '#808999' },
+};

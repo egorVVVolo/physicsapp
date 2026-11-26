@@ -188,7 +188,7 @@ export type ChaseFig = {
 };
 
 /**
- * A straight east–west track seen from the side, with a lamp post at 0 m. Each runner has a lane and a run made of
+ * A straight east–west track seen from the side, with a start dot at 0 m. Each runner has a lane and a run made of
  * parts of steady velocity (a `Trip`, east positive); positions come from tripPosition (src/physics/kinematics).
  * Runner A's two legs can be drawn as arrows above its lane, and each runner's displacement as an arrow below it.
  */
@@ -199,17 +199,19 @@ export type TrackFig = {
   tEnd: number;
   /** Which way is positive: the + on the ruler, the signs in the header and on the labels. */
   plus: 'east' | 'west';
-  /** Where the runners stand while the figure is still: at the lamp post, at the finish, or `mid` seconds into the run. */
+  /** Where the runners stand while the figure is still: at the start, at the finish, or `mid` seconds into the run. */
   at?: 'start' | 'end' | number;
   /** Draw runner A's legs (each part of its run) as arrows above its lane, with their lengths. */
   legs?: true;
+  /** Give each lane its own start and no common ruler, so the drawing does not show where the runs end up. */
+  apart?: true;
   /** Each runner's displacement as an arrow below its lane: shown, only once the question is answered, or "s = ?". */
   disp?: 'shown' | 'afterCheck' | 'unknown';
-  /** Write the numbers on the ruler (otherwise only 0 at the lamp post). */
+  /** Write the numbers on the ruler (otherwise only 0 at the start). */
   numbers?: true;
   /** Write each runner's velocity, with its sign, above its arrow. */
   values?: true;
-  /** Play the race from the lamp post to the finish, sped up (the sheet says how much), again and again. */
+  /** Play the race from the start to the finish, sped up (the sheet says how much), again and again. */
   play?: true;
 };
 

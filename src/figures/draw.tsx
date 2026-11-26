@@ -172,7 +172,7 @@ function useReadable(size: number, min: number): number {
 
 /** The size a mono label of `size` is drawn at on this sheet (labels grow to stay readable). */
 export function useMonoSize(size: number): number {
-  return useReadable(size, MONO_MIN);
+  return useReadable(size, useContext(SheetClean) ? CLEAN_MIN : MONO_MIN);
 }
 
 /** The distance from one line of a two-line mono label to the next, for labels of this size (they may have grown). */
@@ -192,12 +192,17 @@ export function useTooSmall(size: number): boolean {
   return size < useContext(SheetMinText);
 }
 
-/** A small label in the drawing-sheet voice (IBM Plex Mono). */
+/** True on a sheet in figure style 3: its labels are larger and in the app's own display face, not mono. */
+export const SheetClean = createContext(false);
+const CLEAN_MIN = 12.5;
+
+/** A small label in the drawing-sheet voice (IBM Plex Mono; Space Grotesk on a style-3 sheet). */
 export function MonoLabel({ x, y, text, color, size = 10, anchor = 'middle' }: { x: number; y: number; text: string; color: string; size?: number; anchor?: 'start' | 'middle' | 'end' }) {
-  const fontSize = useReadable(size, MONO_MIN);
+  const clean = useContext(SheetClean);
+  const fontSize = useMonoSize(size);
   if (useTooSmall(fontSize)) return null;
   return (
-    <SvgText x={x} y={y} fontSize={fontSize} fill={color} fontFamily={svgMono} textAnchor={anchor} letterSpacing={0.6}>
+    <SvgText x={x} y={y} fontSize={fontSize} fill={color} fontFamily={clean ? svgLetter : svgMono} textAnchor={anchor} letterSpacing={clean ? 0 : 0.6}>
       {text}
     </SvgText>
   );
