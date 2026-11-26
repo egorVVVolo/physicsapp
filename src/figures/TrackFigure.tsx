@@ -43,6 +43,8 @@ const PEN = {
 /** y of the ground of each runner's lane: two lanes, or one in the middle when a runner is alone. */
 function groundOf(fig: TrackFig, id: 'A' | 'B'): number {
   if (fig.runners.length === 1) return 150;
+  // with both routes drawn, runner A needs room above for two arrows
+  if (fig.legs) return id === 'A' ? 116 : 182;
   return id === 'A' ? 92 : 176;
 }
 
@@ -109,6 +111,7 @@ export function TrackFigure({ fig, live, playing, clock = STILL }: Props) {
   const moving = t > 1e-9 && !ended;
   const topGround = Math.min(...fig.runners.map((r) => groundOf(fig, r.id)));
   const runnerA = fig.runners.find((r) => r.id === 'A');
+  const runnerB = fig.runners.find((r) => r.id === 'B');
 
   return (
     <Group>
@@ -121,7 +124,9 @@ export function TrackFigure({ fig, live, playing, clock = STILL }: Props) {
       <LampPost x={x0} y={topGround} clock={clock} />
 
       {/* runner A's legs: one arrow per part of its run, stacked above its lane, joined where it turns */}
-      {fig.legs && runnerA && stage(clock, PEN.marks, <Legs trip={runnerA.trip} tEnd={fig.tEnd} top={groundOf(fig, 'A') - 104} X={X} />)}
+      {fig.legs && runnerA && stage(clock, PEN.marks, <Legs trip={runnerA.trip} tEnd={fig.tEnd} top={fig.runners.length > 1 ? 16 : groundOf(fig, 'A') - 104} gap={fig.runners.length > 1 ? 18 : 20} X={X} />)}
+      {/* runner B's one leg goes under its lane, its length written past the tail (until a displacement takes the place) */}
+      {fig.legs && runnerB && fig.disp === undefined && stage(clock, PEN.marks, <Route x1={x0} x2={X(tripPosition(fig.tEnd, runnerB.trip))} y={groundOf(fig, 'B') + 19} text={routeText(tripPosition(fig.tEnd, runnerB.trip))} />)}
 
       {plays && !reduced && <MonoLabel x={332} y={11} text={`t = ${fixed(t, 0)} s   × ${TRACK_SPEEDUP}`} color={p.label} size={9} anchor="end" />}
 
@@ -148,6 +153,11 @@ export function TrackFigure({ fig, live, playing, clock = STILL }: Props) {
       })}
     </Group>
   );
+}
+
+/** "200 m W": how far a one-way route goes, and which way. */
+function routeText(s: number): string {
+  return `${fixed(Math.abs(s), 0)} m ${s > 0 ? 'E' : 'W'}`;
 }
 
 /** "+300 m", "−200 m", "0 m". */
@@ -196,24 +206,35 @@ function LampPost({ x, y, clock }: { x: number; y: number; clock: DrawClock }) {
 }
 
 /** Each part of a run as an arrow, stacked one under the next and joined where the runner turns, with its length. */
-function Legs({ trip, tEnd, top, X }: { trip: Trip; tEnd: number; top: number; X: (s: number) => number }) {
+function Legs({ trip, tEnd, top, gap, X }: { trip: Trip; tEnd: number; top: number; gap: number; X: (s: number) => number }) {
   const { palette: p, material: m } = useTheme();
   const ts = corners(trip, Math.min(tEnd, tripDuration(trip)));
   const parts = ts.slice(1).map((t, i) => ({ from: tripPosition(ts[i], trip), to: tripPosition(t, trip) }));
   return (
     <Group>
       {parts.map((part, i) => {
-        const y = top + i * 20;
+        const y = top + i * gap;
         const east = part.to > part.from;
         const len = Math.abs(part.to - part.from);
         return (
           <Group key={i}>
-            {i > 0 && <Line x1={X(part.from)} y1={y - 20} x2={X(part.from)} y2={y} stroke={p.label} strokeWidth={stroke.thin} strokeDasharray="2 3" />}
+            {i > 0 && <Line x1={X(part.from)} y1={y - gap} x2={X(part.from)} y2={y} stroke={p.label} strokeWidth={stroke.thin} strokeDasharray="2 3" />}
             <ForceArrow x1={X(part.from)} y1={y} x2={X(part.to)} y2={y} color={p.draw} width={1.8} />
             <Tag x={(X(part.from) + X(part.to)) / 2} y={y - 5} text={`${fixed(len, 0)} m ${east ? 'E' : 'W'}`} />
           </Group>
         );
       })}
+    </Group>
+  );
+}
+
+/** A one-way route: the same thin arrow as runner A's legs, from the lamp post, with its length and direction beside it. */
+function Route({ x1, x2, y, text }: { x1: number; x2: number; y: number; text: string }) {
+  const { palette: p } = useTheme();
+  return (
+    <Group>
+      <ForceArrow x1={x1} y1={y} x2={x2} y2={y} color={p.draw} width={1.8} />
+      <Tag x={x2 < x1 ? x1 + 8 : x1 - 8} y={y + 3.5} text={text} anchor={x2 < x1 ? 'start' : 'end'} />
     </Group>
   );
 }

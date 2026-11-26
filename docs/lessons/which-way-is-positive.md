@@ -84,3 +84,18 @@ Pilot lesson of format v3 (task D1). The puzzle, its answer and the recap are un
 Skill check: **build** the swimmer's resultant (was a choice with four numbers), **spotError** for the wall bounce (the working uses sizes, −2.0 instead of −10.0), **choice** on the sign of the acceleration of a cyclist braking while riding west (options differ by idea), **exam card** on the half lap: (a) State the difference between distance and displacement [1], (b) Calculate the size of the average velocity [2] (build, 127 m ÷ 40 s = 3.2 m s⁻¹).
 
 Deviations from the task text: the hiker (3 + 4 km) became the worked example in the story, so the Skill check build uses the swimmer instead; the "choice" rule needed one more non-choice interactive screen, hence the worked example.
+
+## v3.1 changes (26 Nov)
+
+Polish pilot (V3 task L1; rules in `docs/V3_TASKS.md`, the lesson checklist). The puzzle and its answer are unchanged. 14 screens + 4 Skill check.
+
+| Was | Now | Why |
+|---|---|---|
+| the prediction's figure showed the runners only | both routes drawn: A 300 m E and 500 m W, B 200 m W (`track` with `legs`, new route arrow for B) | the prediction is answerable from the sheet |
+| text `distance` before the estimate | merged into the estimate's explanation | less reading |
+| build `v = s ÷ t`, the formula written in the question | the learner first picks the equation (s ÷ t, d ÷ t, t ÷ s); same-unit wrong chips 75 s and 125 s (the two legs); the displacement is written on the sheet only after Check | no answering by units |
+| Noor's wrong line: the sum (line 3) | the wrong line is the rule (line 2); the sum follows it | find the idea, not the arithmetic |
+| text `rules` (adding vectors) | removed; the scale drawing is in the bearing question's explanation | the card already sums up the lesson |
+| the story ended on the explore slider | a transfer sort: which of five new journeys have zero average velocity | the idea in new situations, no numbers |
+| bounce (Skill check): the subtraction was wrong | the sign in line 1 is wrong and the rest follows | the two spot-the-error screens differ |
+| exam card (b): one time chip | 80 s (a whole lap) as a same-unit wrong chip | no answering by units |

@@ -392,7 +392,7 @@ test('the v3 rules catch every kind of break', () => {
 // ── Polish rules (docs/V3_TASKS.md, lesson checklist 1–8) ─────────────────────────────────
 
 /** Lessons already polished: every polish rule must hold for them. The last task (L12) drops the set. */
-const POLISHED = new Set<string>([]);
+const POLISHED = new Set<string>(['vectors-signs']);
 
 /** "−200 m" → "# m", "9.81 N kg⁻¹" → "# N kg⁻¹", "2.0 × 10⁻³" → "#": a chip's label with its number taken out. */
 const unitOf = (label: string) => label.replace(/[−\-+]?[\d.,]+(\s| )?(×\s?10[⁻⁰¹²³⁴⁵⁶⁷⁸⁹]+)?/g, '#').replace(/\s+/g, ' ').trim();

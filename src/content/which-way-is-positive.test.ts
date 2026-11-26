@@ -36,6 +36,10 @@ test('average velocity is built from the displacement: −1.0 m s⁻¹; the wron
   assert.equal(chip(b, 'time'), `200${NB}s`);
   assert.equal(chip(b, 'path'), `800${NB}m`);
   assert.equal(chip(b, 'plus'), `+200${NB}m`);
+  // the same-unit wrong times are the two legs of runner A's run
+  assert.equal(chip(b, 'first'), `${RUN_A.phases[0].dt}${NB}s`);
+  assert.equal(chip(b, 'second'), `${RUN_A.phases[1].dt}${NB}s`);
+  assert.equal(b.choose!.options.find((o) => o.correct)!.label, 'v = s ÷ t');
   near(b.result.value, X.dispA / T);
   assert.equal(label('flip', 'right'), `+1.0${NB}m${NB}s⁻¹`);
   assert.equal(label('flip', 'speed'), `+4.0${NB}m${NB}s⁻¹`);
@@ -51,9 +55,10 @@ test('the sort: every quantity is in its right bin', () => {
 test("Noor's mistake: she divided the distance, 800 m ÷ 200 s = 4.0 m s⁻¹, the average speed", () => {
   const w = spot('working');
   const wrong = w.lines.find((l) => l.wrong)!;
-  assert.equal(wrong.id, 'calc');
-  assert.ok(wrong.text.includes(`800${NB}m`) && wrong.text.includes(`+4.0${NB}m${NB}s⁻¹`));
-  assert.ok(wrong.fix!.includes(`−1.0${NB}m${NB}s⁻¹`));
+  assert.equal(wrong.id, 'rule');
+  assert.ok(wrong.text.includes('distance') && wrong.fix!.includes('displacement'));
+  const calc = w.lines.find((l) => l.id === 'calc')!;
+  assert.ok(calc.text.includes(`800${NB}m`) && calc.text.includes(`+4.0${NB}m${NB}s⁻¹`));
   near(X.distA / T, 4);
 });
 
@@ -93,7 +98,7 @@ test('the hiker: 5.0 km at 53° east of north (7.0 km walked), worked through th
   assert.equal(label('bearing', 'from-east'), '37° east of north');
 });
 
-test('Skill check: river 1.5 m s⁻¹ (built), bounce −10.0 m s⁻¹ (the −2.0 line is wrong), braking west is a positive acceleration', () => {
+test('Skill check: river 1.5 m s⁻¹ (built), bounce −10.0 m s⁻¹ (the sign in line 1 is wrong), braking west is a positive acceleration', () => {
   near(X.swim.right, Math.hypot(SWIM.across, SWIM.current));
   const r = build('river');
   assert.equal(r.result.value, X.swim.right);
@@ -103,7 +108,9 @@ test('Skill check: river 1.5 m s⁻¹ (built), bounce −10.0 m s⁻¹ (the −2
   near(X.bounce.right, BOUNCE.v - BOUNCE.u);
   near(X.bounce.sizes, -2);
   const wrong = spot('bounce').lines.find((l) => l.wrong)!;
-  assert.ok(wrong.text.includes(`−2.0${NB}m${NB}s⁻¹`) && wrong.fix!.includes(`−10.0${NB}m${NB}s⁻¹`));
+  assert.equal(wrong.id, 'signs');
+  assert.ok(wrong.text.includes(`+4.0${NB}m${NB}s⁻¹`) && wrong.fix!.includes(`−4.0${NB}m${NB}s⁻¹`));
+  assert.ok(spot('bounce').lines.find((l) => l.id === 'calc')!.text.includes(`−2.0${NB}m${NB}s⁻¹`));
   assert.equal(right('brake-sign'), 'right');
   // the sign of the acceleration of a cyclist braking from west-moving to rest
   assert.ok((0 - -5) / 3 > 0);
@@ -118,6 +125,7 @@ test('the exam card: half a lap, displacement is the diameter, 3.2 m s⁻¹, 2 m
   if (b.kind === 'build') {
     assert.equal(b.build.chips.find((c) => c.id === 'chord')!.label, `127${NB}m`);
     assert.equal(b.build.chips.find((c) => c.id === 'half')!.label, `200${NB}m`);
+    assert.equal(b.build.chips.find((c) => c.id === 'whole')!.label, `${LAP.t * 2}${NB}s`);
     near(b.build.result.value, X.lap.right);
   }
   assert.equal(`${X.lap.right.toFixed(1)}`, '3.2');
@@ -131,4 +139,10 @@ test('every option label is different within a question', () => {
       assert.equal(new Set(labels).size, labels.length, `${s.id}: two options read the same: ${labels.join(' | ')}`);
     }
   }
+});
+
+test('the transfer sort: only a journey that ends at its start has no average velocity', () => {
+  const sort = L.story.at(-1) as SortScreen;
+  assert.equal(sort.id, 'transfer');
+  for (const item of sort.items) assert.equal(item.bin, ['lift', 'lap', 'ball'].includes(item.id) ? 'zero' : 'not', item.id);
 });
