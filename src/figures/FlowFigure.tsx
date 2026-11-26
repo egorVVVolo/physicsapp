@@ -5,7 +5,7 @@
 // the flow comes round the front smoothly, then breaks away and curls into eddies behind it, which spin and drift.
 // That half is a sketch, not a model: no simple law gives turbulent flow. Both panels are tap targets.
 import { useMemo } from 'react';
-import { G as Group, Line, Path } from 'react-native-svg';
+import { Circle, G as Group, Line, Path } from 'react-native-svg';
 import { sig } from '@/physics/format';
 import { glycerolViscosity, RHO_GLYCEROL, stokesTerminal, streamlineOffset, turbulentTerminal } from '@/physics/viscosity';
 import { FLOW_IDS, type FlowFig } from '@/content/types';
@@ -105,7 +105,7 @@ function eddy(x: number, y: number, r: number, angle: number, sense: 1 | -1): st
 type Props = { fig: FlowFig; playing: boolean; tap?: TapProps; clock?: DrawClock };
 
 export function FlowFigure({ fig, playing, tap, clock = STILL }: Props) {
-  const { palette: p, material: m } = useTheme();
+  const { palette: p, soft } = useTheme();
   const t = useLoopTime(playing && !clock.on, LOOP, 'flow', 0);
   const vG = stokesTerminal(fig.r, fig.rho, RHO_GLYCEROL, glycerolViscosity(fig.T));
   const vW = turbulentTerminal(fig.r, fig.rho, 1000);
@@ -152,10 +152,7 @@ export function FlowFigure({ fig, playing, tap, clock = STILL }: Props) {
         PEN.ball,
         <Group>
           {(['glycerol', 'water'] as const).map((id) => (
-            <Group key={id}>
-              <Path d={`M${CX[id] - A},${CY} a${A},${A} 0 1 0 ${2 * A},0 a${A},${A} 0 1 0 ${-2 * A},0 Z`} fill={m.metal} stroke={p.draw} strokeWidth={stroke.body} />
-              <Path d={`M${CX[id] - A * 0.55},${CY - A * 0.35} A${A * 0.62},${A * 0.62} 0 0 1 ${CX[id] + A * 0.2},${CY - A * 0.68}`} stroke={p.paper} strokeWidth={stroke.body} fill="none" strokeLinecap="round" />
-            </Group>
+            <Circle key={id} cx={CX[id]} cy={CY} r={A} fill={soft.A.fill} stroke={soft.A.edge} strokeWidth={2} />
           ))}
           <Line x1={170} y1={20} x2={170} y2={214} stroke={p.paperLine} strokeWidth={stroke.thin} />
         </Group>,
@@ -164,8 +161,8 @@ export function FlowFigure({ fig, playing, tap, clock = STILL }: Props) {
       {stage(clock, 
         PEN.labels,
         <Group>
-          <MonoLabel x={CX.glycerol} y={24} text="GLYCEROL" color={p.label} size={9} />
-          <MonoLabel x={CX.water} y={24} text="WATER" color={p.label} size={9} />
+          <MonoLabel x={CX.glycerol} y={24} text="Glycerol" color={p.label} size={9} />
+          <MonoLabel x={CX.water} y={24} text="Water" color={p.label} size={9} />
           <MonoLabel x={CX.glycerol} y={213} text={`ball at ${sig(vG * 100)} cm s⁻¹`} color={p.ink} size={9} />
           <MonoLabel x={CX.water} y={213} text={`ball at ${sig(vW * 100, 2)} cm s⁻¹`} color={p.ink} size={9} />
         </Group>,

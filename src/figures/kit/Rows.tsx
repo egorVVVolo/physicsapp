@@ -1,9 +1,10 @@
 // Label–value rows like a lab notebook: the name on the left, the value on the right, a hairline under each.
 // When a name and its value do not fit side by side (labels grow to stay readable), the value drops under its name.
+import { useContext } from 'react';
 import { G as Group, Line } from 'react-native-svg';
 import { useTheme } from '@/theme/ThemeContext';
 import { stroke } from '@/theme/tokens';
-import { MonoLabel, useMonoSize } from '../draw';
+import { MonoLabel, SheetClean, useMonoSize } from '../draw';
 
 export type Row = [name: string, value: string, color?: string, strong?: boolean];
 
@@ -12,9 +13,11 @@ export function Rows({ rows, x, right, y0, step, note }: { rows: Row[]; x: numbe
   const { palette: p } = useTheme();
   const nameSize = useMonoSize(8.5);
   const valueSize = useMonoSize(10);
+  // how wide a character is, in sizes: the style-3 face is narrower than the mono one
+  const wide = useContext(SheetClean) ? 0.54 : 0.64;
   let y = y0;
   const placed = rows.map(([name, value, color, strong]) => {
-    const fits = name.length * nameSize * 0.64 + value.length * valueSize * 0.64 + 10 <= right - x;
+    const fits = name.length * nameSize * wide + value.length * valueSize * wide + 8 <= right - x;
     const at = { name, value, color, strong, y, vy: fits ? y : y + valueSize * 1.2 };
     y = at.vy + step;
     return at;

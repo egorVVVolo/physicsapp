@@ -66,7 +66,7 @@ function useDrift(v: number, running: boolean, length: number): number {
 type Props = { fig: TubeFig; live?: number; playing: boolean; clock?: DrawClock };
 
 export function TubeFigure({ fig, live, playing, clock = STILL }: Props) {
-  const { palette: p, material: m } = useTheme();
+  const { palette: p, soft, material: m } = useTheme();
   const reduced = useReducedMotionPref();
   const T = live ?? fig.T;
   const eta = glycerolViscosity(T);
@@ -78,8 +78,6 @@ export function TubeFigure({ fig, live, playing, clock = STILL }: Props) {
   const drift = useDrift(vNow, live !== undefined && playing && !reduced && !clock.on, DEPTH - 4);
   const balls = fig.balls.map((r) => (live !== undefined ? { ...ballAt(r, fig.rho, eta, 0), s: drift } : ballAt(r, fig.rho, eta, t)));
   const lanes = balls.length === 1 ? [84] : [74, 96];
-  const dashes: string[] = [];
-  for (let y = SURFACE + 9; y < TUBE.bottom - 3; y += 9) for (let x = TUBE.x1 + 4 + ((y / 9) % 2) * 6; x < TUBE.x2 - 6; x += 12) dashes.push(`M${x},${y} h5`);
   const ticks: string[] = [];
   for (let cm = 0; cm <= DEPTH; cm++) ticks.push(`M40,${SURFACE + cm * K} h${cm % 10 === 0 ? 7 : cm % 5 === 0 ? 5 : 3}`);
   const Y = (cm: number) => SURFACE + cm * K;
@@ -92,7 +90,6 @@ export function TubeFigure({ fig, live, playing, clock = STILL }: Props) {
         PEN.liquid,
         <Group>
           <Rect x={TUBE.x1} y={SURFACE} width={TUBE.x2 - TUBE.x1} height={TUBE.bottom - SURFACE} fill={m.water} />
-          <Path d={dashes.join(' ')} stroke={p.label} strokeWidth={stroke.hair} opacity={0.35} />
           <Line x1={TUBE.x1} y1={SURFACE} x2={TUBE.x2} y2={SURFACE} stroke={p.draw} strokeWidth={stroke.thin} />
         </Group>,
       )}
@@ -102,7 +99,7 @@ export function TubeFigure({ fig, live, playing, clock = STILL }: Props) {
         <Group>
           {balls.map((b, i) => {
             const rr = b.r * 1000 * DRAW_R;
-            return <Ball key={i} look="steel" x={lanes[i]} y={SURFACE + rr + b.s * K} r={rr} />;
+            return <Ball key={i} look="steel" tone={i === 0 ? 'A' : 'B'} x={lanes[i]} y={SURFACE + rr + b.s * K} r={rr} />;
           })}
         </Group>,
       )}
@@ -112,7 +109,7 @@ export function TubeFigure({ fig, live, playing, clock = STILL }: Props) {
         <Group>
           {/* the glass: walls, a rounded bottom, a foot; the rubber bands round it; the ruler beside it */}
           <Path d={`M${TUBE.x1 - 2},${TUBE.top} V${TUBE.bottom + 2} H${TUBE.x2 + 2} V${TUBE.top}`} stroke={p.draw} strokeWidth={stroke.force} fill="none" strokeLinejoin="round" />
-          <Rect x={TUBE.x1 - 12} y={TUBE.bottom + 2} width={TUBE.x2 - TUBE.x1 + 24} height={6} rx={1.5} fill={m.metalSide} stroke={p.draw} strokeWidth={stroke.thin} />
+          <Rect x={TUBE.x1 - 12} y={TUBE.bottom + 2} width={TUBE.x2 - TUBE.x1 + 24} height={6} rx={3} fill={soft.metal.fill} stroke={p.draw} strokeWidth={stroke.thin} />
           {BANDS.map((cm) => (
             <Rect key={cm} x={TUBE.x1 - 5} y={Y(cm) - 2.5} width={TUBE.x2 - TUBE.x1 + 10} height={5} rx={1.5} fill={p.draw} />
           ))}
@@ -123,7 +120,7 @@ export function TubeFigure({ fig, live, playing, clock = STILL }: Props) {
           ))}
           <MonoLabel x={TUBE.x2 + 8} y={(Y(BANDS[0]) + Y(BANDS[1])) / 2 + 3} text="10.0" color={p.label} size={8} anchor="start" />
           <Path d={`M${TUBE.x2 + 12},${Y(BANDS[0]) + 4} V${(Y(BANDS[0]) + Y(BANDS[1])) / 2 - 8} M${TUBE.x2 + 12},${(Y(BANDS[0]) + Y(BANDS[1])) / 2 + 8} V${Y(BANDS[1]) - 4}`} stroke={p.label} strokeWidth={stroke.hair} />
-          <MonoLabel x={PX} y={BENCH + 8} text="BALLS × 5" color={p.label} size={7.5} anchor="start" />
+          <MonoLabel x={PX} y={BENCH + 8} text="balls × 5" color={p.label} size={7.5} anchor="start" />
         </Group>,
       )}
 
@@ -146,13 +143,13 @@ const cms = (v: number) => `${sig(v * 100)} cm s⁻¹`;
 const newtons = (x: number) => `${sci(x)} N`;
 
 function Panel({ fig, eta, T, t, vLive }: { fig: TubeFig; eta: number; T: number; t: number; vLive?: number }) {
-  const { palette: p, material: m } = useTheme();
+  const { palette: p } = useTheme();
   const asked = fig.ask !== undefined;
   const last = fig.balls.length - 1;
   if (fig.panel === 'speeds') {
     return (
       <Group>
-        <MonoLabel x={PX} y={40} text="TERMINAL VELOCITY" color={p.label} size={8.5} anchor="start" />
+        <MonoLabel x={PX} y={40} text="Terminal velocity" color={p.label} size={8.5} anchor="start" />
         <PanelRows rows={fig.balls.map((r, i): [string, string] => [`${mm(r)} ball`, asked && i === last ? '? cm s⁻¹' : cms(stokesTerminal(r, fig.rho, RHO_GLYCEROL, eta))])} />
         <MonoLabel x={PX} y={64 + fig.balls.length * 24 + 4} text={`steel, ${fig.rho} kg m⁻³`} color={p.label} size={8.5} anchor="start" />
       </Group>
@@ -186,7 +183,7 @@ function Panel({ fig, eta, T, t, vLive }: { fig: TubeFig; eta: number; T: number
     return (
       <Group>
         <Thermometer x={176} T={T} />
-        <MonoLabel x={206} y={40} text="GLYCEROL" color={p.label} size={8.5} anchor="start" />
+        <MonoLabel x={206} y={40} text="Glycerol" color={p.label} size={8.5} anchor="start" />
         <PanelRows
           x={206}
           rows={[
@@ -205,7 +202,7 @@ function Panel({ fig, eta, T, t, vLive }: { fig: TubeFig; eta: number; T: number
 
 /** The small ball magnified (× 20, at the tube's scale): W down from its centre; U, then F stacked on it, up. To one scale. */
 function Forces({ fig, eta }: { fig: TubeFig; eta: number }) {
-  const { palette: p, material: m } = useTheme();
+  const { palette: p } = useTheme();
   const r = fig.balls[0];
   const W = sphereWeight(r, fig.rho);
   const U = sphereUpthrust(r, RHO_GLYCEROL);
@@ -229,7 +226,7 @@ function Forces({ fig, eta }: { fig: TubeFig; eta: number }) {
       <ForceArrow x1={cx} y1={uTop - 3} x2={cx} y2={fTop} color={p.force} width={3} dashed={asked} />
       <ForceLetter x={cx + 9} y={fTop + 12} text={asked ? 'F ?' : 'F'} color={p.force} size={13} anchor="start" />
       <Circle cx={cx} cy={cy} r={2.6} fill={p.force} />
-      <MonoLabel x={238} y={40} text="STEADY SPEED" color={p.label} size={8.5} anchor="start" />
+      <MonoLabel x={238} y={40} text="Steady speed" color={p.label} size={8.5} anchor="start" />
       <PanelRows
         x={238}
         rows={[
@@ -244,7 +241,7 @@ function Forces({ fig, eta }: { fig: TubeFig; eta: number }) {
 
 /** The two balls magnified (× 10) side by side, with their weights; the big one's "?" until the question is answered. */
 function Weights({ fig }: { fig: TubeFig }) {
-  const { palette: p, material: m } = useTheme();
+  const { palette: p } = useTheme();
   return (
     <Group>
       <MonoLabel x={PX} y={22} text="× 10" color={p.label} size={8.5} anchor="start" />
@@ -255,7 +252,7 @@ function Weights({ fig }: { fig: TubeFig }) {
         const asked = fig.ask !== undefined && i === fig.balls.length - 1;
         return (
           <Group key={i}>
-            <Ball look="steel" x={x} y={96} r={rr} />
+            <Ball look="steel" tone={i === 0 ? 'A' : 'B'} x={x} y={96} r={rr} />
             <Line x1={x - rr} y1={96 + 30} x2={x + rr} y2={96 + 30} stroke={p.label} strokeWidth={stroke.hair} />
             <Path d={`M${x - rr},${126 - 4} v8 M${x + rr},${126 - 4} v8`} stroke={p.label} strokeWidth={stroke.hair} />
             <MonoLabel x={x} y={142} text={mm(r)} color={p.label} size={8.5} />
@@ -270,7 +267,7 @@ function Weights({ fig }: { fig: TubeFig }) {
 
 /** A stopwatch whose hand goes round once every 10 s. */
 function Stopwatch({ x, y, t }: { x: number; y: number; t: number }) {
-  const { palette: p, material: m } = useTheme();
+  const { palette: p } = useTheme();
   const a = (t / 10) * 2 * Math.PI;
   const r = 15;
   const ticks: string[] = [];
@@ -291,7 +288,7 @@ function Stopwatch({ x, y, t }: { x: number; y: number; t: number }) {
 
 /** A thermometer from 0 to 50 °C, its column at T. */
 function Thermometer({ x, T }: { x: number; T: number }) {
-  const { palette: p, material: m } = useTheme();
+  const { palette: p } = useTheme();
   const top = 46;
   const bottom = 176;
   const yT = bottom - ((bottom - top) * T) / 50;

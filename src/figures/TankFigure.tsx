@@ -81,8 +81,8 @@ export function TankFigure({ fig, live, playing, clock = STILL }: Props) {
     const k = 5.4;
     return (
       <Group>
-        <TankScene n={n} k={k} x0={22} state={{ carried: 1, block: 'deck' }} clock={clock} title="ON BOARD" note={`${sig(n.withBlock - n.boatOnly)} cm³ for the block`} />
-        <TankScene n={n} k={k} x0={190} state={{ carried: 0, block: { x: n.floorX, y: 0 } }} clock={clock} title="ON THE BOTTOM" note={`${sig(n.V)} cm³ for the block`} levels />
+        <TankScene n={n} k={k} x0={22} state={{ carried: 1, block: 'deck' }} clock={clock} title="On board" note={`${sig(n.withBlock - n.boatOnly)} cm³ for the block`} />
+        <TankScene n={n} k={k} x0={190} state={{ carried: 0, block: { x: n.floorX, y: 0 } }} clock={clock} title="On the bottom" note={`${sig(n.V)} cm³ for the block`} levels />
       </Group>
     );
   }
@@ -108,7 +108,7 @@ export function TankFigure({ fig, live, playing, clock = STILL }: Props) {
 
 /** One tank at `k` viewBox units per cm, its inside left wall at `x0`. */
 function TankScene({ n, k, x0, state, clock, levels, ruler, title, note }: { n: Num; k: number; x0: number; state: State; clock: DrawClock; levels?: boolean; ruler?: boolean; title?: string; note?: string }) {
-  const { palette: p, material: m } = useTheme();
+  const { palette: p, soft, material: m } = useTheme();
   const X = (cm: number) => x0 + cm * k;
   const Y = (cm: number) => FLOOR - cm * k;
   const w = n.width * k;
@@ -119,9 +119,6 @@ function TankScene({ n, k, x0, state, clock, levels, ruler, title, note }: { n: 
   const hullBottom = L - boat.draft;
   const bx = deck ? n.boatX + 1.2 : (state.block as { x: number }).x;
   const by = deck ? boat.deck : (state.block as { y: number }).y;
-  // water: a pale fill below the surface, short dashes, a firm surface line
-  const dashes: string[] = [];
-  for (let yy = Y(L) + 9; yy < FLOOR - 3; yy += 9) for (let xx = x0 + 6 + ((yy / 9) % 2) * 8; xx < x0 + w - 10; xx += 16) dashes.push(`M${xx},${yy} h7`);
   const hull = hullPath(X(n.boatX), Y(hullBottom), HULL.len * k, HULL.h * k);
   const oldLevel = n.onBoard;
   return (
@@ -132,17 +129,13 @@ function TankScene({ n, k, x0, state, clock, levels, ruler, title, note }: { n: 
       {stage(clock, 
         PEN.boat,
         <Group>
-          <Path d={hull} fill={m.wood} stroke={p.draw} strokeWidth={stroke.body} strokeLinejoin="round" />
-          <Line x1={X(n.boatX) - (HULL.len * k) / 2 + 4} y1={Y(hullBottom + HULL.h) + 3} x2={X(n.boatX) + (HULL.len * k) / 2 - 2} y2={Y(hullBottom + HULL.h) + 3} stroke={p.draw} strokeWidth={stroke.hair} opacity={0.5} />
-          {/* a bollard at the stern */}
-          <Rect x={X(n.boatX) - (HULL.len * k) / 2 + 5} y={Y(hullBottom + HULL.h) - 5} width={4} height={5} fill={p.draw} />
+          <Path d={hull} fill={soft.A.fill} stroke={soft.A.edge} strokeWidth={2} strokeLinejoin="round" />
         </Group>,
       )}
-      {/* the water's dashes and surface over the boat and the block, then the glass */}
+      {/* the water's surface over the boat and the block, then the glass */}
       {stage(clock, 
         PEN.water,
         <Group>
-          <Path d={dashes.join(' ')} stroke={p.label} strokeWidth={stroke.hair} opacity={0.4} />
           <Line x1={x0} y1={Y(L)} x2={x0 + w} y2={Y(L)} stroke={p.draw} strokeWidth={stroke.thin} />
         </Group>,
       )}
@@ -150,7 +143,6 @@ function TankScene({ n, k, x0, state, clock, levels, ruler, title, note }: { n: 
         PEN.tank,
         <Group>
           <Path d={`M${x0 - 2},${top} V${FLOOR + 2} H${x0 + w + 2} V${top}`} stroke={p.draw} strokeWidth={stroke.force} fill="none" strokeLinejoin="round" />
-          <Path d={`M${x0 + 3},${top + 6} V${top + 30} M${x0 + w - 3},${top + 6} V${top + 18}`} stroke={p.label} strokeWidth={stroke.thin} opacity={0.5} />
           {ruler && <TankRuler x={x0 - 6} k={k} />}
         </Group>,
       )}
@@ -182,22 +174,15 @@ function hullPath(x: number, yb: number, len: number, h: number): string {
   return `M${l},${yb - h} H${r + 4} L${r - 8},${yb} H${l + 2} L${l},${yb - 3} Z`;
 }
 
-/** The steel block in flat 3D: a front face and a lighter top face. `x`: its middle, `yb`: its bottom. */
+/** The steel block. `x`: its middle, `yb`: its bottom. */
 function Block({ x, yb, w, h }: { x: number; yb: number; w: number; h: number }) {
-  const { palette: p, material: m } = useTheme();
-  const d = Math.min(6, w * 0.18);
-  return (
-    <Group>
-      <Path d={`M${x - w / 2},${yb - h} l${d},${-d} h${w} l${-d},${d} Z`} fill={m.metal} stroke={p.draw} strokeWidth={stroke.thin} strokeLinejoin="round" />
-      <Path d={`M${x + w / 2},${yb} l${d},${-d} v${-h} l${-d},${d} Z`} fill={p.label} stroke={p.draw} strokeWidth={stroke.thin} strokeLinejoin="round" />
-      <Rect x={x - w / 2} y={yb - h} width={w} height={h} fill={m.metalSide} stroke={p.draw} strokeWidth={stroke.thin} />
-    </Group>
-  );
+  const { soft } = useTheme();
+  return <Rect x={x - w / 2} y={yb - h} width={w} height={h} rx={3} fill={soft.B.fill} stroke={soft.B.edge} strokeWidth={2} />;
 }
 
 /** A cm scale on the outside of the tank's left wall, 0 to 20. */
 function TankRuler({ x, k }: { x: number; k: number }) {
-  const { palette: p, material: m } = useTheme();
+  const { palette: p } = useTheme();
   const ticks: RulerTick[] = [];
   for (let c = 0; c <= TANK_H; c++) ticks.push({ at: FLOOR - c * k, len: c % 5 === 0 ? 6 : 3, label: c % 10 === 0 ? String(c) : undefined });
   return (
@@ -209,8 +194,8 @@ function TankRuler({ x, k }: { x: number; k: number }) {
 
 /** The numbers beside the tank: what the boat displaces, or the two levels. */
 function Panel({ fig, n, dropped, level }: { fig: TankFig; n: Num; dropped: boolean; level: number }) {
-  const { palette: p, material: m } = useTheme();
-  const x = 232;
+  const { palette: p } = useTheme();
+  const x = 226;
   const right = 334;
   const rows: [string, string, boolean?][] = [];
   if (fig.pushed) {
@@ -227,7 +212,7 @@ function Panel({ fig, n, dropped, level }: { fig: TankFig; n: Num; dropped: bool
     rows.push(['boat', `${fixed(fig.boat, 2)} kg`]);
     rows.push(['base', `${sig(n.area)} cm²`]);
   }
-  const title = fig.pushed ? 'DISPLACED' : fig.levels || dropped ? 'LEVEL' : 'TANK';
+  const title = fig.pushed ? 'Displaced' : fig.levels || dropped ? 'Level' : 'Tank';
   return (
     <Group>
       <MonoLabel x={x} y={58} text={title} color={p.label} size={9} anchor="start" />

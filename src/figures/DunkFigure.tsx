@@ -45,7 +45,7 @@ export function dunkParams(fig: DunkFig, live?: number): string {
 type Props = { fig: DunkFig; live?: number; clock?: DrawClock };
 
 export function DunkFigure({ fig, live, clock = STILL }: Props) {
-  const { palette: p, material: m } = useTheme();
+  const { palette: p, soft, material: m } = useTheme();
   const n = dunkNumbers(fig, live);
   const bw = n.side * K;
   const bh = fig.h * 100 * K;
@@ -63,11 +63,6 @@ export function DunkFigure({ fig, live, clock = STILL }: Props) {
   const cm3 = n.under * 1e6;
   const cylWater = cm3 * CYL.perCm3;
   const overflowShown = fig.overflow === 'shown';
-  const dashes = (x1: number, x2: number, y1: number, y2: number) => {
-    const d: string[] = [];
-    for (let y = y1 + 8; y < y2 - 2; y += 8) for (let x = x1 + 4 + ((y / 8) % 2) * 6; x < x2 - 6; x += 12) d.push(`M${x},${y} h5`);
-    return d.join(' ');
-  };
   const cylTicks: string[] = [];
   for (let v = 10; v * CYL.perCm3 < CYL.bottom - CYL.top - 4; v += 10) cylTicks.push(`M${CYL.x1},${CYL.bottom - v * CYL.perCm3} h${v % 50 === 0 ? 7 : 4}`);
   const uLen = n.U * KF;
@@ -81,9 +76,9 @@ export function DunkFigure({ fig, live, clock = STILL }: Props) {
         PEN.stand,
         <Group>
           {/* the stand: a base, a rod, a clamp at the newtonmeter's height */}
-          <Rect x={14} y={BENCH - 6} width={56} height={6} fill={m.metalSide} stroke={p.draw} strokeWidth={stroke.thin} />
+          <Rect x={14} y={BENCH - 6} width={56} height={6} rx={2} fill={soft.metal.fill} stroke={p.draw} strokeWidth={stroke.thin} />
           <Line x1={30} y1={BENCH - 6} x2={30} y2={6} stroke={p.draw} strokeWidth={stroke.force} />
-          <Rect x={25} y={armY - 5} width={10} height={10} rx={1.5} fill={m.metalSide} stroke={p.draw} strokeWidth={stroke.thin} />
+          <Rect x={25} y={armY - 5} width={10} height={10} rx={2} fill={soft.metal.fill} stroke={p.draw} strokeWidth={stroke.thin} />
           <Line x1={35} y1={armY} x2={CX + 4} y2={armY} stroke={p.draw} strokeWidth={stroke.body} />
           <Path d={`M${CX},${armY} V${meterTop}`} stroke={p.draw} strokeWidth={stroke.thin} />
         </Group>,
@@ -102,16 +97,13 @@ export function DunkFigure({ fig, live, clock = STILL }: Props) {
         PEN.hang,
         <Group>
           {/* the newtonmeter: a body with a window, a scale and a pointer; the string down to the block */}
-          <Rect x={CX - METER.w / 2} y={meterTop} width={METER.w} height={METER.h} rx={3} fill={m.metal} stroke={p.draw} strokeWidth={stroke.thin} />
+          <Rect x={CX - METER.w / 2} y={meterTop} width={METER.w} height={METER.h} rx={5} fill={soft.metal.fill} stroke={p.draw} strokeWidth={stroke.thin} />
           <Rect x={CX - 4} y={win.y1 - 2} width={8} height={win.y2 - win.y1 + 4} fill={p.paper} stroke={p.draw} strokeWidth={stroke.hair} />
           <Path d={ticks.join(' ')} stroke={p.label} strokeWidth={stroke.hair} />
           {fig.reading !== 'afterCheck' && <Line x1={CX - 6} y1={pointer} x2={CX + 6} y2={pointer} stroke={p.ink} strokeWidth={stroke.body} />}
           <Line x1={CX} y1={meterTop + METER.h} x2={CX} y2={ytop} stroke={p.draw} strokeWidth={stroke.thin} />
           <Circle cx={CX} cy={ytop} r={1.6} fill={p.draw} />
-          {/* the block, front face and a lighter top */}
-          <Path d={`M${CX - bw / 2},${ytop} l5,-5 h${bw} l-5,5 Z`} fill={m.metal} stroke={p.draw} strokeWidth={stroke.thin} strokeLinejoin="round" />
-          <Path d={`M${CX + bw / 2},${yb} l5,-5 v${-bh} l-5,5 Z`} fill={p.label} stroke={p.draw} strokeWidth={stroke.thin} strokeLinejoin="round" />
-          <Rect x={CX - bw / 2} y={ytop} width={bw} height={bh} fill={m.metalSide} stroke={p.draw} strokeWidth={stroke.thin} />
+          <Rect x={CX - bw / 2} y={ytop} width={bw} height={bh} rx={3} fill={soft.B.fill} stroke={soft.B.edge} strokeWidth={2} />
           {/* the reading, beside the newtonmeter */}
           {fig.reading && (
             <Group>
@@ -125,8 +117,7 @@ export function DunkFigure({ fig, live, clock = STILL }: Props) {
       {stage(clock, 
         PEN.can,
         <Group>
-          {/* the water's dashes and surface over the block, then the can and its spout, the cylinder and its scale */}
-          <Path d={dashes(CAN.x1, CAN.x2, SURFACE, CAN.bottom)} stroke={p.label} strokeWidth={stroke.hair} opacity={0.4} />
+          {/* the water's surface over the block, then the can and its spout, the cylinder and its scale */}
           <Line x1={CAN.x1} y1={SURFACE} x2={CAN.x2} y2={SURFACE} stroke={p.draw} strokeWidth={stroke.thin} />
           <Path d={`M${CAN.x1 - 2},${CAN.top} V${CAN.bottom + 2} H${CAN.x2 + 2} V${CAN.top}`} stroke={p.draw} strokeWidth={stroke.force} fill="none" strokeLinejoin="round" />
           <Path d={`M${CAN.x2 + 2},${SURFACE - 3} L${CYL.x1 + 8},${SURFACE + 3} M${CAN.x2 + 2},${SURFACE + 3} L${CYL.x1 + 6},${SURFACE + 9}`} stroke={p.draw} strokeWidth={stroke.body} fill="none" />
@@ -157,8 +148,8 @@ export function DunkFigure({ fig, live, clock = STILL }: Props) {
 
 /** The numbers beside the can. */
 function Panel({ fig, n, cm3 }: { fig: DunkFig; n: ReturnType<typeof dunkNumbers>; cm3: number }) {
-  const { palette: p, material: m } = useTheme();
-  const x = 228;
+  const { palette: p } = useTheme();
+  const x = 230;
   const right = 334;
   const over = fig.overflow === 'shown' ? `${sig(cm3, cm3 < 10 ? 2 : 3)} cm³` : '? cm³';
   const rows: [string, string, string?][] = [];
@@ -170,7 +161,7 @@ function Panel({ fig, n, cm3 }: { fig: DunkFig; n: ReturnType<typeof dunkNumbers
   if (fig.forces) rows.push(['weighs', `${n.U < 0.005 ? '0' : fixed(n.U, 3)} N`, p.forceText]);
   return (
     <Group>
-      <MonoLabel x={x} y={40} text={fig.reading ? 'NEWTONMETER' : 'BLOCK'} color={p.label} size={8.5} anchor="start" />
+      <MonoLabel x={x} y={40} text={fig.reading ? 'Newtonmeter' : 'Block'} color={p.label} size={8.5} anchor="start" />
       <Rows rows={rows} x={x} right={right} y0={64} step={26} note={fig.forces ? { text: '= U (upthrust)', color: p.forceText } : undefined} />
     </Group>
   );
