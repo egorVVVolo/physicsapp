@@ -1,11 +1,12 @@
 // A mono label on a patch of drawing paper, so a line behind it never runs through the text.
 import { G as Group, Rect } from 'react-native-svg';
 import { useTheme } from '@/theme/ThemeContext';
-import { MonoLabel, useMonoSize } from '../draw';
+import { MonoLabel, useMonoSize, useTooSmall } from '../draw';
 
 export function Tag({ x, y, text, color, size = 9, anchor = 'middle' }: { x: number; y: number; text: string; color?: string; size?: number; anchor?: 'start' | 'middle' | 'end' }) {
   const { palette: p } = useTheme();
   const shown = useMonoSize(size); // the patch fits the text as it is drawn
+  if (useTooSmall(shown)) return null; // no bare patch where the text is left out
   const w = text.length * shown * 0.66 + 8;
   const left = anchor === 'start' ? x - 4 : anchor === 'end' ? x - w + 4 : x - w / 2;
   return (

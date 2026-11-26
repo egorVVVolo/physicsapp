@@ -180,9 +180,22 @@ export function useLineStep(size: number): number {
   return useReadable(size, MONO_MIN) * 1.25;
 }
 
+/**
+ * The smallest label worth drawing, in viewBox units (0: draw them all). A compact sheet sets it: text that would
+ * come out under TINY points on the screen is left out, and the lines, arrows and bodies carry the reminder.
+ */
+export const SheetMinText = createContext(0);
+export const TINY = 9;
+
+/** True when a label of `size` would be too small to read on this sheet. */
+export function useTooSmall(size: number): boolean {
+  return size < useContext(SheetMinText);
+}
+
 /** A small label in the drawing-sheet voice (IBM Plex Mono). */
 export function MonoLabel({ x, y, text, color, size = 10, anchor = 'middle' }: { x: number; y: number; text: string; color: string; size?: number; anchor?: 'start' | 'middle' | 'end' }) {
   const fontSize = useReadable(size, MONO_MIN);
+  if (useTooSmall(fontSize)) return null;
   return (
     <SvgText x={x} y={y} fontSize={fontSize} fill={color} fontFamily={svgMono} textAnchor={anchor} letterSpacing={0.6}>
       {text}
@@ -193,6 +206,7 @@ export function MonoLabel({ x, y, text, color, size = 10, anchor = 'middle' }: {
 /** The letter naming a force (W, N, P, E), in Space Grotesk. */
 export function ForceLetter({ x, y, text, color, size = 17, anchor = 'middle' }: { x: number; y: number; text: string; color: string; size?: number; anchor?: 'start' | 'middle' | 'end' }) {
   const fontSize = useReadable(size, LETTER_MIN);
+  if (useTooSmall(fontSize)) return null;
   return (
     <SvgText x={x} y={y} fontSize={fontSize} fill={color} fontFamily={svgLetter} textAnchor={anchor}>
       {text}

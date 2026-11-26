@@ -10,7 +10,7 @@ import { useReducedMotionPref } from '@/ui/parts';
 import Animated, { Easing, useAnimatedStyle, useSharedValue, withSequence, withTiming } from 'react-native-reanimated';
 import { fixed } from '@/physics/format';
 import { PuzzleContext } from '@/lesson/puzzle';
-import { SheetScale } from './draw';
+import { SheetMinText, SheetScale, TINY } from './draw';
 import { LIFT_VB, LiftFigure, liftMoves, liftParams, liftShiftX, liftTargets, ShaftMarks } from './LiftFigure';
 import { LIFT_PAIR_VB, LiftPairFigure } from './LiftPairFigure';
 import { SCALES_VB, ScalesFigure } from './ScalesFigure';
@@ -224,6 +224,7 @@ export function Sheet({ fig, n, live, tap: tapIn, caption, compact = false, stil
               {/* labels grow to stay readable on a full sheet; a compact sheet is only a reminder and keeps the drawing's proportions */}
               <SheetReplay.Provider value={replays}>
               <SheetScale.Provider value={STYLE_2.has(fig.kind) && !classic && !compact ? scale : 0}>
+              <SheetMinText.Provider value={compact ? TINY / scale : 0}>
               {fig.kind === 'lift' && <LiftFigure fig={fig} a={aNow} tap={tap} clock={clock} prev={prev?.kind === 'lift' ? prev : undefined} shift={shift} />}
               {fig.kind === 'scales' && <ScalesFigure fig={fig} playing={run} clock={clock} />}
               {fig.kind === 'liftPair' && <LiftPairFigure fig={fig} playing={!reduced && !still} />}
@@ -275,10 +276,11 @@ export function Sheet({ fig, n, live, tap: tapIn, caption, compact = false, stil
               {fig.kind === 'wire' && <WireFigure fig={fig} live={live} clock={clock} />}
               {fig.kind === 'material' && <MaterialFigure fig={fig} live={live} tap={tap} playing={run} clock={clock} />}
               {fig.kind === 'launcher' && <LauncherFigure fig={fig} live={live} playing={run} clock={clock} />}
+              </SheetMinText.Provider>
               </SheetScale.Provider>
               </SheetReplay.Provider>
             </Svg>
-            {fig.kind === 'lift' && <ShaftMarks fig={fig} a={aNow} scale={scale} playing={run} clock={clock} shift={shift} />}
+            {fig.kind === 'lift' && !compact && <ShaftMarks fig={fig} a={aNow} scale={scale} playing={run} clock={clock} shift={shift} />}
             {targets.map((t) => (
               <Pressable
                 key={t.id}
