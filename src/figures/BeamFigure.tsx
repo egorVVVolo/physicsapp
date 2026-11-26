@@ -80,7 +80,7 @@ export function beamTargets(fig: BeamFig): TapTarget[] {
 }
 
 export function BeamFigure({ fig, live, tap, clock = STILL }: { fig: BeamFig; live?: number; tap?: TapProps; clock?: DrawClock }) {
-  const { palette: p, material: m } = useTheme();
+  const { palette: p, soft } = useTheme();
   const k = kOf(fig);
   const { loads, all } = loadsOf(fig, live);
   // the asked distance, weight or push: "?" until the figure is told to show it
@@ -117,7 +117,6 @@ export function BeamFigure({ fig, live, tap, clock = STILL }: { fig: BeamFig; li
   const balanced = totals !== null && Math.abs(totals.clockwise - totals.anticlockwise) < 1e-6;
   const showTotals = fig.moments && fig.answer !== 'afterCheck' && totals !== null;
 
-  const people = loads.filter((l) => l.look === 'person').map((l) => l.id);
   return (
     <Group>
       {stage(clock, 
@@ -127,11 +126,11 @@ export function BeamFigure({ fig, live, tap, clock = STILL }: { fig: BeamFig; li
           {fig.supports.map((at) => {
             const x = X0 + at * k;
             return pivot ? (
-              <Path key={at} d={polyPath([[x, APEX], [x + 20, GROUND], [x - 20, GROUND]]).d} fill={m.metalSide} stroke={p.draw} strokeWidth={stroke.body} strokeLinejoin="round" />
+              <Path key={at} d={polyPath([[x, APEX], [x + 20, GROUND], [x - 20, GROUND]]).d} fill={soft.metal.fill} stroke={p.draw} strokeWidth={stroke.body} strokeLinejoin="round" />
             ) : (
               <Group key={at}>
                 <Path d={`M${x - 14},${GROUND} L${x - 4},${APEX + 4} M${x + 14},${GROUND} L${x + 4},${APEX + 4} M${x - 10},${GROUND - 16} H${x + 10}`} stroke={p.draw} strokeWidth={stroke.body} strokeLinecap="round" />
-                <Rect x={x - 12} y={APEX} width={24} height={5} rx={1.5} fill={m.metalSide} stroke={p.draw} strokeWidth={stroke.thin} />
+                <Rect x={x - 12} y={APEX} width={24} height={5} rx={1.5} fill={soft.metal.fill} stroke={p.draw} strokeWidth={stroke.thin} />
               </Group>
             );
           })}
@@ -141,28 +140,28 @@ export function BeamFigure({ fig, live, tap, clock = STILL }: { fig: BeamFig; li
       {stage(clock, 
         PEN.beam,
         <Group>
-          <Path d={plank.d} fill={m.wood} stroke={p.draw} strokeWidth={stroke.body} strokeLinejoin="round" />
+          <Path d={plank.d} fill={soft.metal.fill} stroke={p.draw} strokeWidth={stroke.body} strokeLinejoin="round" />
           {pivot && <Circle cx={pivotX} cy={MID_Y} r={2.4} fill={p.draw} />}
         </Group>,
       )}
 
       {fig.candidates && <TapBoxes targets={beamTargets(fig)} tap={tap} />}
 
-      {/* the people on the plank in order: the first is hero A, the second hero B */}
+      {/* the loads in order take the two body colours in turn */}
       {stage(clock, 
         PEN.loads,
         <Group>
-          {loads.map((l) => {
+          {loads.map((l, i) => {
             const [x, y] = onPlank(l.at, THICK / 2);
+            const who = i % 2 === 1 ? 'B' : 'A';
             return l.look === 'person' ? (
               <Group key={l.id}>
-                <Person x={x} y={y} scale={PERSON_S} cg={false} who={people.indexOf(l.id) % 2 === 1 ? 'B' : 'A'} />
-                {l.name && <MonoLabel x={x} y={y - PERSON_TOP - 7} text={l.name} color={p.label} size={9} />}
+                <Person x={x} y={y} scale={PERSON_S} cg={false} who={who} />
+                {l.name && <MonoLabel x={x} y={y - PERSON_TOP - 7} text={l.name[0] + l.name.slice(1).toLowerCase()} color={p.label} size={9} />}
               </Group>
             ) : (
               <Group key={l.id} transform={`rotate(${(-tilt * 180) / Math.PI} ${x} ${y})`}>
-                <Rect x={x - BOX.w / 2} y={y - BOX.h} width={BOX.w} height={BOX.h} rx={2} fill={m.woodSide} stroke={p.draw} strokeWidth={stroke.body} />
-                <Path d={`M${x - BOX.w / 2},${y - BOX.h / 2} H${x + BOX.w / 2}`} stroke={p.draw} strokeWidth={stroke.thin} opacity={0.5} />
+                <Rect x={x - BOX.w / 2} y={y - BOX.h} width={BOX.w} height={BOX.h} rx={5} fill={soft[who].fill} stroke={soft[who].edge} strokeWidth={2} />
               </Group>
             );
           })}
@@ -265,7 +264,7 @@ export function BeamFigure({ fig, live, tap, clock = STILL }: { fig: BeamFig; li
               {/* clockwise on a second row: with readable labels the two totals no longer fit side by side */}
               <TurnArc cx={X1 - 9} cy={36} r={8} from={-150} sweep={240} color={p.ink} width={1.6} />
               <MonoLabel x={X1 - 24} y={40} text={`clockwise ${fixed(totals.clockwise, 0)} N m`} color={p.ink} size={9} anchor="end" />
-              {balanced && <MonoLabel x={(X0 + X1) / 2} y={58} text="BALANCED" color={p.ink} size={9} />}
+              {balanced && <MonoLabel x={(X0 + X1) / 2} y={58} text="Balanced" color={p.ink} size={9} />}
             </Group>
           )}
         </Group>,

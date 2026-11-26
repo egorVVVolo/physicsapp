@@ -23,8 +23,8 @@ type Panel = { x0: number; w: number; nut: [number, number]; k: number; arrow: n
 
 /** One big panel, or two side by side. k: viewBox units per metre of spanner. */
 function panelsFor(n: number): Panel[] {
-  if (n === 1) return [{ x0: 0, w: 340, nut: [58, 180], k: 780, arrow: 76, head: 17, arcR: 31 }];
-  return [0, 1].map((i) => ({ x0: i * 170, w: 170, nut: [i * 170 + 40, 156], k: 400, arrow: 62, head: 12, arcR: 22 }));
+  if (n === 1) return [{ x0: 0, w: 340, nut: [58, 164], k: 780, arrow: 76, head: 21, arcR: 35 }];
+  return [0, 1].map((i) => ({ x0: i * 170, w: 170, nut: [i * 170 + 40, 154], k: 400, arrow: 62, head: 15, arcR: 26 }));
 }
 
 export function spannerParams(fig: SpannerFig): string {
@@ -64,7 +64,7 @@ export const SPANNER_LOOP_S = REST_S + TURN_S + HOLD_S + BACK_S;
 type FigProps = { fig: SpannerFig; live?: number; playing?: boolean; clock?: DrawClock };
 
 export function SpannerFigure({ fig, live, playing = false, clock = STILL }: FigProps) {
-  const { palette: p, material: m } = useTheme();
+  const { palette: p, soft } = useTheme();
   const pulls = pullsOf(fig, live);
   const panels = panelsFor(pulls.length);
   const perp = fig.perp === 'shown' || live !== undefined;
@@ -100,6 +100,7 @@ export function SpannerFigure({ fig, live, playing = false, clock = STILL }: Fig
           return l < 1 ? [-1, 0] : [(nx - foot[0]) / l, (ny - foot[1]) / l];
         })();
         const turn = turns[i];
+        const tone = soft[i === 0 ? 'A' : 'B']; // each pull has its own spanner colour
         const marksOpacity = Math.max(0, 1 - turn / 4); // the measurements belong to the spanner at rest
         return (
           <Group key={pull.who}>
@@ -107,10 +108,9 @@ export function SpannerFigure({ fig, live, playing = false, clock = STILL }: Fig
             {stage(clock, 
               PEN.tool,
               <Group>
-                <Circle cx={nx} cy={ny} r={pn.head + 7} fill={m.metalSide} />
-                <Path d={handle.d} fill={m.metal} stroke={p.draw} strokeWidth={stroke.body} />
-                <Circle cx={nx} cy={ny} r={pn.head} fill={m.metal} stroke={p.draw} strokeWidth={stroke.body} />
-                <Path d={hex.d} fill={p.page} stroke={p.draw} strokeWidth={stroke.thin} />
+                <Path d={handle.d} fill={tone.fill} stroke={tone.edge} strokeWidth={2} />
+                <Circle cx={nx} cy={ny} r={pn.head} fill={tone.fill} stroke={tone.edge} strokeWidth={2} />
+                <Path d={hex.d} fill={soft.metal.fill} stroke={p.draw} strokeWidth={stroke.body} />
                 <Circle cx={nx} cy={ny} r={2} fill={p.draw} />
               </Group>,
             )}
@@ -126,7 +126,7 @@ export function SpannerFigure({ fig, live, playing = false, clock = STILL }: Fig
             )}
 
             </Group>
-            {stage(clock, PEN.tool, <MonoLabel x={pn.x0 + 12} y={20} text={pull.who} color={p.label} size={10} anchor="start" />)}
+            {stage(clock, PEN.tool, <MonoLabel x={pn.x0 + 12} y={20} text={pull.who[0] + pull.who.slice(1).toLowerCase()} color={p.label} size={10} anchor="start" />)}
             {stage(clock, 
               PEN.marks,
               <Group opacity={marksOpacity}>
@@ -137,7 +137,7 @@ export function SpannerFigure({ fig, live, playing = false, clock = STILL }: Fig
                 ) : pull.angle < 8 ? null : (
                   <Group>
                     <AngleArc at={P} r={22} from={180} sweep={pull.angle} color={p.label} />
-                    <MonoLabel x={P[0] + Math.cos((180 + pull.angle / 2) * RAD) * 46} y={P[1] + Math.sin((180 + pull.angle / 2) * RAD) * 46 - 1} text={`${fixed(pull.angle, 0)}°`} color={p.ink} size={9} />
+                    <MonoLabel x={P[0] + Math.cos((180 + pull.angle / 2) * RAD) * 60} y={P[1] + Math.sin((180 + pull.angle / 2) * RAD) * 60 + 3} text={`${fixed(pull.angle, 0)}°`} color={p.ink} size={9} />
                   </Group>
                 )}
                 {perp && !alongHandle && x > 0.004 && (
@@ -154,7 +154,7 @@ export function SpannerFigure({ fig, live, playing = false, clock = STILL }: Fig
               PEN.marks,
               <Group>
                 {fig.moment !== undefined && (
-                  <MonoLabel x={pn.x0 + 12} y={34} text={fig.moment === 'shown' ? `M = ${fixed(M, 1)} N m` : 'M = ?'} color={p.ink} size={10} anchor="start" />
+                  <MonoLabel x={pn.x0 + 12} y={39} text={fig.moment === 'shown' ? `M = ${fixed(M, 1)} N m` : 'M = ?'} color={p.ink} size={10} anchor="start" />
                 )}
                 {fig.moment === 'shown' && <TurnArc cx={nx} cy={ny} r={pn.arcR} from={-25} sweep={-205} color={p.ink} />}
               </Group>,

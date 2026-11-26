@@ -18,7 +18,7 @@ export const BAR_VB = { w: 340, h: 230 };
 const PEN = { ground: [0, 0.3], bar: [0.25, 0.5], loads: [0.5, 0.72], marks: [0.7, 0.95] } as const;
 const MID: [number, number] = [170, 112]; // the middle of the bar
 const HALF = 130; // half the bar, viewBox units
-const THICK = 10;
+const THICK = 12;
 const PIVOT_H = 26;
 const KW = 1.2; // viewBox units per newton
 const DIM_Y = 208;
@@ -61,7 +61,7 @@ export function barTilt(M: number, t: number): number {
 }
 
 export function BarFigure({ fig, playing = false, clock = STILL }: { fig: BarFig; playing?: boolean; clock?: DrawClock }) {
-  const { palette: p, material: m } = useTheme();
+  const { palette: p, soft } = useTheme();
   const k = HALF / fig.half;
   const shown = fig.moments === 'shown';
   const bar = rectPath(MID[0] - HALF, MID[1] - THICK / 2, HALF * 2, THICK, 2);
@@ -96,8 +96,8 @@ export function BarFigure({ fig, playing = false, clock = STILL }: { fig: BarFig
       {stage(clock, 
         PEN.bar,
         <Group>
-          <Path d={pivot.d} fill={m.metalSide} stroke={p.draw} strokeWidth={stroke.body} strokeLinejoin="round" />
-          <Path d={bar.d} fill={m.wood} stroke={p.draw} strokeWidth={stroke.body} transform={`rotate(${-tilt} ${MID[0]} ${MID[1]})`} />
+          <Path d={pivot.d} fill={soft.metal.fill} stroke={p.draw} strokeWidth={stroke.body} strokeLinejoin="round" />
+          <Path d={bar.d} fill={soft.A.fill} stroke={soft.A.edge} strokeWidth={2} transform={`rotate(${-tilt} ${MID[0]} ${MID[1]})`} />
           <Circle cx={MID[0]} cy={MID[1]} r={2.4} fill={p.draw} />
         </Group>,
       )}

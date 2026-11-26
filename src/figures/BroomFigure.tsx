@@ -38,7 +38,7 @@ const NM_H = 44;
 const NM_K = 4.5; // viewBox units of pointer travel per newton
 
 export function BroomFigure({ fig, clock = STILL }: { fig: BroomFig; clock?: DrawClock }) {
-  const { palette: p, material: m } = useTheme();
+  const { palette: p, soft } = useTheme();
   const [brushW, handleW] = piecesAtBalance(fig.total, fig.brush, fig.handle);
   const plays = fig.play === true && fig.pieces === 'shown';
   const t = useOnceTime(PART_S + GROW_S, plays);
@@ -66,7 +66,7 @@ export function BroomFigure({ fig, clock = STILL }: { fig: BroomFig; clock?: Dra
           <Group opacity={part}>
             {/* the newtonmeter the piece hangs from, at its centre of gravity, so it hangs level */}
             <Circle cx={x} cy={NM_TOP - 3} r={3} fill="none" stroke={p.draw} strokeWidth={stroke.thin} />
-            <Rect x={x - 7} y={NM_TOP} width={14} height={NM_H} rx={3} fill={m.metal} stroke={p.draw} strokeWidth={stroke.body} />
+            <Rect x={x - 7} y={NM_TOP} width={14} height={NM_H} rx={3} fill={soft.metal.fill} stroke={p.draw} strokeWidth={stroke.body} />
             <Path d={[0, 2, 4, 6, 8].map((n) => `M${x - 4},${NM_TOP + 7 + n * NM_K} h3`).join(' ')} stroke={p.draw} strokeWidth={stroke.hair} />
             <Path d={`M${x - 1},${NM_TOP + 7 + reading * NM_K} h6`} stroke={p.ink} strokeWidth={stroke.force} />
             {/* the string, broken where it crosses the dimension line's numbers */}
@@ -87,8 +87,8 @@ export function BroomFigure({ fig, clock = STILL }: { fig: BroomFig; clock?: Dra
         PEN.finger,
         <Group opacity={1 - part}>
           {/* a hand from below, one finger up under the balance point */}
-          <Rect x={CUT_X - 26} y={196} width={52} height={44} rx={14} fill={p.skin} stroke={p.draw} strokeWidth={stroke.body} />
-          <Rect x={CUT_X - 7} y={Y + ROD / 2} width={14} height={90} rx={7} fill={p.skin} stroke={p.draw} strokeWidth={stroke.body} />
+          <Rect x={CUT_X - 26} y={196} width={52} height={44} rx={14} fill={soft.metal.fill} stroke={p.draw} strokeWidth={stroke.body} />
+          <Rect x={CUT_X - 7} y={Y + ROD / 2} width={14} height={90} rx={7} fill={soft.metal.fill} stroke={p.draw} strokeWidth={stroke.body} />
           <Path d={`M${CUT_X - 4},${Y + 16} Q${CUT_X},${Y + 19} ${CUT_X + 4},${Y + 16}`} fill="none" stroke={p.draw} strokeWidth={stroke.thin} opacity={0.6} />
         </Group>,
       )}
@@ -99,22 +99,22 @@ export function BroomFigure({ fig, clock = STILL }: { fig: BroomFig; clock?: Dra
           {dx > 0 ? (
             <Group>
               {/* sawn: the handle piece ends at the cut, the brush piece starts there */}
-              <Path d={rectPath(xAt(-HANDLE_END) - dx, Y - ROD / 2, HANDLE_END * K, ROD, ROD / 2).d} fill={m.wood} stroke={p.draw} strokeWidth={stroke.body} />
+              <Path d={rectPath(xAt(-HANDLE_END) - dx, Y - ROD / 2, HANDLE_END * K, ROD, ROD / 2).d} fill={soft.A.fill} stroke={soft.A.edge} strokeWidth={2} />
               <Circle cx={xAt(-HANDLE_END) + 6 - dx} cy={Y} r={1.6} fill={p.draw} />
               <Group transform={`translate(${dx} 0)`}>
-                <Path d={rectPath(CUT_X, Y - ROD / 2, 0.07 * K, ROD, 1).d} fill={m.wood} stroke={p.draw} strokeWidth={stroke.body} />
-                <Path d={bristles.d} fill={m.plasticSide} stroke={p.draw} strokeWidth={stroke.body} strokeLinejoin="round" />
-                <Path d={strands} stroke={p.draw} strokeWidth={stroke.thin} opacity={0.55} />
-                <Path d={ferrule.d} fill={m.metal} stroke={p.draw} strokeWidth={stroke.body} />
+                <Path d={rectPath(CUT_X, Y - ROD / 2, 0.07 * K, ROD, 1).d} fill={soft.A.fill} stroke={soft.A.edge} strokeWidth={2} />
+                <Path d={bristles.d} fill={soft.B.fill} stroke={soft.B.edge} strokeWidth={2} strokeLinejoin="round" />
+                <Path d={strands} stroke={soft.B.edge} strokeWidth={stroke.thin} opacity={0.55} />
+                <Path d={ferrule.d} fill={soft.metal.fill} stroke={p.draw} strokeWidth={stroke.body} />
               </Group>
             </Group>
           ) : (
             <Group>
-              <Path d={handle.d} fill={m.wood} stroke={p.draw} strokeWidth={stroke.body} />
+              <Path d={handle.d} fill={soft.A.fill} stroke={soft.A.edge} strokeWidth={2} />
               <Circle cx={xAt(-HANDLE_END) + 6} cy={Y} r={1.6} fill={p.draw} />
-              <Path d={bristles.d} fill={m.plasticSide} stroke={p.draw} strokeWidth={stroke.body} strokeLinejoin="round" />
-              <Path d={strands} stroke={p.draw} strokeWidth={stroke.thin} opacity={0.55} />
-              <Path d={ferrule.d} fill={m.metal} stroke={p.draw} strokeWidth={stroke.body} />
+              <Path d={bristles.d} fill={soft.B.fill} stroke={soft.B.edge} strokeWidth={2} strokeLinejoin="round" />
+              <Path d={strands} stroke={soft.B.edge} strokeWidth={stroke.thin} opacity={0.55} />
+              <Path d={ferrule.d} fill={soft.metal.fill} stroke={p.draw} strokeWidth={stroke.body} />
             </Group>
           )}
           {!pieces && <CgMark x={CUT_X} y={Y} color={p.draw} />}
@@ -127,13 +127,13 @@ export function BroomFigure({ fig, clock = STILL }: { fig: BroomFig; clock?: Dra
           {fig.cut && (
             <Group>
               <Path d={`M${CUT_X},${Y - 40} V${Y + 14}`} stroke={p.ink} strokeWidth={stroke.thin} strokeDasharray="5 4" />
-              <MonoLabel x={CUT_X - 6} y={Y - 18} text="CUT" color={p.ink} size={9} anchor="end" />
+              <MonoLabel x={CUT_X - 6} y={Y - 18} text="cut" color={p.ink} size={9} anchor="end" />
             </Group>
           )}
           {pieces && (
             <Group>
-              {!plays && <MonoLabel x={xAt(-HANDLE_END / 2)} y={DIM_Y - 22} text="HANDLE PIECE" color={p.label} size={9} />}
-              {!plays && <MonoLabel x={xAt(0.17)} y={DIM_Y - 22} text="BRUSH PIECE" color={p.label} size={9} />}
+              {!plays && <MonoLabel x={xAt(-HANDLE_END / 2)} y={DIM_Y - 22} text="Handle piece" color={p.label} size={9} />}
+              {!plays && <MonoLabel x={xAt(0.17)} y={DIM_Y - 22} text="Brush piece" color={p.label} size={9} />}
               <Dim a={[xAt(-fig.handle), DIM_Y]} b={[CUT_X, DIM_Y]} text={`${fixed(fig.handle, 2)} m`} />
               <Dim a={[CUT_X, DIM_Y]} b={[xAt(fig.brush), DIM_Y]} text={`${fixed(fig.brush, 2)} m`} />
               {!plays && <Path d={`M${xAt(-fig.handle)},${DIM_Y + 4} V${Y - 8} M${xAt(fig.brush)},${DIM_Y + 4} V${Y - 14}`} stroke={p.label} strokeWidth={stroke.thin} strokeDasharray="2 3" />}

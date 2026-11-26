@@ -49,7 +49,7 @@ export function poleTargets(fig: PoleFig): TapTarget[] {
 }
 
 export function PoleFigure({ fig, tap, clock = STILL }: { fig: PoleFig; tap?: TapProps; clock?: DrawClock }) {
-  const { palette: p, material: m } = useTheme();
+  const { palette: p, soft } = useTheme();
   const { end, sign, across, M } = geometry(fig);
   const shown = fig.moment === 'shown';
   const wTip: [number, number] = [sign[0], sign[1] + 14 + fig.W * KW];
@@ -63,7 +63,7 @@ export function PoleFigure({ fig, tap, clock = STILL }: { fig: PoleFig; tap?: Ta
           <Group transform={`translate(${WALL} 10) rotate(90)`}>
             <Hatch x1={0} x2={212} y={0} color={p.draw} clock={clock} from={PEN.wall[0]} to={PEN.wall[1]} />
           </Group>
-          <Rect x={WALL} y={FIX[1] - 9} width={7} height={18} fill={m.metalSide} stroke={p.draw} strokeWidth={stroke.thin} />
+          <Rect x={WALL} y={FIX[1] - 11} width={8} height={22} rx={3} fill={soft.metal.fill} stroke={p.draw} strokeWidth={stroke.body} />
         </Group>,
       )}
 
@@ -72,11 +72,11 @@ export function PoleFigure({ fig, tap, clock = STILL }: { fig: PoleFig; tap?: Ta
       {stage(clock, 
         PEN.pole,
         <Group>
-          <Path d={`M${FIX[0]},${FIX[1]} L${end[0]},${end[1]}`} stroke={p.draw} strokeWidth={6} strokeLinecap="round" />
-          <Path d={`M${FIX[0]},${FIX[1]} L${end[0]},${end[1]}`} stroke={m.metal} strokeWidth={stroke.force} strokeLinecap="round" />
+          <Path d={`M${FIX[0]},${FIX[1]} L${end[0]},${end[1]}`} stroke={soft.metal.edge} strokeWidth={9} strokeLinecap="round" />
+          <Path d={`M${FIX[0]},${FIX[1]} L${end[0]},${end[1]}`} stroke={soft.metal.fill} strokeWidth={5} strokeLinecap="round" />
           <Path d={`M${end[0]},${end[1]} L${sign[0] - 18},${sign[1] - 14} M${end[0]},${end[1]} L${sign[0] + 18},${sign[1] - 14}`} stroke={p.draw} strokeWidth={stroke.thin} />
-          <Rect x={sign[0] - 28} y={sign[1] - 14} width={56} height={28} rx={3} fill={m.wood} stroke={p.draw} strokeWidth={stroke.body} />
-          <MonoLabel x={sign[0]} y={sign[1] + 3.5} text="CAFÉ" color={p.draw} size={10} />
+          <Rect x={sign[0] - 30} y={sign[1] - 15} width={60} height={30} rx={6} fill={soft.A.fill} stroke={soft.A.edge} strokeWidth={2} />
+          <MonoLabel x={sign[0]} y={sign[1] + 3.5} text="Café" color={p.ink} size={10} />
           <Circle cx={FIX[0]} cy={FIX[1]} r={2.4} fill={p.draw} />
           <AngleArc at={FIX} r={30} from={0} sweep={-fig.angle} color={p.label} />
           <MonoLabel x={FIX[0] + Math.cos((-fig.angle / 2) * RAD) * 42} y={FIX[1] + Math.sin((-fig.angle / 2) * RAD) * 42 + 3} text={`${fixed(fig.angle, 0)}°`} color={p.ink} size={9} />
