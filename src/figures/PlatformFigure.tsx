@@ -21,16 +21,16 @@ export const PLATFORM_VB = { w: 340, h: 230 };
 
 const PEN = { floor: [0, 0.3], loads: [0.25, 0.6], hands: [0.5, 0.72], forces: [0.7, 0.88], labels: [0.85, 0.98] } as const;
 const RAD = Math.PI / 180;
-const FLOOR = 180;
-const MOTION_Y = 208;
-const WORK_Y = 24;
+const FLOOR = 188;
+const MOTION_Y = 214;
+const WORK_Y = 18;
 const MAX_LEN = 84; // the biggest force in a figure, viewBox units
 const MAX_K = 1.6; // viewBox units per newton, at most (one small force alone is not drawn huge)
-const CASE = { w: 32, h: 46, lift: 10 }; // a suitcase: carried, its bottom is `lift` above the floor
+const CASE = { w: 40, h: 56, lift: 10 }; // a suitcase: carried, its bottom is `lift` above the floor
 const WHEEL = 4;
-const BOX = { w: 58, h: 42 };
+const BOX = { w: 68, h: 50 };
 const ROD = 54; // a pulled suitcase's handle, from the hitch to the hand
-const TICK = 9;
+const TICK = 24; // gap between the marks under the floor: they show it sliding past
 const PX_PER_M = 40; // how fast the floor slides past while played
 const V = 1; // m s⁻¹
 
@@ -55,7 +55,7 @@ export const platformPlays = (fig: PlatformFig): boolean => fig.play === true;
 type Props = { fig: PlatformFig; live?: number; playing: boolean; clock?: DrawClock };
 
 export function PlatformFigure({ fig, live, playing, clock = STILL }: Props) {
-  const { palette: p, material: m } = useTheme();
+  const { palette: p, soft } = useTheme();
   const lanes = platformLanes(fig, live);
   const n = lanes.length;
   const pw = PLATFORM_VB.w / n;
@@ -69,7 +69,7 @@ export function PlatformFigure({ fig, live, playing, clock = STILL }: Props) {
         const x0 = i * pw;
         const ticks: string[] = [];
         const off = scroll % TICK;
-        for (let x = x0 + 8 - off; x + 8 < x0 + pw - 8; x += TICK) if (x >= x0 + 8) ticks.push(`M${x},${FLOOR + 8} L${x + 8},${FLOOR}`);
+        for (let x = x0 + 8 - off; x + 8 < x0 + pw - 8; x += TICK) if (x >= x0 + 8) ticks.push(`M${x},${FLOOR + 7} L${x + 7},${FLOOR}`);
         // where the load stands: a pulled suitcase to the left (its handle runs up to the right), the rest in the middle
         const cx = x0 + pw * (l.how === 'pull' ? (n === 1 ? 0.3 : 0.32) : l.how === 'push' ? 0.5 : 0.5);
         const geo = loadGeometry(l, cx);
@@ -90,13 +90,13 @@ export function PlatformFigure({ fig, live, playing, clock = STILL }: Props) {
               <Group>
                 {i > 0 && <Line x1={x0} y1={12} x2={x0} y2={222} stroke={p.paperLine} strokeWidth={stroke.thin} strokeDasharray="4 4" />}
                 <Line x1={x0 + 8} y1={FLOOR} x2={x0 + pw - 8} y2={FLOOR} stroke={p.draw} strokeWidth={stroke.body} />
-                <Path d={ticks.join(' ')} stroke={p.draw} strokeWidth={stroke.thin} opacity={0.55} />
+                <Path d={ticks.join(' ')} stroke={p.draw} strokeWidth={stroke.thin} opacity={0.4} />
                 <MotionArrow x={x0 + 14} y={MOTION_Y} length={46} />
                 <MonoLabel x={x0 + 68} y={MOTION_Y + 3.5} text={`Δs = ${fixed(fig.dist, fig.dist < 10 ? 1 : 0)} m`} color={p.ink} size={9} anchor="start" />
               </Group>,
             )}
 
-            {stage(clock, PEN.loads, <Load lane={l} cx={cx} />)}
+            {stage(clock, PEN.loads, <Load lane={l} cx={cx} tone={i === 1 ? 'B' : 'A'} />)}
 
             {stage(clock, 
               PEN.hands,
@@ -105,7 +105,7 @@ export function PlatformFigure({ fig, live, playing, clock = STILL }: Props) {
                 {l.how === 'carry' && <Mitten x={hand[0]} y={hand[1]} dx={0.5} dy={-0.87} who={i === 1 ? 'B' : 'A'} />}
                 {l.how === 'pull' && <Mitten x={hand[0]} y={hand[1]} dx={d[0]} dy={d[1]} who={i === 1 ? 'B' : 'A'} />}
                 {l.how === 'push' && <Mitten x={hand[0]} y={hand[1]} dx={-0.71} dy={-0.71} who={i === 1 ? 'B' : 'A'} />}
-                <MonoLabel {...nameAt(l, hand, d)} text={l.name} color={p.label} size={9} />
+                <MonoLabel {...nameAt(l, hand, d)} text={l.name[0] + l.name.slice(1).toLowerCase()} color={p.label} size={9} />
               </Group>,
             )}
 
@@ -186,17 +186,15 @@ function nameAt(l: PlatformLane, hand: [number, number], d: [number, number]) {
   return d[1] > -0.5 ? { x: hand[0] + 4, y: hand[1] - 28, anchor: 'middle' as const } : { x: hand[0] + 16, y: hand[1] + 4, anchor: 'start' as const };
 }
 
-function Load({ lane, cx }: { lane: PlatformLane; cx: number }) {
-  const { palette: p, material: m } = useTheme();
-  const line = { stroke: p.draw, strokeWidth: 1.8, strokeLinejoin: 'round' as const };
+function Load({ lane, cx, tone }: { lane: PlatformLane; cx: number; tone: 'A' | 'B' }) {
+  const { palette: p, soft } = useTheme();
+  const body = { fill: soft[tone].fill, stroke: soft[tone].edge, strokeWidth: 2 };
   if (lane.load === 'box') {
     const x = cx - BOX.w / 2;
     const y = FLOOR - BOX.h;
     return (
       <Group>
-        <Path d={`M${x},${y} L${x + 6},${y - 5} H${x + BOX.w + 6} L${x + BOX.w},${y} Z`} fill={m.woodSide} {...line} />
-        <Rect x={x} y={y} width={BOX.w} height={BOX.h} rx={1.5} fill={m.wood} {...line} />
-        <Path d={`M${x + BOX.w / 2 - 6},${y} V${y + 12} H${x + BOX.w / 2 + 6} V${y}`} fill="none" stroke={p.draw} strokeWidth={stroke.thin} opacity={0.6} />
+        <Rect x={x} y={y} width={BOX.w} height={BOX.h} rx={6} {...body} />
       </Group>
     );
   }
@@ -205,14 +203,12 @@ function Load({ lane, cx }: { lane: PlatformLane; cx: number }) {
   const y = bottom - CASE.h;
   return (
     <Group>
-      <Rect x={x} y={y} width={CASE.w} height={CASE.h} rx={5} fill={m.plasticSide} {...line} />
-      {/* two ribs down the shell */}
-      <Path d={`M${x + 10},${y + 5} V${bottom - 5} M${x + CASE.w - 10},${y + 5} V${bottom - 5}`} stroke={p.draw} strokeWidth={stroke.thin} opacity={0.5} />
+      <Rect x={x} y={y} width={CASE.w} height={CASE.h} rx={7} {...body} />
       {lane.how === 'carry' && <Path d={`M${cx - 8},${y} V${y - 6} Q${cx - 8},${y - 9} ${cx - 5},${y - 9} H${cx + 5} Q${cx + 8},${y - 9} ${cx + 8},${y - 6} V${y}`} fill="none" stroke={p.draw} strokeWidth={stroke.body} />}
       {lane.how === 'pull' && (
         <Group>
-          <Circle cx={x + 7} cy={FLOOR - WHEEL} r={WHEEL} fill={p.shoe} stroke={p.draw} strokeWidth={stroke.thin} />
-          <Circle cx={x + CASE.w - 7} cy={FLOOR - WHEEL} r={WHEEL} fill={p.shoe} stroke={p.draw} strokeWidth={stroke.thin} />
+          <Circle cx={x + 7} cy={FLOOR - WHEEL} r={WHEEL} fill={soft.metal.fill} stroke={p.draw} strokeWidth={stroke.thin} />
+          <Circle cx={x + CASE.w - 7} cy={FLOOR - WHEEL} r={WHEEL} fill={soft.metal.fill} stroke={p.draw} strokeWidth={stroke.thin} />
         </Group>
       )}
     </Group>
@@ -221,7 +217,7 @@ function Load({ lane, cx }: { lane: PlatformLane; cx: number }) {
 
 /** The direction of motion: an outline arrow pointing right. */
 function MotionArrow({ x, y, length }: { x: number; y: number; length: number }) {
-  const { palette: p, material: m } = useTheme();
+  const { palette: p, soft } = useTheme();
   const b = x + length;
   const d = `M${x},${y - 3} H${b - 10} V${y - 8} L${b},${y} L${b - 10},${y + 8} V${y + 3} H${x} Z`;
   return <Path d={d} fill="none" stroke={p.label} strokeWidth={stroke.body} strokeLinejoin="round" />;

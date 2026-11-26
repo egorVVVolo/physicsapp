@@ -25,8 +25,7 @@ const PEN = { road: [0, 0.3], car: [0.2, 0.6], square: [0.5, 0.8], labels: [0.78
 const ACC = 5; // m s⁻², a brisk electric car pulling away
 const PX_PER_M = 3; // how fast the road slides past
 const KV = 1.9; // viewBox units per m s⁻¹ of the velocity arrow
-const HATCH = 9;
-const POST = 64; // roadside posts
+const HATCH = 24; // gap between the marks under the road: they show it sliding past
 const CELL = 2; // m s⁻¹ per cell of the energy square
 const SQ = { x: 54, y: 212, k: 5.8, max: 20 }; // the square's corner, viewBox units per m s⁻¹, the axes' length
 
@@ -56,7 +55,7 @@ function useScroll(speed: number, running: boolean): number {
 type KProps = { fig: KineticFig; live?: number; playing: boolean; clock?: DrawClock };
 
 export function KineticFigure({ fig, live, playing, clock = STILL }: KProps) {
-  const { palette: p, material: m } = useTheme();
+  const { palette: p } = useTheme();
   const reduced = useReducedMotionPref();
   const vTop = kineticSpeed(fig, live);
   const plays = fig.play === true && live === undefined;
@@ -71,9 +70,7 @@ export function KineticFigure({ fig, live, playing, clock = STILL }: KProps) {
   const front = 222;
   const mid = front - 32 * scale;
   const ticks: string[] = [];
-  for (let x = 6 - (scroll % HATCH); x < 334; x += HATCH) if (x >= 6) ticks.push(`M${x},${roadY + 8} L${x + 8},${roadY}`);
-  const posts: number[] = [];
-  for (let x = 20 - (scroll % POST); x < 334; x += POST) if (x >= 8) posts.push(x);
+  for (let x = 6 - (scroll % HATCH); x < 334; x += HATCH) if (x >= 6) ticks.push(`M${x},${roadY + 7} L${x + 7},${roadY}`);
   const arrowY = roadY - 40 * scale;
   const len = KV * v * scale;
   const E = kineticEnergy(fig.m, v);
@@ -84,10 +81,7 @@ export function KineticFigure({ fig, live, playing, clock = STILL }: KProps) {
         PEN.road,
         <Group>
           <Line x1={6} y1={roadY} x2={334} y2={roadY} stroke={p.draw} strokeWidth={stroke.body} />
-          <Path d={ticks.join(' ')} stroke={p.draw} strokeWidth={stroke.thin} opacity={0.55} />
-          {posts.map((x) => (
-            <Path key={x} d={`M${x},${roadY} V${roadY - 14} M${x - 2.5},${roadY - 14} H${x + 2.5}`} stroke={p.label} strokeWidth={stroke.thin} />
-          ))}
+          <Path d={ticks.join(' ')} stroke={p.draw} strokeWidth={stroke.thin} opacity={0.4} />
         </Group>,
       )}
       <Group transform={`translate(${front}, ${roadY}) scale(${scale}) translate(${-front}, ${-roadY})`}>
@@ -112,7 +106,7 @@ export function KineticFigure({ fig, live, playing, clock = STILL }: KProps) {
 
 /** Ek as a square of side v (one cell per 2 m s⁻¹), with its energy; with stages, the first square and the band. */
 function EnergySquare({ fig, v }: { fig: KineticFig; v: number }) {
-  const { palette: p, material: m } = useTheme();
+  const { palette: p, soft } = useTheme();
   const { x: X0, y: Y0, k } = SQ;
   const side = v * k;
   const cellE = kineticEnergy(fig.m, CELL);
@@ -124,8 +118,8 @@ function EnergySquare({ fig, v }: { fig: KineticFig; v: number }) {
   const cx = 214;
   return (
     <Group>
-      <Rect x={X0} y={Y0 - side} width={side} height={side} fill={p.drawFill} />
-      {u !== undefined && <Rect x={X0} y={Y0 - u * k} width={u * k} height={u * k} fill={p.drawFillDark} />}
+      <Rect x={X0} y={Y0 - side} width={side} height={side} fill={soft.A.fill} />
+      {u !== undefined && <Rect x={X0} y={Y0 - u * k} width={u * k} height={u * k} fill={soft.B.fill} />}
       <Path d={grid.join(' ')} stroke={p.draw} strokeWidth={stroke.hair} opacity={0.3} />
       <Rect x={X0} y={Y0 - side} width={side} height={side} fill="none" stroke={p.draw} strokeWidth={stroke.body} />
       {u !== undefined && <Path d={`M${X0},${Y0 - u * k} H${X0 + u * k} V${Y0}`} fill="none" stroke={p.draw} strokeWidth={stroke.body} />}
@@ -153,7 +147,7 @@ function EnergySquare({ fig, v }: { fig: KineticFig; v: number }) {
           <MonoLabel x={cx} y={145} text={`= ${kJ(kineticEnergy(fig.m, v))}`} color={p.ink} size={11} anchor="start" />
         </Group>
       )}
-      <Rect x={cx} y={168} width={9} height={9} fill={p.drawFill} stroke={p.paperLine} strokeWidth={stroke.hair} />
+      <Rect x={cx} y={168} width={9} height={9} fill={soft.A.fill} stroke={soft.A.edge} strokeWidth={stroke.hair} />
       <MonoLabel x={cx + 14} y={176} text={`= ${kJ(cellE)}`} color={p.label} size={9} anchor="start" />
     </Group>
   );
@@ -177,15 +171,12 @@ export function heightParams(fig: HeightFig): string {
 }
 
 export function HeightFigure({ fig, live, clock = STILL }: { fig: HeightFig; live?: number; clock?: DrawClock }) {
-  const { palette: p, material: m } = useTheme();
+  const { palette: p, soft } = useTheme();
   const h = useTween(heightNow(fig, live), undefined, live !== undefined ? 160 : 420);
   const carY = GROUND - h * KH; // the car's wheels
   const carTop = carY - 26 * CAR_SCALE;
   const ep = potentialChange(fig.m, h);
   const ek = fig.match !== undefined ? kineticEnergy(fig.m, fig.match) : undefined;
-  const rungs: string[] = [];
-  for (let y = GROUND; y > JIB_Y + 8; y -= 12) rungs.push(`M${MAST_X - 5},${y} L${MAST_X + 5},${y - 12}`);
-  for (let x = 60; x < MAST_X; x += 12) rungs.push(`M${x},${JIB_Y + 8} L${x + 6},${JIB_Y} L${x + 12},${JIB_Y + 8}`);
   const ticks = [0, 5, 10, 15, 20, 25];
 
   return (
@@ -194,10 +185,9 @@ export function HeightFigure({ fig, live, clock = STILL }: { fig: HeightFig; liv
       {stage(clock, 
         PEN.car,
         <Group>
-          {/* the tower crane: a lattice mast and a jib reaching out over the car */}
+          {/* the tower crane: a mast and a jib reaching out over the car */}
           <Path d={`M${MAST_X - 5},${GROUND} V${JIB_Y} M${MAST_X + 5},${GROUND} V${JIB_Y} M60,${JIB_Y} H${MAST_X + 22} M60,${JIB_Y + 8} H${MAST_X + 22}`} stroke={p.draw} strokeWidth={stroke.body} fill="none" />
-          <Path d={rungs.join(' ')} stroke={p.draw} strokeWidth={stroke.hair} opacity={0.6} fill="none" />
-          <Rect x={HOOK_X - 7} y={JIB_Y + 8} width={14} height={6} fill={m.metalSide} stroke={p.draw} strokeWidth={stroke.thin} />
+          <Rect x={HOOK_X - 7} y={JIB_Y + 8} width={14} height={6} fill={soft.metal.fill} stroke={p.draw} strokeWidth={stroke.thin} />
           {/* the cable, the hook and two slings to the car's roof */}
           <Line x1={HOOK_X} y1={JIB_Y + 14} x2={HOOK_X} y2={carTop - 12} stroke={p.draw} strokeWidth={stroke.thin} />
           <Circle cx={HOOK_X} cy={carTop - 12} r={2.4} fill={p.draw} />
@@ -223,14 +213,14 @@ export function HeightFigure({ fig, live, clock = STILL }: { fig: HeightFig; liv
           {h > 0.3 && (
             <Group>
               <Line x1={RULER_X + 6} y1={carY} x2={HOOK_X - 28} y2={carY} stroke={p.lineStrong} strokeWidth={stroke.thin} strokeDasharray="3 3" />
-              <Tag x={50} y={carY - 5} text={`h = ${fixed(h, 1)} m`} />
+              <Tag x={60} y={carY - 34} text={`h = ${fixed(h, 1)} m`} />
             </Group>
           )}
           {/* the energy bars, one scale */}
-          <EnergyBar x={BAR.ep} E={ep} name="ΔEp" fill={p.drawFillDark} />
+          <EnergyBar x={BAR.ep} E={ep} name="ΔEp" tone="A" />
           {ek !== undefined && (
             <Group>
-              <EnergyBar x={BAR.ek} E={ek} name="Ek" fill={p.paper} />
+              <EnergyBar x={BAR.ek} E={ek} name="Ek" tone="B" />
               <Line x1={BAR.ep - 6} y1={GROUND - ek * BAR.k} x2={BAR.ek + BAR.w + 4} y2={GROUND - ek * BAR.k} stroke={p.lineStrong} strokeWidth={stroke.thin} strokeDasharray="3 3" />
             </Group>
           )}
@@ -240,12 +230,12 @@ export function HeightFigure({ fig, live, clock = STILL }: { fig: HeightFig; liv
   );
 }
 
-function EnergyBar({ x, E, name, fill }: { x: number; E: number; name: string; fill: string }) {
-  const { palette: p, material: m } = useTheme();
+function EnergyBar({ x, E, name, tone }: { x: number; E: number; name: string; tone: 'A' | 'B' }) {
+  const { palette: p, soft } = useTheme();
   const hBar = Math.max(0, E * BAR.k);
   return (
     <Group>
-      <Rect x={x} y={GROUND - hBar} width={BAR.w} height={hBar} fill={fill} stroke={p.draw} strokeWidth={stroke.body} />
+      <Rect x={x} y={GROUND - hBar} width={BAR.w} height={hBar} rx={3} fill={soft[tone].fill} stroke={soft[tone].edge} strokeWidth={2} />
       <MonoLabel x={x + BAR.w / 2} y={GROUND - hBar - 6} text={kJ(E)} color={p.ink} size={9} />
       <MonoLabel x={x + BAR.w / 2} y={GROUND + 22} text={name} color={p.label} size={9.5} />
     </Group>
