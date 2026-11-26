@@ -24,7 +24,7 @@ export const X0 = 78; // x of the 0 m line
 export const X_END = 330;
 export const RULER_Y = 210;
 export const KV = 1.9; // viewBox units per m s⁻¹ of velocity
-export const CAR_MID = 32; // from the front bumper back to the middle of the car
+export const CAR_MID = 37; // from the front bumper back to the middle of the car
 const HOLD = 1.4; // s the played figure waits on its last frame before it starts again
 
 // heights above (−) and below (+) a lane's road surface
@@ -33,7 +33,7 @@ export const SPEED_DY = -50;
 export const DIM_DY = 17;
 
 /** viewBox units per metre of a road that shows `span` metres. */
-export const roadScale = (span: number) => (X_END - X0 - 4) / span;
+export const roadScale = (span: number) => (X_END - X0 - 12) / span;
 const scaleOf = (fig: RoadFig) => roadScale(fig.span);
 /** y of the road surface of each lane when two cars are shown. */
 export const LANES = { A: 84, B: 170 } as const;
@@ -106,12 +106,12 @@ export function RoadFigure({ fig, live, playing, clock = STILL }: Props) {
 
       {/* where the clock starts: the brakes come on, or the driver first sees the hazard */}
       <DrawnPath clock={clock} len={RULER_Y - top} from={PEN.start[0]} to={PEN.start[1]} d={`M${X0},${top} V${RULER_Y}`} stroke={p.lineStrong} strokeWidth={stroke.thin} strokeDasharray="3 4" fill="none" />
-      {stage(clock, PEN.marks, <MonoLabel x={X0 + 4} y={13} text={react > 0 ? 'SEES IT' : 'BRAKES ON'} color={p.label} size={8.5} anchor="start" />)}
+      {stage(clock, PEN.marks, <MonoLabel x={X0 + 4} y={13} text={react > 0 ? 'sees it' : 'brakes on'} color={p.label} size={8.5} anchor="start" />)}
       {/* with a reaction time the brakes come on later, further along the road */}
       {brakesOn && (
         <Group>
           <Line x1={X(think)} y1={top} x2={X(think)} y2={RULER_Y} stroke={p.lineStrong} strokeWidth={stroke.thin} strokeDasharray="3 4" />
-          <MonoLabel x={X(think) + 4} y={13} text="BRAKES ON" color={p.label} size={8.5} anchor="start" />
+          <MonoLabel x={X(think) + 4} y={13} text="brakes on" color={p.label} size={8.5} anchor="start" />
         </Group>
       )}
 
@@ -253,14 +253,10 @@ function Tree({ x, y, from, text }: { x: number; y: number; from: number; text: 
   const cy = y - r;
   return (
     <Group>
-      {/* a branch still on the trunk, with its leaves */}
-      <Path d={`M${cx + 7},${cy - 8} L${cx + 17},${cy - 21}`} stroke={p.draw} strokeWidth={stroke.body} strokeLinecap="round" fill="none" />
-      <Circle cx={cx + 19} cy={cy - 25} r={5} fill={m.clothB} />
-      <Circle cx={cx + 25} cy={cy - 19} r={3.8} fill={m.clothB} />
       <Circle cx={cx} cy={cy} r={r} fill={m.wood} stroke={p.draw} strokeWidth={stroke.body} />
       <Circle cx={cx} cy={cy} r={7.5} fill="none" stroke={p.draw} strokeWidth={stroke.thin} opacity={0.55} />
       <Circle cx={cx} cy={cy} r={3.2} fill="none" stroke={p.draw} strokeWidth={stroke.thin} opacity={0.55} />
-      <MonoLabel x={cx - 5} y={y - 2 * r - 7} text="TREE" color={p.label} size={8.5} />
+      <MonoLabel x={cx - 5} y={y - 2 * r - 7} text="tree" color={p.label} size={8.5} />
       <Dim a={[from, y + DIM_DY]} b={[x, y + DIM_DY]} text={text} fit="below" />
     </Group>
   );

@@ -20,7 +20,7 @@
 | 0 | lift, track (пилот) | ✅ |
 | 1 | Урок «The push from the floor»: scales, pairs, liftPair, vt | ✅ |
 | 2 | Motion: graph, equations, brakeVt, throwVt, fallGraph, plot | ✅ |
-| 3 | Motion: road, chase, throw, bench, kick | |
+| 3 | Motion: road, chase, throw, bench, kick | ✅ |
 | 4 | Motion: vectors, resolve, sledge, hill | |
 | 5 | Forces: crate, ladder, particle, pulley, fall, fallVt | |
 | 6 | Momentum and moments: wall, bodies, collide | |

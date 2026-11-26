@@ -55,7 +55,7 @@ export function ChaseFigure({ fig, playing, clock = STILL }: { fig: ChaseFig; pl
       ))}
       <RoadRuler span={fig.span} clock={clock} />
       <DrawnPath clock={clock} len={RULER_Y - 20} from={PEN.start[0]} to={PEN.start[1]} d={`M${X0},20 V${RULER_Y}`} stroke={p.lineStrong} strokeWidth={stroke.thin} strokeDasharray="3 4" fill="none" />
-      {stage(clock, PEN.marks, <MonoLabel x={X0 + 4} y={13} text="SIDE BY SIDE" color={p.label} size={8.5} anchor="start" />)}
+      {stage(clock, PEN.marks, <MonoLabel x={X0 + 4} y={13} text="side by side" color={p.label} size={8.5} anchor="start" />)}
 
       {/* the last frame: how far apart the cars are, or that they are level */}
       {ended && gap > 0.05 && (
@@ -68,7 +68,7 @@ export function ChaseFigure({ fig, playing, clock = STILL }: { fig: ChaseFig; pl
       {ended && gap <= 0.05 && (
         <Group>
           <Line x1={X(front)} y1={30} x2={X(front)} y2={RULER_Y} stroke={p.label} strokeWidth={stroke.thin} strokeDasharray="3 4" />
-          <Tag x={X(front)} y={26} text={`LEVEL AT ${fixed(front, 1)} m`} />
+          <Tag x={X(front)} y={26} text={`level at ${fixed(front, 1)} m`} />
         </Group>
       )}
 

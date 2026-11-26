@@ -1,11 +1,14 @@
 // A ball, flat: `shaded` (a plain ball, one flat fill and an outline), `steel` (a dark disc with a paper highlight),
 // `cricket` (pale, with a seam) or `bowling` (dark, three finger holes).
+import { useContext } from 'react';
 import { Circle, G as Group, Path } from 'react-native-svg';
 import { useTheme } from '@/theme/ThemeContext';
-import { stroke } from '@/theme/tokens';
+import { SheetClean } from '../draw';
 
-export function Ball({ x, y, r, look = 'shaded' }: { x: number; y: number; r: number; look?: 'shaded' | 'steel' | 'cricket' | 'bowling' }) {
-  const { palette: p, material: m, stroke } = useTheme();
+export function Ball({ x, y, r, look = 'shaded', tone = 'A' }: { x: number; y: number; r: number; look?: 'shaded' | 'steel' | 'cricket' | 'bowling'; /** Style 3: which body tone a plain ball has. */ tone?: 'A' | 'B' | 'metal' }) {
+  const { palette: p, material: m, soft, stroke } = useTheme();
+  const clean = useContext(SheetClean);
+  if (look === 'shaded' && clean) return <Circle cx={x} cy={y} r={r} fill={soft[tone].fill} stroke={soft[tone].edge} strokeWidth={2} />;
   if (look === 'shaded') return <Circle cx={x} cy={y} r={r} fill={m.ball} stroke={p.draw} strokeWidth={stroke.body} />;
   if (look === 'steel')
     return (

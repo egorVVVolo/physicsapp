@@ -20,7 +20,7 @@ export const THROW_VB = { w: 340, h: 264 };
 
 const GROUND = 240; // y of the ground
 const K = 12.8; // viewBox units per metre of height
-const R = 9; // ball radius
+const R = 11; // ball radius
 const KV = 3.1; // viewBox units per m s⁻¹ of velocity
 const RULER_X = 12;
 const BUILDING = { x: 40, w: 52, top: 56 };
@@ -119,15 +119,8 @@ export function ThrowFigure({ fig, live, playing, tap, clock = STILL }: Props) {
       {/* the ruler is the axis: metres above the ground, up is positive */}
       <ThrowRuler fig={fig} clock={clock} />
 
-      {/* the building, its windows and the door onto the balcony */}
-      <DrawnShape clock={clock} pen={PEN.building} {...rectPath(BUILDING.x, BUILDING.top, BUILDING.w, GROUND - BUILDING.top)} fill={p.page} stroke={p.draw} strokeWidth={stroke.body} />
-      <DrawnFade clock={clock} from={FILLS[0]} to={FILLS[1]}>
-        {[2, 5, 8].flatMap((h) =>
-          [BUILDING.x + 9, BUILDING.x + 31].map((x) => <Rect key={`${h}-${x}`} x={x} y={yOf(h) - 10} width={12} height={18} rx={1.5} fill={p.drawFill} />),
-        )}
-        <Rect x={BUILDING.x + 28} y={slabY - 30} width={16} height={30} rx={1.5} fill={p.drawFill} />
-        <Rect x={BUILDING.x + 9} y={BUILDING.top + 10} width={12} height={18} rx={1.5} fill={p.drawFill} />
-      </DrawnFade>
+      {/* the building */}
+      <DrawnShape clock={clock} pen={PEN.building} {...rectPath(BUILDING.x, BUILDING.top, BUILDING.w, GROUND - BUILDING.top)} fill={p.paper} stroke={p.draw} strokeWidth={stroke.body} />
       {/* the balcony: a slab and a rail at the height of your hand */}
       <DrawnShape clock={clock} pen={PEN.slab} {...rectPath(BUILDING.x + BUILDING.w, slabY, SLAB.x2 - BUILDING.x - BUILDING.w, SLAB.h)} fill={p.drawFillDark} stroke={p.draw} strokeWidth={stroke.body} />
       {line(`M${BUILDING.x + BUILDING.w},${handY} H${SLAB.x2}`, SLAB.x2 - BUILDING.x - BUILDING.w, PEN.rail, p.draw, stroke.body)}
@@ -153,13 +146,13 @@ export function ThrowFigure({ fig, live, playing, tap, clock = STILL }: Props) {
 /** The axis on the left: a tick every 2 m, a number every 4 m, the arrow and "+" at the top. Bolder on the signs screen. */
 function ThrowRuler({ fig, clock }: { fig: ThrowFig; clock: DrawClock }) {
   const { palette: p, material: m } = useTheme();
-  const top = yOf(16.6);
+  const top = yOf(17.3);
   const ticks: RulerTick[] = [];
   for (let h = 0; h <= 16; h += 2) ticks.push({ at: yOf(h), len: h % 4 === 0 ? 6 : 4, label: h % 4 === 0 ? (h === 16 ? '16 m' : String(h)) : undefined, dy: h === 0 ? -7.5 : 0 });
   return (
     <Ruler axis="y" at={RULER_X} from={GROUND} to={top} arrow="end" ticks={ticks} side={1} labelAt={9} labelDy={3.5} labelAnchor="start" color={fig.signs ? p.ink : p.draw} width={fig.signs ? 2.4 : 1.6} clock={clock} pen={PEN.ruler}>
-      <ForceLetter x={RULER_X + 9} y={top - (fig.signs ? 8 : 3)} text="+" color={fig.signs ? p.ink : p.label} size={fig.signs ? 19 : 15} anchor="start" />
-      {fig.signs && <MonoLabel x={RULER_X + 26} y={top - 10} text="UP" color={p.ink} size={9} anchor="start" />}
+      <ForceLetter x={RULER_X + 9} y={top - (fig.signs ? 0 : 3)} text="+" color={fig.signs ? p.ink : p.label} size={fig.signs ? 19 : 15} anchor="start" />
+      {fig.signs && <MonoLabel x={RULER_X + 26} y={top} text="up" color={p.ink} size={9} anchor="start" />}
     </Ruler>
   );
 }
@@ -184,8 +177,8 @@ function FlyingBall({ fig, ball, x, t, still, clock }: { fig: ThrowFig; ball: 'A
       {!landed && !unknown && len > 1.5 && stage(clock, PEN.marks, <VelocityArrow x={arrowX} y={y} v={v} len={len} color={p.draw} />)}
       {ball === 'A' && fig.showAcc && stage(clock, PEN.marks, <AccMark x={x - 46} y={y} />)}
       <DrawnFade clock={clock} from={FILLS[0]} to={FILLS[1]}>
-        <Ball x={x} y={y} r={R} />
-        <ForceLetter x={x - 14} y={y + 5} text={ball} color={p.ink} size={14} anchor="end" />
+        <Ball x={x} y={y} r={R} tone={ball} />
+        <ForceLetter x={x - 16} y={y + 5} text={ball} color={p.ink} size={14} anchor="end" />
       </DrawnFade>
       {showValue && stage(clock, PEN.marks, <ValueLabel x={x} y={y} arrowX={arrowX} v={v} len={len} landed={landed} beside={!fig.balls.includes('B')} />)}
       {unknown && stage(clock, PEN.marks, <Tag x={arrowX - 4} y={y + 3.5} text="v = ?" color={p.ink} size={10} anchor="start" />)}
@@ -233,7 +226,7 @@ function AccMark({ x, y }: { x: number; y: number }) {
  * The way up is drawn a little left of the ball's line and the way down a little right (as textbooks do), so the two never merge.
  */
 function Trail({ fig, x, t }: { fig: ThrowFig; x: number; t: number }) {
-  const { palette: p } = useTheme();
+  const { palette: p, soft } = useTheme();
   const m = motionOf(fig, 'A');
   const tLand = landingTime(fig, 'A');
   const tTop = fig.u / G;
@@ -246,7 +239,7 @@ function Trail({ fig, x, t }: { fig: ThrowFig; x: number; t: number }) {
   return (
     <Group>
       {dots.map((d, i) => (
-        <Circle key={i} cx={d.x} cy={d.y} r={2.6} fill={p.label} opacity={0.55} />
+        <Circle key={i} cx={d.x} cy={d.y} r={3} fill={soft.A.edge} opacity={0.55} />
       ))}
     </Group>
   );

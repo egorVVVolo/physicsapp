@@ -221,7 +221,10 @@ export function ForceLetter({ x, y, text, color, size = 17, anchor = 'middle' }:
 
 /** Ground hatching under a floor line, as on a drawing. With a running clock the line is drawn first, then the ticks one by one. */
 export function Hatch({ x1, x2, y, color, clock = STILL, from = 0, to = 1 }: { x1: number; x2: number; y: number; color: string; clock?: DrawClock; from?: number; to?: number }) {
+  // on a style-3 sheet the floor is one plain line
+  const clean = useContext(SheetClean);
   const ticks: string[] = [];
+  if (clean) return <DrawnPath clock={clock} len={x2 - x1} from={from} to={to} d={`M${x1},${y} H${x2}`} stroke={color} strokeWidth={stroke.body} />;
   for (let x = x1; x < x2; x += 9) ticks.push(`M${x},${y + 8} L${x + 8},${y}`);
   const mid = from + (to - from) * 0.5;
   const rest = to - mid; // tick i starts a little after tick i − 1; the last one ends exactly at `to`

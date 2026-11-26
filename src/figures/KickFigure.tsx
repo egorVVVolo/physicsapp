@@ -20,7 +20,7 @@ export const KICK_VB = { w: 340, h: 248 };
 
 const GROUND = 212;
 const K = 7; // viewBox units per metre
-const R = 6; // ball radius
+const R = 8; // ball radius
 const O: [number, number] = [36, GROUND - R]; // the ball's centre at the kick
 const KV = 6; // viewBox units per m s⁻¹ of a launch arrow
 const KV_PARTS = 9; // … of a launch arrow split into components (drawn alone, so it can be larger)
@@ -65,7 +65,7 @@ export function kickParams(fig: KickFig, angle?: number): string {
 type Props = { fig: KickFig; live?: number; playing: boolean; clock?: DrawClock };
 
 export function KickFigure({ fig, live, playing, clock = STILL }: Props) {
-  const { palette: p, material: m } = useTheme();
+  const { palette: p, soft } = useTheme();
   const reduced = useReducedMotionPref();
   const kicks = kicksOf(fig, live);
   const plays = kickPlays(fig) && live === undefined;
@@ -79,13 +79,13 @@ export function KickFigure({ fig, live, playing, clock = STILL }: Props) {
       <Hatch x1={6} x2={334} y={GROUND} color={p.draw} clock={clock} from={PEN.ground[0]} to={PEN.ground[1]} />
 
       {/* the paths: the whole flight, up to the top, or (while it plays and no path is given) as far as the ball has got */}
-      {kicks.map((k) => {
+      {kicks.map((k, i) => {
         const l = launchOf(fig.u, k.angle);
         const T = flightTime(l);
         const until = fig.path === 'shown' ? T : fig.path === 'toTop' ? timeToTop(l) : plays ? Math.min(timeOf(l), T) : 0;
         if (until <= 0) return null;
         const { d, len } = pathOf(l, until);
-        return <DrawnPath key={`p${k.id}`} clock={clock} len={len} from={PEN.path[0]} to={PEN.path[1]} d={d} fill="none" stroke={p.label} strokeWidth={stroke.thin} strokeDasharray="4 4" />;
+        return <DrawnPath key={`p${k.id}`} clock={clock} len={len} from={PEN.path[0]} to={PEN.path[1]} d={d} fill="none" stroke={(i === 0 ? soft.A : soft.B).edge} strokeWidth={stroke.body} strokeDasharray="5 4" />;
       })}
 
       {/* names at the tops of the paths, when two paths are drawn */}
@@ -103,7 +103,7 @@ export function KickFigure({ fig, live, playing, clock = STILL }: Props) {
       {fig.launch && !plays && (
         <DrawnFade clock={clock} from={PEN.launch[0]} to={PEN.launch[1]}>
           {kicks.map((k, i) => (
-            <LaunchArrow key={`a${k.id}`} u={fig.u} angle={k.angle} name={k.id} parts={fig.launch === 'parts'} arc={30 + i * 22} labelAt={(k.angle + (i > 0 ? kicks[i - 1].angle : 0)) / 2} />
+            <LaunchArrow key={`a${k.id}`} u={fig.u} angle={k.angle} name={k.id} color={(i === 0 ? soft.A : soft.B).edge} parts={fig.launch === 'parts'} arc={30 + i * 22} labelAt={(k.angle + (i > 0 ? kicks[i - 1].angle : 0)) / 2} />
           ))}
         </DrawnFade>
       )}
@@ -112,12 +112,12 @@ export function KickFigure({ fig, live, playing, clock = STILL }: Props) {
       {fig.range && stage(clock, PEN.labels, <RangeLines fig={fig} kicks={kicks} label={fig.range} />)}
 
       {/* the balls */}
-      {kicks.map((k) => {
+      {kicks.map((k, i) => {
         const l = launchOf(fig.u, k.angle);
         const [x, y] = pointAt(l, timeOf(l));
         return (
           <DrawnFade key={`b${k.id}`} clock={clock} from={FILLS[0]} to={FILLS[1]}>
-            <Ball x={x} y={y} r={R} />
+            <Ball x={x} y={y} r={R} tone={kicks.length > 1 && timeOf(l) === 0 ? 'metal' : i === 0 ? 'A' : 'B'} />
           </DrawnFade>
         );
       })}
@@ -148,7 +148,7 @@ function pathOf(l: Launch, until: number): { d: string; len: number } {
  * The launch velocity from the ball, its angle above the ground, and (with `parts`) its two components with their sizes.
  * The angle is written at `labelAt` degrees: in the wedge between this arrow and the one below it, so it never sits on an arrow.
  */
-function LaunchArrow({ u, angle, name, parts, arc, labelAt }: { u: number; angle: number; name: string; parts: boolean; arc: number; labelAt: number }) {
+function LaunchArrow({ u, angle, name, color, parts, arc, labelAt }: { u: number; angle: number; name: string; color: string; parts: boolean; arc: number; labelAt: number }) {
   const { palette: p, material: m } = useTheme();
   const c = launchParts(launchOf(u, angle));
   const kv = parts ? KV_PARTS : KV;
@@ -168,7 +168,7 @@ function LaunchArrow({ u, angle, name, parts, arc, labelAt }: { u: number; angle
       )}
       <Path d={arcD} fill="none" stroke={p.label} strokeWidth={stroke.thin} />
       <MonoLabel x={O[0] + (arc + 11) * Math.cos(mid)} y={O[1] - (arc + 11) * Math.sin(mid) + 3} text={`${fixed(angle, 0)}°`} color={p.ink} size={8.5} />
-      <HollowArrow from={O} to={tip} color={p.draw} />
+      <HollowArrow from={O} to={tip} color={color} />
       <Circle cx={O[0]} cy={O[1]} r={2.6} fill={p.draw} />
       <Tag x={tip[0] + 8 + (nameText.length * 5.4) / 2} y={tip[1] - (parts ? 6 : -2)} text={nameText} />
       {parts && (

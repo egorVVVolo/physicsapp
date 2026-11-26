@@ -19,7 +19,9 @@ export const BENCH_VB = { w: 340, h: 252 };
 
 const GROUND = 214;
 const K = 100; // viewBox units per metre
-const R = 7; // ball radius
+const R = 9; // ball radius
+/** Each ball keeps its tone: A the first, B the second, a third one grey. */
+const toneOf = (id: string) => (id === 'A' ? 'A' : id === 'B' ? 'B' : 'metal');
 const BENCH = { x1: 40, x2: 118, slab: 8, leg: 5 }; // x1, x2: where the balls' centres leave the bench
 const SLOW = 4; // the played falls run this many times slower than real time
 const HOLD = 1.3; // s the played figure waits with every ball on the floor before it starts again
@@ -67,7 +69,7 @@ export function benchParams(fig: BenchFig, t?: number): string {
 type Props = { fig: BenchFig; live?: number; playing: boolean; clock?: DrawClock };
 
 export function BenchFigure({ fig, live, playing, clock = STILL }: Props) {
-  const { palette: p, material: m } = useTheme();
+  const { palette: p, soft } = useTheme();
   const reduced = useReducedMotionPref();
   const plays = benchPlays(fig);
   const length = Math.max(...fig.balls.map((b) => flightTime(launchOf(fig, b.u))));
@@ -89,13 +91,13 @@ export function BenchFigure({ fig, live, playing, clock = STILL }: Props) {
 
       {/* the bench: a slab on two legs; its top is h above the floor */}
       {/* the balls start just past its ends (x1 and x2 are their centres), so a falling ball never runs into a leg */}
-      <DrawnShape clock={clock} pen={PEN.bench} {...rectPath(BENCH.x1 + R, top, BENCH.x2 - BENCH.x1 - 2 * R, BENCH.slab, 1.5)} fill={m.wood} stroke={p.draw} strokeWidth={stroke.body} />
+      <DrawnShape clock={clock} pen={PEN.bench} {...rectPath(BENCH.x1 + R, top, BENCH.x2 - BENCH.x1 - 2 * R, BENCH.slab, 1.5)} fill={p.paper} stroke={p.draw} strokeWidth={stroke.body} />
       {[BENCH.x1 + R + 6, BENCH.x2 - R - 6 - BENCH.leg].map((x) => (
-        <DrawnShape key={x} clock={clock} pen={PEN.bench} {...rectPath(x, top + BENCH.slab, BENCH.leg, GROUND - top - BENCH.slab)} fill={m.metal} stroke={p.draw} strokeWidth={stroke.thin} />
+        <DrawnShape key={x} clock={clock} pen={PEN.bench} {...rectPath(x, top + BENCH.slab, BENCH.leg, GROUND - top - BENCH.slab)} fill={p.paper} stroke={p.draw} strokeWidth={stroke.thin} />
       ))}
 
       {/* while it plays: how much slower than real time, and the clock */}
-      {plays && live === undefined && stage(clock, PEN.marks, <MonoLabel x={10} y={18} text={`t = ${fixed(t, 2)} s · ¼ SPEED`} color={p.label} size={9} anchor="start" />)}
+      {plays && live === undefined && stage(clock, PEN.marks, <MonoLabel x={10} y={18} text={`t = ${fixed(t, 2)} s · ¼ speed`} color={p.label} size={9} anchor="start" />)}
 
       {/* dashed lines joining the slowest and fastest balls' copies taken at the same moment: they are always level */}
       {fig.levels &&
@@ -110,7 +112,7 @@ export function BenchFigure({ fig, live, playing, clock = STILL }: Props) {
       {fig.balls.flatMap((b) =>
         moments.map((m) => {
           const at = ballAt(fig, b.u, m);
-          return <Circle key={`${b.id}${m}`} cx={at.x} cy={at.y} r={R} fill="none" stroke={p.label} strokeWidth={stroke.thin} opacity={0.6} />;
+          return <Circle key={`${b.id}${m}`} cx={at.x} cy={at.y} r={R} fill="none" stroke={soft[toneOf(b.id)].edge} strokeWidth={stroke.thin} opacity={0.7} />;
         }),
       )}
 
@@ -122,7 +124,7 @@ export function BenchFigure({ fig, live, playing, clock = STILL }: Props) {
         const at = ballAt(fig, b.u, t);
         return (
           <DrawnFade key={b.id} clock={clock} from={FILLS[0]} to={FILLS[1]}>
-            <Ball x={at.x} y={at.y} r={R} />
+            <Ball x={at.x} y={at.y} r={R} tone={toneOf(b.id)} />
             {b.u === 0 ? (
               <ForceLetter x={at.x - R - 4} y={at.y + 5} text={b.id} color={p.ink} size={14} anchor="end" />
             ) : (
@@ -160,7 +162,7 @@ function VelocityInset({ fig, u, id, t }: { fig: BenchFig; u: number; id: string
   const down = -v.vy;
   return (
     <Group>
-      <MonoLabel x={x - 8} y={y + 4} text={`${id}'S VELOCITY`} color={p.label} size={8.5} anchor="end" />
+      <MonoLabel x={x - 8} y={y + 4} text={`${id}'s velocity`} color={p.label} size={8.5} anchor="end" />
       <HollowArrow from={[x, y]} to={[x + v.vx * KV, y]} color={p.draw} weight="thin" />
       {down * KV > 2 && <HollowArrow from={[x, y]} to={[x, y + down * KV]} color={p.draw} weight="thin" />}
       <Circle cx={x} cy={y} r={2.6} fill={p.draw} />
