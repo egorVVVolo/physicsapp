@@ -388,3 +388,118 @@ test('the v3 rules catch every kind of break', () => {
   for (const key of ['length', 'variety', 'choice', 'row', 'text', 'check', 'numbers', 'unsure', 'chapters', 'cast']) assert.ok(keys.has(key), `the rule "${key}" is caught`);
   assert.ok(isNumberLabel('471 J') && isNumberLabel('3.06 × 10⁸ Pa') && isNumberLabel('−1.0 m s⁻¹') && !isNumberLabel('20.0 m behind') && !isNumberLabel('Up'));
 });
+
+// ── Polish rules (docs/V3_TASKS.md, lesson checklist 1–8) ─────────────────────────────────
+
+/** Lessons already polished: every polish rule must hold for them. The last task (L12) drops the set. */
+const POLISHED = new Set<string>([]);
+
+/** "−200 m" → "# m", "9.81 N kg⁻¹" → "# N kg⁻¹", "2.0 × 10⁻³" → "#": a chip's label with its number taken out. */
+const unitOf = (label: string) => label.replace(/[−\-+]?[\d.,]+(\s| )?(×\s?10[⁻⁰¹²³⁴⁵⁶⁷⁸⁹]+)?/g, '#').replace(/\s+/g, ' ').trim();
+
+const words = (text: string) => text.replaceAll('**', '').split(/[ \n]+/).filter(Boolean).length;
+
+type Built = { id: string; boxes: Record<string, string>; chips: BuildScreen['chips'] };
+/** Every build step of a lesson, those inside exam-style cards included. */
+function buildsOf(lesson: Lesson): Built[] {
+  return [...lesson.story, ...lesson.skillCheck].flatMap((s): Built[] => {
+    if (s.kind === 'build') return [s];
+    if (s.kind === 'examCard') return s.parts.flatMap((part) => (part.kind === 'build' ? [{ id: `${s.id}.${part.id}`, ...part.build }] : []));
+    return [];
+  });
+}
+
+/** Every way a lesson breaks the polish rules, each message starting with its rule's key. */
+function polishProblems(lesson: Lesson): string[] {
+  const out: string[] = [];
+  const story = lesson.story;
+  const all: (Screen | ExamCardScreen)[] = [...story, ...lesson.skillCheck];
+  // 1 unit: a box is not solved by its unit alone (g is the one exception)
+  for (const b of buildsOf(lesson)) {
+    const right = new Set(Object.values(b.boxes));
+    for (const [box, id] of Object.entries(b.boxes)) {
+      const chip = b.chips.find((c) => c.id === id);
+      if (!chip || /9\.81/.test(chip.label)) continue;
+      if (!b.chips.some((c) => !right.has(c.id) && unitOf(c.label) === unitOf(chip.label))) out.push(`unit: ${b.id}.${box} has no wrong chip in the same unit`);
+    }
+  }
+  // 2 prompt: the question does not spell out the formula
+  for (const s of all) if (s.kind === 'build' && /[=÷×]/.test(s.prompt)) out.push(`prompt: ${s.id} writes the formula in its question`);
+  // 3 choose: somewhere in the story the learner picks the equation
+  if (!story.some((s) => s.kind === 'build' && s.choose)) out.push('choose: no build in the story asks which equation');
+  // 4 after-predict: something to do straight after the prediction
+  const predict = story.findIndex((s) => s.kind === 'predict');
+  if (story[predict + 1]?.kind === 'text') out.push(`after-predict: ${story[predict + 1].id} is a text screen`);
+  // 5 revisit: the puzzle comes back late, and little follows it
+  const back = story.findIndex((s) => (s.kind === 'choice' && s.revisitOf) || s.id.startsWith('hook-again'));
+  if (back < 0) out.push('revisit: the story never returns to the puzzle');
+  else if (back < 0.6 * story.length || story.length - 1 - back > 3) out.push(`revisit: the puzzle comes back on screen ${back + 1} of ${story.length}`);
+  // 6 ending
+  if (story[story.length - 1]?.kind === 'text') out.push('ending: the story ends on a text screen');
+  // 7 spot: the wrong line moves about, and a solution has numbers to check
+  const spots = all.flatMap((s) => (s.kind === 'spotError' ? [s] : []));
+  for (const s of spots) if (s.lines.filter((l) => /\d/.test(l.text)).length < 2) out.push(`spot: ${s.id} has fewer than two lines with numbers`);
+  if (spots.length > 1) {
+    const at = spots.map((s) => s.lines.findIndex((l) => l.wrong));
+    if (new Set(at).size < at.length) out.push('spot: two spot-the-error screens have the wrong line in the same place');
+    if (!spots.some((s, i) => at[i] === 0 || at[i] === s.lines.length - 1)) out.push('spot: no wrong line is the first or the last one');
+  }
+  // 8 words
+  for (const s of all) {
+    if (s.kind === 'text') for (const par of s.body) if (words(par) > 40) out.push(`words: ${s.id} has a paragraph of ${words(par)} words`);
+    if ('prompt' in s && words(s.prompt) > 35) out.push(`words: ${s.id} has a question of ${words(s.prompt)} words`);
+  }
+  return out;
+}
+
+for (const id of POLISHED) {
+  test(`${id}: is polished`, () => {
+    assert.deepEqual(polishProblems(lessons[id]), []);
+  });
+}
+
+test('polish progress (a report, it never fails)', () => {
+  const rows = Object.keys(lessons).map((id) => {
+    const found = polishProblems(lessons[id]);
+    const byRule = new Map<string, number>();
+    for (const m of found) byRule.set(m.split(':')[0], (byRule.get(m.split(':')[0]) ?? 0) + 1);
+    return `${id.padEnd(18)} ${String(found.length).padStart(2)}  ${[...byRule].map(([k, n]) => `${k} ${n}`).join(', ')}`;
+  });
+  console.log(['problems left per lesson:', ...rows].join('\n'));
+});
+
+test('the polish rules catch every kind of break', () => {
+  const text = (id: string, body = 'x'): Screen => ({ id, kind: 'text', body: [body] });
+  const spot = (id: string, wrong: number): Screen => ({ id, kind: 'spotError', prompt: '?', lines: ['a', 'b', 'c'].map((t, i) => ({ id: t, text: i === 0 ? '2 m' : t, ...(i === wrong ? { wrong: true as const, fix: 'x' } : { hint: 'h' }) })), why: '' });
+  const build: Screen = { id: 'b', kind: 'build', prompt: 'v = s ÷ t. Build it.', equation: '{s}', boxes: { s: 'a' }, chips: [{ id: 'a', label: '200 m' }, { id: 'w', label: '200 s', hint: 'h' }], result: { symbol: 'v', value: 1, unit: 'm' }, why: '' };
+  const bad: Lesson = {
+    id: 'bad',
+    title: 'Bad',
+    spec: [],
+    minutes: 10,
+    story: [
+      { id: 'intro', kind: 'intro', title: 'x', body: 'x', fig: { kind: 'vt', phases: [] } },
+      { id: 'p', kind: 'predict', prompt: '?', options: [{ id: 'a', label: 'a', correct: true }], after: 'Go' },
+      text('t1', Array(41).fill('word').join(' ')),
+      { id: 'hook-again', kind: 'choice', prompt: Array(36).fill('word').join(' '), options: [], why: '' },
+      build,
+      spot('s1', 1),
+      spot('s2', 1),
+      text('t2'),
+      text('t3'),
+      text('t4'),
+      text('t5'),
+    ],
+    chapters: [],
+    skillCheck: [],
+    youCanNow: [],
+    recap: { fig: { kind: 'vt', phases: [] }, text: '' },
+    card: { formula: '', idea: '' },
+    cast: [],
+  };
+  const keys = new Set(polishProblems(bad).map((m) => m.split(':')[0]));
+  for (const key of ['unit', 'prompt', 'choose', 'after-predict', 'revisit', 'ending', 'spot', 'words']) assert.ok(keys.has(key), `the rule "${key}" is caught`);
+  assert.equal(unitOf('−200 m'), unitOf('800 m'));
+  assert.notEqual(unitOf('200 s'), unitOf('800 m'));
+  assert.equal(unitOf('2.0 × 10⁻³'), '#');
+});
