@@ -12,7 +12,7 @@ const DOT = { x: 170, y: 118 };
 const RAD = Math.PI / 180;
 
 export function ParticleFigure({ fig, clock = STILL }: { fig: ParticleFig; clock?: DrawClock }) {
-  const { palette: p, material: m } = useTheme();
+  const { palette: p } = useTheme();
   return (
     <Group>
       <DrawnFade clock={clock} from={0} to={0.4}>

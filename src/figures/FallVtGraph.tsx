@@ -9,7 +9,7 @@ import { stroke } from '@/theme/tokens';
 import { STILL, type DrawClock } from './anim';
 import { DrawnFade, DrawnPath, MonoLabel } from './draw';
 
-export const FALL_VT_VB = { w: 340, h: 220 };
+export const FALL_VT_VB = { w: 340, h: 234 };
 
 const PLOT = { x: 52, top: 26, w: 258, h: 164 };
 const STEP = 0.25; // s between the points of a curve
@@ -18,7 +18,7 @@ const STEP = 0.25; // s between the points of a curve
 export const fallVtPoints = (fig: FallVtFig) => fallVtCurve(fig.curve, fig.vt, fig.chute, fig.tEnd, STEP);
 
 export function FallVtFigure({ fig, clock = STILL }: { fig: FallVtFig; clock?: DrawClock }) {
-  const { palette: p } = useTheme();
+  const { palette: p, soft } = useTheme();
   const vMax = Math.ceil((Math.max(fig.vt, fig.chute.vt) * 1.15) / 10) * 10;
   const X = (t: number) => PLOT.x + (t / fig.tEnd) * PLOT.w;
   const Y = (v: number) => PLOT.top + PLOT.h - (v / vMax) * PLOT.h;
@@ -45,10 +45,10 @@ export function FallVtFigure({ fig, clock = STILL }: { fig: FallVtFig; clock?: D
             <MonoLabel x={PLOT.x - 8} y={Y(k) + 3.5} text={`${k}`} color={p.label} anchor="end" />
           </Group>
         ))}
-        <MonoLabel x={PLOT.x + PLOT.w + 10} y={Y(0) + 30} text="t / s" color={p.label} anchor="end" />
+        <MonoLabel x={PLOT.x + PLOT.w + 10} y={Y(0) + 35} text="t / s" color={p.label} anchor="end" />
         <MonoLabel x={PLOT.x + 6} y={PLOT.top - 6} text="v / m s⁻¹" color={p.label} anchor="start" />
       </DrawnFade>
-      <DrawnPath clock={clock} len={900} from={0.4} to={0.9} d={d} fill="none" stroke={p.ink} strokeWidth={stroke.body} strokeLinejoin="round" strokeLinecap="round" />
+      <DrawnPath clock={clock} len={900} from={0.4} to={0.9} d={d} fill="none" stroke={soft.A.edge} strokeWidth={stroke.force} strokeLinejoin="round" strokeLinecap="round" />
     </Group>
   );
 }

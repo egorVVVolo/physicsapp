@@ -60,7 +60,7 @@ export function ladderTargets(fig: LadderFig): TapTarget[] {
 }
 
 export function LadderFigure({ fig, tap, clock = STILL }: { fig: LadderFig; tap?: TapProps; clock?: DrawClock }) {
-  const { palette: p, material: m } = useTheme();
+  const { palette: p, soft } = useTheme();
   const step9 = useLineStep(9); // two-line labels: the distance between their lines
   const { u, n, top, foot, cg, contact } = geometry(fig);
   const f = ladderForces(fig);
@@ -101,9 +101,9 @@ export function LadderFigure({ fig, tap, clock = STILL }: { fig: LadderFig; tap?
           <Group transform={`translate(${WALL} ${FLOOR}) rotate(-90)`}>
             <Hatch x1={0} x2={FLOOR - 10} y={0} color={p.draw} clock={clock} from={PEN.walls[0]} to={PEN.walls[1]} />
           </Group>
-          <MonoLabel x={WALL + 40} y={129 - step9} text="SMOOTH" color={p.label} size={9} />
-          <MonoLabel x={WALL + 40} y={129} text="WALL" color={p.label} size={9} />
-          <MonoLabel x={60} y={FLOOR + 16} text="ROUGH FLOOR" color={p.label} size={9} />
+          <MonoLabel x={WALL + 40} y={129 - step9} text="smooth" color={p.label} size={9} />
+          <MonoLabel x={WALL + 40} y={129} text="wall" color={p.label} size={9} />
+          <MonoLabel x={60} y={FLOOR + 16} text="rough floor" color={p.label} size={9} />
         </Group>,
       )}
 
@@ -112,8 +112,10 @@ export function LadderFigure({ fig, tap, clock = STILL }: { fig: LadderFig; tap?
       {stage(clock, 
         PEN.ladder,
         <Group>
-          <Path d={rungs.join(' ')} stroke={p.draw} strokeWidth={stroke.body} />
-          <Path d={rails.join(' ')} stroke={p.draw} strokeWidth={stroke.force} strokeLinecap="round" />
+          {/* rails and rungs in the body's tone, each with an edge of the same hue */}
+          <Path d={rungs.join(' ')} stroke={soft.A.edge} strokeWidth={2.2} />
+          <Path d={rails.join(' ')} stroke={soft.A.edge} strokeWidth={5.6} strokeLinecap="round" />
+          <Path d={rails.join(' ')} stroke={soft.A.fill} strokeWidth={2.4} strokeLinecap="round" />
           <Path d={arcPath} fill="none" stroke={p.label} strokeWidth={stroke.thin} />
           <MonoLabel x={foot[0] + bis[0] * (arc - 13)} y={foot[1] + bis[1] * (arc - 13) + 3} text={`${fixed(fig.angle, 0)}°`} color={p.ink} size={9} />
           <CgMark x={cg[0]} y={cg[1]} color={p.draw} />

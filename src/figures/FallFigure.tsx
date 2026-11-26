@@ -76,7 +76,7 @@ export const fallPlays = (fig: FallFig): boolean => fig.play === true;
 type Props = { fig: FallFig; live?: number; playing: boolean; clock?: DrawClock };
 
 export function FallFigure({ fig, live, playing, clock = STILL }: Props) {
-  const { palette: p, material: m } = useTheme();
+  const { palette: p, soft } = useTheme();
   const sky = 'skydiver' in fig.body;
   const sd = skydiveOf(fig);
   const table = useMemo(() => (sky ? skydiveSamples(skydiveOf(fig), fig.tEnd, STEP) : []), [sky, fig]);
@@ -112,7 +112,7 @@ export function FallFigure({ fig, live, playing, clock = STILL }: Props) {
                 if (y2 > y1) d.push(`M${x},${y2} V${y1}`);
               }
             }
-            return <Path key={ln.x} d={d.join(' ')} stroke={p.paperLine} strokeWidth={stroke.thin} strokeLinecap="round" />;
+            return <Path key={ln.x} d={d.join(' ')} stroke={soft.metal.edge} strokeOpacity={0.4} strokeWidth={stroke.body} strokeLinecap="round" />;
           })}
         </Group>,
       )}
@@ -147,11 +147,11 @@ export function FallFigure({ fig, live, playing, clock = STILL }: Props) {
                   </Group>
                 )}
                 {speedText && <Tag x={ln.x} y={30} text={speedText} />}
-                {!sky && lanes.length > 1 && <MonoLabel x={ln.x} y={222} text={ln.n === 1 ? '1 CASE' : `${ln.n} CASES`} color={p.label} size={9} />}
+                {!sky && lanes.length > 1 && <MonoLabel x={ln.x} y={222} text={ln.n === 1 ? '1 case' : `${ln.n} cases`} color={p.label} size={9} />}
               </Group>
             );
           })}
-          {sky && fig.play === true && live === undefined && <MonoLabel x={12} y={222} text={`× ${SKY_SPEEDUP} SPEED`} color={p.label} size={8} anchor="start" />}
+          {sky && fig.play === true && live === undefined && <MonoLabel x={12} y={222} text={`× ${SKY_SPEEDUP} speed`} color={p.label} size={8} anchor="start" />}
         </Group>,
       )}
     </Group>
@@ -160,7 +160,7 @@ export function FallFigure({ fig, live, playing, clock = STILL }: Props) {
 
 /** The v–t graph of the skydive (down positive) from 0 to t, with each terminal velocity dashed and a dot at t. */
 function VtGraph({ fig, table, t }: { fig: FallFig; table: { t: number; v: number }[]; t: number }) {
-  const { palette: p, material: m } = useTheme();
+  const { palette: p, soft } = useTheme();
   const sd = skydiveOf(fig);
   const vMax = Math.ceil((fig.vt * 1.1) / 10) * 10;
   const X = (tt: number) => GRAPH.x0 + (tt / fig.tEnd) * GRAPH.w;
@@ -168,7 +168,7 @@ function VtGraph({ fig, table, t }: { fig: FallFig; table: { t: number; v: numbe
   const pts = table.filter((r) => r.t <= t + 1e-9).map((r) => `${X(r.t).toFixed(1)},${Y(r.v).toFixed(1)}`);
   const now = table.length ? sample(table as { t: number; v: number; s: number; dOverW: number }[], t) : { v: 0 };
   const tTicks: number[] = [];
-  for (let k = 5; k <= fig.tEnd + 1e-9; k += 5) tTicks.push(k);
+  for (let k = 10; k <= fig.tEnd + 1e-9; k += 10) tTicks.push(k);
   const vTicks: number[] = [];
   for (let k = 10; k <= vMax + 1e-9; k += 10) vTicks.push(k);
   const terminals = [fig.vt, ...(sd.open < 1e8 ? [sd.vt2] : [])];
@@ -192,15 +192,15 @@ function VtGraph({ fig, table, t }: { fig: FallFig; table: { t: number; v: numbe
       ))}
       <MonoLabel x={GRAPH.x0 + 4} y={GRAPH.y0 - GRAPH.h - 2} text="v / m s⁻¹" color={p.label} size={8} anchor="start" />
       <MonoLabel x={GRAPH.x0 + GRAPH.w} y={GRAPH.y0 + 30} text="t / s" color={p.label} size={8} anchor="end" />
-      {pts.length > 1 && <Path d={`M${pts.join(' L')}`} fill="none" stroke={p.ink} strokeWidth={stroke.body} strokeLinejoin="round" />}
-      <Circle cx={X(Math.min(t, fig.tEnd))} cy={Y(now.v)} r={3.6} fill={p.ink} />
+      {pts.length > 1 && <Path d={`M${pts.join(' L')}`} fill="none" stroke={soft.A.edge} strokeWidth={stroke.force} strokeLinejoin="round" />}
+      <Circle cx={X(Math.min(t, fig.tEnd))} cy={Y(now.v)} r={4} fill={soft.A.edge} />
     </Group>
   );
 }
 
-/** Paper cake cases, base down: a fluted cup in flat 3D; a stack shows its rims nested one above another. */
+/** Paper cake cases, base down: a fluted cup; a stack shows its rims nested one above another. */
 function CakeCases({ x, y, n }: { x: number; y: number; n: number }) {
-  const { palette: p, material: m } = useTheme();
+  const { soft } = useTheme();
   const top = 52; // drawn large: the case is the subject of its figure (the arrows keep their own scale)
   const base = 34;
   const h = 21;
@@ -209,33 +209,41 @@ function CakeCases({ x, y, n }: { x: number; y: number; n: number }) {
     const dy = -i * 3.5;
     const y0 = y - h / 2 + dy;
     const d = `M${x - top / 2},${y0} L${x - base / 2},${y0 + h} H${x + base / 2} L${x + top / 2},${y0} Z`;
-    rims.push(<Path key={`c${i}`} d={d} fill={i === 0 ? p.drawFill : p.drawFillDark} stroke={p.draw} strokeWidth={stroke.thin} strokeLinejoin="round" />);
+    rims.push(<Path key={`c${i}`} d={d} fill={soft.A.fill} stroke={soft.A.edge} strokeWidth={1.8} strokeLinejoin="round" />);
   }
   const flutes: string[] = [];
   for (let k = -3; k <= 3; k++) flutes.push(`M${x + k * 7.2},${y - h / 2 + 1} L${x + k * 4.7},${y + h / 2 - 1}`);
   return (
     <Group>
       {rims}
-      <Path d={flutes.join(' ')} stroke={p.draw} strokeWidth={stroke.hair} opacity={0.55} />
+      <Path d={flutes.join(' ')} stroke={soft.A.edge} strokeWidth={stroke.hair} opacity={0.55} />
     </Group>
   );
 }
 
 /**
- * A skydiver seen from the side: belly down in free fall; under the parachute (chute > 0, how far it has opened) upright
- * below the canopy, which grows as it opens. The centre of gravity is at (x, y).
+ * A skydiver seen from the side, as a pictogram: belly down in free fall; under the parachute (chute > 0, how far it has
+ * opened) upright below the canopy, which grows as it opens. The centre of gravity is at (x, y).
  */
 function Skydiver({ x, y, chute }: { x: number; y: number; chute: number }) {
-  const { palette: p, material: m } = useTheme();
-  const limb = { stroke: p.draw, strokeWidth: 1.8, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const, fill: 'none' };
+  const { palette: p, soft } = useTheme();
+  const tone = soft.A;
+  // every part is one rounded stroke in the body's tone over a slightly wider stroke of its edge
+  const part = (d: string, width: number) => (
+    <Group>
+      <Path d={d} fill="none" stroke={tone.edge} strokeWidth={width + 3} strokeLinecap="round" strokeLinejoin="round" />
+      <Path d={d} fill="none" stroke={tone.fill} strokeWidth={width} strokeLinecap="round" strokeLinejoin="round" />
+    </Group>
+  );
+  const head = (cx: number, cy: number) => <Circle cx={cx} cy={cy} r={6.5} fill={tone.fill} stroke={tone.edge} strokeWidth={1.6} />;
   if (chute <= 0) {
     // drawn 1.4 times larger in free fall, about her centre of gravity
     return (
       <Group transform={`translate(${x} ${y}) scale(1.4) translate(${-x} ${-y})`}>
-        <Path d={`M${x + 8},${y - 3} L${x + 18},${y - 14} L${x + 26},${y - 12}`} {...limb} />
-        <Path d={`M${x - 14},${y - 3} L${x - 26},${y - 12} L${x - 34},${y - 6}`} {...limb} />
-        <Path d={`M${x - 16},${y - 4} H${x + 12} a4,4 0 0 1 0,8 H${x - 16} a4,4 0 0 1 0,-8 Z`} fill={m.clothA} stroke={p.draw} strokeWidth={stroke.body} />
-        <Circle cx={x + 21} cy={y - 1} r={5.5} fill={m.skinA} stroke={p.draw} strokeWidth={stroke.body} />
+        {part(`M${x + 8},${y - 2} L${x + 18},${y - 13} L${x + 26},${y - 12}`, 3.4)}
+        {part(`M${x - 14},${y - 2} L${x - 26},${y - 11} L${x - 34},${y - 6}`, 4)}
+        {part(`M${x - 14},${y} H${x + 10}`, 8)}
+        {head(x + 22, y - 1)}
       </Group>
     );
   }
@@ -243,11 +251,12 @@ function Skydiver({ x, y, chute }: { x: number; y: number; chute: number }) {
   const cy = y - 62;
   return (
     <Group>
-      <Path d={`M${x - w},${cy} Q${x},${cy - 26 - 10 * chute} ${x + w},${cy} Q${x},${cy - 8} ${x - w},${cy} Z`} fill={m.clothB} stroke={p.draw} strokeWidth={stroke.body} strokeLinejoin="round" />
+      <Path d={`M${x - w},${cy} Q${x},${cy - 26 - 10 * chute} ${x + w},${cy} Q${x},${cy - 8} ${x - w},${cy} Z`} fill={soft.B.fill} stroke={soft.B.edge} strokeWidth={2} strokeLinejoin="round" />
       <Path d={`M${x - w},${cy} L${x - 4},${y - 14} M${x + w},${cy} L${x + 4},${y - 14} M${x - w * 0.45},${cy - 6} L${x - 3},${y - 14} M${x + w * 0.45},${cy - 6} L${x + 3},${y - 14}`} stroke={p.draw} strokeWidth={stroke.hair} opacity={0.7} />
-      <Circle cx={x} cy={y - 19} r={5.5} fill={m.skinA} stroke={p.draw} strokeWidth={stroke.body} />
-      <Path d={`M${x - 4},${y - 13} H${x + 4} V${y + 8} H${x - 4} Z`} fill={m.clothA} stroke={p.draw} strokeWidth={stroke.body} strokeLinejoin="round" />
-      <Path d={`M${x - 2},${y + 8} L${x - 5},${y + 24} M${x + 2},${y + 8} L${x + 5},${y + 24} M${x - 4},${y - 11} L${x - 4},${y - 15} M${x + 4},${y - 11} L${x + 4},${y - 15}`} {...limb} />
+      {part(`M${x - 2},${y + 8} L${x - 5},${y + 24}`, 3.4)}
+      {part(`M${x + 2},${y + 8} L${x + 5},${y + 24}`, 3.4)}
+      {part(`M${x},${y - 7} V${y + 6}`, 8)}
+      {head(x, y - 19)}
     </Group>
   );
 }

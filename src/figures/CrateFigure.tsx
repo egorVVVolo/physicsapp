@@ -25,7 +25,7 @@ const PEN = { floor: [0, 0.3], crate: [0.2, 0.5], hand: [0.4, 0.62], fbd: [0.58,
 const RAD = Math.PI / 180;
 
 const FLOOR = 190; // the floor line of the scene
-const BOX = { w: 72, h: 50 }; // the crate's front face
+const BOX = { w: 76, h: 56 }; // the crate's front face
 const ROPE = 78; // from the hitch to Rose's hand
 const POLE = 64; // from Rose's hand to the crate
 const DOT = { x: 266, y: 124 }; // the crate as a particle
@@ -37,11 +37,11 @@ const ACC_PX_PER_M = 24; // the scene of an accelerating crate: the floor goes b
 const ACC_U = 2; // m s⁻¹, the crate's speed when an accelerating clip starts
 const ACC_RUN = 2; // s, how long an accelerating clip runs before it starts again
 const ACC_MARK = { x: 292, y: 62 }; // the acceleration chevrons on the free-body diagram (upper right, clear of N and T)
-const LEGEND = { x: 14, y: 26, step: 13 }; // the list of sizes: top left, above the scene
+const LEGEND = { x: 14, y: 18, step: 13 }; // the list of sizes: top left, above the scene
 const PX_PER_M = 60; // the scene: metres of floor to viewBox units
 const STEADY_V = 1; // m s⁻¹, how fast the floor slides past while Rose pulls
 const LET_GO_V = 3; // m s⁻¹, the crate's speed when Rose lets go
-const TICK = 9; // gap between the floor's hatch ticks
+const TICK = 24; // gap between the marks under the floor: they show it sliding past
 
 /** Where the back of the crate stands (before the sheet is centred), for each way of moving it. */
 const BACK = { rope: 34, pole: 66, none: 14 };
@@ -98,7 +98,7 @@ const sceneZoom = (fig: CrateFig) => (hasFbd(fig) ? 1 : 1.4);
 type Props = { fig: CrateFig; live?: number; playing: boolean; clock?: DrawClock; prev?: CrateFig };
 
 export function CrateFigure({ fig, live, playing, clock = STILL, prev }: Props) {
-  const { palette: p, material: m, stroke, pick } = useTheme();
+  const { palette: p, soft, stroke } = useTheme();
   const step9 = useLineStep(9); // two-line labels: the distance between their lines
   const angle = fig.slider === 'force' ? fig.angle : (live ?? fig.angle);
   const f = crateForces(fig, live);
@@ -154,7 +154,7 @@ export function CrateFigure({ fig, live, playing, clock = STILL, prev }: Props) 
   // the floor: a line with hatch ticks that slide back while the crate is pulled along
   const ticks: string[] = [];
   const off = scroll % TICK;
-  for (let x = 8 - off; x + 8 < floorEnd; x += TICK) if (x >= 8) ticks.push(`M${x},${FLOOR + 8} L${x + 8},${FLOOR}`);
+  for (let x = 8 - off; x + 8 < floorEnd; x += TICK) if (x >= 8) ticks.push(`M${x},${FLOOR + 7} L${x + 7},${FLOOR}`);
 
   // free-body diagram tips
   const tip = {
@@ -181,20 +181,17 @@ export function CrateFigure({ fig, live, playing, clock = STILL, prev }: Props) 
       {stage(clock, 
         PEN.floor,
         <Group>
-          <Line x1={8} y1={FLOOR} x2={floorEnd} y2={FLOOR} stroke={p.draw} strokeWidth={pick(stroke.body, 2)} />
-          <Path d={ticks.join(' ')} stroke={p.draw} strokeWidth={pick(stroke.thin, 1)} opacity={0.55} />
+          <Line x1={8} y1={FLOOR} x2={floorEnd} y2={FLOOR} stroke={p.draw} strokeWidth={stroke.body} />
+          <Path d={ticks.join(' ')} stroke={p.draw} strokeWidth={stroke.thin} opacity={0.4} />
         </Group>,
       )}
 
       <Group transform={`translate(${x0 + 79} ${FLOOR}) scale(${zoom}) translate(${-(x0 + 79)} ${-FLOOR})`}>
-      {/* the crate: a front face of planks with a brace, a top facet, its centre of gravity */}
+      {/* the crate, and its centre of gravity */}
       {stage(clock, 
         PEN.crate,
         <Group>
-          <Path d={`M${x0},${top} L${x0 + 7},${top - 6} H${x0 + BOX.w + 7} L${x0 + BOX.w},${top} Z`} fill={pick(m.woodSide, p.drawFillDark)} stroke={p.draw} strokeWidth={pick(stroke.body, 1.6)} strokeLinejoin="round" />
-          <Rect x={x0} y={top} width={BOX.w} height={BOX.h} rx={1.5} fill={pick(m.wood, p.drawFill)} stroke={p.draw} strokeWidth={stroke.body} />
-          <Path d={`M${x0 + 2},${top + BOX.h / 3} H${x0 + BOX.w - 2} M${x0 + 2},${top + (2 * BOX.h) / 3} H${x0 + BOX.w - 2}`} stroke={p.draw} strokeWidth={pick(stroke.thin, 1)} opacity={0.5} />
-          <Path d={`M${x0 + 6},${FLOOR - 4} L${x0 + BOX.w - 6},${top + 4}`} stroke={p.draw} strokeWidth={stroke.thin} opacity={0.6} />
+          <Rect x={x0} y={top} width={BOX.w} height={BOX.h} rx={6} fill={soft.A.fill} stroke={soft.A.edge} strokeWidth={2} />
           <CgMark x={cg[0]} y={cg[1]} color={p.draw} />
         </Group>,
       )}
@@ -205,29 +202,28 @@ export function CrateFigure({ fig, live, playing, clock = STILL, prev }: Props) 
         <Group>
           {fig.by === 'rope' && (
             <Group>
-              <Line x1={hitch[0]} y1={hitch[1]} x2={mitten[0]} y2={mitten[1]} stroke={pick(m.rubber, p.draw)} strokeWidth={pick(stroke.body, 1.6)} />
+              <Line x1={hitch[0]} y1={hitch[1]} x2={mitten[0]} y2={mitten[1]} stroke={p.draw} strokeWidth={stroke.body} />
               <Circle cx={hitch[0]} cy={hitch[1]} r={2.4} fill={p.draw} />
-              <Mitten x={mitten[0]} y={mitten[1]} dx={d[0]} dy={d[1]} />
-              <MonoLabel x={mitten[0] + (angle < 15 ? -2 : 6)} y={mitten[1] + (angle < 15 ? -14 : 18)} text="ROSE" color={p.label} size={9} anchor={angle < 15 ? 'middle' : 'start'} />
+              <Mitten x={mitten[0]} y={mitten[1]} dx={d[0]} dy={d[1]} who="B" />
+              <MonoLabel x={mitten[0] + (angle < 15 ? -2 : 6)} y={mitten[1] + (angle < 15 ? -14 : 18)} text="Rose" color={p.label} size={9} anchor={angle < 15 ? 'middle' : 'start'} />
             </Group>
           )}
           {fig.by === 'pole' && (
             <Group>
-              <Line x1={hand[0]} y1={hand[1]} x2={poleEnd[0]} y2={poleEnd[1]} stroke={p.draw} strokeWidth={5} strokeLinecap="round" />
-              <Line x1={hand[0]} y1={hand[1]} x2={poleEnd[0]} y2={poleEnd[1]} stroke={pick(m.wood, p.drawFillDark)} strokeWidth={stroke.force} strokeLinecap="round" />
-              <Mitten x={hand[0]} y={hand[1]} dx={-d[0]} dy={-d[1]} />
-              <MonoLabel x={hand[0] + 4} y={hand[1] - 16} text="ROSE" color={p.label} size={9} />
+              <Line x1={hand[0]} y1={hand[1]} x2={poleEnd[0]} y2={poleEnd[1]} stroke={p.draw} strokeWidth={stroke.force} strokeLinecap="round" />
+              <Mitten x={hand[0]} y={hand[1]} dx={-d[0]} dy={-d[1]} who="B" />
+              <MonoLabel x={hand[0] + 4} y={hand[1] - 16} text="Rose" color={p.label} size={9} />
             </Group>
           )}
           {fig.by === 'none' && (
             <Path
               d={`M${hitch[0]},${hitch[1]} Q${hitch[0] + 10},${FLOOR - 2} ${hitch[0] + 22},${FLOOR - 1.2} H${hitch[0] + 38}`}
               fill="none"
-              stroke={pick(m.rubber, p.draw)}
-              strokeWidth={pick(stroke.body, 1.6)}
+              stroke={p.draw}
+              strokeWidth={stroke.body}
             />
           )}
-          {fig.play && <MotionTag x={cg[0]} y={top - 20} text={accelerates ? (run.v === 0 ? 'stopped' : `v = ${fixed(run.v, 1)} m s⁻¹`) : fig.by === 'none' ? 'slowing down' : 'steady speed'} />}
+          {fig.play && <MotionTag x={cg[0]} y={top - 14} text={accelerates ? (run.v === 0 ? 'stopped' : `v = ${fixed(run.v, 1)} m s⁻¹`) : fig.by === 'none' ? 'slowing down' : 'steady speed'} />}
           {fig.floorPush && (
             <Group>
               <ForceArrow x1={cg[0]} y1={FLOOR} x2={cg[0]} y2={FLOOR + 32} color={p.force} width={2.8} />
@@ -245,8 +241,8 @@ export function CrateFigure({ fig, live, playing, clock = STILL, prev }: Props) 
           PEN.fbd,
           <Group>
             <Line x1={divide} y1={14} x2={divide} y2={216} stroke={p.paperLine} strokeWidth={stroke.thin} strokeDasharray="4 4" />
-            <MonoLabel x={flat ? 332 : divide + 6} y={(flat ? 211 : 203) - step9} text="CRATE" color={p.label} size={9} anchor={flat ? 'end' : 'start'} />
-            <MonoLabel x={flat ? 332 : divide + 6} y={flat ? 211 : 203} text="ALONE" color={p.label} size={9} anchor={flat ? 'end' : 'start'} />
+            <MonoLabel x={flat ? 332 : divide + 6} y={(flat ? 211 : 203) - step9} text="crate" color={p.label} size={9} anchor={flat ? 'end' : 'start'} />
+            <MonoLabel x={flat ? 332 : divide + 6} y={flat ? 211 : 203} text="alone" color={p.label} size={9} anchor={flat ? 'end' : 'start'} />
             <Rect x={dot.x - 7} y={dot.y - 7} width={14} height={14} rx={2} fill="none" stroke={p.label} strokeWidth={stroke.thin} strokeDasharray="3 3" />
             {!fbd && <MonoLabel x={dot.x + 18} y={dot.y - 14} text="?" color={p.ink} size={12} />}
             {fig.split && split > 0 && (
@@ -283,7 +279,7 @@ export function CrateFigure({ fig, live, playing, clock = STILL, prev }: Props) 
               </Group>
             )}
             {legend.map((line, i) => (
-              <MonoLabel key={line} x={LEGEND.x} y={LEGEND.y + i * LEGEND.step} text={line} color={p.ink} size={9} anchor="start" />
+              <MonoLabel key={line} x={LEGEND.x} y={LEGEND.y + i * Math.max(LEGEND.step, step9)} text={line} color={p.ink} size={9} anchor="start" />
             ))}
           </Group>,
         )}
@@ -293,7 +289,7 @@ export function CrateFigure({ fig, live, playing, clock = STILL, prev }: Props) 
 
 /** The force a question asks about: a short dashed arrow from the dot with its letter and "?". */
 function AskStub({ force }: { force: 'N' | 'F' }) {
-  const { palette: p, material: m } = useTheme();
+  const { palette: p } = useTheme();
   const up = force === 'N';
   const end: [number, number] = up ? [DOT.x, DOT.y - 30] : [DOT.x - 26, DOT.y];
   return (
@@ -306,7 +302,7 @@ function AskStub({ force }: { force: 'N' | 'F' }) {
 
 /** "steady speed →": an outline arrow along the motion with a tag above it. */
 function MotionTag({ x, y, text }: { x: number; y: number; text: string }) {
-  const { palette: p, material: m } = useTheme();
+  const { palette: p } = useTheme();
   const [a, b] = [x - 24, x + 24];
   const d = `M${a},${y - 3} H${b - 10} V${y - 8} L${b},${y} L${b - 10},${y + 8} V${y + 3} H${a} Z`;
   return (
@@ -319,7 +315,7 @@ function MotionTag({ x, y, text }: { x: number; y: number; text: string }) {
 
 /** The acceleration on the free-body diagram: two chevrons pointing forward (or back, when the crate slows down). */
 function AccMark({ x, y, back }: { x: number; y: number; back: boolean }) {
-  const { palette: p, material: m } = useTheme();
+  const { palette: p } = useTheme();
   const d = back ? -4 : 4; // half the width of one chevron, signed by its direction
   const one = (cx: number) => `M${cx - d},${y - 7} L${cx + d},${y} L${cx - d},${y + 7}`;
   return (
